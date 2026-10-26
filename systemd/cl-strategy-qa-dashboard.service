@@ -1,0 +1,15 @@
+[Unit]
+Description=cl-strategy QA status dashboard
+
+[Service]
+Type=simple
+Environment=PATH=/home/marica/.local/share/fnm/aliases/default/bin:/home/marica/.local/bin:/home/marica/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin
+Environment=PNPM_HOME=/home/marica/.local/share/pnpm
+Environment=NX_DAEMON=false
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/marica/.claude/bin/qa-dashboard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

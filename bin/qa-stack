@@ -1,0 +1,924 @@
+#!/usr/bin/env bash
+# Manage the QA runtime's systemd user units.
+set -euo pipefail
+
+QA_TREE="${QA_TREE:-$HOME/cl-strategy-qa}"
+UNIT_DIR="${QA_UNIT_DIR:-$HOME/.config/systemd/user}"
+STATE_DIR="${WT_STATE_DIR:-$HOME/.cl-strategy-local}"
+PREFIX="cl-strategy-qa-"
+BACKEND_SERVICES=(azurite keycloak functions langgraph backend)
+APP_SERVICES=("${BACKEND_SERVICES[@]}")
+DS_SERVICES=(ds-demo)
+OTHER_SERVICES=(frontend-strategy frontend-ri)
+UNIT_PATH="$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+INTENT="$STATE_DIR/qa-backend-intent"
+HEAL_STATE="$STATE_DIR/qa-heal-state.json"
+START_DIR="$STATE_DIR/qa-started"
+
+unit() { echo "${PREFIX}$1.service"; }
+target() { echo "${PREFIX}$1.target"; }
+dry() { [ "${QA_STACK_DRY_RUN:-0}" = 1 ]; }
+run_mutation() {
+  if dry; then printf 'dry-run'; printf ' %q' "$@"; printf '\n'; else ( exec 9>&-; "$@" ); fi
+}
+read_systemctl() { ( exec 9>&-; systemctl "$@" ); }
+lock_wait() {
+  local wait=600 remaining now
+  if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    now=$(date +%s 9>&-)
+    remaining=$((WT_ENSURE_DEADLINE-now))
+    [ "$remaining" -gt 0 ] || { echo 'QA lock deadline expired' >&2; return 1; }
+    [ "$remaining" -ge "$wait" ] || wait="$remaining"
+  elif [[ "${WT_ENSURE_TIMEOUT:-}" =~ ^[0-9]+$ ]]; then
+    [ "$WT_ENSURE_TIMEOUT" -gt 0 ] || { echo 'QA lock deadline expired' >&2; return 1; }
+    [ "$WT_ENSURE_TIMEOUT" -ge "$wait" ] || wait="$WT_ENSURE_TIMEOUT"
+  fi
+  echo "$wait"
+}
+acquire_lock() {
+  [ "${QA_HEAL_LOCK_HELD:-0}" = 1 ] && return 0
+  local wait
+  wait=$(lock_wait) || return 1
+  mkdir -p "$STATE_DIR" 9>&-
+  exec 9>"$STATE_DIR/qa-heal.lock"
+  flock -w "$wait" 9 || { echo 'QA lock timed out' >&2; return 1; }
+}
+services_for() {
+  case "$1" in
+    app) printf '%s\n' "${APP_SERVICES[@]}" ;;
+    ds-demo) printf '%s\n' "${DS_SERVICES[@]}" ;;
+    all) printf '%s\n' "${APP_SERVICES[@]}" "${DS_SERVICES[@]}" ;;
+  esac
+}
+groups_for() { if [ "$1" = all ]; then printf '%s\n' app ds-demo; else echo "$1"; fi; }
+group_for() { if [ "$1" = ds-demo ]; then echo ds-demo; else echo app; fi; }
+dependencies() {
+  case "$1" in
+    functions) echo "${PREFIX}azurite.service" ;;
+    langgraph) echo "${PREFIX}functions.service" ;;
+    backend) echo "${PREFIX}langgraph.service ${PREFIX}keycloak.service" ;;
+    frontend-*) echo "${PREFIX}backend.service" ;;
+  esac
+}
+write_unit() {
+  local service="$1" kind extra="" after directory="$QA_TREE" exec="$QA_TREE/dev-start.sh $service" group
+  group=$(group_for "$service")
+  after=$(dependencies "$service")
+  case "$service" in
+    keycloak) kind=$'Type=oneshot\nRemainAfterExit=yes\nTimeoutStartSec=420' ;;
+    azurite) kind=$'Type=simple\nRemainAfterExit=yes\nRestart=on-failure\nRestartSec=5' ;;
+    *) kind=$'Type=simple\nRestart=on-failure\nRestartSec=5' ;;
+  esac
+  [ "$service" = backend ] && extra=$'ExecStartPost=-'"$QA_TREE"$'/dev-start.sh sync-jwt\nTimeoutStartSec=240'
+  [[ "$service" == frontend-* ]] && extra="TimeoutStartSec=300"
+  if [ "$service" = ds-demo ]; then
+    directory="$QA_TREE/apps/ui"
+    exec="/usr/bin/env pnpm run dev:ds-demo"
+    extra="TimeoutStartSec=300"
+  fi
+  cat > "$UNIT_DIR/$(unit "$service")" 9>&- <<EOF_UNIT
+[Unit]
+Description=cl-strategy QA $service
+PartOf=$(target "$group")
+${after:+After=$after}
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+$kind
+WorkingDirectory=$directory
+Environment=PATH=$UNIT_PATH
+Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment=NX_DAEMON=false
+Environment=PYTHONUNBUFFERED=1
+ExecStart=$exec
+$extra
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=$(target "$group")
+EOF_UNIT
+}
+write_watchdog() {
+  local self
+  self=$(readlink -f "$0" 9>&-)
+  cat > "$UNIT_DIR/${PREFIX}watchdog.service" 9>&- <<EOF_WATCHDOG
+[Unit]
+Description=cl-strategy QA backend watchdog
+
+[Service]
+Type=oneshot
+Environment=PATH=$UNIT_PATH
+Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment=NX_DAEMON=false
+Environment=PYTHONUNBUFFERED=1
+Environment=QA_TREE=$QA_TREE
+Environment=WT_STATE_DIR=$STATE_DIR
+Environment=QA_UNIT_DIR=$UNIT_DIR
+Environment=QA_STACK_WATCHDOG=1
+ExecStart=$self heal --quiet
+EOF_WATCHDOG
+  cat > "$UNIT_DIR/${PREFIX}watchdog.timer" 9>&- <<EOF_TIMER
+[Unit]
+Description=Check cl-strategy QA backend
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+Unit=${PREFIX}watchdog.service
+
+[Install]
+WantedBy=timers.target
+EOF_TIMER
+}
+write_dashboard() {
+  cat > "$UNIT_DIR/${PREFIX}dashboard.service" 9>&- <<EOF_DASHBOARD
+[Unit]
+Description=cl-strategy QA status dashboard
+
+[Service]
+Type=simple
+Environment=PATH=$UNIT_PATH
+Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment=NX_DAEMON=false
+Environment=PYTHONUNBUFFERED=1
+ExecStart=$HOME/.claude/bin/qa-dashboard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF_DASHBOARD
+}
+install_units() {
+  [ -x "$QA_TREE/dev-start.sh" ] || { echo "no dev-start.sh in $QA_TREE" >&2; return 1; }
+  [ -f "$QA_TREE/.wt-qa-runtime" ] || { echo "$QA_TREE is not the QA runtime tree (.wt-qa-runtime missing)" >&2; return 1; }
+  mkdir -p "$UNIT_DIR" 9>&-
+  local service group wants
+  for service in "${APP_SERVICES[@]}" "${DS_SERVICES[@]}" "${OTHER_SERVICES[@]}"; do write_unit "$service"; done
+  for group in app ds-demo; do
+    wants=""
+    while IFS= read -r service; do wants+=" $(unit "$service")"; done < <(services_for "$group")
+    cat > "$UNIT_DIR/$(target "$group")" 9>&- <<EOF_TARGET
+[Unit]
+Description=cl-strategy QA $group stack
+Wants=$wants
+EOF_TARGET
+  done
+  cat > "$UNIT_DIR/$(target all)" 9>&- <<EOF_ALL
+[Unit]
+Description=cl-strategy QA runtime stack
+Wants=$(target app) $(target ds-demo)
+EOF_ALL
+  write_watchdog
+  write_dashboard
+  run_mutation systemctl --user daemon-reload
+  echo "installed  service, target and watchdog units in $UNIT_DIR (serving $QA_TREE)"
+}
+ensure_units() {
+  local service group
+  for group in app ds-demo all; do [ -f "$UNIT_DIR/$(target "$group")" ] || { install_units; return; }; done
+  [ -f "$UNIT_DIR/${PREFIX}watchdog.timer" ] || { install_units; return; }
+  [ -f "$UNIT_DIR/${PREFIX}dashboard.service" ] || { install_units; return; }
+  for service in "${APP_SERVICES[@]}" "${DS_SERVICES[@]}"; do
+    [ -f "$UNIT_DIR/$(unit "$service")" ] || { install_units; return; }
+  done
+}
+foreign_listeners() {
+  local stack="$1" mode="${2:-normal}" offset
+  offset=$(qa_offset) || return 1
+  python3 - "$QA_TREE" "$stack" "$offset" "$mode" 9>&- <<'PY'
+import os, pathlib, sys
+qa, stack, offset = os.path.realpath(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+mode = sys.argv[4]
+backend = ('functions', 'langgraph', 'backend')
+frontends = ('frontend-strategy', 'frontend-ri')
+selected = set((*backend, *frontends) if stack == 'app' and mode == 'adopt' else
+               backend if stack == 'app' else ('ds-demo',) if stack == 'ds-demo' else
+               (*backend, *frontends, 'ds-demo'))
+ports = {'functions': 7071 + 10*offset, 'langgraph': 2024 + 10*offset,
+         'backend': 8000 + 10*offset, 'frontend-strategy': 5173 + 10*offset,
+         'frontend-ri': 5174 + 10*offset}
+if 'ds-demo' in selected:
+    try:
+        import json
+        project = pathlib.Path(qa) / 'apps/ui/apps/ds-demo/project.json'
+        ports['ds-demo'] = int(json.loads(project.read_text())['targets']['serve']['options']['port'])
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+
+def proc(pid, name):
+    try:
+        return (pathlib.Path('/proc') / pid / name).read_bytes()
+    except (OSError, ValueError):
+        return b''
+
+def under_unit(pid, service):
+    return f'cl-strategy-qa-{service}.service'.encode() in proc(pid, 'cgroup')
+
+found = set()
+pids = [p for p in os.listdir('/proc') if p.isdigit()]
+for pid in pids:
+    args = [a.decode(errors='replace') for a in proc(pid, 'cmdline').split(b'\0') if a]
+    if not args:
+        continue
+    try:
+        cwd = os.path.realpath(f'/proc/{pid}/cwd')
+    except OSError:
+        continue
+    script = next((i for i, arg in enumerate(args) if os.path.basename(arg) == 'dev-start.sh'), None)
+    if script is not None and cwd == qa:
+        requested = args[script+1:]
+        unsafe_default = not requested or '--log' in requested
+        unsafe_shared = bool({'azurite', 'keycloak'} & set(requested))
+        reason = 'dev-start:all' if unsafe_default else 'dev-start:shared' if unsafe_shared else 'dev-start'
+        names = set(requested) & selected
+        if unsafe_default:
+            names |= set((*backend, 'frontend-ri')) & selected
+        for service in names:
+            if not under_unit(pid, service) and (mode == 'adopt' or reason == 'dev-start'):
+                found.add((service, pid, reason))
+    if 'ds-demo' in selected and cwd == os.path.join(qa, 'apps/ui') and 'ds-demo' in ' '.join(args):
+        if not under_unit(pid, 'ds-demo'):
+            found.add(('ds-demo', pid, 'serve'))
+
+# Match listening socket inodes to owning PIDs and their systemd cgroups.
+inodes = {}
+for table in ('/proc/net/tcp', '/proc/net/tcp6'):
+    try:
+        rows = pathlib.Path(table).read_text().splitlines()[1:]
+    except OSError:
+        continue
+    for row in rows:
+        fields = row.split()
+        if len(fields) > 9 and fields[3] == '0A':
+            port = int(fields[1].rsplit(':', 1)[1], 16)
+            for service, expected in ports.items():
+                if service in selected and port == expected:
+                    inodes.setdefault(fields[9], set()).add(service)
+if inodes:
+    seen = set()
+    for pid in pids:
+        fd_dir = f'/proc/{pid}/fd'
+        try:
+            descriptors = os.listdir(fd_dir)
+        except OSError:
+            continue
+        for fd in descriptors:
+            try:
+                link = os.readlink(f'{fd_dir}/{fd}')
+            except OSError:
+                continue
+            if not link.startswith('socket:['):
+                continue
+            for service in inodes.get(link[8:-1], ()):
+                seen.add((link[8:-1], service))
+                if not under_unit(pid, service):
+                    found.add((service, pid, 'listener'))
+    for inode, services in inodes.items():
+        for service in services:
+            if (inode, service) not in seen:
+                found.add((service, '?', 'listener owner unknown'))
+for service, pid, reason in sorted(found):
+    print(f'{pid} ({service}; {reason})')
+PY
+}
+# Only QA-tree dev-start launchers and their descendants belong to an adopt kill plan.
+# Listener-only PIDs may belong to other users' shared services.
+adopt_plan() {
+  python3 - "$1" "$QA_TREE" 9>&- <<'PY'
+import os, pathlib, sys
+qa = os.path.realpath(sys.argv[2])
+roots = set()
+kept = {}
+listeners = {}
+for line in sys.argv[1].splitlines():
+    pid = line.split(' ', 1)[0]
+    if '; listener)' in line and pid.isdigit():
+        listeners[int(pid)] = line.split(' (', 1)[1].split(';', 1)[0]
+    if '; dev-start' in line:
+        if pid.isdigit():
+            roots.add(int(pid))
+            if '; dev-start:all)' in line:
+                kept[int(pid)] = 'no-argument launcher (trap bypassed)'
+            elif '; dev-start:shared)' in line:
+                kept[int(pid)] = 'launcher includes shared services (trap bypassed)'
+children, parents = {}, {}
+for entry in os.listdir('/proc'):
+    if not entry.isdigit(): continue
+    try:
+        cwd = os.path.realpath(f'/proc/{entry}/cwd')
+        if cwd != qa and not cwd.startswith(qa + '/'):
+            continue
+        status = pathlib.Path(f'/proc/{entry}/status').read_text()
+        parent = int(next(line.split(':', 1)[1] for line in status.splitlines() if line.startswith('PPid:')))
+    except (OSError, StopIteration, ValueError):
+        continue
+    parents[int(entry)] = parent
+    children.setdefault(parent, []).append(int(entry))
+
+def ancestors(pid):
+    seen = set()
+    while pid in parents and pid not in seen:
+        seen.add(pid)
+        pid = parents[pid]
+        yield pid
+
+selected = roots - set(kept)
+uncertain = []
+def app_command(pid, service):
+    try:
+        args = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().replace(b'\0', b' ').decode(errors='replace').lower()
+    except OSError:
+        return False
+    if any(word in args for word in ('azurite', 'keycloak', 'docker-proxy')):
+        return False
+    markers = {
+        'backend': ('uvicorn', 'apps/backend'),
+        'functions': ('func start', 'azure_functions', 'azure-functions'),
+        'langgraph': ('langgraph dev', 'langgraph'),
+        'frontend-strategy': ('nx serve strategy', 'dev:strategy'),
+        'frontend-ri': ('nx serve ri', 'dev:ri'),
+        'ds-demo': ('ds-demo',),
+    }
+    return any(marker in args for marker in markers.get(service, ()))
+
+def shared_command(pid):
+    try:
+        args = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().replace(b'\0', b' ').decode(errors='replace').lower()
+    except OSError:
+        return True
+    return any(word in args for word in ('azurite', 'keycloak', 'podman', 'rootlessport'))
+
+# A launcher may exec an app directly. Climb from its listener to the app
+# starter so terminating it also stops workers it may otherwise respawn.
+for pid, service in listeners.items():
+    lineage = list(ancestors(pid))
+    if not set(lineage) & set(kept) or set(lineage) & selected:
+        continue
+    starter = None
+    for candidate in (pid, *lineage):
+        if candidate in kept:
+            break
+        if app_command(candidate, service):
+            starter = candidate
+    if starter is None:
+        uncertain.append((pid, service))
+    else:
+        selected.add(starter)
+# A selected launcher already covers any selected descendants.
+selected = {pid for pid in selected if not set(ancestors(pid)) & selected}
+for pid, reason in sorted(kept.items()):
+    print(f'ROOT_KILL\t{pid}\t{reason}')
+for pid, service in sorted(uncertain):
+    print(f'UNCERTAIN\t{pid}\t{service} listener has no identifiable app starter')
+seen = set()
+queue = [(pid, 'app starter' if pid not in roots else 'launcher') for pid in sorted(selected)]
+while queue:
+    pid, kind = queue.pop(0)
+    if pid in seen: continue
+    seen.add(pid)
+    if pid in kept or shared_command(pid): continue
+    print(f'{pid}\t{kind}')
+    queue.extend((child, 'child') for child in sorted(children.get(pid, ())))
+PY
+}
+# Read the existing offset claim without asking ports.py to allocate a new one.
+qa_offset() {
+  python3 - "$QA_TREE" "$HOME/.cl-strategy-local/offsets.json" 9>&- <<'PY'
+import json, os, pathlib, sys
+qa = pathlib.Path(sys.argv[1])
+file = qa / '.port-offset'
+try:
+    if file.exists():
+        offset = int(file.read_text().strip())
+    else:
+        with open(sys.argv[2]) as stream:
+            offset = json.load(stream)['claims'][os.path.realpath(qa)]['offset']
+    if not isinstance(offset, int) or not 0 <= offset <= 9:
+        raise ValueError('offset outside 0..9')
+    print(offset)
+except (OSError, KeyError, TypeError, ValueError) as error:
+    print(f'could not resolve QA port offset: {error}', file=sys.stderr)
+    sys.exit(1)
+PY
+}
+# Concurrent two-second probes keep aggregate status bounded even when all endpoints are down.
+probe_results() {
+  local offset
+  offset=$(qa_offset) || return 1
+  python3 - "$offset" "$@" 9>&- <<'PY'
+from concurrent.futures import ThreadPoolExecutor
+import socket, sys, urllib.request
+offset = int(sys.argv[1])
+names = sys.argv[2:]
+def ready(name):
+    try:
+        if name in ('keycloak', 'azurite'):
+            with socket.create_connection(('127.0.0.1', 8080 if name == 'keycloak' else 10000), 2):
+                pass
+        else:
+            port, path = {'functions': (7071, '/api/health'), 'langgraph': (2024, '/ok'), 'backend': (8000, '/health')}[name]
+            with urllib.request.urlopen(f'http://127.0.0.1:{port + 10 * offset}{path}', timeout=2) as response:
+                if response.status != 200:
+                    raise OSError(f'HTTP {response.status}')
+        return 'ready'
+    except (OSError, ValueError):
+        return 'failed'
+with ThreadPoolExecutor(max_workers=len(names)) as pool:
+    for name, result in zip(names, pool.map(ready, names)):
+        print(f'{name}\t{result}')
+PY
+}
+probe() { [ "$(probe_results "$1")" = "$1"$'\t'ready ]; }
+shared_external_ready() {
+  case "$1" in azurite|keycloak) ;; *) return 1 ;; esac
+  local state
+  state=$(read_systemctl --user is-active "$(unit "$1")" 2>/dev/null || true)
+  [ "$state" != active ] && probe "$1"
+}
+record_start() {
+  if dry; then echo "dry-run record startup for $1"
+  else mkdir -p "$START_DIR" 9>&-; date +%s 9>&- > "$START_DIR/$1"; fi
+}
+startup_pending() {
+  local service="$1" state="$2" started now grace=180 stamp now_us property remaining
+  STARTUP_REMAINING=0
+  case "$state" in active|activating|reloading) ;; *) return 1 ;; esac
+  [ "$service" != keycloak ] || grace=420
+  if [ -f "$START_DIR/$service" ]; then
+    read -r started < "$START_DIR/$service"
+    if [[ "$started" =~ ^[0-9]+$ ]]; then
+      now=$(date +%s 9>&-)
+      if [ "$now" -ge "$started" ] && [ "$((now-started))" -lt "$grace" ]; then
+        STARTUP_REMAINING=$((grace-(now-started)))
+      fi
+    fi
+  fi
+  # Also cover starts or automatic restarts initiated by systemd itself.
+  now_us=$(python3 - 9>&- <<'PY'
+import time
+print(time.monotonic_ns() // 1_000)
+PY
+  )
+  for property in ExecMainStartTimestampMonotonic ActiveEnterTimestampMonotonic; do
+    stamp=$(read_systemctl --user show "$(unit "$service")" -p "$property" --value 2>/dev/null || true)
+    if [[ "$stamp" =~ ^[0-9]+$ ]] && [ "$stamp" -gt 0 ] &&
+       [ "$now_us" -ge "$stamp" ] && [ "$((now_us-stamp))" -lt "$((grace*1000000))" ]; then
+      remaining=$(((grace*1000000-(now_us-stamp)+999999)/1000000))
+      [ "$remaining" -gt "$STARTUP_REMAINING" ] && STARTUP_REMAINING="$remaining"
+    fi
+  done
+  if [ "$STARTUP_REMAINING" -gt 0 ]; then
+      return 0
+  fi
+  if [ "$state" = activating ]; then STARTUP_REMAINING="$grace"; return 0; fi
+  return 1
+}
+# Last field is service-specific breaker state, stored independently of systemd.
+breaker_count() {
+  python3 - "$HEAL_STATE" "$1" "${2:-count}" 9>&- <<'PY'
+import json, sys, time
+path, name, action = sys.argv[1:]
+try:
+    with open(path) as f: data = json.load(f)
+except (OSError, ValueError): data = {}
+now = time.time()
+entries = [t for t in data.get(name, []) if now - t < 1800]
+if action == 'clear': entries = []
+elif action == 'add': entries.append(now)
+if action != 'count':
+    import os
+    data[name] = entries
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    temp = path + '.tmp.' + str(os.getpid())
+    with open(temp, 'w') as f: json.dump(data, f)
+    os.replace(temp, path)
+print(len(entries))
+PY
+}
+health_lines() {
+  local service state count result breaker probes
+  local -A probe_state=()
+  probes=$(probe_results "${BACKEND_SERVICES[@]}") || return 1
+  while IFS=$'\t' read -r service result; do probe_state["$service"]="$result"; done <<< "$probes"
+  for service in "${BACKEND_SERVICES[@]}"; do
+    state=$(read_systemctl --user is-active "$(unit "$service")" 2>/dev/null || true)
+    [ -n "$state" ] || state=unknown
+    count=$(read_systemctl --user show "$(unit "$service")" -p NRestarts --value 2>/dev/null || true)
+    [[ "$count" =~ ^[0-9]+$ ]] || count=0
+    result="${probe_state[$service]}"
+    breaker=$(breaker_count "$service")
+    if [ "$breaker" -ge 3 ]; then breaker=true; else breaker=false; fi
+    printf '%s\t%s\t%s\t%s\t%s\n' "$service" "$state" "$result" "$count" "$breaker"
+  done
+}
+health() {
+  local format="${1:-text}" lines
+  lines=$(health_lines)
+  if [ "$format" = json ]; then
+    python3 - "$lines" 9>&- <<'PY'
+import datetime, json, sys
+services = {}
+for line in sys.argv[1].splitlines():
+    name, state, probe, restarts, breaker = line.split('\t')
+    shared_external = name in ('azurite', 'keycloak') and probe == 'ready' and state != 'active'
+    status = 'ready (shared, external)' if shared_external else probe
+    services[name] = {'unitState': state, 'probe': probe, 'status': status,
+                      'sharedExternal': shared_external, 'restartCount': int(restarts),
+                      'needsAttention': breaker == 'true'}
+ready = sum(x['probe'] == 'ready' for x in services.values())
+overall = 'healthy' if ready == len(services) else ('degraded' if ready else 'down')
+print(json.dumps({'overall': overall, 'services': services}))
+sys.exit(0 if overall == 'healthy' else 1)
+PY
+  else
+    local name state result count breaker ready=0 total=0 display
+    while IFS=$'\t' read -r name state result count breaker; do
+      total=$((total+1))
+      [ "$result" = ready ] && ready=$((ready+1))
+      display="$state, $result"
+      if [ "$result" = ready ] && [ "$state" != active ]; then
+        case "$name" in
+          azurite|keycloak) display='ready (shared, external)' ;;
+          *) display='listening (not under systemd)' ;;
+        esac
+      fi
+      [ "$breaker" = true ] && display+=', needs-attention'
+      printf '%-18s %s (restarts %s)\n' "$name" "$display" "$count"
+    done <<< "$lines"
+    if [ "$ready" -eq "$total" ]; then echo 'overall            healthy'; return 0
+    elif [ "$ready" -gt 0 ]; then echo 'overall            degraded'; return 1
+    else echo 'overall            down'; return 1; fi
+  fi
+}
+status() {
+  local stack="$1" group service state
+  for group in $(groups_for "$stack"); do
+    echo "$group:"
+    while IFS= read -r service; do
+      state=$(read_systemctl --user is-active "$(unit "$service")" 2>/dev/null || true)
+      printf '  %-18s %s\n' "$service" "${state:-unknown}"
+    done < <(services_for "$group")
+  done
+  health || true
+}
+resolve() {
+  local name="$1" stack="$2" service
+  while IFS= read -r service; do [ "$service" = "$name" ] && { unit "$name"; return; }; done < <(services_for "$stack")
+  echo "unknown service for $stack: $name" >&2
+  return 2
+}
+wait_probe() {
+  local service="$1" limit="$2" elapsed=0 step
+  if dry; then echo "dry-run wait for $service probe ($limit seconds)"; return 0; fi
+  until probe "$service"; do
+    [ "$elapsed" -lt "$limit" ] || return 1
+    step=$((limit-elapsed))
+    [ "$step" -le 2 ] || step=2
+    sleep "$step" 9>&-
+    elapsed=$((elapsed+step))
+  done
+}
+wait_adopt_ports() {
+  local stack="$1" elapsed listeners foreign
+  if dry; then echo 'dry-run wait up to 30s for app ports to clear'; return 0; fi
+  for ((elapsed=0; elapsed<=30; elapsed++)); do
+    foreign=$(foreign_listeners "$stack" adopt) || return 1
+    listeners=$(printf '%s\n' "$foreign" | grep -F '; listener' 9>&- || true)
+    [ -n "$listeners" ] || return 0
+    [ "$elapsed" -lt 30 ] || break
+    sleep 1 9>&-
+  done
+  echo "app ports still listening: $listeners" >&2
+  return 1
+}
+verify_adopt_root() {
+  python3 - "$QA_TREE" "$1" 9>&- <<'PY'
+import os, pathlib, sys
+qa, pid = os.path.realpath(sys.argv[1]), sys.argv[2]
+try:
+    if os.path.realpath(f'/proc/{pid}/cwd') != qa:
+        raise ValueError('cwd changed')
+    args = [a.decode(errors='replace') for a in pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0') if a]
+    if len(args) < 2 or os.path.basename(args[0]) != 'bash' or os.path.basename(args[1]) != 'dev-start.sh':
+        raise ValueError('not bash dev-start.sh')
+    requested = args[2:]
+    if requested and '--log' not in requested and not {'azurite', 'keycloak'} & set(requested):
+        raise ValueError('app-only launcher')
+except (OSError, ValueError) as error:
+    print(f'cannot verify adopt launcher PID {pid}: {error}', file=sys.stderr)
+    sys.exit(1)
+PY
+}
+sync_named_redirects() {
+  local file
+  dry && return 0
+  for file in "$STATE_DIR"/wt-serve/slot-*; do
+    [ -f "$file" ] && grep -q '^kc=.' "$file" || continue
+    probe keycloak || return 0
+    timeout --kill-after=5 60 "$(dirname "$0")/kc-redirects" sync >/dev/null || echo 'keycloak   named addresses could not be synchronized' >&2
+    return 0
+  done
+}
+heal() {
+  local quiet="$1" force="$2" service state foreign foreign_all limit count failed_any=0 dependency action remaining
+  local -A failed=()
+  if [ "${QA_STACK_WATCHDOG:-0}" = 1 ] && [ ! -f "$INTENT" ]; then
+    sync_named_redirects
+    [ "$quiet" = true ] || echo 'backend intent absent; heal skipped'
+    return 0
+  fi
+  if [ "${QA_HEAL_LOCK_HELD:-0}" != 1 ]; then
+    local wait
+    wait=$(lock_wait) || return 1
+    mkdir -p "$STATE_DIR" 9>&-
+    exec 9>"$STATE_DIR/qa-heal.lock"
+    if ! flock -n 9; then
+      flock -w "$wait" 9 || { echo 'heal lock timed out' >&2; return 1; }
+      sync_named_redirects
+      health; return
+    fi
+  fi
+  if [ "$force" = true ] && ! dry; then
+    for service in "${BACKEND_SERVICES[@]}"; do breaker_count "$service" clear >/dev/null; done
+  fi
+  for service in "${BACKEND_SERVICES[@]}"; do
+    if probe "$service"; then continue; fi
+    state=$(read_systemctl --user is-active "$(unit "$service")" 2>/dev/null || true)
+    if startup_pending "$service" "$state"; then
+      if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+        remaining=$((WT_ENSURE_DEADLINE-$(date +%s 9>&-)))
+        [ "$remaining" -ge "$STARTUP_REMAINING" ] || STARTUP_REMAINING="$remaining"
+      fi
+      [ "$quiet" = true ] || echo "$service is starting; waiting up to ${STARTUP_REMAINING}s"
+      if [ "$STARTUP_REMAINING" -gt 0 ] && wait_probe "$service" "$STARTUP_REMAINING"; then
+        continue
+      fi
+      echo "$service is still starting" >&2
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    dependency=""
+    case "$service" in
+      functions) [ "${failed[azurite]:-0}" = 1 ] && dependency=azurite ;;
+      langgraph) [ "${failed[functions]:-0}" = 1 ] && dependency=functions ;;
+      backend)
+        [ "${failed[langgraph]:-0}" = 1 ] && dependency=langgraph
+        [ "${failed[keycloak]:-0}" = 1 ] && dependency=keycloak ;;
+    esac
+    if [ -n "$dependency" ]; then
+      echo "skipping $service: $dependency is unhealthy" >&2
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    if dry; then echo "dry-run confirm probe failure for $service after 5s"
+    else sleep 5 9>&-; probe "$service" && continue; fi
+    if ! foreign_all=$(foreign_listeners app); then
+      echo "cannot verify foreign processes for $service" >&2
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    foreign=$(printf '%s\n' "$foreign_all" | grep -F "($service;" || true)
+    if [ -n "$foreign" ]; then
+      echo "adopt needed: $foreign" >&2
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    count=$(breaker_count "$service")
+    [ "$force" = false ] || count=0
+    if [ "$count" -ge 3 ]; then
+      echo "$service needs-attention: 3 heal restarts in 30 minutes" >&2
+      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    [ "$quiet" = true ] || echo "healing $service"
+    state=$(read_systemctl --user is-active "$(unit "$service")" 2>/dev/null || true)
+    action=restart
+    case "$service:$state" in azurite:active|keycloak:active) action=restart ;;
+      azurite:*|keycloak:*) action=start ;;
+    esac
+    if ! run_mutation systemctl --user reset-failed "$(unit "$service")" ||
+       ! run_mutation systemctl --user "$action" "$(unit "$service")"; then
+      echo "$service $action failed" >&2
+      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    if ! dry; then breaker_count "$service" add >/dev/null; fi
+    limit=180; [ "$service" = keycloak ] && limit=420
+    if ! wait_probe "$service" "$limit"; then
+      echo "$service still unhealthy" >&2
+      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      failed["$service"]=1; failed_any=1
+      continue
+    fi
+    if [ "$service" = keycloak ] || [ "$service" = backend ]; then
+      if ! run_mutation timeout 120 "$QA_TREE/dev-start.sh" sync-jwt; then
+        echo "$service sync-jwt failed" >&2
+        failed["$service"]=1; failed_any=1
+      fi
+    fi
+  done
+  sync_named_redirects
+  if [ "$quiet" = false ]; then health || true; fi
+  [ "$failed_any" -eq 0 ]
+}
+usage() { echo 'usage: qa-stack [up|down|restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe] [service] [seconds] [--stack ds-demo|app|all] [--json|--quiet|--force|--yes|--no-block|-n N|-f] (heal syncs named callbacks)' >&2; }
+command="${1:-status}"; [ $# -eq 0 ] || shift
+stack=app; service=""; wait_limit=""; json=false; quiet=false; force=false; yes=false; follow=false; lines=80
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --stack) [ $# -ge 2 ] || { usage; exit 2; }; stack="$2"; shift 2 ;;
+    --stack=*) stack="${1#*=}"; shift ;;
+    --json) json=true; shift ;;
+    --quiet) quiet=true; shift ;;
+    --force) force=true; shift ;;
+    --yes) yes=true; shift ;;
+    --no-block) shift ;;
+    -f) follow=true; shift ;;
+    -n) [ $# -ge 2 ] || { usage; exit 2; }; lines="$2"; shift 2 ;;
+    -*) usage; exit 2 ;;
+    *)
+      if [ -z "$service" ]; then service="$1"
+      elif [ "$command" = wait-probe ] && [ -z "$wait_limit" ]; then wait_limit="$1"
+      else usage; exit 2; fi
+      shift ;;
+  esac
+done
+case "$stack" in ds-demo|app|all) ;; *) usage; exit 2 ;; esac
+case "$command" in up|down|restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe) ;; *) usage; exit 2 ;; esac
+case "$command" in restart|logs|wait-probe) ;; *) [ -z "$service" ] || { usage; exit 2; } ;; esac
+[ -z "$service" ] || resolve "$service" "$stack" >/dev/null
+[[ "$lines" =~ ^[0-9]+$ ]] || { usage; exit 2; }
+if [ "$command" = wait-probe ]; then
+  case "$service" in azurite|keycloak|functions|langgraph|backend) ;; *) usage; exit 2 ;; esac
+  [ -n "$wait_limit" ] || { if [ "$service" = keycloak ]; then wait_limit=420; else wait_limit=180; fi; }
+  [[ "$wait_limit" =~ ^[0-9]+$ ]] && [ "$wait_limit" -gt 0 ] || { usage; exit 2; }
+fi
+case "$command" in
+  install) install_units ;;
+  dashboard)
+    echo "http://localhost:${QA_DASHBOARD_PORT:-5100}"
+    printf 'unit       %s\n' "$(read_systemctl --user is-active "${PREFIX}dashboard.service" 2>/dev/null || true)" ;;
+  status) status "$stack" ;;
+  health) if [ "$json" = true ]; then health json; else health; fi ;;
+  wait-probe) wait_probe "$service" "$wait_limit" ;;
+  foreign) foreign_listeners "$stack" ;;
+  heal) heal "$quiet" "$force" ;;
+  adopt)
+    [ "$yes" = false ] || acquire_lock
+    stray=$(foreign_listeners "$stack" adopt)
+    plan=$(adopt_plan "$stray")
+    kill_plan=""; root_plan=""; uncertain_plan=""
+    while IFS=$'\t' read -r first second third; do
+      [ -n "$first" ] || continue
+      if [ "$first" = ROOT_KILL ]; then
+        root_plan+="$second: $third"$'\n'
+      elif [ "$first" = UNCERTAIN ]; then
+        uncertain_plan+="$second: $third"$'\n'
+      else
+        kill_plan+="$first"$'\t'"$second"$'\n'
+      fi
+    done <<< "$plan"
+    echo 'shared     keycloak and azurite stay as-is'
+    if [ -n "$root_plan" ]; then
+      echo 'first      SIGKILL QA-tree launcher(s), bypassing their exit trap:'
+      while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        printf '  SIGKILL %s\n' "$item"
+      done <<< "$root_plan"
+    fi
+    if [ -n "$kill_plan" ]; then
+      echo 'kill plan  QA-tree dev-start process tree:'
+      while IFS=$'\t' read -r pid kind; do
+        [ -n "$pid" ] || continue
+        printf '  SIGTERM %-8s %s\n' "$pid" "$kind"
+      done <<< "$kill_plan"
+    else
+      echo 'kill plan  none'
+    fi
+    if [ -n "$root_plan" ] && [ "$yes" = false ]; then
+      echo 'After cutover, the Herdr pane will show an exited shell and can be closed safely.'
+    fi
+    [ -z "$uncertain_plan" ] || printf 'review     %s' "$uncertain_plan" >&2
+    if [ -n "$stray" ] && [ -z "$kill_plan" ] && [ -z "$root_plan" ]; then
+      echo "foreign listeners require manual review: $stray" >&2
+      [ "$yes" = false ] && exit 0
+      exit 1
+    fi
+    if [ "$yes" = false ]; then
+      if [ -n "$kill_plan" ] || [ -n "$root_plan" ]; then
+        echo 'run qa-stack adopt --yes to apply this kill plan and start systemd units'
+      fi
+      exit 0
+    fi
+    while IFS= read -r item; do
+      [ -n "$item" ] || continue
+      pid=${item%%:*}
+      if ! dry && ! kill -0 "$pid" 2>/dev/null; then continue; fi
+      verify_adopt_root "$pid" || { echo "launcher PID $pid changed; refusing to signal it" >&2; exit 1; }
+      run_mutation kill -KILL "$pid"
+    done <<< "$root_plan"
+    pids=$(printf '%s\n' "$kill_plan" | awk '{print $1}' 9>&-)
+    while IFS= read -r pid; do
+      [ -n "$pid" ] || continue
+      if ! dry && ! kill -0 "$pid" 2>/dev/null; then continue; fi
+      run_mutation kill -TERM "$pid"
+    done <<< "$pids"
+    if ! dry; then
+      for ((i=0; i<20; i++)); do
+        remaining=false
+        while IFS= read -r pid; do
+          if kill -0 "$pid" 2>/dev/null; then remaining=true; fi
+        done <<< "$pids"
+        [ "$remaining" = false ] && break
+        sleep 1 9>&-
+      done
+      while IFS= read -r pid; do
+        if kill -0 "$pid" 2>/dev/null; then run_mutation kill -KILL "$pid"; fi
+      done <<< "$pids"
+    fi
+    wait_adopt_ports "$stack" || exit 1
+    if dry; then echo 'dry-run qa-stack up'; else QA_HEAL_LOCK_HELD=1 "$0" up --stack "$stack"; fi
+    if [ -n "$root_plan" ]; then
+      if dry; then echo 'dry-run Herdr pane will show an exited shell after cutover'
+      else echo 'Herdr pane now shows an exited shell and can be closed safely.'; fi
+    fi ;;
+  up)
+    acquire_lock
+    stray=$(foreign_listeners "$stack")
+    [ -z "$stray" ] || { echo "REFUSED: selected QA service runs outside systemd: $stray" >&2; exit 1; }
+    ensure_units
+    if [ "$stack" = app ] || [ "$stack" = all ]; then
+      if dry; then echo "dry-run touch $INTENT"; else mkdir -p "$STATE_DIR" 9>&-; touch "$INTENT" 9>&-; fi
+      run_mutation systemctl --user enable --now "${PREFIX}watchdog.timer"
+    fi
+    result=0
+    run_mutation systemctl --user enable --now --no-block "${PREFIX}dashboard.service" || result=1
+    for group in $(groups_for "$stack"); do
+      while IFS= read -r name; do
+        if shared_external_ready "$name"; then
+          echo "shared     $name ready (external); leaving it running"
+          continue
+        fi
+        run_mutation systemctl --user reset-failed "$(unit "$name")" || true
+        record_start "$name"
+        run_mutation systemctl --user start --no-block "$(unit "$name")" || result=1
+      done < <(services_for "$group")
+    done
+    status "$stack"; exit "$result" ;;
+  down)
+    acquire_lock
+    result=0
+    if [ "$stack" = app ] || [ "$stack" = all ]; then
+      if dry; then echo "dry-run rm $INTENT"; else rm -f "$INTENT" 9>&-; fi
+      run_mutation systemctl --user stop "${PREFIX}watchdog.timer" || result=1
+    fi
+    for group in $(groups_for "$stack"); do
+      run_mutation systemctl --user stop "$(target "$group")" || result=1
+      while IFS= read -r name; do
+        if shared_external_ready "$name"; then
+          echo "shared     $name ready (external); leaving it running"
+          continue
+        fi
+        run_mutation systemctl --user stop "$(unit "$name")" || result=1
+      done < <(services_for "$group")
+    done
+    status "$stack"; exit "$result" ;;
+  restart)
+    acquire_lock
+    stray=$(foreign_listeners "$stack")
+    if [ -n "$service" ]; then stray=$(printf '%s\n' "$stray" | grep -F "($service;" || true); fi
+    [ -z "$stray" ] || { echo "REFUSED: selected QA service runs outside systemd: $stray" >&2; exit 1; }
+    result=0
+    if [ -n "$service" ]; then
+      if shared_external_ready "$service"; then
+        echo "shared     $service ready (external); leaving it running"
+      else
+        record_start "$service"
+        run_mutation systemctl --user restart "$(unit "$service")" || result=1
+      fi
+    else
+      for group in $(groups_for "$stack"); do
+        while IFS= read -r name; do
+          if shared_external_ready "$name"; then
+            echo "shared     $name ready (external); leaving it running"
+            continue
+          fi
+          record_start "$name"
+          run_mutation systemctl --user restart "$(unit "$name")" || result=1
+        done < <(services_for "$group")
+      done
+    fi
+    status "$stack"; exit "$result" ;;
+  logs)
+    units=()
+    if [ -n "$service" ]; then units=(-u "$(unit "$service")")
+    else while IFS= read -r name; do units+=(-u "$(unit "$name")"); done < <(services_for "$stack"); fi
+    args=(--user "${units[@]}" -n "$lines" --no-pager)
+    [ "$follow" = false ] || args+=(-f)
+    if dry; then run_mutation journalctl "${args[@]}"; else exec journalctl "${args[@]}"; fi ;;
+esac

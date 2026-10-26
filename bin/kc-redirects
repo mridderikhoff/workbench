@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# Manage task frontend callback hosts on the local backend Keycloak client.
+set -euo pipefail
+umask 077
+
+STATE_DIR="${WT_STATE_DIR:-$HOME/.cl-strategy-local}"
+KC_LIB="${KC_LIB:-/home/marica/cl-strategy-qa/scripts/keycloak/local-common.sh}"
+REALM_NAME="${REALM_NAME:-cl-strategy}"
+BACKEND_CLIENT_ID="${BACKEND_CLIENT_ID:-cl-strategy-backend}"
+
+usage() { echo 'usage: kc-redirects add|remove <name.localhost:slot-port>... | list | sync' >&2; exit 2; }
+invalid() { echo "keycloak   invalid named address: $1" >&2; exit 2; }
+valid() {
+  local host port slot
+  [[ "$1" == *:* ]] || return 1
+  host=${1%:*}; port=${1##*:}
+  [[ "$host" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.localhost$ ]] || return 1
+  for slot in {2..5}; do
+    [[ "$port" == "$((5173 + 10 * slot))" || "$port" == "$((5174 + 10 * slot))" ]] && return 0
+  done
+  return 1
+}
+serve_host() {
+  local name
+  name=$(printf '%s' "${1##*/}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | sed 's/--*/-/g; s/^-//; s/-$//')
+  name=${name:0:63}; name=${name%-}
+  [[ -n "$name" ]] && echo "$name.localhost" || echo localhost
+}
+managed() {
+  python3 -c 'import json,re,sys
+data=json.load(sys.stdin)
+for uri in data.get("redirectUris",[]):
+ m=re.fullmatch(r"http://([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.localhost):(\d+)(?:/\*)?",uri)
+ if m and m.group(2) in {str(5173+10*s) for s in range(2,6)}|{str(5174+10*s) for s in range(2,6)}: print(uri)'
+}
+failure() { echo "keycloak   could not register ${1:-named addresses}: $2" >&2; exit 1; }
+
+action=${1:-}; [[ $# -gt 0 ]] || usage; shift
+case "$action" in
+  add|remove) [[ $# -gt 0 ]] || usage; for address in "$@"; do valid "$address" || invalid "$address"; done ;;
+  list|sync) [[ $# -eq 0 ]] || usage ;;
+  *) usage ;;
+esac
+mkdir -p "$STATE_DIR" || failure "${1:-named addresses}" 'state directory unavailable'
+cd "$STATE_DIR"
+# Match wt's lock order: serve state first, then Keycloak. This keeps sync
+# from reading a slot while wt is changing its recorded registrations.
+if [[ "$action" == sync ]]; then
+  mkdir -p wt-serve
+  exec 8>wt-serve/.lock
+  flock -w 60 8 || failure 'named addresses' 'serve lock timed out'
+fi
+exec 7>kc-redirects.lock
+flock -w 60 7 || failure "${1:-named addresses}" 'lock timed out'
+[[ -f "$KC_LIB" ]] || failure "${1:-named addresses}" 'Keycloak library missing'
+# The library can print API bodies on errors, so suppress both streams here.
+source "$KC_LIB" >/dev/null 2>&1 || failure "${1:-named addresses}" 'library load failed'
+load_local_config >/dev/null 2>&1 || failure "${1:-named addresses}" 'configuration unavailable'
+obtain_admin_token >/dev/null 2>&1 || failure "${1:-named addresses}" 'authentication failed'
+clients=$(kc_api GET "/${REALM_NAME}/clients?clientId=${BACKEND_CLIENT_ID}" 2>/dev/null) || failure "${1:-named addresses}" 'client lookup failed'
+uuid=$(printf '%s' "$clients" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin)[0]["id"])
+except (ValueError,KeyError,IndexError,TypeError): sys.exit(1)' 2>/dev/null) || failure "${1:-named addresses}" 'client missing'
+addresses=("$@")
+if [[ "$action" == sync ]]; then
+  addresses=()
+  declare -A wanted=()
+  for file in "$STATE_DIR"/wt-serve/slot-*; do
+    [[ -f "$file" && "${file##*/}" =~ ^slot-[2-5]$ ]] || continue
+    branch= apps= path= kc=
+    while IFS='=' read -r key value; do
+      case "$key" in branch) branch=$value ;; apps) apps=$value ;; path) path=$value ;; kc) kc=$value ;; esac
+    done <"$file"
+    [[ -n "$branch" && -d "$path" ]] || continue
+    slot=${file##*-}; host=$(serve_host "$branch")
+    for address in $kc; do
+      valid "$address" || continue
+      [[ "${address%:*}" == "$host" ]] || continue
+      case ":${address##*:}:" in
+        ":$((5173+10*slot)):") [[ " $apps " == *' strategy '* ]] || continue ;;
+        ":$((5174+10*slot)):") [[ " $apps " == *' ri '* ]] || continue ;;
+        *) continue ;;
+      esac
+      wanted["$address"]=1
+    done
+  done
+  for address in "${!wanted[@]}"; do addresses+=("$address"); done
+fi
+export KC_REDIRECT_ACTION="$action" KC_REDIRECT_ADDRESSES="${addresses[*]}"
+transform() {
+  python3 -c 'import json,os,re,sys
+d=json.load(sys.stdin); old=d["redirectUris"]; action=os.environ["KC_REDIRECT_ACTION"]
+addresses=set(os.environ["KC_REDIRECT_ADDRESSES"].split())
+def managed(uri):
+ m=re.fullmatch(r"http://([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.localhost):(\d+)(?:/\*)?",uri)
+ return bool(m and m.group(2) in {str(5173+10*s) for s in range(2,6)}|{str(5174+10*s) for s in range(2,6)})
+def address(uri): return uri.removeprefix("http://").removesuffix("/*")
+if action=="sync": new=[u for u in old if not managed(u) or address(u) in addresses]
+elif action=="remove": new=[u for u in old if not (managed(u) and address(u) in addresses)]
+else: new=list(old)
+if action in ("add","sync"):
+ for a in sorted(addresses):
+  for u in ("http://"+a,"http://"+a+"/*"):
+   if u not in new: new.append(u)
+if new==old: print("unchanged")
+else:
+ d["redirectUris"]=new
+ print(json.dumps(d,separators=(",",":")))' 2>/dev/null
+}
+verify() {
+  python3 -c 'import json,os,re,sys
+try: uris=json.load(sys.stdin)["redirectUris"]
+except (ValueError,KeyError,TypeError): sys.exit(1)
+addresses=set(os.environ["KC_REDIRECT_ADDRESSES"].split())
+managed=re.compile(r"http://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.localhost:(?:5193|5194|5203|5204|5213|5214|5223|5224)(?:/\*)?$")
+def addr(u): return u.removeprefix("http://").removesuffix("/*")
+if os.environ["KC_REDIRECT_ACTION"]=="sync":
+ ok={addr(u) for u in uris if managed.fullmatch(u)}==addresses and all("http://"+a in uris and "http://"+a+"/*" in uris for a in addresses)
+elif os.environ["KC_REDIRECT_ACTION"]=="remove":
+ ok=all("http://"+a not in uris and "http://"+a+"/*" not in uris for a in addresses)
+else:
+ ok=all("http://"+a in uris and "http://"+a+"/*" in uris for a in addresses)
+sys.exit(0 if ok else 1)' 2>/dev/null
+}
+for attempt in 1 2; do
+  rep=$(kc_api GET "/${REALM_NAME}/clients/${uuid}" 2>/dev/null) || failure "${addresses[0]:-named addresses}" 'client read failed'
+  if [[ "$action" == list ]]; then
+    printf '%s' "$rep" | managed 2>/dev/null || failure 'named addresses' 'invalid client response'
+    exit 0
+  fi
+  result=$(printf '%s' "$rep" | transform) || failure "${addresses[0]:-named addresses}" 'invalid client response'
+  if [[ "$result" != unchanged ]]; then
+    printf '%s' "$result" | kc_api_write PUT "/${REALM_NAME}/clients/${uuid}" --require-success --data-binary @- >/dev/null 2>&1 || failure "${addresses[0]:-named addresses}" 'client update failed'
+  fi
+  rep=$(kc_api GET "/${REALM_NAME}/clients/${uuid}" 2>/dev/null) || failure "${addresses[0]:-named addresses}" 'client read failed'
+  if printf '%s' "$rep" | verify; then break; fi
+  [[ "$attempt" == 1 ]] || failure "${addresses[0]:-named addresses}" 'client changed during update'
+done
+if [[ "$action" == sync ]]; then echo 'keycloak   named addresses synchronized'
+else for address in "${addresses[@]}"; do echo "keycloak   $action $address"; done; fi

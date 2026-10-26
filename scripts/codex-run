@@ -1,0 +1,281 @@
+#!/bin/bash
+# codex-run: the single launch path for delegating work to the Codex CLI.
+# Usage: codex-run --mode exec|review --label "<label>" [--model <id>] [--resume <artifact-dir>] [--sandbox <mode>] [--cwd <dir>] [--wait] [-- <extra codex args...>]
+#   Prompt on stdin; write {{ARTIFACT_DIR}} where the prompt must name the artifact dir.
+#   Default (detach): print the banner, start codex fully detached, exit 0 at once.
+#     Track it with: ~/.claude/scripts/codex-digest <dir>  (finish line also goes to <dir>/run.log)
+#   --wait: block until codex exits, print the finish line, exit with codex's exit code.
+#   Exit 127: codex not on PATH. Bash 3.2 compatible; needs no TTY. See ~/.claude/scripts/README.md.
+set -u
+
+die() { printf 'codex-run: %s\n' "$1" >&2; exit "${2:-2}"; }
+
+MODE="" LABEL="" SANDBOX="workspace-write" CWD="$PWD" MODEL="gpt-6-sol" WAIT=0
+RESUME_DIR="" SESSION_ID="" RESUME_SET=0 SANDBOX_SET=0 CWD_SET=0 MODEL_SET=0 EXTRA_SET=0 CWD_INHERITED=0
+EXTRA=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mode)    MODE="${2:-}"; shift 2 ;;
+    --label)   LABEL="${2:-}"; shift 2 ;;
+    --model)   [ $# -ge 2 ] || die "--model requires an id"; MODEL="$2"; MODEL_SET=1; shift 2 ;;
+    --resume)  [ $# -ge 2 ] || die "--resume requires an artifact dir"; RESUME_DIR="$2"; RESUME_SET=1; shift 2 ;;
+    --sandbox) SANDBOX="${2:-}"; SANDBOX_SET=1; shift 2 ;;
+    --cwd)     CWD="${2:-}"; CWD_SET=1; shift 2 ;;
+    --wait)    WAIT=1; shift ;;
+    --) EXTRA_SET=1; shift; EXTRA=("$@"); break ;;
+    -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+
+case "$MODE" in exec|review) ;; *) die "--mode must be exec or review" ;; esac
+[ -n "$LABEL" ] || die "--label is required"
+[ "$MODEL_SET" = 0 ] || [ -n "$MODEL" ] || die "--model requires an id"
+[ "$RESUME_SET" = 0 ] || [ -n "$RESUME_DIR" ] || die "--resume requires an artifact dir"
+if [ -n "$RESUME_DIR" ]; then
+  [ "$MODE" = exec ] || die "--resume is only valid with --mode exec"
+  RESUME_DIR="$(cd "$RESUME_DIR" 2>/dev/null && pwd)" || die "--resume is not a directory"
+  [ -f "$RESUME_DIR/events.jsonl" ] || die "--resume requires events.jsonl in $RESUME_DIR"
+  SESSION_ID="$(python3 - "$RESUME_DIR/events.jsonl" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as events:
+    for line in events:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "thread.started":
+            thread_id = event.get("thread_id")
+            if isinstance(thread_id, str) and thread_id:
+                print(thread_id)
+            break
+PY
+)" || die "could not read --resume events.jsonl"
+  [ -n "$SESSION_ID" ] || die "--resume: no session id in $RESUME_DIR/events.jsonl"
+  if [ -f "$RESUME_DIR/meta.json" ]; then
+    # One checked python call: string fields on stdout (one per line), inheritable
+    # extra args NUL-separated in a temp file, read only after the call succeeded.
+    EXTRA_FILE="$(mktemp "${TMPDIR:-/tmp}/codex-run-extra.XXXXXX")" || die "mktemp failed"
+    RESUME_META="$(python3 - "$RESUME_DIR/meta.json" "$EXTRA_FILE" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    meta = json.load(f)
+for key in ("sandbox", "cwd", "model"):
+    value = meta.get(key)
+    value = value if isinstance(value, str) else ""
+    if any(ord(c) < 32 for c in value):
+        sys.exit("meta.json %s contains control characters" % key)
+    print(value)
+extras = meta.get("extra_args", [])
+if not isinstance(extras, list) or any(not isinstance(arg, str) for arg in extras):
+    sys.exit("meta.json extra_args must be a list of strings")
+# Dropped on inheritance: the model (set by --model precedence) and exec-only
+# flags that `codex exec resume` rejects.
+TAKES_VALUE = {"-m", "--model", "-C", "--cd", "-s", "--sandbox", "--add-dir",
+               "-p", "--profile", "--local-provider", "--color"}
+NO_VALUE = {"--oss", "--approve-for-me"}
+kept, i = [], 0
+while i < len(extras):
+    arg = extras[i]
+    if arg in TAKES_VALUE:
+        i += 2; continue
+    if arg in NO_VALUE or arg.split("=", 1)[0] in TAKES_VALUE:
+        i += 1; continue
+    kept.append(arg); i += 1
+with open(sys.argv[2], "wb") as f:
+    f.write(b"".join(a.encode("utf-8", "surrogateescape") + b"\0" for a in kept))
+PY
+)" || { rm -f "$EXTRA_FILE"; die "could not read --resume meta.json"; }
+    RESUME_FIELDS=()
+    while IFS= read -r FIELD; do RESUME_FIELDS[${#RESUME_FIELDS[@]}]="$FIELD"; done <<< "$RESUME_META"
+    [ "$SANDBOX_SET" = 1 ] || [ -z "${RESUME_FIELDS[0]}" ] || SANDBOX="${RESUME_FIELDS[0]}"
+    if [ "$CWD_SET" = 0 ] && [ -n "${RESUME_FIELDS[1]}" ]; then
+      CWD="${RESUME_FIELDS[1]}"; CWD_INHERITED=1
+    fi
+    [ "$MODEL_SET" = 1 ] || [ -z "${RESUME_FIELDS[2]}" ] || MODEL="${RESUME_FIELDS[2]}"
+    if [ "$EXTRA_SET" = 0 ]; then
+      while IFS= read -r -d '' ARG; do EXTRA[${#EXTRA[@]}]="$ARG"; done < "$EXTRA_FILE"
+    fi
+    rm -f "$EXTRA_FILE"
+  fi
+fi
+command -v codex >/dev/null 2>&1 || die "codex not found on PATH" 127
+CWD_ORIGINAL="$CWD"
+CWD="$(cd "$CWD" 2>/dev/null && pwd)" || {
+  if [ "$CWD_INHERITED" = 1 ]; then
+    die "cwd inherited from $RESUME_DIR is not a directory: $CWD_ORIGINAL"
+  fi
+  die "--cwd is not a directory"
+}
+[ -t 0 ] && die "prompt must be piped on stdin (heredoc)"
+
+SLUG="$(printf '%s' "$LABEL" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-40)"
+SLUG="${SLUG%-}"; [ -n "$SLUG" ] || SLUG="task"
+TMP_ROOT="${TMPDIR:-/tmp}"; TMP_ROOT="${TMP_ROOT%/}"   # macOS TMPDIR ends in /
+ARTIFACT_DIR="$(mktemp -d "$TMP_ROOT/codex-$SLUG.XXXXXX")" || die "mktemp failed"
+
+cat > "$ARTIFACT_DIR/prompt.md"
+if [ ! -s "$ARTIFACT_DIR/prompt.md" ]; then
+  rm -rf "$ARTIFACT_DIR"
+  die "empty prompt on stdin"
+fi
+
+# codex review (0.155.1) rejects a custom prompt together with --uncommitted/--base/--commit.
+# Keep those flags as our interface, but translate them into a target preamble in
+# prompt.md and run a prompt-only review so the custom instructions still reach codex.
+if [ "$MODE" = review ] && [ ${#EXTRA[@]} -gt 0 ]; then
+  KEPT=() TARGET="" TITLE=""
+  set -- "${EXTRA[@]}"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --uncommitted) TARGET="the uncommitted changes in this repository (staged, unstaged, and untracked). Inspect them with \`git status\`, \`git diff HEAD\`, and by reading untracked files." ;;
+      --base)     TARGET="the changes on the current branch relative to base branch \`${2:-}\`. Inspect them with \`git diff ${2:-}...HEAD\` and \`git log ${2:-}..HEAD\`."; shift ;;
+      --base=*)   B="${1#--base=}"; TARGET="the changes on the current branch relative to base branch \`$B\`. Inspect them with \`git diff $B...HEAD\` and \`git log $B..HEAD\`." ;;
+      --commit)   TARGET="the changes introduced by commit \`${2:-}\`. Inspect them with \`git show ${2:-}\`."; shift ;;
+      --commit=*) C="${1#--commit=}"; TARGET="the changes introduced by commit \`$C\`. Inspect them with \`git show $C\`." ;;
+      --title)    TITLE="${2:-}"; shift ;;
+      --title=*)  TITLE="${1#--title=}" ;;
+      *) KEPT[${#KEPT[@]}]="$1" ;;
+    esac
+    shift
+  done
+  if [ -n "$TARGET" ]; then
+    { printf 'Review target: %s\n' "$TARGET"
+      [ -n "$TITLE" ] && printf 'Commit title: %s\n' "$TITLE"
+      printf '\n'; cat "$ARTIFACT_DIR/prompt.md"; } > "$ARTIFACT_DIR/prompt.tmp" \
+      && mv "$ARTIFACT_DIR/prompt.tmp" "$ARTIFACT_DIR/prompt.md"
+  fi
+  EXTRA=(); [ ${#KEPT[@]} -gt 0 ] && EXTRA=("${KEPT[@]}")
+fi
+
+# Exec runs get a sandbox preamble so codex does not burn time discovering the limits
+# itself (nx/tsc/vitest EPERM in read-only; port binds EPERM in workspace-write).
+if [ "$MODE" = exec ]; then
+  case "$SANDBOX" in
+    read-only) SANDBOX_FACTS='Sandbox: READ-ONLY. You can read files and run git/rg/sed/cat. Anything that writes fails with EPERM, including nx (daemon and cache), tsc (tsbuildinfo), vitest/jest (temp dirs), biome --write and package managers. Do NOT run tests, typecheck, lint, build or nx at all, and do NOT try workarounds such as --tsBuildInfoFile /dev/null or NX_DAEMON=false. Verification is the caller'"'"'s job; your job is to read the code and reason. Do not create, edit or delete any file except the report the caller asked for.' ;;
+    workspace-write) SANDBOX_FACTS='Sandbox: WORKSPACE-WRITE, no network. You can edit files under the repo and under '"$ARTIFACT_DIR"'. Network is off: any test that binds a port or opens a socket fails with "listen EPERM". Treat such a failure as an environment limit: mention it in the report and move on; do NOT rewrite the test or the code to avoid it. If a command fails with EPERM or "Operation not permitted", do not retry it with workarounds; note it and continue. Put scratch files in '"$ARTIFACT_DIR"', not in /tmp or the repo. Do not delete files you did not create. When you edit a spec file, keep every existing test unless the task says to remove it; the caller compares it( counts before and after.' ;;
+    *) SANDBOX_FACTS='' ;;
+  esac
+  if [ -n "$SANDBOX_FACTS" ]; then
+    { printf '%s\n\n' "$SANDBOX_FACTS"; cat "$ARTIFACT_DIR/prompt.md"; } > "$ARTIFACT_DIR/prompt.tmp" \
+      && mv "$ARTIFACT_DIR/prompt.tmp" "$ARTIFACT_DIR/prompt.md"
+  fi
+fi
+
+# The dir does not exist when the prompt is written; prompts use {{ARTIFACT_DIR}} instead.
+AD="$ARTIFACT_DIR" python3 -c '
+import os, sys
+p = os.path.join(os.environ["AD"], "prompt.md")
+s = open(p, encoding="utf-8").read()
+if "{{ARTIFACT_DIR}}" in s:
+    open(p, "w", encoding="utf-8").write(s.replace("{{ARTIFACT_DIR}}", os.environ["AD"]))
+'
+
+START_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+START_EPOCH="$(date +%s)"
+EXTRA_ARGS_JSON="$(
+  if [ ${#EXTRA[@]} -gt 0 ]; then printf '%s\0' "${EXTRA[@]}"; fi | python3 -c '
+import json, sys
+raw = sys.stdin.buffer.read()
+args = [arg.decode("utf-8", "surrogateescape") for arg in raw[:-1].split(b"\0")] if raw else []
+print(json.dumps(args))'
+)"
+
+write_meta() {  # $1 = codex pid (may be empty); atomic replace
+  MODE="$MODE" LABEL="$LABEL" SANDBOX="$SANDBOX" CWD="$CWD" MODEL="$MODEL" WAIT="$WAIT" \
+  START_ISO="$START_ISO" START_EPOCH="$START_EPOCH" PID="${1:-}" \
+  RESUME_DIR="$RESUME_DIR" SESSION_ID="$SESSION_ID" EXTRA_ARGS_JSON="$EXTRA_ARGS_JSON" python3 -c '
+import json, os
+e = os.environ
+num = lambda v: int(v) if v else None
+meta = {
+  "mode": e["MODE"], "label": e["LABEL"],
+  # review mode ignores --sandbox (codex review has no -s flag)
+  "sandbox": e["SANDBOX"] if e["MODE"] == "exec" else None,
+  "cwd": e["CWD"], "model": e["MODEL"], "detached": e["WAIT"] != "1",
+  "start": e["START_ISO"], "start_epoch": int(e["START_EPOCH"]),
+  "pid": num(e["PID"]),
+  "resumed_from": e["RESUME_DIR"] or None,
+  "session_id": e["SESSION_ID"] or None,
+}
+if e["MODE"] == "exec":
+  meta["extra_args"] = json.loads(e["EXTRA_ARGS_JSON"])
+print(json.dumps(meta, indent=2))' > "$ARTIFACT_DIR/meta.tmp" && mv "$ARTIFACT_DIR/meta.tmp" "$ARTIFACT_DIR/meta.json"
+}
+write_meta
+
+REPORT="$ARTIFACT_DIR/report.md"
+printf '▶ Delegating to codex (%s) · %s · artifacts: %s\n' "$MODEL" "$LABEL" "$ARTIFACT_DIR"
+if [ -n "$SESSION_ID" ]; then printf '  resuming %s\n' "$SESSION_ID"; fi
+if [ "$MODE" = exec ]; then
+  printf '  prompt: %s/prompt.md · events: %s/events.jsonl · report: %s\n' "$ARTIFACT_DIR" "$ARTIFACT_DIR" "$REPORT"
+else
+  printf '  prompt: %s/prompt.md · report: %s\n' "$ARTIFACT_DIR" "$REPORT"
+fi
+
+# Runs codex, waits, writes exit-code, prints the finish line.
+run_codex() {
+  CODEX_PID=""
+  on_signal() { [ -n "$CODEX_PID" ] && kill -TERM "$CODEX_PID" 2>/dev/null; }
+  trap on_signal INT TERM
+  [ "$WAIT" = 1 ] && trap on_signal HUP   # detached runs ignore HUP (set by the caller)
+
+  # ${EXTRA[@]+...} guards the empty-array case under set -u on bash 3.2.
+  if [ "$MODE" = exec ]; then
+    # Raw JSONL goes to events.jsonl only (codex line-buffers stdout); never to our stdout.
+    if [ -n "$SESSION_ID" ]; then
+      # exec resume takes neither -C, -s, nor --add-dir.
+      RESUME_CONFIG=()
+      RESUME_CONFIG[${#RESUME_CONFIG[@]}]=-c
+      RESUME_CONFIG[${#RESUME_CONFIG[@]}]="sandbox_mode=\"$SANDBOX\""
+      if [ "$SANDBOX" = workspace-write ]; then
+        WRITABLE_ROOTS="$(AD="$ARTIFACT_DIR" python3 -c 'import json, os; print("sandbox_workspace_write.writable_roots=" + json.dumps([os.environ["AD"]]))')"
+        RESUME_CONFIG[${#RESUME_CONFIG[@]}]=-c
+        RESUME_CONFIG[${#RESUME_CONFIG[@]}]="$WRITABLE_ROOTS"
+      fi
+      ( cd "$CWD" && exec codex exec resume -m "$MODEL" "${RESUME_CONFIG[@]}" --json -o "$REPORT" \
+        ${EXTRA[@]+"${EXTRA[@]}"} "$SESSION_ID" - < "$ARTIFACT_DIR/prompt.md" ) \
+        >> "$ARTIFACT_DIR/events.jsonl" 2> "$ARTIFACT_DIR/stderr.log" &
+    else
+      codex exec -m "$MODEL" -C "$CWD" --add-dir "$ARTIFACT_DIR" -s "$SANDBOX" --json -o "$REPORT" \
+        ${EXTRA[@]+"${EXTRA[@]}"} - < "$ARTIFACT_DIR/prompt.md" \
+        >> "$ARTIFACT_DIR/events.jsonl" 2> "$ARTIFACT_DIR/stderr.log" &
+    fi
+  else
+    # codex review has no --json, -o, -s, or --add-dir; --sandbox is ignored here.
+    codex -c model="$MODEL" -C "$CWD" review ${EXTRA[@]+"${EXTRA[@]}"} - < "$ARTIFACT_DIR/prompt.md" \
+      > "$REPORT" 2> "$ARTIFACT_DIR/stderr.log" &
+  fi
+  CODEX_PID=$!
+  write_meta "$CODEX_PID"
+
+  RC=0
+  while :; do
+    wait "$CODEX_PID"; RC=$?
+    kill -0 "$CODEX_PID" 2>/dev/null || break   # re-wait if a trapped signal interrupted wait
+  done
+
+  printf '%s\n' "$RC" > "$ARTIFACT_DIR/exit-code"
+  printf '■ codex finished (%s) · exit %s · report: %s\n' "$LABEL" "$RC" "$REPORT"
+  [ -s "$REPORT" ] || printf '⚠ report.md is missing or empty · check %s/stderr.log\n' "$ARTIFACT_DIR"
+  return "$RC"
+}
+
+if [ "$WAIT" = 1 ]; then
+  run_codex
+  exit $?
+fi
+
+# Detach: no fd may stay tied to the caller (Claude's Bash call would hang), and HUP is
+# ignored so the run survives the parent shell exiting. Output lands in run.log.
+( trap '' HUP; run_codex ) </dev/null >>"$ARTIFACT_DIR/run.log" 2>&1 &
+disown 2>/dev/null || true
+
+# Hand back only once meta.json carries the codex pid (the digest's liveness check needs it).
+i=0
+while [ $i -lt 100 ] && ! grep -q '"pid": [0-9]' "$ARTIFACT_DIR/meta.json" 2>/dev/null; do
+  sleep 0.1; i=$((i + 1))
+done
+[ $i -lt 100 ] || printf '⚠ codex pid not recorded yet · check %s/run.log\n' "$ARTIFACT_DIR"
+printf '  progress: ~/.claude/scripts/codex-digest %s\n' "$ARTIFACT_DIR"
+exit 0
