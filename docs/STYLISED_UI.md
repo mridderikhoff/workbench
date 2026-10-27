@@ -8,8 +8,9 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 
 ## The calls we've made
 
-1. **A theme is one character and its materials.** The character (eye, CRT face, later an owl) is
-   the masthead; the panels are physical objects (card stock on leather, acrylic on a cutting mat,
+1. **A theme is one set of materials; the character is its own setting.** The character (Eye,
+   Blip the CRT face, later an owl) is the masthead. A theme names a default character and the
+   Settings pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, acrylic on a cutting mat,
    a CRT and putty plastic). Every pixel of the theme answers "what is this made of?"
 2. **Materials over gradients.** Inscryption's candlelit table, NieR's warm paper UI. Surfaces get
    real texture, light falloff and contact shadows; nothing is a flat colour or a generic gradient.
@@ -17,7 +18,7 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
    secondary text, saddle stitching for seams. On paper: rubber stamps and brush ink. On acrylic:
    stencils and printed labels. On a CRT: phosphor glyphs. Never a plain dashed CSS line.
 4. **The character's art language is the house style.** The eye is a halftone, so props are screened
-   into the same dots. Props that don't share the language get cut (the floppy disk, the mug).
+   into the same dots. Props that don't share the language get cut (the floppy disk and the mug went).
 5. **Style first, then tune legibility.** Persona 5's menus were unreadable at first and were tuned
    until they weren't. Status text stays upright, plain and AA; decoration can tilt, bleed and drip.
 6. **A forced palette, with one meaning per colour.** Horror: blood red on bone and black. Neon:
@@ -27,6 +28,8 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
    third, one drop with a cooldown). Neon: the stepped pixel charge bar. Terminal keycaps: the key
    presses down and its legend lights up as if backlit. Apply the signature everywhere it makes
    sense (buttons, options, toggles), but match the object: a keycap is pressed, not filled.
+   Hover plays once, on arrival: a click or a poll that rebuilds the hovered element must not replay
+   it (the rebuilt element starts settled).
 8. **Impact scales with importance** (Vlambeer, Balatro). A pill turning ready gets a small squash
    and overshoot; a failure gets one jitter and its loud colour; a backend going down gets the
    biggest moment. Healthy is quiet.

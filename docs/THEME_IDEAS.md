@@ -1,15 +1,19 @@
 # Theme ideas
 
-A theme is one character plus the materials it sits on. Every character needs (a) a clear face or
+A theme is a set of materials plus a default character; the user can pick any character in any theme (Settings > Character, a `CHARACTERS` entry in `bin/qa-dashboard`). Every character needs (a) a clear face or
 head that can follow the cursor and (b) something to animate while idle, the way the eye's blood
 drips do. The character's expression also carries the backend status, with a different shape per
 state (see DESIGN.md rule 5).
 
 ## Built
 
-- **Terminal** (now the default theme): a chunky beige PC whose ASCII face on a phosphor screen
-  follows the cursor a cell at a time, with falling green characters, a blinking cursor and typed
-  nonsense as its idle life. See DESIGN.md rule 9.
+- **Terminal** (now the default theme): putty plastic and keycaps around a Fallout-style CRT. The
+  whole eye card is the screen: a curved glass in a putty bezel with baked scanlines, glow and
+  vignette, a slow rolling refresh band and an occasional flicker (transform and opacity only; still
+  in Static and reduced motion). Its default character, Blip, is a large ASCII face that follows the
+  cursor a cell at a time over falling green characters. There is no typed prompt line and no props.
+  Keys press down and their legend lights LED green. See DESIGN.md rule 9.
+- **Characters** (independent of theme): Eye (the halftone eye; Horror and Neon default) and Blip.
 
 ## Owl (follow-up, still an idea)
 

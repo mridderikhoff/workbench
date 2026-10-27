@@ -70,7 +70,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   falls on it (a candle pool, a neon tube off-screen) and fades towards the edges, so the objects sit
   on it convincingly. Keep the surround quiet (no panelling or busy pattern) so the work area owns
   the eye.
-- **Props match the character.** Margin props (candles, a floppy disk) are screened into the same
+- **Props match the character.** Margin props (candles) are screened into the same
   halftone dots as the eye, flames and glow included, rather than drawn as realistic illustrations.
 - **Ink goes where a hand would make a mark**: the halftone character, brush underlines, seeded
   dividers, rubber stamps, a seal, a single drip, the seep on a pill. Keep that mark language
@@ -84,7 +84,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   split by a dashed rule, and Done at the bottom right (full width on a phone, where labels stack above
   fields).
 - The **halftone character** keeps a fixed dot grid and a limited ramp (4–6 colours from the
-  theme). Mounts and props use the same dots: Horror's candles and Terminal's mug and floppies are screened into them, and Neon's
+  theme). Mounts and props use the same dots: Horror's candles are screened into them, and Neon's
   hazard tape breaks up into halftone dots at its torn ends. Avoid glossy, clip-art objects.
 - **Stepped animation** for the character: anything that moves position runs at about 8–12fps in whole-cell steps.
   Light and brightness may step at about 24fps.
@@ -173,7 +173,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   borders and hover fills from the text colour (`color-mix`) rather than hand-picking. On `?debug=1`
   a startup check logs any key, icon or art a theme is missing, and any icon it shares with another.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
-- Options belong in Settings (tenant, theme, appearance, logo animation) and persist across visits,
+- Options belong in Settings (tenant, theme, character, appearance, logo animation) and persist across visits,
   applied before first paint so nothing flashes. Logo animation has exactly three options with
   generic names: **Full** (the whole animation), **Subtle** (only the slow ambient motion, such as
   drips) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions
@@ -181,11 +181,11 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 
 ### 9. The current themes
 Terminal is the default for a first visit; a stored choice always wins (a stored "blood" becomes Horror).
-- **Terminal**: a chunky beige PC in an old office. A putty CRT on a desktop case in halftone dots,
-  with an ASCII face on a phosphor-green screen: it looks a cell towards the cursor, leans on big moves,
-  blinks `(-_-)`, types nonsense at a prompt and has green characters falling behind it. Putty plastic
-  panels with moulded edges and vent slots, a tractor-feed printout for the eye card with a sticky note,
-  a felt pad on a wooden desk, a halftone mug and floppies, keycap pills and embossed label tape.
+- **Terminal**: a curved phosphor CRT in a putty bezel, with baked scanlines, glow and vignette,
+  a rolling refresh band and occasional flicker. Its default character, Blip, looks a cell towards
+  the cursor, leans on big moves, blinks `(-_-)` and has green characters falling behind it.
+  Eye and Blip can be selected in any theme. Putty plastic panels have moulded edges and vent slots,
+  with a felt pad on a wooden desk, pressing keycaps, LED legends and embossed label tape.
   Phosphor green `#33ff66` and amber `#ffb000` appear only on dark glass or in dark mode; light mode
   uses dark inks on putty. Problems are a clear red.
 - **Horror**: candlelit horror. Card stock with foxing on a leather blotter over black velvet, a red

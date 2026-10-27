@@ -5,7 +5,7 @@ retired; their notes are below so either can come back. Everything in the deferr
 promise to build it.
 
 The [design guide](../DESIGN.md) is authoritative: expressive animation is the heart of the app. A scene supplies a
-composition; a theme supplies its visual world and character. The eye may become an avatar, creature, machine, or another
+composition; a theme supplies its visual world and default character (the user can pick another in Settings). The eye may become an avatar, creature, machine, or another
 expressive subject in a future theme. Preserve the deliberate marks, animation, responsiveness, and personality, rather
 than requiring an eye.
 

@@ -136,9 +136,9 @@ html[data-deckle="1"] .desk-obj .fold{display:block}
 .backend .rollup.tone-down,.backend .rollup.tone-broken,.backend .rollup.tone-attn{--hero:var(--bad)}
 .backend .rollup .title{font:700 15px/1.2 var(--serif);letter-spacing:.14em;font-variant:var(--head-variant);text-transform:uppercase;color:var(--muted);text-shadow:var(--emboss)}
 .backend .rollup .state{position:relative;gap:10px;margin:2px 0 8px 4px;padding:6px 16px 7px 11px;font:800 31px/1 var(--serif);letter-spacing:.07em;text-transform:uppercase;color:var(--stamp-ok);background:transparent;border:3px solid currentColor;border-radius:8px;
-box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;transform:rotate(-4deg);-webkit-mask:var(--desk-grit,none) 0 0/150px repeat;mask:var(--desk-grit,none) 0 0/150px repeat}
+box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;transform:rotate(-.8deg);-webkit-mask:var(--desk-grit,none) 0 0/150px repeat;mask:var(--desk-grit,none) 0 0/150px repeat}
 .backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
-.backend .rollup:not(.tone-ok) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-6deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
+.backend .rollup:not(.tone-ok) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
 .backend .rollup.tone-warn .state{color:var(--warn);background:none}
 .backend .rel{display:inline-flex;align-items:center}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
@@ -279,8 +279,7 @@ html[data-button-hover="blocks"] .bfx-text{transform:translateX(calc(100% + 16px
 html[data-button-hover="blocks"] .bfx::after{content:"";position:absolute;top:0;bottom:0;left:100%;width:100%;transform:translateX(calc(-100% - 16px));transition:transform var(--dur-fast) steps(4,end);
 background:conic-gradient(var(--charge) 0 75%,transparent 0) 0 0/3px 3px;-webkit-mask:linear-gradient(90deg,#000 0 5px,rgba(0,0,0,.6) 5px 10px,rgba(0,0,0,.3) 10px 15px,transparent 15px);mask:linear-gradient(90deg,#000 0 5px,rgba(0,0,0,.6) 5px 10px,rgba(0,0,0,.3) 10px 15px,transparent 15px)}
 html[data-button-hover="seep"] .bfx{--fx-ink:var(--seep-ink)}
-html[data-button-hover="seep"] .bfx-fill{inset:auto 0 0 0;height:30%;padding-top:0;padding-bottom:0;background:var(--seep);border-radius:0 0 0 2px;transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
-html[data-button-hover="seep"] .bfx-fill::after{content:"";position:absolute;top:-3px;right:-6px;width:12px;height:calc(100% + 3px);background:var(--seep);border-radius:60% 40% 0 0}
+html[data-button-hover="seep"] .bfx-fill{inset:auto 0 0 0;height:30%;padding-top:0;padding-bottom:0;background:var(--seep);transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
 html[data-button-hover="seep"] .bfx-text{inset:auto 0 0 0;height:333.34%;transform:translateX(102%)}
 :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
 html[data-button-hover="blocks"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
@@ -2111,15 +2110,21 @@ function appStatus(a){
 function hashText(text){var h=2166136261;for(var i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 // Pill hover effects, picked by the theme's pillHover. Each returns the layer drawn over a ready pill; `awake` is the label
 // with the hover glyph, and `seed` is stable per pill so nothing re-rolls while you look at it.
+// The seep silhouette, shared by tags and buttons: a seeded ragged top on a 100 x 40 box. The right edge stays within 3 units of
+// the end and the bottom corners are explicit, so the band always covers the full width and height of the band box at rest.
+function seepPoints(seed,reach){
+  var points=[],value=seed;
+  function next(){value=Math.imul(value^value>>>13,1274126177)>>>0;return(value%1000)/1000}
+  for(var x=0;x<=90;x+=10)points.push([x,6+next()*14]);
+  for(var y=10;y<40;y+=8)points.push([reach-next()*3,y]);
+  points.push([reach,40],[0,40]);
+  return points;
+}
 var PILL_HOVERS={
   // A low wet band: ragged along its top surface and at its leading edge, so the pill text stays clear. One drop falls.
   seep:function(awake,seed){
-    var points=[],value=seed;
-    function next(){value=Math.imul(value^value>>>13,1274126177)>>>0;return(value%1000)/1000}
-    for(var x=0;x<=100;x+=10)points.push(x+" "+(6+next()*14).toFixed(1));
-    for(var y=12;y<=40;y+=7)points.push((100+next()*14).toFixed(1)+" "+y);
-    points.push("0 40");
-    return'<span class="pill-fx" aria-hidden="true"><svg class="seep-fill" viewBox="0 0 114 40" preserveAspectRatio="none" aria-hidden="true"><path style="fill:var(--seep)" d="M'+points.join("L")+'Z"/></svg>'+
+    var points=seepPoints(seed,100).map(function(point){return point[0].toFixed(1)+" "+point[1].toFixed(1)});
+    return'<span class="pill-fx" aria-hidden="true"><svg class="seep-fill" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path style="fill:var(--seep)" d="M'+points.join("L")+'Z"/></svg>'+
       '<span class="fx-text seep-text">'+awake+'</span></span><span class="pill-drip" aria-hidden="true" style="left:'+(28+seed%44)+'%"></span>';
   },
   // A stepped power bar charges across behind the label, and the label inverts as it passes.
@@ -2146,6 +2151,8 @@ function buttonFx(root){
       var copy=node.cloneNode(true);if(copy.removeAttribute)copy.removeAttribute("id");text.appendChild(copy);
     });
     fill.appendChild(text);layer.appendChild(fill);button.appendChild(layer);
+    // The seep band wears the same seeded silhouette as the tags; it reaches 4% past the edge so no gap shows at the right.
+    if(kind==="seep")fill.style.clipPath="polygon("+seepPoints(hashText((button.textContent||"")+(button.getAttribute("aria-label")||button.title||"")+button.className),104).map(function(q){return q[0].toFixed(1)+"% "+(q[1]*2.5).toFixed(1)+"%"}).join(",")+")";
     if(kind==="seep"){var drip=document.createElement("span");drip.className="pill-drip bfx-drip";drip.setAttribute("aria-hidden","true");drip.style.left=(30+hashText(button.textContent||"x")%40)+"%";button.appendChild(drip)}
     button.__fx=kind+"|"+button.innerHTML;
     // A new layer inside the button that is already hovered starts full, so it does not replay under the pointer.
@@ -2367,10 +2374,12 @@ document.addEventListener("visibilitychange",updateFavicon);
 // The seep hover lets one drop fall per pill or button (with a cooldown), and a press spatters a few drops; the pupil in the hover glyph follows the cursor.
 (function pillLife(){
   // FX_HOVER bookkeeping (see settleUnderPointer): where the pointer is and which pill or button it is over.
+  // A rebuild makes the browser send a synthetic pointerover that can land on the card behind the new button for a moment; judge by position.
+  function pointerInside(element,e){var r=element.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom}
   document.addEventListener("pointerover",function(e){
     var target=e.target.closest&&e.target.closest(FX_TARGETS);
     FX_HOVER.over=target||null;FX_HOVER.x=e.clientX;FX_HOVER.y=e.clientY;FX_HOVER.inside=true;
-    FX_HOVER.settled=FX_HOVER.settled.filter(function(element){if(element.isConnected&&element.contains(e.target))return true;element.classList.remove("fx-settled");return false});
+    FX_HOVER.settled=FX_HOVER.settled.filter(function(element){if(element.isConnected&&(element.contains(e.target)||pointerInside(element,e)))return true;element.classList.remove("fx-settled");return false});
   });
   document.addEventListener("pointermove",function(e){FX_HOVER.x=e.clientX;FX_HOVER.y=e.clientY;FX_HOVER.inside=true},{passive:true});
   document.addEventListener("pointerout",function(e){
