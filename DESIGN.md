@@ -9,7 +9,7 @@ The Overseer dashboard (`bin/qa-dashboard`) is the reference implementation. Whe
 
 ## The animated character comes first
 
-An expressive, animated character (the halftone eye) is the heart of Overseer. The animated character is a focal
+An expressive, animated character (the halftone eye, or Terminal's halftone CRT with an ASCII face) is the heart of Overseer. The animated character is a focal
 part of the experience, not a decorative footer or just another status icon. Give it a deliberate
 place in each scene and protect its presence as the session list grows.
 
@@ -21,7 +21,8 @@ place in each scene and protect its presence as the session list grows.
 - The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
   the pleasure of deliberate marks, expressive animation, and responsive interaction rather than
   copying the eye's anatomy into every theme. A theme may also re-ink the same character instead of
-  drawing a new one, as Neon does.
+  drawing a new one, as Neon does. Terminal draws its own: a putty CRT whose ASCII face looks a cell
+  towards the cursor and whose expression is the backend status.
 - Character animation can remain alive when services are healthy. Keep status signals clear and
   distinct from the character's personality; neither should depend only on colour or motion.
 
@@ -53,7 +54,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 - **Copy stays plain and standard.** "Settings", not "Grimoire". "up 7h", not "7h alive".
   "Stop the frontends for <branch>?", not anything ominous. Labels, tooltips, aria-labels, errors,
   confirm prompts and empty states are all plain.
-- A product name is not copy: "Overseer" is fine. A theme name is not copy: "Blood" is fine.
+- A product name is not copy: "Overseer" is fine. A theme name is not copy: "Horror" is fine.
 - Show less text. A commit is its hash plus "committed 2h ago"; the message goes in a tooltip.
   A path is its last folder; the full path goes in a tooltip.
 
@@ -80,7 +81,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   split by a dashed rule, and Done at the bottom right (full width on a phone, where labels stack above
   fields).
 - The **halftone character** keeps a fixed dot grid and a limited ramp (4–6 colours from the
-  theme). Mounts and props use the same dots: Blood's candles are screened into them, and Neon's
+  theme). Mounts and props use the same dots: Horror's candles and Terminal's mug and floppies are screened into them, and Neon's
   hazard tape breaks up into halftone dots at its torn ends. Avoid glossy, clip-art objects.
 - **Stepped animation** for the character: anything that moves position runs at about 8–12fps in whole-cell steps.
   Light and brightness may step at about 24fps.
@@ -106,8 +107,11 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   non-periodic motion (flicker, crawl, drift) is fine.
 - Status animation is reserved for problems: a broken thing may pulse; a healthy thing is still.
 - Interactive moments should reward attention: an eye that follows the cursor, a pill hover that fits
-  the theme (Blood: a thin wet band of blood seeps in and one drip falls, with a cooldown; Neon: a
-  stepped yellow charge bar fills behind the label and the label inverts to black), a squish on press.
+  the theme (Horror: a thin wet band of blood seeps in and one drip falls, with a cooldown; Neon: a
+  stepped magenta charge bar fills behind the label and the label inverts to black; Terminal: a DOS
+  block fill `▓▒░` in inverse video), a squish on press. Every button uses its theme's effect
+  (`buttonHover`), not only the pills: icon buttons, Update, Show details, Done, Stop, the segmented
+  control, and in Horror the select options too.
   Keyboard focus shows the same effect as hover, the label stays readable mid-animation, and reduced
   motion shows the end state without moving.
 - Any cursor-reactive behaviour must **release reliably**: on leaving the window, blur, a hidden
@@ -120,14 +124,24 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   semibold, animated).
 - Secondary information (being behind `develop`, hashes, "show details") is visually quiet until
   hovered. Being behind is not an error, so it is not red.
-- Status glyphs differ in **shape**, not only colour, with the text label always beside them.
-  Current set: open eye = running, half-open amber eye = starting or rebuilding, eye crying blood =
-  running but broken, closed red eye = down, dagger = needs a human, hollow ring = unknown.
+- Status glyphs differ in **shape**, not only colour, with the text label always beside them. Each
+  theme brings its whole set (status glyphs, action icons, settings icon, chevron, favicons); none
+  borrows another theme's marks.
+  - Horror: open eye = running, half-open eye = starting or rebuilding, eye crying blood = running but
+    broken, closed eye with a tear = down, dagger = needs a human, hollow ring = unknown.
+  - Neon (pixel set): diamond = running, hourglass = starting, bolt = broken, power symbol = down,
+    warning sign = needs a human, question mark = unknown.
+  - Terminal (tiny ASCII faces): `^_^` running, `o_O` starting, `>_<` broken, `zZ` down, `O_O` needs a
+    human, `?_?` unknown. The monitor's big face shows the same faces for the backend rollup.
 
 ### 6. Accessible, always
 - Text at WCAG AA (4.5:1) or better on every background and state; aim for 7:1 for secondary
   text. Glyphs and other meaningful non-text at 3:1 or better. Measure, and record the numbers.
-- Visible focus rings everywhere, full keyboard support, native `<dialog>` for modals.
+- Visible focus rings everywhere: two rings, `--focus-inner` (the surface colour) inside
+  `--focus-outer` (3:1 against card and desk), so focus shows on every texture. Full keyboard
+  support, native `<dialog>` for modals.
+- Every solid fill has a paired on-colour (`--ok-ink`, `--bad-ink`, `--charge-ink`...), used wherever
+  text sits on it. `?debug=1` runs a contrast self-check for every theme in both schemes.
 - `prefers-reduced-motion` turns off all decorative motion and leaves a good still frame.
 - Appearance offers **System / Dark / Light**. Every piece of art and every palette follows the
   scheme, including canvases (re-derive cached palettes when the scheme changes).
@@ -135,6 +149,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 ### 7. Fast, or it isn't fun
 - Pre-rendered art is a performance tool: paint textures, fog and glows once per theme and scheme
   into tiles (cache them), draw small, scale up crisply, and swap pre-rendered frames.
+- Transitions use the motion tokens (`--dur-fast`, `--dur`, `--ease`, `--ease-out`); one
+  reduced-motion override zeroes them. Stepped effects keep `steps()` timing.
 - Animate only composited properties (`opacity`, `transform`). No live SVG filters
   (`feTurbulence`), large blurs, `backdrop-filter` or blend modes on full-page layers: pre-render
   them to a tile once.
@@ -147,9 +163,12 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 ### 8. Pluggable themes
 - Everything themeable lives in **one registry section** (`THEMES`): colours for dark and light,
   fonts, favicon variants, logo source art, palettes, status glyphs, settings icon, the desk
-  (materials and props), desk art and CSS, brushstroke presets, the pill hover effect (`pillHover`)
-  and eye modes. The engines (halftone grid, drips, brushstrokes, desk materials, pill hovers,
-  cursor tracking) stay theme-agnostic.
+  (materials and props), desk art and CSS, brushstroke presets, the pill and button hover effects
+  (`pillHover`, `buttonHover`) and eye modes, including custom character renderers. The engines
+  (halftone grid, drips, brushstrokes, desk materials, hovers, cursor tracking) stay theme-agnostic.
+- A theme's colours merge over `BASE`, which lists every engine key with a default. New keys derive
+  borders and hover fills from the text colour (`color-mix`) rather than hand-picking. On `?debug=1`
+  a startup check logs any key, icon or art a theme is missing, and any icon it shares with another.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
 - Options belong in Settings (tenant, theme, appearance, logo animation) and persist across visits,
   applied before first paint so nothing flashes. Logo animation has exactly three options with
@@ -158,13 +177,22 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   map to the nearest option.
 
 ### 9. The current themes
-- **Blood**: candlelit horror. Card stock with foxing on a leather blotter over black velvet, a red
+Terminal is the default for a first visit; a stored choice always wins (a stored "blood" becomes Horror).
+- **Terminal**: a chunky beige PC in an old office. A putty CRT on a desktop case in halftone dots,
+  with an ASCII face on a phosphor-green screen: it looks a cell towards the cursor, leans on big moves,
+  blinks `(-_-)`, types nonsense at a prompt and has green characters falling behind it. Putty plastic
+  panels with moulded edges and vent slots, a tractor-feed printout for the eye card with a sticky note,
+  a felt pad on a wooden desk, a halftone mug and floppies, keycap pills and embossed label tape.
+  Phosphor green `#33ff66` and amber `#ffb000` appear only on dark glass or in dark mode; light mode
+  uses dark inks on putty. Problems are a clear red.
+- **Horror**: candlelit horror. Card stock with foxing on a leather blotter over black velvet, a red
   wax seal, masking tape, halftone candles and smoky fog; brush-ink glyphs and blood-red ink.
-- **Neon**: Cyberpunk 2077. Neon yellow `#fcee0a` is the main ink and electric cyan `#02d7f2` the
-  second, on near-black acrylic and a cutting mat; hot red `#ff003c` is kept for problems so a failure
-  never reads as yellow. No pink, magenta or blue. In light mode yellow fails as text on pale acrylic,
-  so text is near-black, the second ink is a dark teal, and yellow stays for fills: keycap pills, the
-  wordmark glow, hazard tape, the charge hover (black with yellow text there) and the LED readout.
+  The Update button is a manila tag with the behind count stamped on it in sepia.
+- **Neon**: magenta `#ff3ea5` is the main ink and cyan `#2fe6ff` the second, on near-black acrylic
+  and a cutting mat; red `#ff3b30` is kept for problems so a failure never reads as the main ink. In
+  light mode magenta fails as text on pale acrylic, so text is near-black, the second ink is a dark
+  teal-blue, and magenta stays for fills: keycap pills, the wordmark glow, hazard tape, the charge
+  hover (black with magenta text there). Marks are a pixel set of their own.
 
 ## Prompt for agents building a dev-tool UI
 

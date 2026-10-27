@@ -5,7 +5,13 @@ head that can follow the cursor and (b) something to animate while idle, the way
 drips do. The character's expression also carries the backend status, with a different shape per
 state (see DESIGN.md rule 5).
 
-## Owl (follow-up)
+## Built
+
+- **Terminal** (now the default theme): a chunky beige PC whose ASCII face on a phosphor screen
+  follows the cursor a cell at a time, with falling green characters, a blinking cursor and typed
+  nonsense as its idle life. See DESIGN.md rule 9.
+
+## Owl (follow-up, still an idea)
 
 A cosy, non-horror theme: the owl keeps the "overseer" idea without the creepiness.
 
