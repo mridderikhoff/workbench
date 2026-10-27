@@ -323,11 +323,9 @@ html[data-scene="desk"] #desk{display:block;position:fixed;inset:0;z-index:-3;ov
 .desk-prop .light{position:absolute;width:var(--s,12px);height:calc(var(--s,12px) * 2);margin:calc(var(--s,12px) * -2) 0 0 calc(var(--s,12px) * -.5);transform-origin:50% 100%;border-radius:50% 50% 45% 45%/62% 62% 38% 38%;
 background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff7d6 0 22%,#ffd36a 38%,#f08a2c 62%,rgba(200,70,20,0) 74%)}
 .desk-prop .light::before{content:"";position:absolute;left:50%;top:55%;width:calc(var(--s,12px) * 9);height:calc(var(--s,12px) * 9);margin:calc(var(--s,12px) * -4.5) 0 0 calc(var(--s,12px) * -4.5);border-radius:50%;background:radial-gradient(circle,rgba(255,190,90,.34) 0,rgba(255,150,60,.12) 35%,rgba(255,140,50,0) 70%)}
-/* Halftone props: the flame and its glow are screened through the same dot grid as the eye. */
-.desk-prop.dots .light{background:none;overflow:visible}
-.desk-prop.dots .light::after{content:"";position:absolute;inset:-25% -40%;background:radial-gradient(ellipse 36% 46% at 50% 66%,#fff3c4 0 24%,#ffc85a 42%,#ee7a26 64%,rgba(200,60,20,0) 78%)}
-.desk-prop.dots .light::before{background:radial-gradient(circle,rgba(255,180,80,.55) 0,rgba(255,140,50,.2) 36%,rgba(255,120,40,0) 68%)}
-.desk-prop.dots .light::before,.desk-prop.dots .light::after{-webkit-mask:radial-gradient(circle,#000 0 1.3px,transparent 1.8px) 0 0/4.5px 4.5px;mask:radial-gradient(circle,#000 0 1.3px,transparent 1.8px) 0 0/4.5px 4.5px}
+/* Halftone props: flames are a sprite of dot frames; only a whole-frame translate changes, so the dots stay on the grid. */
+.desk-prop .dot-flame{position:absolute;display:block;overflow:hidden;pointer-events:none}
+.desk-prop .dot-flame>b{display:block;height:100%;background:0 0/100% 100% no-repeat;will-change:transform}
 @media (max-width:1399px){#desk .desk-props{display:none}}
 @media (prefers-reduced-motion:no-preference){
 html[data-scene="desk"] #desk .desk-fog.a{animation:desk-drift 150s linear infinite}
@@ -895,12 +893,6 @@ THEMES.neon = (function () {
     backgrounds: {
       // Brushed gunmetal under a rubber cutting mat; panels are smoky acrylic; a magenta tube glows off-screen.
       desk: {kind: "desk", seed: 23, surface: "metal", blotter: "mat", stock: "acrylic", glow: {color: "#ff3ea5", core: "#ffd2ec"},
-        props: [{art: "floppy", side: "left", offset: 46, bottom: 40, width: 128, height: 128, rotate: -14},
-          {art: "screws", side: "right", offset: 60, bottom: 50, width: 90, height: 60}],
-        art: {
-          floppy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect x="9" y="12" width="114" height="114" rx="6" fill="#000" fill-opacity=".5"/><path fill="#2a2342" d="M10 4h96l14 14v96a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V10a6 6 0 0 1 6-6z"/><path fill="#ff3ea5" fill-opacity=".85" d="M10 4h96l14 14v4H4V10a6 6 0 0 1 6-6z"/><rect x="32" y="4" width="60" height="38" rx="2" fill="#b9b8c8"/><rect x="70" y="10" width="12" height="26" rx="1" fill="#2a2342"/><rect x="40" y="8" width="2" height="30" fill="#fff" fill-opacity=".5"/><rect x="18" y="60" width="92" height="56" rx="3" fill="#f3f1fa"/><path d="M26 74h76M26 86h60M26 98h70" stroke="#2fe6ff" stroke-width="2.4" stroke-linecap="round"/><path d="M26 74h40" stroke="#ff3ea5" stroke-width="2.4" stroke-linecap="round"/><rect x="8" y="110" width="6" height="6" fill="#17142a"/></svg>',
-          screws: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 60"><defs><radialGradient id="s" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#e6e4f2"/><stop offset=".6" stop-color="#7d7a92"/><stop offset="1" stop-color="#2a2838"/></radialGradient></defs><g fill="#000" fill-opacity=".5"><circle cx="20" cy="20" r="8"/><circle cx="58" cy="44" r="7"/><circle cx="76" cy="16" r="6"/></g><circle cx="18" cy="18" r="8" fill="url(#s)"/><path d="M13 14l10 8" stroke="#17142a" stroke-width="2"/><circle cx="56" cy="42" r="7" fill="url(#s)"/><path d="M51 42h10" stroke="#17142a" stroke-width="2"/><circle cx="74" cy="14" r="6" fill="url(#s)"/><path d="M70 17l8-6" stroke="#17142a" stroke-width="1.8"/></svg>'
-        },
         dark: {surface: {ramp: ["#08080c", "#101017", "#191921", "#24242e"]}, blotter: {ramp: ["#0b0a15", "#0f0d1b", "#131126"], grid: "rgba(47,230,255,.13)", grid2: "rgba(255,62,165,.24)"},
           stock: {ramp: ["#12101c", "#15131f", "#191625"]}, fog: "#6a3c8a"},
         light: {surface: {ramp: ["#8a8996", "#a3a2ae", "#b7b6c2", "#cbcad4"]}, blotter: {ramp: ["#d2cee0", "#dad6e8", "#e1deee"], grid: "rgba(0,114,138,.24)", grid2: "rgba(209,0,111,.30)"},
@@ -1460,9 +1452,62 @@ var QA_BG=(function(){
     };
     image.src="data:image/svg+xml,"+encodeURIComponent(svg);
   }
+  // Halftone flames: a sprite of pre-screened frames on the eye's dot grid. Dots never move; a frame swap only changes
+  // which dots are lit and how big they are, at an irregular 6-12fps, like the eye.
+  var FLAME_FRAMES=7,flameSprites={},flames=[],flameTimer=0;
+  function flameSprite(size,pitch){
+    var key=size+":"+pitch;if(flameSprites[key])return flameSprites[key];
+    var cols=2*Math.round(size*4.2/pitch),rows=Math.round(size*5.6/pitch),base=Math.round(rows*0.62),scale=2;
+    var w=cols*pitch,h=rows*pitch,canvas=document.createElement("canvas");canvas.width=w*FLAME_FRAMES*scale;canvas.height=h*scale;
+    var c=canvas.getContext("2d"),seed=size*97+13,rand=function(){seed=(seed*16807)%2147483647;return seed/2147483647};
+    c.scale(scale,scale);
+    for(var f=0;f<FLAME_FRAMES;f++){
+      var lean=(rand()-0.5)*0.9,tall=0.8+rand()*0.45,wide=0.85+rand()*0.3,glow=0.8+rand()*0.35,flameH=size*2*tall/pitch,flameW=size*0.62*wide/pitch;
+      for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){
+        var dx=x+0.5-cols/2,dy=base-(y+0.5),cx=dx-lean*Math.max(0,dy)*0.35;
+        // Teardrop: wide near the wick, pointed at the top.
+        var t=dy/flameH,half=flameW*(t<0?Math.sqrt(Math.max(0,1+t*3)):Math.pow(Math.max(0,1-t),0.8)*(1+t*1.2)),core=half>0?1-Math.abs(cx)/half:0;
+        var inFlame=dy>-1.2&&t<1&&core>0,distance=Math.hypot(dx,(dy-flameH*0.35)*0.9)/(cols*0.5*glow),light=Math.max(0,1-distance)*Math.sin(Math.PI*(x+0.5)/cols)*Math.sin(Math.PI*(y+0.5)/rows);
+        var x0=f*w+(x+0.5)*pitch,y0=(y+0.5)*pitch,r,color;
+        if(inFlame){var heat=Math.min(1,core*1.3)*(1-Math.max(0,t)*0.45);r=pitch*0.5*Math.sqrt(0.45+0.55*heat);color=heat>0.72?"#fff3c4":heat>0.42?"#ffc85a":"#ee7a26"}
+        else{r=pitch*0.5*Math.sqrt(light*light*0.55);color="rgba(255,165,75,"+(0.25+light*0.5).toFixed(2)+")"}
+        if(r<0.4)continue;
+        c.fillStyle=color;c.beginPath();c.arc(x0,y0,r,0,Math.PI*2);c.fill();
+      }
+    }
+    flameSprites[key]={url:'url("'+canvas.toDataURL("image/png")+'")',w:w,h:h,base:base};
+    return flameSprites[key];
+  }
+  function dotFlame(light,width,height){
+    var pitch=QA_THEME.current().artPitch,sprite=flameSprite(light[2],pitch),element=document.createElement("i"),strip=document.createElement("b");
+    // Snap the wick to the prop's dot grid so the flame's dots line up with the candle's.
+    var left=Math.round(light[0]/100*width/pitch)*pitch,top=Math.round(light[1]/100*height/pitch)*pitch;
+    element.className="dot-flame";
+    element.style.cssText="left:"+(left-sprite.w/2)+"px;top:"+(top-sprite.base*pitch)+"px;width:"+sprite.w+"px;height:"+sprite.h+"px";
+    strip.style.cssText="width:"+sprite.w*FLAME_FRAMES+"px;background-image:"+sprite.url;
+    element.appendChild(strip);
+    flames.push({strip:strip,w:sprite.w,frame:0,due:0});
+    return element;
+  }
+  var flameStill=window.matchMedia("(prefers-reduced-motion: reduce)");
+  function flicker(){
+    flameTimer=0;
+    if(!flames.length||flameStill.matches||document.hidden||document.documentElement.classList.contains("modal-open")||document.documentElement.getAttribute("data-scene")!=="desk")return;
+    var now=performance.now();
+    flames.forEach(function(flame){
+      if(now<flame.due)return;
+      var next=Math.floor(Math.random()*(FLAME_FRAMES-1));flame.frame=next>=flame.frame?next+1:next;
+      flame.strip.style.transform="translateX("+(-flame.frame*flame.w)+"px)";
+      flame.due=now+80+Math.random()*90;
+    });
+    flameTimer=setTimeout(flicker,40);
+  }
+  function startFlicker(){if(!flameTimer)flicker()}
+  document.addEventListener("visibilitychange",startFlicker);document.addEventListener("qa-modal",function(){setTimeout(startFlicker,0)});
+  flameStill.addEventListener("change",startFlicker);
   function deskProps(cfg){
     var box=deskLayer.querySelector(".desk-props"),art=cfg.art||{};
-    box.textContent="";
+    box.textContent="";flames=[];
     (cfg.props||[]).forEach(function(prop){
       var element=document.createElement("div"),svg=art[prop.art]||prop.art;
       element.className="desk-prop"+(prop.halftone?" dots":"");
@@ -1470,12 +1515,14 @@ var QA_BG=(function(){
         (prop.rotate||prop.flip?";transform:"+(prop.flip?"scaleX(-1) ":"")+(prop.rotate?"rotate("+prop.rotate+"deg)":""):"");
       if(prop.halftone)screenProp(element,svg,prop.width,prop.height);
       (prop.lights||[]).forEach(function(light,index){
+        if(prop.halftone){element.appendChild(dotFlame(light,prop.width,prop.height));return}
         var flame=document.createElement("i");flame.className="light";
         flame.style.cssText="left:"+light[0]+"%;top:"+light[1]+"%;--s:"+light[2]+"px;animation-delay:-"+((index*0.77+light[0]*0.031)%2).toFixed(2)+"s";
         element.appendChild(flame);
       });
       box.appendChild(element);
     });
+    startFlicker();
   }
   // Finished tiles are cached in memory and in localStorage (keyed by a hash of the theme's desk entry), so a reload paints nothing.
   var DESK_CACHE_VERSION=2;
