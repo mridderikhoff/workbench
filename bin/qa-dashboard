@@ -78,18 +78,15 @@ html[data-scene="book"] .hint{padding-inline:0}
 html[data-scene="book"] .page{display:block;padding:24px 42px 80px}
 html[data-scene="book"] .page>*+*{margin-top:14px}
 }
-/* Console is a two-window status screen. Its frame and records use the theme's inks without folio ornament. */
-html[data-scene="console"] .page{position:relative;display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:16px;align-items:start;width:calc(100% - 24px);max-width:1300px;margin:14px auto;padding:22px;border:3px solid var(--border);background:var(--inset);box-shadow:inset 0 0 0 4px var(--card),inset 0 0 0 6px var(--border),0 12px 20px var(--shade)}
-html[data-scene="console"] .page::before,html[data-scene="console"] .page::after{content:"";position:absolute;top:0;width:12px;height:12px;background:var(--bg);pointer-events:none;clip-path:polygon(0 0,12px 0,12px 4px,8px 4px,8px 8px,4px 8px,4px 12px,0 12px)}
-html[data-scene="console"] .page::before{left:0}
-html[data-scene="console"] .page::after{right:0;transform:scaleX(-1)}
+/* Console's 36-unit 9-slice sprite gives every plate the same four-pixel stair corners and continuous material edge. */
+html[data-scene="console"] .page{position:relative;display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:16px;align-items:start;width:calc(100% - 24px);max-width:1300px;margin:14px auto;padding:18px;border:12px solid transparent;border-image-source:var(--console-frame-board);border-image-slice:12 fill;border-image-width:12px;border-image-repeat:stretch;background:transparent;box-shadow:none}
 html[data-scene="console"] .book-left{display:flex;grid-column:1;grid-row:1;flex-direction:column;gap:12px;min-width:0;position:sticky;top:calc(var(--header-h,58px) + 14px)}
-html[data-scene="console"] .page>main{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:12px;min-width:0;align-self:stretch;margin:0;padding:15px;background:var(--card);border:2px solid var(--border);box-shadow:inset 0 0 0 4px var(--card),inset 0 0 0 5px var(--rule)}
-html[data-scene="console"] .console-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:6px 10px 8px;border-left:4px solid var(--rule);border-bottom:2px solid var(--border);background:var(--inset);font:600 22px/1.2 var(--serif);color:var(--text)}
-html[data-scene="console"] .console-count{padding:2px 8px;border:1px solid var(--border);font:13px/1.2 var(--mono);color:var(--muted)}
-html[data-scene="console"] .book-left>.coin{position:relative;height:312px;flex:none;border:3px solid var(--border);background:var(--card);box-shadow:inset 0 0 0 5px var(--card),inset 0 0 0 7px var(--rule)}
-html[data-scene="console"] .portrait-label{display:block;position:absolute;left:6px;right:6px;bottom:6px;padding:3px 10px 4px;border-top:2px solid var(--border);background:var(--inset);color:var(--text);font:600 17px/1.1 var(--serif);text-align:center;letter-spacing:.04em;font-variant:small-caps}
-html[data-scene="console"] .book-left>.backend{position:relative;top:auto;width:auto;max-height:calc(100vh - var(--header-h,58px) - 365px);min-height:0;padding:15px;background:var(--card);border:2px solid var(--border);box-shadow:inset 0 0 0 4px var(--card),inset 0 0 0 5px var(--rule)}
+html[data-scene="console"] .page>main{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:12px;min-width:0;align-self:stretch;margin:0;padding:13px;border:12px solid transparent;border-image-source:var(--console-frame-panel);border-image-slice:12 fill;border-image-width:12px;border-image-repeat:stretch;background:transparent;box-shadow:none}
+html[data-scene="console"] .console-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:3px 8px 5px;border:8px solid transparent;border-image-source:var(--console-frame-inset);border-image-slice:12 fill;border-image-width:8px;border-image-repeat:stretch;background:transparent;font:600 22px/1.2 var(--serif);color:var(--text)}
+html[data-scene="console"] .console-count{padding:1px 5px;border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;background:var(--inset);background-clip:padding-box;font:13px/1.2 var(--mono);color:var(--muted)}
+html[data-scene="console"] .book-left>.coin{position:relative;height:312px;flex:none;border:12px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:12px;border-image-repeat:stretch;background:var(--console-window) center/100% 100% no-repeat,var(--card);background-clip:padding-box;box-shadow:none}
+html[data-scene="console"] .portrait-label{display:block;position:absolute;left:4px;right:4px;bottom:4px;padding:2px 6px;border:8px solid transparent;border-image-source:var(--console-frame-inset);border-image-slice:12 fill;border-image-width:8px;border-image-repeat:stretch;background:transparent;color:var(--text);font:600 17px/1.1 var(--serif);text-align:center;letter-spacing:.04em;font-variant:small-caps}
+html[data-scene="console"] .book-left>.backend{position:relative;top:auto;width:auto;max-height:calc(100vh - var(--header-h,58px) - 365px);min-height:0;padding:11px;border:12px solid transparent;border-image-source:var(--console-frame-panel);border-image-slice:12 fill;border-image-width:12px;border-image-repeat:stretch;background:transparent;box-shadow:none}
 html[data-scene="console"] .backend .rollup .state{padding:5px 9px;border-left:4px solid currentColor;background:var(--inset)}
 html[data-scene="console"] .card::before{display:none}
 html[data-scene="console"] .backend .rollup .title,html[data-scene="console"] .slot-card .head{padding-left:0}
@@ -98,8 +95,25 @@ html[data-scene="console"] .slot-card.err{border-left-color:var(--bad);border-bo
 html[data-scene="console"] .slot-card .head{border-bottom:0;padding-bottom:2px}
 html[data-scene="console"] .slots{gap:10px}
 html[data-scene="console"] .page>.book-left>.backend,html[data-scene="console"] .page>main{justify-self:stretch}
+/* Compact interactive plates keep their center open so hover ink, blood seep, and focus remain visible. */
+html[data-scene="console"] .app-pill,html[data-scene="console"] .chip,html[data-scene="console"] .pill{border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;background-color:var(--inset);background-clip:padding-box;box-shadow:none}
+html[data-scene="console"] .app-pill{padding:2px 6px;min-height:34px}
+html[data-scene="console"] .chip,html[data-scene="console"] .pill{padding:1px 5px}
+html[data-scene="console"] .app-pill.off{background-color:transparent}
+html[data-scene="console"] .app-pill.failed{background-color:var(--hl)}
+html[data-scene="console"] .backend button.act:not(.quiet){border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;background-color:var(--inset);background-clip:padding-box;padding:1px 6px}
+html[data-scene="console"] .settings{width:min(380px,calc(100vw - 24px));padding:14px 16px;border:12px solid transparent;border-image-source:var(--console-frame-paper);border-image-slice:12 fill;border-image-width:12px;border-image-repeat:stretch;background:transparent;box-shadow:none}
+html[data-scene="console"] .settings::before,html[data-scene="console"] .settings::after{display:none}
+html[data-scene="console"] .settings input:not([type="radio"]),html[data-scene="console"] .settings select{border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;background-color:var(--parchment-field);background-clip:padding-box;padding:2px 4px}
+html[data-scene="console"] .settings input:not([type="radio"]):hover,html[data-scene="console"] .settings select:hover,html[data-scene="console"] .settings input:not([type="radio"]):focus,html[data-scene="console"] .settings select:focus{background-color:color-mix(in srgb,var(--parchment-field) 70%,var(--parchment))}
+html[data-scene="console"] .settings select{padding-right:26px}
+html[data-scene="console"] .settings .segmented{border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;box-shadow:none}
+html[data-scene="console"] .settings .done,html[data-scene="console"] .confirm-actions button{border:6px solid transparent;border-image-source:var(--console-frame-open);border-image-slice:12;border-image-width:6px;border-image-repeat:stretch;background-color:transparent;background-clip:padding-box;padding:4px 10px;box-shadow:none}
+html[data-scene="console"] .settings .done:hover:not(:disabled),html[data-scene="console"] .confirm-actions button:hover:not(:disabled){background-color:var(--parchment-field)}
+html[data-scene="console"] .confirm-actions .danger{color:var(--parchment-ink);background-color:color-mix(in srgb,var(--blood) 12%,var(--parchment))}
+html[data-scene="console"] .confirm-actions .danger:hover:not(:disabled){background-color:color-mix(in srgb,var(--blood) 24%,var(--parchment))}
 @media (max-width:899px){
-html[data-scene="console"] .page{display:flex;flex-direction:column;padding:16px}
+html[data-scene="console"] .page{display:flex;flex-direction:column;padding:12px}
 html[data-scene="console"] .book-left,html[data-scene="console"] .page>main{width:100%;position:static}
 html[data-scene="console"] .book-left>.coin{height:292px}
 html[data-scene="console"] .book-left>.backend{max-height:none}
@@ -334,8 +348,9 @@ How to add a theme: add one entry to THEMES below; the shared SCENES registry su
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
-  backgrounds   ambient assets used by scenes, not picker options. Supply "book" for Book and "plain" for Console;
-                each has a kind ("book" or "none") and art palettes where needed. Extra assets can remain unselected.
+  backgrounds   ambient assets used by scenes, not picker options. Supply "book" for Book and "console" for Console;
+                each has its kind; the Console painter takes its colours from consoleArt. Extra assets can remain unselected.
+  consoleArt    {dark, light} colours for the static control room, portrait window, and shared pixel plate frame.
   SCENES        shared {book, console} registry maps each layout to an asset id. The default scene is Book.
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
@@ -350,7 +365,8 @@ Minimal skeleton:
     headerMark: {eye: "<svg viewBox='0 0 64 64'>...</svg>", travel: [6, 4], lid: {pivot: 31, top: 12, closed: -0.5}, underlineCss: ""},
     logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><mask id='pupil'><rect width='64' height='64' fill='white'/><circle cx='32' cy='29' r='4.2' fill='black'/></mask></defs><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='3'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='5.6' stroke-dasharray='0 10 66 100'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='7' stroke-dasharray='0 26 36 100'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6s1.6 3 1.8 4.2' pathLength='100' stroke-width='2.2' stroke-dasharray='0 84 3 2.6 2.4 3.4 1.4 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='3'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='6.2' stroke-dasharray='0 2 34 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='4.6' stroke-dasharray='0 2 72 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='2' stroke-dasharray='0 86 4 3 2 100'/><g mask='url(#pupil)'><path d='M34.28 22.75 L35.18 23.12 L36.04 23.61 L36.84 24.21 L37.56 24.92 L38.18 25.74 L38.67 26.65 L39.03 27.64 L39.22 28.68 L39.23 29.75 L39.07 30.81 L38.73 31.82 L38.22 32.77 L37.56 33.61 L36.78 34.32 L35.90 34.90 L34.96 35.33 L33.97 35.62 L32.97 35.77 L31.97 35.79 L30.98 35.68 L30.01 35.45 L29.08 35.11 L28.19 34.65 L27.36 34.08 L26.60 33.39 L25.94 32.60 L25.39 31.71 L24.98 30.73 L24.73 29.69 L24.65 28.61 L24.75 27.53 L25.04 26.48 L25.50 25.49 L26.12 24.61 L26.87 23.83 L27.73 23.20 L28.67 22.71 L29.65 22.37 L30.67 22.17 L31.69 22.10 L32.70 22.17 L33.69 22.36 L34.65 22.67 L35.57 23.09 L36.43 23.64 L37.23 24.29' stroke-width='5.2'/><path d='M34.28 22.75 L35.18 23.12 L36.04 23.61 L36.84 24.21 L37.56 24.92 L38.18 25.74 L38.67 26.65 L39.03 27.64 L39.22 28.68 L39.23 29.75 L39.07 30.81 L38.73 31.82 L38.22 32.77 L37.56 33.61 L36.78 34.32 L35.90 34.90 L34.96 35.33 L33.97 35.62 L32.97 35.77 L31.97 35.79 L30.98 35.68 L30.01 35.45 L29.08 35.11 L28.19 34.65 L27.36 34.08 L26.60 33.39 L25.94 32.60 L25.39 31.71 L24.98 30.73 L24.73 29.69 L24.65 28.61 L24.75 27.53 L25.04 26.48 L25.50 25.49 L26.12 24.61 L26.87 23.83 L27.73 23.20 L28.67 22.71 L29.65 22.37 L30.67 22.17 L31.69 22.10 L32.70 22.17 L33.69 22.36 L34.65 22.67 L35.57 23.09 L36.43 23.64 L37.23 24.29' pathLength='100' stroke-width='6.4' stroke-dasharray='0 8 38 100'/></g><path d='M19.6 42V47.4L20.4 49V53' stroke-width='5'/><path d='M33.2 46V52.4L32.4 54.2V60' stroke-width='4.4'/><path d='M47 42.6V46.2L47.7 47.8V50.2' stroke-width='4.6'/></g><g fill='#e0061f'><circle cx='20.4' cy='53.9' r='3'/><circle cx='32.4' cy='61' r='2.6'/><circle cx='47.7' cy='51' r='2.3'/><circle cx='62' cy='31.4' r='0.85'/><circle cx='60.6' cy='34.6' r='0.6'/><circle cx='3.2' cy='31' r='0.7'/></g></svg>",
     palette: {light: [...], dark: [...]},
-    backgrounds: {book: {kind: "book", dark: {...}, light: {...}}, plain: {kind: "none"}},
+    backgrounds: {book: {kind: "book", dark: {...}, light: {...}}, console: {kind: "console"}},
+    consoleArt: {dark: {...}, light: {...}},
     statusGlyphs: THEMES.blood.statusGlyphs,
     actionIcons: THEMES.blood.actionIcons,
     settingsIcon: THEMES.blood.settingsIcon,
@@ -361,7 +377,15 @@ Minimal skeleton:
 // All dashboard controls and status marks use one 24-cell engraved silhouette language.
 function plateIcon(parts){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd">'+parts+'</svg>'}
 // Scenes choose composition and an ambient asset; themes provide the visual language for both.
-var SCENES={book:{label:"Book",layout:"book",background:"book"},console:{label:"Console",layout:"console",background:"plain"}};
+var SCENES={book:{label:"Book",layout:"book",background:"book"},console:{label:"Console",layout:"console",background:"console"}};
+function svgAsset(svg){return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'")'}
+// A 36-unit 9-slice plate: four-unit stair cuts, a continuous raised edge, an inner light band and a bottom shadow.
+function consoleFrame(art,fill){
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" shape-rendering="crispEdges"><path fill="'+art.rim+'" d="M8 0h20v4h4v4h4v20h-4v4h-4v4H8v-4H4v-4H0V8h4V4h4z"/><path fill="'+art.shadow+'" d="M8 4h20v4h4v20h-4v4H8v-4H4V8h4z"/><path fill="'+art.edge+'" d="M8 4h20v4H8zM4 8h4v20H4z"/><path fill="'+fill+'" d="M12 8h12v4h4v12h-4v4H12v-4H8V12h4z"/>'+(fill==="none"?"":'<rect x="12" y="12" width="12" height="12" fill="'+fill+'"/>')+'<path fill="'+art.shine+'" d="M12 8h12v4H12zM8 12h4v12H8z"/><path fill="'+art.rim+'" d="M24 12h4v12h-4zM12 24h12v4H12z"/></svg>';
+}
+function consoleWindow(art){
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="300" viewBox="0 0 320 300" preserveAspectRatio="none" shape-rendering="crispEdges"><path fill="'+art.void+'" d="M0 0h320v300H0z"/><path fill="'+art.rib+'" d="M0 0h28v8H20v8H12v258h8v8h8v18H0zM292 0h28v300h-28v-18h8v-8h8V16h-8V8h-8z"/><path fill="'+art.edge+'" d="M20 16h4v258h-4zM296 16h4v258h-4zM28 28h12v4H28zM280 28h12v4h-12z"/><path fill="'+art.deck+'" d="M24 264h272v36H24z"/><path fill="'+art.vent+'" d="M32 272h256v4H32zM48 284h32v4H48zM96 284h32v4H96zM192 284h32v4h-32zM240 284h32v4h-32z"/><path fill="'+art.star+'" d="M62 60h4v4h-4zM238 76h4v4h-4zM266 158h4v4h-4zM82 194h4v4h-4zM228 208h4v4h-4z"/></svg>';
+}
 var THEMES = {
   blood: {
     name: "Blood",
@@ -432,7 +456,12 @@ var THEMES = {
       }
     },
     eyeModes: ["watcher", "coin", "bleeding", "off"],
+    consoleArt: {
+      dark: {room:"#100b0e",void:"#090a12",rib:"#302126",edge:"#76584b",shine:"#b49a7c",rim:"#5a4039",shadow:"#21171d",deck:"#1c151b",vent:"#503b39",star:"#aa9a81"},
+      light: {room:"#d6c9b4",void:"#b3b6ad",rib:"#a48c79",edge:"#775f50",shine:"#f7ebcc",rim:"#8b7061",shadow:"#b49c88",deck:"#bda992",vent:"#907765",star:"#564e48"}
+    },
     backgrounds: {
+      console: {kind:"console"},
       candlelight: {label: "Candlelight", kind: "candles",
         // Geometry is in CSS pixels; x is the candle's centre as a fraction of the width.
         candles: [
@@ -505,6 +534,16 @@ var QA_THEME = (function () {
       return 'url("' + canvas.toDataURL("image/png") + '")';
     } catch (e) { return "none" }
   }
+  function consoleVars(theme,scheme) {
+    var art=(theme.consoleArt||THEMES.blood.consoleArt)[scheme],css=theme.css[scheme];
+    return ";--console-frame-board:"+svgAsset(consoleFrame(art,css["--inset"]))+
+      ";--console-frame-panel:"+svgAsset(consoleFrame(art,css["--card"]))+
+      ";--console-frame-inset:"+svgAsset(consoleFrame(art,css["--inset"]))+
+      ";--console-frame-open:"+svgAsset(consoleFrame(art,"none"))+
+      ";--console-frame-paper:"+svgAsset(consoleFrame(art,css["--parchment"]))+
+      ";--console-frame-field:"+svgAsset(consoleFrame(art,css["--parchment-field"]))+
+      ";--console-window:"+svgAsset(consoleWindow(art));
+  }
   function apply(name) {
     var theme = THEMES[name] || THEMES.blood, fonts = theme.fonts, selected = pickScene();
     active = {id: THEMES[name] ? name : "blood", theme: theme};
@@ -512,8 +551,8 @@ var QA_THEME = (function () {
     var style = document.getElementById("theme-style");
     if (!style) { style = document.createElement("style"); style.id = "theme-style"; document.head.appendChild(style) }
     // data-scheme is "system", "dark" or "light": the media query applies only unless light is forced, and a forced dark wins by specificity.
-    var dark = block(theme.css.dark) + ";--grain-image:" + grainTile(theme.css.dark);
-    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + ";--folio-art:url(\"data:image/svg+xml," + encodeURIComponent(theme.folioArt || "") + "\");--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
+    var dark = block(theme.css.dark) + ";--grain-image:" + grainTile(theme.css.dark) + consoleVars(theme,"dark");
+    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + consoleVars(theme,"light") + ";--folio-art:url(\"data:image/svg+xml," + encodeURIComponent(theme.folioArt || "") + "\");--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
       "@media (prefers-color-scheme:dark){:root:not([data-scheme=\"light\"]){" + dark + "}}" +
       ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}" + (theme.headerMark.underlineCss || "");
     document.documentElement.setAttribute("data-scheme", schemePreference);
@@ -728,6 +767,44 @@ var QA_BG=(function(){
     return null;
   }
 
+  /* ---- console: a fixed control room window, ribbed bulkheads and a low deck, painted once on the common 4.5px lattice. ---- */
+  function consoleRoom(cfg,palette){
+    var color={room:pack(palette.room),void:pack(palette.void),rib:pack(palette.rib),edge:pack(palette.edge),
+      shine:pack(palette.shine),deck:pack(palette.deck),vent:pack(palette.vent),star:pack(palette.star)};
+    pixels.fill(color.room);
+    function rect(x,y,w,h,ink){
+      var x0=Math.max(0,Math.round(x)),y0=Math.max(0,Math.round(y)),x1=Math.min(cols,Math.round(x+w)),y1=Math.min(rows,Math.round(y+h));
+      for(var row=y0;row<y1;row++)pixels.fill(ink,row*cols+x0,row*cols+x1);
+    }
+    var left=Math.max(7,Math.round(cols*.085)),right=cols-left,top=Math.max(5,Math.round(rows*.09)),deckY=Math.max(top+20,Math.round(rows*.72));
+    rect(left,top,right-left,deckY-top,color.void);
+    rect(0,0,cols,3,color.rib);rect(0,3,cols,1,color.edge);
+    rect(0,top,left,deckY-top,color.rib);rect(right,top,cols-right,deckY-top,color.rib);
+    rect(left-2,top,2,deckY-top,color.edge);rect(right,top,2,deckY-top,color.edge);
+    rect(left+3,top+3,right-left-6,1,color.vent);
+    // Unequal conduits and ribs keep the room authored without filling its quiet viewport.
+    rect(3,top+4,2,deckY-top-8,color.edge);rect(7,top+11,1,deckY-top-20,color.shine);
+    rect(right+5,top+5,2,deckY-top-9,color.edge);rect(right+10,top+17,1,deckY-top-28,color.vent);
+    for(var rib=top+9;rib<deckY-5;rib+=22){
+      rect(0,rib,left-2,2,color.vent);rect(right+2,rib+7,cols-right-2,2,color.vent);
+      rect(left-3,rib,3,4,color.shine);rect(right,rib+7,3,4,color.shine);
+    }
+    var next=seeded(173);
+    for(var star=0;star<32;star++){
+      var sx=left+5+Math.floor(next()*Math.max(1,right-left-10)),sy=top+5+Math.floor(next()*Math.max(1,deckY-top-13));
+      rect(sx,sy,star%7===0?2:1,1,color.star);
+    }
+    rect(0,deckY,cols,rows-deckY,color.deck);rect(0,deckY,cols,3,color.rib);rect(0,deckY+3,cols,1,color.edge);
+    for(var tile=0;tile<cols;tile+=18){
+      rect(tile,deckY+7,2,Math.max(0,rows-deckY-7),color.rib);
+      rect(tile+5,deckY+11,8,1,color.vent);
+      if(tile%36===0)rect(tile+5,deckY+14,5,1,color.edge);
+    }
+    for(var band=deckY+20;band<rows;band+=24)rect(0,band,cols,2,color.rib);
+    ctx.putImageData(image,0,0);
+    return null;
+  }
+
   /* ---- fog: smoky grey-red bands from value noise, ordered-dithered at their edges, drifting in steps ---- */
   function fog(cfg,palette){
     var tones=palette.tones.map(pack),next=seeded(41),lattice=new Float32Array(4096),i;
@@ -755,13 +832,13 @@ var QA_BG=(function(){
     return function step(){draw((performance.now()-begun)/1000);timer=setTimeout(step,1000/(cfg.fps||6))};
   }
 
-  var KINDS={candles:candles,book:book,fog:fog};
+  var KINDS={candles:candles,book:book,console:consoleRoom,fog:fog};
   function start(){
     stop();
     var cfg=config(),make=KINDS[cfg.kind];
     if(!make)return;
     resize();
-    var palette=cfg[QA_THEME.isDark()?"dark":"light"]||cfg.dark;
+    var scheme=QA_THEME.isDark()?"dark":"light",palette=cfg.kind==="console"?QA_THEME.current().consoleArt[scheme]:cfg[scheme]||cfg.dark;
     running=make(cfg,palette);
     if(running&&!document.hidden)timer=setTimeout(running,100);
   }

@@ -56,6 +56,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 ### 2. Pixel art, style over realism
 - Prefer **deliberate pixel art** to realistic rendering. Chunky cells on a fixed grid, scaled with
   nearest-neighbour (`image-rendering: pixelated`), hard edges.
+- Treat frames and controls as pixel artwork too: draw stepped contours and discrete highlight
+  and shadow cells around their edges. Carry the same edge grammar into small boxed controls.
 - **Limited palette:** 4–6 colours from the theme per piece, stepped and never blended. Gradients
   are made with **ordered (Bayer) dithering** between adjacent palette steps.
 - **Stepped animation:** anything that moves position runs at about 8–12fps in whole-cell steps.
