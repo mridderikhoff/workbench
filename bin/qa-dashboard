@@ -385,6 +385,7 @@ html[data-scene="desk"] .loading .coin{height:auto}
 html[data-scene="desk"] .coin canvas{position:relative;display:block;margin:0 auto -22px;flex:none}
 html[data-scene="desk"] .coin .portrait-label{display:none}
 html[data-scene="desk"] .coin>.masthead{display:flex;position:relative;flex-direction:column;align-items:center;gap:6px;width:100%}
+html[data-scene="desk"] .masthead-title{margin:0;font:inherit}
 html[data-scene="desk"] .masthead .mark{position:relative;display:inline-block;padding:0 4px 14px;font:700 31px/1.1 var(--serif);letter-spacing:var(--word-spacing,.07em);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);cursor:pointer}
 html[data-scene="desk"] .masthead .mark::before{content:"";position:absolute;left:-26px;right:-26px;bottom:-16px;height:56px;z-index:-1;pointer-events:none;background:var(--desk-glow,none) center/100% 100% no-repeat}
 html[data-scene="desk"] .masthead .mark .brush{left:0;top:calc(100% - 13px)}
@@ -995,6 +996,7 @@ var QA_THEME = (function () {
   return {
     current: function () { return active.theme },
     id: function () { return active.id },
+    has: function (id) { return Object.prototype.hasOwnProperty.call(THEMES, id) },
     schemePreference: function () { return schemePreference },
     scene: function () { return sceneId },
     scenes: function () { return SCENES },
@@ -1445,6 +1447,16 @@ var QA_BG=(function(){
     for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)}
     return"qaDashboardDesk:"+QA_THEME.id()+":"+scheme+":"+(hash>>>0).toString(36);
   }
+  // Keep at most one tile set per known theme and scheme: drop stale hashes, old versions and removed themes.
+  function sweepDeskCache(prefix,keep){
+    try{
+      Object.keys(localStorage).forEach(function(name){
+        if(name.indexOf("qaDashboardDesk:")!==0||name===keep)return;
+        var id=name.split(":")[1];
+        if(name.indexOf("qaDashboardDesk:"+prefix)===0||!QA_THEME.has(id))localStorage.removeItem(name);
+      });
+    }catch(e){}
+  }
   function desk(cfg,palette){
     var scheme=QA_THEME.isDark()?"dark":"light",key=QA_THEME.id()+":"+scheme,vars=deskTiles[key],root=document.documentElement,storeKey=deskStoreKey(cfg,scheme);
     if(!vars){try{vars=JSON.parse(localStorage.getItem(storeKey)||"null")}catch(e){vars=null}if(vars)deskTiles[key]=vars}
@@ -1463,10 +1475,10 @@ var QA_BG=(function(){
       }catch(e){}
       deskTiles[key]=vars;
       try{
-        Object.keys(localStorage).forEach(function(name){if(name.indexOf("qaDashboardDesk:"+QA_THEME.id()+":"+scheme+":")===0&&name!==storeKey)localStorage.removeItem(name)});
         localStorage.setItem(storeKey,JSON.stringify(vars));
       }catch(e){}
     }
+    sweepDeskCache(QA_THEME.id()+":"+scheme+":",storeKey);
     Object.keys(vars).forEach(function(name){root.style.setProperty(name,vars[name])});
     ["--desk-fog","--desk-glow","--desk-blotter","--desk-tag"].forEach(function(name){if(!vars[name])root.style.setProperty(name,"none")});
     root.setAttribute("data-deckle",cfg.deckle?"1":"0");
@@ -1502,7 +1514,7 @@ var QA_BG=(function(){
 <div class="header-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></header>
 <div id="banner" role="alert"></div>
 <div class="page"><div class="book-left"><section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
-<main><h2 class="console-title">Sessions <span id="console-count" class="console-count"></span></h2><div id="slots" class="slots"></div><div class="coin"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><canvas id="coin" width="200" height="230" aria-hidden="true"></canvas><span class="portrait-label" aria-hidden="true">Overseer</span><div class="masthead"></div></div><p id="hint" class="hint muted" hidden></p></main></div>
+<main><h2 class="console-title">Sessions <span id="console-count" class="console-count"></span></h2><div id="slots" class="slots"></div><div class="coin"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><canvas id="coin" width="200" height="230" aria-hidden="true"></canvas><span class="portrait-label" aria-hidden="true">Overseer</span><div class="masthead"><h1 class="masthead-title"></h1></div></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off">
@@ -1523,12 +1535,12 @@ var INITIAL=/*INITIAL*/null/*END*/;
 // the wordmark, freshness and Settings move into the eye card (the masthead) and go back to the header in other scenes.
 (function placeEye(){
   var coin=document.querySelector(".coin"),left=document.querySelector(".book-left"),backend=document.getElementById("backend"),label=coin.querySelector(".portrait-label");
-  var masthead=coin.querySelector(".masthead"),header=document.querySelector("header"),title=header.querySelector("h1"),mark=title.querySelector(".mark"),tools=header.querySelector(".header-tools");
+  var masthead=coin.querySelector(".masthead"),mastTitle=masthead.querySelector(".masthead-title"),header=document.querySelector("header"),title=header.querySelector("h1"),mark=title.querySelector(".mark"),tools=header.querySelector(".header-tools");
   function sync(){
     label.textContent=QA_THEME.copy("characterName","Overseer");
     var scene=document.documentElement.getAttribute("data-scene"),book=scene==="book",desk=scene==="desk",moved=false;
-    if(desk&&mark.parentNode!==masthead){masthead.appendChild(mark);masthead.appendChild(tools);moved=true}
-    else if(!desk&&mark.parentNode===masthead){title.appendChild(mark);header.appendChild(tools);moved=true}
+    if(desk&&mark.parentNode!==mastTitle){mastTitle.appendChild(mark);masthead.appendChild(tools);moved=true}
+    else if(!desk&&mark.parentNode===mastTitle){title.appendChild(mark);header.appendChild(tools);moved=true}
     var placed=coin.parentNode===left&&(book?coin.previousElementSibling===backend:coin.nextElementSibling===backend);
     if(!placed){if(book)left.appendChild(coin);else left.insertBefore(coin,backend);moved=true}
     if(!moved)return;
