@@ -28,5 +28,6 @@ breaks them all.
 - Never start, stop or restart the shared backend or other agents' frontends while testing; use the
   dry-run and stub switches above.
 - No secrets in the repo. Keycloak admin credentials stay in `~/.keycloak-local/config`, outside git.
-- Dashboard wording stays plain; the theme lives in visuals only (icons, typography, art).
+- Any UI in this repo follows [DESIGN.md](DESIGN.md): fun pixel-art visuals with plain wording,
+  scannable status, accessible and fast. It ends with a prompt to hand agents for UI work.
 - Keep personal defaults overridable by environment (`WT_MAIN_CHECKOUT`, `WT_TENANT`, `KC_LIB`, `QA_TREE`).
