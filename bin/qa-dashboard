@@ -47,6 +47,8 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .slots>*,main>*{min-width:0}
 .slots>.hint,.slots>.empty{grid-column:1/-1}
 .card{background:var(--card);border:1px solid var(--border);border-radius:3px 6px 4px 7px/6px 3px 7px 4px;padding:10px 13px;box-shadow:inset 0 0 18px var(--shade),0 1px 0 var(--shade);transition:border-color .15s}
+#bg-canvas{display:none;position:fixed;left:0;top:0;z-index:-2;pointer-events:none;image-rendering:pixelated}
+html:not([data-bg-kind="none"]) #bg-canvas{display:block}
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
 body::before{background:var(--grain-image,none) 0 0/128px 128px}
 body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--vignette) 100%)}
@@ -77,11 +79,23 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .slot-card{position:relative}
 .backend{position:sticky;top:var(--header-h,58px);z-index:20;display:flex;flex-direction:column;max-height:calc(100vh - var(--header-h,58px) - 12px);padding:7px 13px;box-shadow:inset 0 0 18px var(--shade),0 8px 10px -8px var(--shade)}
 .backend-body{min-height:0;overflow:auto;overscroll-behavior:contain}
-.backend .head{margin-bottom:0}
-.backend .head .toggle{margin-left:auto}
-.backend .title{font-size:17px}
-.backend .state{font-weight:600}
-.backend .state .dot{width:18px;height:18px}
+.backend .head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-bottom:0}
+/* The rollup is the hero: big glyph and word in the state colour over a faint, ragged wash. */
+.backend .rollup{--hero:var(--text);display:flex;align-items:center;gap:4px 12px;padding:5px 12px 5px 11px;border-radius:3px 16px 5px 20px/6px 10px 4px 12px;box-shadow:inset 3px 0 0 var(--hero);background:linear-gradient(95deg,color-mix(in srgb,var(--hero) 10%,transparent),color-mix(in srgb,var(--hero) 4%,transparent) 70%,transparent)}
+.backend .rollup.tone-warn{--hero:var(--warn)}
+.backend .rollup.tone-down,.backend .rollup.tone-broken,.backend .rollup.tone-attn{--hero:var(--bad)}
+.backend .rollup .title{font:600 12px/1 var(--serif);letter-spacing:.08em;font-variant:small-caps;color:var(--muted)}
+.backend .rollup .state{gap:10px;font:600 22px/1.15 var(--serif);color:var(--hero)}
+.backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
+.backend .rel{display:inline-flex;align-items:center}
+.backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
+.backend .meta{display:inline-flex;align-items:center;gap:6px 10px;margin-left:auto;font-size:12px;color:var(--muted)}
+.backend .meta code{font-size:12px}
+.backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
+.backend .pill.rel{font-size:12px;color:var(--muted)}
+.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border-color:var(--muted);padding:1px 9px}
+.backend button.act.quiet.behind::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--warn);vertical-align:1px}
+.backend button.act.quiet.behind:hover:not(:disabled)::before,.backend button.act.quiet.behind:focus-visible::before{background:currentColor}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
 .backend .action-result{margin:6px 0 0}
@@ -95,9 +109,10 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .page>.backend{grid-column:1;grid-row:1;justify-self:end;width:280px}
 .page>*+*{margin-top:0}
 .backend{top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px);padding:12px 14px;box-shadow:inset 0 0 18px var(--shade),0 1px 0 var(--shade)}
-.backend .head{flex-direction:column;align-items:flex-start;gap:8px}
-.backend .head .toggle{margin-left:0;padding-left:0}
-.backend .title{font-size:19px}
+.backend .head{flex-direction:column;align-items:stretch;gap:9px}
+.backend .rollup{flex-direction:column;align-items:flex-start;gap:6px;padding:8px 12px 9px 12px}
+.backend .rel,.backend .meta{margin-left:0}
+.backend .head>.rel{align-self:flex-start}
 .backend-details{margin-top:10px;padding-top:8px}
 }
 .slot-card .head{padding-right:5em;align-items:center}
@@ -255,6 +270,8 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
+  backgrounds   {id: {label, kind, cell, dark, light, ...}} pixel-art page backgrounds; kind is "candles", "wall", "fog" or "none"; dark and
+                light hold that kind's palette. defaultBackground names the one used until the user chooses.
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
   copy          optional text overrides: {emptyTitle}
@@ -333,6 +350,20 @@ var THEMES = {
       }
     },
     eyeModes: ["watcher", "coin", "bleeding", "off"],
+    defaultBackground: "candlelight",
+    backgrounds: {
+      candlelight: {label: "Candlelight", kind: "candles", cell: 6,
+        candles: [{x: 0.06, height: 9}, {x: 0.55, height: 6}, {x: 0.94, height: 12}],
+        dark: {glow: ["#1f100d", "#2e170f", "#44200f"], wax: ["#6e6250", "#4a4036"], flame: ["#e8a23a", "#f4d07a", "#c8501e"]},
+        light: {glow: ["#efe0bc", "#ebd1a0", "#e4bf86"], wax: ["#9a8a70", "#7a6a52"], flame: ["#b8431b", "#e0892a", "#8f1e18"]}},
+      stained: {label: "Stained wall", kind: "wall", cell: 6, seed: 7,
+        dark: {brick: ["#1d1514", "#171010", "#120c0c"], mortar: "#0b0707", blood: ["#33070c", "#4f0a12"]},
+        light: {brick: ["#ece1c8", "#e8dcbf", "#e3d5b6"], mortar: "#d6c7a3", blood: ["#d9b4a8", "#cfa093"]}},
+      fog: {label: "Fog", kind: "fog", cell: 8, fps: 6,
+        dark: {tones: ["#1a0a0c", "#260c11", "#341019"]},
+        light: {tones: ["#ebdec2", "#e5d4b0", "#ddc7a0"]}},
+      plain: {label: "Plain", kind: "none"}
+    },
     copy: {emptyTitle: "No sessions running"}
   }
 };
@@ -346,6 +377,17 @@ var QA_THEME = (function () {
     return /^(dark|light)$/.test(value) ? value : "system";
   }
   var schemePreference = pickScheme();
+  var backgroundId = "plain";
+  function pickBackground(theme) {
+    var backgrounds = theme.backgrounds || {}, value = query.get("bg");
+    if (!backgrounds[value]) { try { value = localStorage.getItem("qaDashboardBackground") } catch (e) { value = null } }
+    return backgrounds[value] ? value : (backgrounds[theme.defaultBackground] ? theme.defaultBackground : "plain");
+  }
+  function showBackground(theme) {
+    var entry = (theme.backgrounds || {})[backgroundId], root = document.documentElement;
+    root.setAttribute("data-bg", backgroundId);
+    root.setAttribute("data-bg-kind", entry ? entry.kind : "none");
+  }
   function pick() {
     var name = query.get("theme");
     if (!THEMES[name]) { try { name = localStorage.getItem("qaDashboardTheme") } catch (e) { name = null } }
@@ -374,6 +416,7 @@ var QA_THEME = (function () {
   function apply(name) {
     var theme = THEMES[name] || THEMES.blood, fonts = theme.fonts;
     active = {id: THEMES[name] ? name : "blood", theme: theme};
+    backgroundId = pickBackground(theme);showBackground(theme);
     var style = document.getElementById("theme-style");
     if (!style) { style = document.createElement("style"); style.id = "theme-style"; document.head.appendChild(style) }
     // data-scheme is "system", "dark" or "light": the media query applies only unless light is forced, and a forced dark wins by specificity.
@@ -392,6 +435,14 @@ var QA_THEME = (function () {
     current: function () { return active.theme },
     id: function () { return active.id },
     schemePreference: function () { return schemePreference },
+    background: function () { return backgroundId },
+    backgrounds: function () { return active.theme.backgrounds || {} },
+    chooseBackground: function (id) {
+      if (!(active.theme.backgrounds || {})[id]) return;
+      try { localStorage.setItem("qaDashboardBackground", id) } catch (e) {}
+      backgroundId = id;showBackground(active.theme);
+      document.dispatchEvent(new CustomEvent("qa-bg"));
+    },
     isDark: function () { return schemePreference === "dark" || (schemePreference === "system" && systemDark.matches) },
     chooseScheme: function (value) {
       if (!/^(system|dark|light)$/.test(value)) return;
@@ -411,6 +462,159 @@ var QA_THEME = (function () {
 })();
 </script>
 </head><body class="loading">
+<script>
+"use strict";
+// Pixel-art page background: one low-resolution canvas scaled with nearest-neighbour, drawn from the active theme's `backgrounds` entry.
+var QA_BG=(function(){
+  var canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"),reduced=window.matchMedia("(prefers-reduced-motion: reduce)");
+  canvas.id="bg-canvas";canvas.setAttribute("aria-hidden","true");document.body.insertBefore(canvas,document.body.firstChild);
+  var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  var timer=0,cols=0,rows=0,cell=6,image=null,pixels=null,running=null,resizeTimer=0;
+  function bayer(x,y){return(BAYER[(y&3)*4+(x&3)]+0.5)/16}
+  function pack(hex){var n=parseInt(hex.slice(1),16);return(255<<24|(n&255)<<16|(n>>8&255)<<8|n>>16)>>>0}
+  function seeded(seed){return function(){seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  function config(){var theme=QA_THEME.current();return theme.backgrounds&&theme.backgrounds[QA_THEME.background()]||{kind:"none"}}
+  function sprite(width,height,paint){
+    var piece=document.createElement("canvas");piece.width=width;piece.height=height;
+    var pieceContext=piece.getContext("2d"),data=pieceContext.createImageData(width,height),words=new Uint32Array(data.data.buffer);
+    for(var y=0;y<height;y++)for(var x=0;x<width;x++){var color=paint(x,y);if(color)words[y*width+x]=color}
+    pieceContext.putImageData(data,0,0);return piece;
+  }
+  function resize(){
+    cell=config().cell||6;cols=Math.ceil(innerWidth/cell);rows=Math.ceil(innerHeight/cell);
+    canvas.width=cols;canvas.height=rows;canvas.style.width=cols*cell+"px";canvas.style.height=rows*cell+"px";
+    image=ctx.createImageData(cols,rows);pixels=new Uint32Array(image.data.buffer);
+  }
+  function stop(){clearTimeout(timer);timer=0;running=null}
+
+  /* ---- candles: dithered glow rings that swap between pre-rendered frames at irregular moments, plus flickering flames ---- */
+  var FLAMES=[[".c.",".a.","aba","aba",".a."],["c..",".a.","aba","aba",".a."],["..c",".a.","aba","aba",".a."],[".c.","aa.","aba","aba",".a."],[".c.",".aa","aba","aba",".a."]];
+  function candles(cfg,palette){
+    var glowColors=palette.glow.map(pack),flameColors={a:pack(palette.flame[0]),b:pack(palette.flame[1]),c:pack(palette.flame[2])},radii=[30,34,39];
+    var glows=radii.map(function(radius){
+      return sprite(radius*2+1,radius*2+1,function(x,y){
+        var dx=x-radius,dy=y-radius,level=Math.floor((1-Math.hypot(dx,dy*1.1)/radius)*3.4+(bayer(x,y)-0.5));
+        return level<=0?0:glowColors[Math.min(2,level-1)];
+      });
+    });
+    var flames=FLAMES.map(function(rowsOfFlame){return sprite(3,5,function(x,y){var key=rowsOfFlame[y].charAt(x);return flameColors[key]||0})});
+    var waxLight=pack(palette.wax[0]),waxDark=pack(palette.wax[1]);
+    var list=cfg.candles.map(function(spec,index){
+      var body=sprite(5,spec.height,function(x,y){if(y===0&&x%2===0)return waxLight;return x<3?waxLight:waxDark});
+      return{x:Math.round(cols*spec.x)-2,height:spec.height,body:body,glow:1,flame:index%5,glowDue:0,flameDue:0};
+    });
+    function pick(count,not){var value=Math.floor(Math.random()*count);return value===not?(value+1)%count:value}
+    function draw(){
+      ctx.clearRect(0,0,cols,rows);
+      list.forEach(function(candle){var radius=radii[candle.glow];ctx.drawImage(glows[candle.glow],candle.x+2-radius,rows-candle.height-4-radius)});
+      list.forEach(function(candle){ctx.drawImage(candle.body,candle.x,rows-candle.height);ctx.drawImage(flames[candle.flame],candle.x+1,rows-candle.height-6)});
+    }
+    function step(){
+      var now=performance.now(),changed=false;
+      list.forEach(function(candle){
+        if(now>=candle.flameDue){candle.flame=pick(FLAMES.length,candle.flame);candle.flameDue=now+60+Math.random()*240;changed=true}
+        if(now>=candle.glowDue){candle.glow=pick(3,candle.glow);candle.glowDue=now+150+Math.random()*900;changed=true}
+      });
+      if(changed)draw();
+      timer=setTimeout(step,100);
+    }
+    draw();
+    return reduced.matches?null:step;
+  }
+
+  /* ---- stained wall: brick, dithered toward the edges, with blood splats, drips from the top and a smeared eye in one corner ---- */
+  var SIGIL=["....xxxxxxxxxxx....","..xx...........xx..",".x......xxx......x.","x.....xx...xx.....x","x....x..xxx..x....x","x.....xx...xx.....x",".x......xxx......x.","..xx...........xx..","....xxxxxxxxxxx....","........x.x........","........x..........","........x.........."];
+  function wall(cfg,palette){
+    var next=seeded(cfg.seed||7),brick=palette.brick.map(pack),mortar=pack(palette.mortar),blood=palette.blood.map(pack);
+    var brickWidth=10,brickHeight=5,x,y;
+    for(y=0;y<rows;y++)for(x=0;x<cols;x++){
+      var course=Math.floor(y/brickHeight),shifted=x+(course&1)*5,column=Math.floor(shifted/brickWidth);
+      var tone=((Math.imul(column*31+course*17+3,2654435761)>>>24)%3);
+      var nx=(x/cols-0.5)*2,ny=(y/rows-0.5)*2,edge=Math.max(0,Math.min(1,(Math.hypot(nx*0.9,ny)-0.5)/0.9));
+      var shade=Math.floor(edge*2.4+bayer(x,y)-0.2),color;
+      if(y%brickHeight===0||shifted%brickWidth===0)color=mortar;
+      else{
+        var level=(y%brickHeight===1?tone-1:tone)+Math.max(0,shade);
+        color=level>=3?mortar:brick[Math.max(0,level)];
+      }
+      pixels[y*cols+x]=color;
+    }
+    function dot(px,py,color){if(px>=0&&py>=0&&px<cols&&py<rows)pixels[py*cols+px]=color}
+    function splat(cx,cy,radius){
+      var spokes=7+Math.floor(next()*4),k,i,j;
+      for(j=-radius*2;j<=radius*2;j++)for(i=-radius*2;i<=radius*2;i++){
+        var distance=Math.hypot(i,j),ragged=radius*(0.8+0.5*((Math.imul(i*7919+j*104729,2654435761)>>>24)/255));
+        if(distance<ragged)dot(cx+i,cy+j,distance<ragged*0.45?blood[1]:blood[0]);
+      }
+      for(k=0;k<spokes;k++){
+        var angle=next()*6.2832,length=radius*(1.5+next()*1.3);
+        for(var step=radius*0.8;step<length;step+=0.7)dot(cx+Math.round(Math.cos(angle)*step),cy+Math.round(Math.sin(angle)*step),blood[0]);
+        dot(cx+Math.round(Math.cos(angle)*(length+1.5)),cy+Math.round(Math.sin(angle)*(length+1.5)),blood[1]);
+      }
+    }
+    var edgeSpots=[[0.07,0.55],[0.93,0.3],[0.12,0.9],[0.88,0.78],[0.04,0.2],[0.97,0.62]];
+    edgeSpots.forEach(function(spot,index){splat(Math.round(cols*(spot[0]+(next()-0.5)*0.03)),Math.round(rows*spot[1]),index%2?7:11)});
+    for(var d=0;d<7;d++){
+      var dripSide=d%2?0.72+0.26*((d>>1)/3):0.02+0.26*((d>>1)/3),dripX=Math.round(cols*(dripSide+(next()-0.5)*0.03)),dripLength=Math.round(rows*(0.18+next()*0.5)),thick=next()<0.3?2:1;
+      for(y=0;y<dripLength;y++)for(var t=0;t<thick;t++)dot(dripX+t,y,y<dripLength*0.6?blood[0]:blood[1]);
+      for(y=0;y<4;y++)for(x=-3;x<=3+thick;x++)if(bayer(x+dripX,y)*4>y)dot(dripX+x,y,blood[0]);
+      dot(dripX-1,dripLength,blood[1]);dot(dripX,dripLength,blood[1]);dot(dripX+thick,dripLength,blood[1]);dot(dripX,dripLength+1,blood[1]);dot(dripX+1,dripLength+1,blood[1]);
+    }
+    var sigilX=cols-SIGIL[0].length*2-8,sigilY=rows-SIGIL.length*2-6;
+    SIGIL.forEach(function(line,row){for(var column=0;column<line.length;column++)if(line.charAt(column)==="x"){for(var oy=0;oy<2;oy++)for(var ox=0;ox<2;ox++)dot(sigilX+column*2+ox,sigilY+row*2+oy,blood[0])}});
+    ctx.putImageData(image,0,0);
+    return null;
+  }
+
+  /* ---- fog: oxblood bands from value noise, ordered-dithered at their edges, drifting in steps ---- */
+  function fog(cfg,palette){
+    var tones=palette.tones.map(pack),next=seeded(41),lattice=new Float32Array(4096),i;
+    for(i=0;i<4096;i++)lattice[i]=next();
+    function noise(x,y){
+      var xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+      var a=lattice[(yi&63)*64+(xi&63)],b=lattice[(yi&63)*64+((xi+1)&63)],c=lattice[((yi+1)&63)*64+(xi&63)],d=lattice[((yi+1)&63)*64+((xi+1)&63)];
+      return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+    }
+    function draw(seconds){
+      var t=Math.floor(seconds*(cfg.fps||6))/(cfg.fps||6);
+      for(var y=0;y<rows;y++){
+        var lift=0.8+0.2*y/rows;
+        for(var x=0;x<cols;x++){
+          var n=(0.6*noise(x*0.06+t*0.05,y*0.085)+0.4*noise(x*0.13-t*0.07+31,y*0.17+t*0.02))*lift;
+          var level=Math.floor((n-0.3)*5+(bayer(x,y)-0.5));
+          pixels[y*cols+x]=level<=0?0:tones[Math.min(2,level-1)];
+        }
+      }
+      ctx.putImageData(image,0,0);
+    }
+    draw(0);
+    if(reduced.matches)return null;
+    var begun=performance.now();
+    return function step(){draw((performance.now()-begun)/1000);timer=setTimeout(step,1000/(cfg.fps||6))};
+  }
+
+  var KINDS={candles:candles,wall:wall,fog:fog};
+  function start(){
+    stop();
+    var cfg=config(),make=KINDS[cfg.kind];
+    if(!make)return;
+    resize();
+    var palette=cfg[QA_THEME.isDark()?"dark":"light"]||cfg.dark;
+    running=make(cfg,palette);
+    if(running&&!document.hidden)timer=setTimeout(running,100);
+  }
+  document.addEventListener("qa-scheme",start);document.addEventListener("qa-bg",start);document.addEventListener("qa-theme",start);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",start);
+  if(reduced.addEventListener)reduced.addEventListener("change",start);
+  window.addEventListener("resize",function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(start,200)});
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden){clearTimeout(timer);timer=0}
+    else if(running&&!timer)timer=setTimeout(running,50);
+  });
+  start();
+  return{start:start};
+})();
+</script>
 <header><h1><span id="header-eye" class="eye"></span><span class="mark">Overseer</span></h1>
 <div class="header-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></header>
 <div id="banner" role="alert"></div>
@@ -421,6 +625,7 @@ var QA_THEME = (function () {
 <label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off">
 <label for="eye-mode">Logo animation</label><select id="eye-mode"></select>
 <label for="theme-pick">Theme</label><select id="theme-pick"></select>
+<label for="bg-pick">Background</label><select id="bg-pick"></select>
 <span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
@@ -472,10 +677,10 @@ function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
 var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop"};
-function actionButton(name,idle){
+function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
   var label=busy?labels[1]:(idle||labels[0]);
-  return'<button type="button" class="act" data-action="'+name+'"'+(isRunning()?" disabled":"")+'>'+label+'</button>';
+  return'<button type="button" class="act'+(extra?" "+extra:"")+'" data-action="'+name+'"'+(isRunning()?" disabled":"")+'>'+label+'</button>';
 }
 function renderActionResult(){
   var a=currentAction();
@@ -501,12 +706,13 @@ function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===heal
 function renderBackend(b){
   if(!b)return'<div class="muted">No backend data.</div>';
   var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
-  var h='<div class="backend-body"><div class="head"><span class="title">Backend</span>'+
-    '<span class="state tone-'+rollup+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span>'+
-    (behind?actionButton("update",esc(b.relation.charAt(0).toUpperCase()+b.relation.slice(1))+" &middot; update"):'<span class="pill">'+esc(b.relation||"?")+'</span>')+
-    '<span class="muted">sha <code>'+esc(b.sha||"?")+'</code></span>'+
-    (tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"")+
-    '<button type="button" class="link toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+(open?"hide":"show")+' details</button></div>'+renderActionResult();
+  var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
+  var h='<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
+    '<span class="state">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span></div>'+
+    '<div class="rel">'+(behind?actionButton("update",esc(b.relation.charAt(0).toUpperCase()+b.relation.slice(1))+" &middot; update","quiet behind"):'<span class="pill rel">'+esc(b.relation||"?")+'</span>')+'</div>'+
+    (actions?'<div class="acts">'+actions+'</div>':"")+
+    '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span>'+
+    '<button type="button" class="link toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+(open?"hide":"show")+' details</button></div></div>'+renderActionResult();
   if(open){
     var svcs=b.services||{};
     h+='<div id="backend-details" class="backend-details">'+(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
@@ -979,7 +1185,7 @@ var QA_BRUSH=(function(){
     dropout:new Uint8Array(count),inIris:new Uint8Array(count),
     edgeIn:new Uint8Array(count),edgeOut:new Uint8Array(count),angle:new Float32Array(count),
     veinPaths:[],veins:null,
-    source:null,anatomy:null,hover:{inside:false,enteredAt:-1e9,leftAt:-1e9,lastMoveAt:-1e9,cooldownUntil:0,x:0,y:0},palette:[]};
+    source:null,anatomy:null,hover:{inside:false,enteredAt:-1e9,leftAt:-1e9,lastMoveAt:-1e9,cooldownUntil:0,x:0,y:0},track:{active:false,lastMoveAt:-1e9},palette:[]};
   for(var cell=0;cell<count;cell++){
     engine.dotX[cell]=offsetX+(cell%cols)*PITCH;engine.dotY[cell]=offsetY+Math.floor(cell/cols)*PITCH;
     engine.hash[cell]=(Math.imul(cell+1,2654435761)>>>24)&255;
@@ -1314,32 +1520,42 @@ var QA_BRUSH=(function(){
         splash:{width:2,droplets:[3,4],height:[2,4],side:[3,5],spatter:0.2}},11);
       this.blinks=schedules(23,6,[8,20],function(random){return{double:random()<0.3}});
       this.saccades=schedules(37,3,[9,15],function(random){return{cells:(random()<0.5?-1:1)*(2+Math.floor(random()*2)),hold:0.6+random()*0.4}});
-      this.shift=new Int16Array(cols);this.bandTop=new Int16Array(cols);this.forcedBlink=-1e9;this.wasInside=false;this.gazeCol=0;this.gazeRow=0;
+      this.shift=new Int16Array(cols);this.bandTop=new Int16Array(cols);this.forcedBlink=-1e9;this.wasInside=false;this.gazeCol=0;this.gazeRow=0;this.gazePreviousCol=0;this.gazePreviousRow=0;this.gazeKey=-1;this.gazeScale=1;
     },
-    pupilCells:function(t,real){
-      var hover=engine.hover,a=engine.anatomy;
-      if(real&&(hover.inside&&real-hover.enteredAt>2.5/FPS||!hover.inside&&real-hover.leftAt<1)){
-        if(hover.inside){
+    // In Full animation the pupil follows the cursor anywhere in the window. The target is sampled once per 12fps step and the pupil
+    // moves in whole cells, overshooting by one cell on a big jump. Returns [column, row, pupil scale]; without tracking, the saccade routine.
+    pupilCells:function(t,real,previous){
+      var tracking=engine.track,a=engine.anatomy;
+      if(real&&tracking.active){
+        var key=Math.floor(real*FPS);
+        if(key!==this.gazeKey){
+          this.gazePreviousCol=this.gazeCol;this.gazePreviousRow=this.gazeRow;this.gazeKey=key;
           var rect=canvas.getBoundingClientRect(),dx=pointer.x-(rect.left+engine.px(a.iris[0])),dy=pointer.y-(rect.top+engine.py(a.iris[1]));
-          this.gazeCol=Math.max(-3,Math.min(3,Math.round(dx/22)));this.gazeRow=Math.max(-2,Math.min(2,Math.round(dy/26)));
+          var distance=Math.hypot(dx,dy)||1,reach=Math.min(1,distance/140);
+          var targetCol=Math.round(dx/distance*reach*3),targetRow=Math.round(dy/distance*reach*2);
+          var jumpCol=targetCol-this.gazeCol,jumpRow=targetRow-this.gazeRow;
+          this.gazeCol=Math.max(-3,Math.min(3,targetCol+(Math.abs(jumpCol)>=2?Math.sign(jumpCol):0)));
+          this.gazeRow=Math.max(-2,Math.min(2,targetRow+(Math.abs(jumpRow)>=2?Math.sign(jumpRow):0)));
+          this.gazeScale=1-0.25*(1-Math.min(1,distance/260));
         }
-        return[this.gazeCol,this.gazeRow,true];
+        return previous?[this.gazePreviousCol,this.gazePreviousRow,this.gazeScale]:[this.gazeCol,this.gazeRow,this.gazeScale];
       }
+      this.gazeKey=-1;this.gazeCol=this.gazeRow=this.gazePreviousCol=this.gazePreviousRow=0;
       var j=findAt(this.saccades.starts,t%HORIZON);
-      if(j<0)return[0,0,false];
+      if(j<0)return[0,0,1];
       var saccade=this.saccades.data[j];
-      return[t%HORIZON-this.saccades.starts[j]<saccade.hold?saccade.cells:0,0,false];
+      return[t%HORIZON-this.saccades.starts[j]<saccade.hold?saccade.cells:0,0,1];
     },
     frame:function(t,real){
       var a=engine.anatomy,step=Math.floor(t*FPS)/FPS,soft=Math.floor(t*24)/24,phase=2*Math.PI*soft/14;
       if(real){
-        if(engine.hover.inside&&!this.wasInside&&Math.random()<0.5)this.forcedBlink=real+0.35;
-        this.wasInside=engine.hover.inside;
+        if(engine.track.active&&!this.wasInside&&Math.random()<0.5)this.forcedBlink=real+0.35;
+        this.wasInside=engine.track.active;
       }
       var lightX=-0.55+0.4*Math.sin(phase),lightY=-0.5+0.3*Math.cos(phase),lightZ=0.75,norm=Math.hypot(lightX,lightY,lightZ);
       lightX/=norm;lightY/=norm;lightZ/=norm;
       var sweep=150*Math.sin(phase);
-      var now=this.pupilCells(step,real),before=this.pupilCells(step-1/FPS,real&&real-1/FPS);
+      var now=this.pupilCells(step,real,false),before=this.pupilCells(step-1/FPS,real,true);
       var smear=Math.abs(now[0]-before[0])>=2;
       var blink=reduced.matches?0:blinkFraction(this.blinks.starts,this.blinks.data,step,real?this.forcedBlink-(real-t):-1e9);
       var lids=this.lids,shift=this.shift,bandTop=this.bandTop;
@@ -1351,7 +1567,7 @@ var QA_BRUSH=(function(){
       }
       var irisX=engine.dotX[0]+engine.colOf(a.iris[0])*PITCH,irisY=engine.dotY[0]+engine.rowOf(a.iris[1])*PITCH;
       var pupilX=irisX+now[0]*PITCH,pupilY=irisY+now[1]*PITCH,lastX=irisX+before[0]*PITCH,lastY=irisY+before[1]*PITCH;
-      var irisRadius=a.iris[2]*SCALE,pupilRadius=a.pupil*SCALE*(now[2]?0.75:1);
+      var irisRadius=a.iris[2]*SCALE,pupilRadius=a.pupil*SCALE*now[2];
       engine.time=soft;
       for(var i=0;i<count;i++){
         col=i%cols;var row=(i/cols)|0,source=i,lidOnly=false,value=0,s=shift[col];
@@ -1526,7 +1742,16 @@ var QA_BRUSH=(function(){
     try{localStorage.setItem("qaDashboardEyeMode",modeSelect.value)}catch(e){}
     chooseMode(modeSelect.value);
   });
-  document.addEventListener("qa-theme",function(){mode=off;loadTheme();if(typeof render==="function")render();QA_BRUSH.header()});
+  var backgroundSelect=document.getElementById("bg-pick");
+  function fillBackgrounds(){
+    if(!backgroundSelect)return;
+    var all=QA_THEME.backgrounds();
+    backgroundSelect.innerHTML=Object.keys(all).map(function(id){return'<option value="'+id+'">'+all[id].label+'</option>'}).join("");
+    backgroundSelect.value=QA_THEME.background();
+  }
+  fillBackgrounds();
+  if(backgroundSelect)backgroundSelect.addEventListener("change",function(){QA_THEME.chooseBackground(backgroundSelect.value)});
+  document.addEventListener("qa-theme",function(){mode=off;fillBackgrounds();loadTheme();if(typeof render==="function")render();QA_BRUSH.header()});
   QA_BRUSH.header();QA_BRUSH.decorate(document);
   var titleMark=document.querySelector("header .mark");
   if(titleMark)titleMark.addEventListener("click",QA_BRUSH.header);
@@ -1536,33 +1761,48 @@ var QA_BRUSH=(function(){
   window.addEventListener("resize",dropBoxRect);window.addEventListener("scroll",dropBoxRect,{passive:true});document.addEventListener("qa-layout",dropBoxRect);
   // Gaze follows the cursor only while it is inside the eye's box, and always ends: on leaving the box, the window or the tab,
   // after 2s without movement, or after 3s of continuous hover (followed by a short cooldown). Nothing else in the animation waits on it.
-  var GAZE_IDLE=2,GAZE_MAX=3,GAZE_COOLDOWN=1.5,debug=/^(1|true)$/.test(query.get("debug")||query.get("perf")||"");
+  // Hover (Coin spin's stop) ends on leaving the box, after 2s without movement or 3s of hover. Tracking (Full animation's gaze) follows the
+  // cursor anywhere in the window and ends when it leaves, on blur, when the tab is hidden, or after 4s without movement.
+  var HOVER_IDLE=2,HOVER_MAX=3,HOVER_COOLDOWN=1.5,TRACK_IDLE=4,debug=/^(1|true)$/.test(query.get("debug")||query.get("perf")||"");
   function gazeLog(what,detail){if(debug)console.log("gaze "+what+" "+JSON.stringify(detail||{})+" t="+((clock()-start)/1000).toFixed(2)+" frames="+(window.__eyeFrames||0))}
-  function gazeRelease(reason,cooldown){
+  function releaseHover(reason,cooldown){
     var hover=engine.hover,t=(clock()-start)/1000;
     if(!hover.inside)return;
     hover.inside=false;hover.leftAt=t;lastKey=-1;
-    if(cooldown)hover.cooldownUntil=t+GAZE_COOLDOWN;
-    gazeLog("release",{reason:reason});
+    if(cooldown)hover.cooldownUntil=t+HOVER_COOLDOWN;
+    gazeLog("hover release",{reason:reason});
   }
+  function releaseTrack(reason){
+    if(!engine.track.active)return;
+    engine.track.active=false;lastKey=-1;gazeLog("track release",{reason:reason});
+  }
+  function gazeRelease(reason){releaseHover(reason,false);releaseTrack(reason)}
   engine.gazeExpire=function(real){
     var hover=engine.hover;
-    if(!hover.inside)return;
-    if(real-hover.lastMoveAt>GAZE_IDLE)gazeRelease("idle",false);
-    else if(real-hover.enteredAt>GAZE_MAX)gazeRelease("max-hover",true);
+    if(hover.inside){
+      if(real-hover.lastMoveAt>HOVER_IDLE)releaseHover("idle",false);
+      else if(real-hover.enteredAt>HOVER_MAX)releaseHover("max-hover",true);
+    }
+    if(engine.track.active&&real-engine.track.lastMoveAt>TRACK_IDLE)releaseTrack("idle");
   };
+  // Pointer moves only store coordinates (see track() above) and flags; the canvas tick does the work at its own 24fps.
   document.addEventListener("pointermove",function(e){
-    var rect=boxRect||(boxRect=box.getBoundingClientRect()),hover=engine.hover,t=(clock()-start)/1000;
+    var t=(clock()-start)/1000;
+    if(e.pointerType!=="touch"){
+      engine.track.lastMoveAt=t;
+      if(!engine.track.active&&mode===watcher){engine.track.active=true;lastKey=-1;gazeLog("track engage")}
+    }
+    var rect=boxRect||(boxRect=box.getBoundingClientRect()),hover=engine.hover;
     var inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
-    if(!inside){gazeRelease("left-box",false);return}
+    if(!inside){releaseHover("left-box",false);return}
     hover.lastMoveAt=t;
-    if(!hover.inside&&t>=hover.cooldownUntil){hover.inside=true;hover.enteredAt=t;lastKey=-1;gazeLog("engage")}
+    if(!hover.inside&&t>=hover.cooldownUntil){hover.inside=true;hover.enteredAt=t;lastKey=-1;gazeLog("hover engage")}
   },{passive:true});
-  document.addEventListener("pointerout",function(e){if(!e.relatedTarget)gazeRelease("window-out",false)});
-  document.documentElement.addEventListener("pointerleave",function(){gazeRelease("document-leave",false)});
-  document.addEventListener("pointercancel",function(){gazeRelease("cancel",false)});
-  window.addEventListener("blur",function(){gazeRelease("window-blur",false)});
-  document.addEventListener("visibilitychange",function(){if(document.hidden)gazeRelease("hidden",false)});
+  document.addEventListener("pointerout",function(e){if(!e.relatedTarget)gazeRelease("window-out")});
+  document.documentElement.addEventListener("pointerleave",function(){gazeRelease("document-leave")});
+  document.addEventListener("pointercancel",function(){gazeRelease("cancel")});
+  window.addEventListener("blur",function(){gazeRelease("window-blur")});
+  document.addEventListener("visibilitychange",function(){if(document.hidden)gazeRelease("hidden")});
   if(window.IntersectionObserver)new IntersectionObserver(function(entries){onScreen=entries[entries.length-1].isIntersecting;update()}).observe(canvas);
   document.addEventListener("qa-modal",function(e){modalOpen=!!e.detail;update()});
   document.addEventListener("visibilitychange",function(){update();updateHeader()});
