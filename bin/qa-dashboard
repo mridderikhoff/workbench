@@ -323,6 +323,11 @@ html[data-scene="desk"] #desk{display:block;position:fixed;inset:0;z-index:-3;ov
 .desk-prop .light{position:absolute;width:var(--s,12px);height:calc(var(--s,12px) * 2);margin:calc(var(--s,12px) * -2) 0 0 calc(var(--s,12px) * -.5);transform-origin:50% 100%;border-radius:50% 50% 45% 45%/62% 62% 38% 38%;
 background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff7d6 0 22%,#ffd36a 38%,#f08a2c 62%,rgba(200,70,20,0) 74%)}
 .desk-prop .light::before{content:"";position:absolute;left:50%;top:55%;width:calc(var(--s,12px) * 9);height:calc(var(--s,12px) * 9);margin:calc(var(--s,12px) * -4.5) 0 0 calc(var(--s,12px) * -4.5);border-radius:50%;background:radial-gradient(circle,rgba(255,190,90,.34) 0,rgba(255,150,60,.12) 35%,rgba(255,140,50,0) 70%)}
+/* Halftone props: the flame and its glow are screened through the same dot grid as the eye. */
+.desk-prop.dots .light{background:none;overflow:visible}
+.desk-prop.dots .light::after{content:"";position:absolute;inset:-25% -40%;background:radial-gradient(ellipse 36% 46% at 50% 66%,#fff3c4 0 24%,#ffc85a 42%,#ee7a26 64%,rgba(200,60,20,0) 78%)}
+.desk-prop.dots .light::before{background:radial-gradient(circle,rgba(255,180,80,.55) 0,rgba(255,140,50,.2) 36%,rgba(255,120,40,0) 68%)}
+.desk-prop.dots .light::before,.desk-prop.dots .light::after{-webkit-mask:radial-gradient(circle,#000 0 1.3px,transparent 1.8px) 0 0/4.5px 4.5px;mask:radial-gradient(circle,#000 0 1.3px,transparent 1.8px) 0 0/4.5px 4.5px}
 @media (max-width:1399px){#desk .desk-props{display:none}}
 @media (prefers-reduced-motion:no-preference){
 html[data-scene="desk"] #desk .desk-fog.a{animation:desk-drift 150s linear infinite}
@@ -507,9 +512,9 @@ How to add a theme: add one entry to THEMES below; the shared SCENES registry su
   backgrounds   ambient assets used by scenes, not picker options. Supply "desk" for Desk, "book" for Book and "console" for
                 Console; each has its kind; the Console painter takes its colours from consoleArt. Extra assets can remain unselected.
                 The "desk" kind is painted once per scheme into tiles (no loop):
-                  {kind: "desk", seed, surface, blotter, stock: material ids ("wood", "leather", "metal", "mat", "paper", "acrylic"),
+                  {kind: "desk", seed, surface, blotter, stock: material ids ("velvet", "wood", "leather", "metal", "mat", "paper", "acrylic"),
                    deckle: true tears the eye card's bottom edge and folds a dog-ear, glow: {color, core} pre-renders a tube glow
-                   under the wordmark, props: [{art: SVG, side: "left"|"right", offset, bottom, width, height, rotate, flip,
+                   under the wordmark, props: [{art: SVG, halftone: true screens it into dots on the eye grid, side: "left"|"right", offset, bottom, width, height, rotate, flip,
                    lights: [[x%, y%, size px], ...]}] (lights flicker; hidden below 1400px),
                    dark/light: {surface: {ramp, seam}, blotter: {ramp, grid, grid2}, stock: {ramp, fiber, fox}, fog: colour}}
                   ramps are 3-4 hex colours, darkest first. The painter exposes --desk-surface, --desk-blotter, --desk-stock,
@@ -723,20 +728,20 @@ var THEMES = {
       light: {room:"#d6c9b4",void:"#b3b6ad",rib:"#a48c79",edge:"#775f50",shine:"#f7ebcc",rim:"#8b7061",shadow:"#b49c88",deck:"#bda992",vent:"#907765",star:"#564e48"}
     },
     backgrounds: {
-      // A black-stained wooden desk with a worn leather blotter, card stock with foxing, smoky fog and candles in the margins.
-      desk: {kind: "desk", seed: 7, surface: "wood", blotter: "leather", stock: "paper", deckle: true,
+      // A worn leather blotter on black velvet, card stock with foxing, smoky fog, and candles screened into the same halftone dots as the eye.
+      desk: {kind: "desk", seed: 7, surface: "velvet", blotter: "leather", stock: "paper", deckle: true,
         props: [
-          {art: "candles", side: "left", offset: 26, bottom: 6, width: 160, height: 220, lights: [[28.75, 16.4, 12], [51.9, 38.2, 10], [75, 60, 10]]},
-          {art: "candles", side: "right", offset: 30, bottom: 4, width: 124, height: 170, flip: true, lights: [[28.75, 16.4, 10], [51.9, 38.2, 8], [75, 60, 8]]}],
+          {art: "candles", halftone: true, side: "left", offset: 26, bottom: 6, width: 160, height: 220, lights: [[28.75, 16.4, 12], [51.9, 38.2, 10], [75, 60, 10]]},
+          {art: "candles", halftone: true, side: "right", offset: 30, bottom: 4, width: 124, height: 170, flip: true, lights: [[28.75, 16.4, 10], [51.9, 38.2, 8], [75, 60, 8]]}],
         art: {candles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 220"><defs><linearGradient id="c" x1="0" x2="1"><stop offset="0" stop-color="#e4cfa2"/><stop offset=".35" stop-color="#b39a6e"/><stop offset="1" stop-color="#3f3020"/></linearGradient><radialGradient id="p" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#c8b080"/><stop offset="1" stop-color="#5e4c34"/></radialGradient><radialGradient id="t" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#8a7a5c"/><stop offset="1" stop-color="#c9bb98"/></radialGradient></defs>' +
           '<ellipse cx="82" cy="211" rx="78" ry="9" fill="#000" fill-opacity=".5"/><path fill="url(#p)" d="M10 207c12-7 34-9 70-9s58 2 70 9c-8 7-36 10-70 10s-62-3-70-10z"/>' +
           '<path fill="url(#c)" d="M30 44c0-4 7-6 16-6s16 2 16 6v162H30z"/><path fill="#e8d4a8" d="M31 45h5v30a2.5 2.5 0 0 1-5 0zM49 46h4v16a2 2 0 0 1-4 0zM56 45h4.5v44a2.2 2.2 0 0 1-4.5 0z"/><ellipse cx="46" cy="44" rx="16" ry="4.2" fill="url(#t)"/><path d="M46 44v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
           '<path fill="url(#c)" d="M70 92c0-3 6-5 13-5s13 2 13 5v114H70z"/><path fill="#e8d4a8" d="M71 93h4v20a2 2 0 0 1-4 0zM88 93h4v34a2 2 0 0 1-4 0z"/><ellipse cx="83" cy="92" rx="13" ry="3.6" fill="url(#t)"/><path d="M83 92v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
           '<path fill="url(#c)" d="M104 140c0-4 7-6 16-6s16 2 16 6v66h-32z"/><path fill="#e8d4a8" d="M105 141h5v14a2.5 2.5 0 0 1-5 0zM127 141h4v24a2 2 0 0 1-4 0z"/><ellipse cx="120" cy="140" rx="16" ry="4.2" fill="url(#t)"/><path d="M120 140v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
           '<path fill="#c9b282" d="M22 205c3-4 6-6 8-11v12zM62 206c2-6 6-8 8-14v14zM96 206c3-3 6-5 8-10v10zM136 205c4-2 8-2 12 1z"/></svg>'},
-        dark: {surface: {ramp: ["#050302", "#0d0806", "#170f0b", "#24170f"], seam: "#020101"}, blotter: {ramp: ["#120908", "#1b0e0c", "#261411"]},
+        dark: {surface: {ramp: ["#020101", "#060303", "#0b0606", "#130a09"]}, blotter: {ramp: ["#120908", "#1b0e0c", "#261411"]},
           stock: {ramp: ["#18110e", "#1e1613", "#251b17"], fiber: "#3c2e26", fox: "#3e2617"}, tag: {ramp: ["#bea676", "#cdb688", "#d9c69c"], fiber: "#a08758", fox: "#9e7444"}, fog: "#8c8282"},
-        light: {surface: {ramp: ["#33271d", "#4a3a2c", "#5f4b39", "#73604c"], seam: "#1f1710"}, blotter: {ramp: ["#341311", "#451b16", "#56241d"]},
+        light: {surface: {ramp: ["#241b17", "#2e231e", "#382b25", "#44342c"]}, blotter: {ramp: ["#341311", "#451b16", "#56241d"]},
           stock: {ramp: ["#e8dbbd", "#f1e6cc", "#f8efdb"], fiber: "#c9b48c", fox: "#cfa77a"}, tag: {ramp: ["#d6bd88", "#e1ca96", "#eadaaf"], fiber: "#b89c66", fox: "#b48552"}, fog: "#f3efe8"}},
       console: {kind:"console"},
       candlelight: {label: "Candlelight", kind: "candles",
@@ -1328,6 +1333,14 @@ var QA_BG=(function(){
     scatter(tile,count,n,function(c,r,s){c.rotate(r*Math.PI*2);c.globalAlpha=alpha*(0.4+s);c.strokeStyle=color;c.lineWidth=0.6;c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(20+s*40,(r-0.5)*8,30+r*130,(s-0.5)*6);c.stroke()});
   }
   var MATERIALS={
+    // Black velvet: a fine nap with soft, uneven pile and a few crushed streaks. No pattern to read, so the blotter owns the eye.
+    velvet:function(p,n){
+      var R=ramp(p.ramp),tile=paintTile(384,384,function(x,y,u,v,out){
+        R(0.42+(n.fbm(u,v,3,3,3)-0.5)*0.55+(n.fbm(u,v,24,24,2)-0.5)*0.18+(n.next()-0.5)*0.16,out);
+      });
+      scratches(tile,n,10,p.ramp[p.ramp.length-1],0.07);
+      return tile;
+    },
     // Planks of stained wood: figure from warped rings, long fibre streaks, seams, pores and wear.
     wood:function(p,n){
       var w=768,h=384,planks=4,ph=h/planks,R=ramp(p.ramp),seam=rgb(p.seam||p.ramp[0]),offsets=[],tones=[],joints=[];
@@ -1424,14 +1437,38 @@ var QA_BG=(function(){
     points.push("0 calc(100% - 2px)");
     return"polygon("+points.join(",")+")";
   }
+  // Screens a prop into round dots on the eye's grid: each cell's dot takes the cell's colour, sized by its coverage.
+  var screened={};
+  function screenProp(element,svg,width,height){
+    var pitch=QA_THEME.current().artPitch,hash=2166136261;
+    for(var i=0;i<svg.length;i++){hash^=svg.charCodeAt(i);hash=Math.imul(hash,16777619)}
+    var key=pitch+":"+width+"x"+height+":"+(hash>>>0);
+    if(screened[key]){element.style.backgroundImage=screened[key];return}
+    var image=new Image();
+    image.onload=function(){
+      var scale=2,cols=Math.ceil(width/pitch),rows=Math.ceil(height/pitch),src=document.createElement("canvas");
+      src.width=cols;src.height=rows;var sc=src.getContext("2d");sc.drawImage(image,0,0,cols,rows);
+      var px=sc.getImageData(0,0,cols,rows).data,out=document.createElement("canvas");
+      out.width=width*scale;out.height=height*scale;var c=out.getContext("2d");c.scale(scale,scale);
+      for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){
+        var k=(y*cols+x)*4,a=px[k+3]/255;if(a<0.08)continue;
+        var lum=(0.3*px[k]+0.59*px[k+1]+0.11*px[k+2])/255,r=pitch*0.52*Math.sqrt(a)*Math.min(1,Math.pow(lum,1.3)*1.35);
+        if(r<0.45)continue;
+        c.fillStyle="rgb("+px[k]+","+px[k+1]+","+px[k+2]+")";c.beginPath();c.arc((x+0.5)*pitch,(y+0.5)*pitch,r,0,Math.PI*2);c.fill();
+      }
+      screened[key]='url("'+out.toDataURL("image/png")+'")';element.style.backgroundImage=screened[key];
+    };
+    image.src="data:image/svg+xml,"+encodeURIComponent(svg);
+  }
   function deskProps(cfg){
     var box=deskLayer.querySelector(".desk-props"),art=cfg.art||{};
     box.textContent="";
     (cfg.props||[]).forEach(function(prop){
       var element=document.createElement("div"),svg=art[prop.art]||prop.art;
-      element.className="desk-prop";
+      element.className="desk-prop"+(prop.halftone?" dots":"");
       element.style.cssText=prop.side+":"+(prop.offset||0)+"px;bottom:"+(prop.bottom||0)+"px;width:"+prop.width+"px;height:"+prop.height+"px;background-image:"+svgAsset(svg)+
         (prop.rotate||prop.flip?";transform:"+(prop.flip?"scaleX(-1) ":"")+(prop.rotate?"rotate("+prop.rotate+"deg)":""):"");
+      if(prop.halftone)screenProp(element,svg,prop.width,prop.height);
       (prop.lights||[]).forEach(function(light,index){
         var flame=document.createElement("i");flame.className="light";
         flame.style.cssText="left:"+light[0]+"%;top:"+light[1]+"%;--s:"+light[2]+"px;animation-delay:-"+((index*0.77+light[0]*0.031)%2).toFixed(2)+"s";
@@ -1441,7 +1478,7 @@ var QA_BG=(function(){
     });
   }
   // Finished tiles are cached in memory and in localStorage (keyed by a hash of the theme's desk entry), so a reload paints nothing.
-  var DESK_CACHE_VERSION=1;
+  var DESK_CACHE_VERSION=2;
   function deskStoreKey(cfg,scheme){
     var text=JSON.stringify({v:DESK_CACHE_VERSION,cfg:cfg,scheme:scheme}),hash=2166136261;
     for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)}

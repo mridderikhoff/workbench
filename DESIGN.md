@@ -61,9 +61,12 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   plate. Give them visible edge thickness, a contact shadow, texture, controls sunk into the
   surface and headings pressed in. A second sheet may peek out underneath. Status cards stay square
   and on the grid; the character's card may tilt, be taped or stickered down, torn or dog-eared.
-- **The surface is real too**: stained wood, a leather blotter, brushed metal, a cutting mat. Light
+- **The surface is real too**: a leather blotter on black velvet, brushed metal, a cutting mat. Light
   falls on it (a candle pool, a neon tube off-screen) and fades towards the edges, so the objects sit
-  on it convincingly.
+  on it convincingly. Keep the surround quiet (no panelling or busy pattern) so the work area owns
+  the eye.
+- **Props match the character.** Margin props (candles, a floppy disk) are screened into the same
+  halftone dots as the eye, flames and glow included, rather than drawn as realistic illustrations.
 - **Ink goes where a hand would make a mark**: the halftone character, brush underlines, seeded
   dividers, rubber stamps, a seal, a single drip, the seep on a pill. Keep that mark language
   consistent within a scene: don't mix smooth vector icons with pixel glyphs and brush ink at random.
