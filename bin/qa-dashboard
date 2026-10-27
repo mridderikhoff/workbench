@@ -55,7 +55,7 @@ background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff7d6 0 22%,#ffd36a 38%,
 .desk-prop .light:nth-child(2n){animation-duration:1.7s;animation-direction:reverse}
 .desk-prop .light:nth-child(3n){animation-duration:3.1s}
 }
-html.modal-open #desk *,html.modal-open .desk-obj *{animation-play-state:paused!important}
+html.modal-open #desk *,html.modal-open .desk-obj *,html.modal-open .stage-fx *{animation-play-state:paused!important}
 @keyframes desk-drift{from{transform:translateX(-1024px)}to{transform:translateX(0)}}
 @keyframes desk-drift-b{from{transform:translateX(0)}to{transform:translateX(-1536px)}}
 @keyframes desk-flicker{0%{opacity:.86}6%{opacity:.7}8%{opacity:.93}19%{opacity:.8}22%{opacity:.97}37%{opacity:.73}40%{opacity:.9}55%{opacity:.82}57%{opacity:1}71%{opacity:.76}74%{opacity:.88}88%{opacity:.7}91%{opacity:.95}100%{opacity:.86}}
@@ -113,13 +113,16 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 html[data-deckle="1"] .desk-obj .fold{display:block}
 .desk-obj .mount{top:-13px;left:50%;width:118px;height:32px;margin-left:-59px;transform:rotate(-3.5deg);background:var(--desk-mount,none) center/100% 100% no-repeat}
 .desk-obj .badge{left:-20px;top:-16px;width:66px;height:66px;transform:rotate(-14deg);background:var(--desk-badge,none) center/100% 100% no-repeat}
-.eye-card canvas{position:relative;display:block;width:200px;height:230px;margin:0 auto -22px;flex:none}
-.masthead{display:flex;position:relative;flex-direction:column;align-items:center;gap:6px;width:100%}
-.masthead-title{margin:0;font:inherit}
+/* The stage holds the character's canvas and the wordmark. It is invisible to layout unless a theme frames it (Terminal's CRT).
+   The canvas size and how far the wordmark tucks under it come from the character (--stage-*, set before first paint). */
+.stage{display:contents}
+.stage-fx{display:none}
+.eye-card canvas{position:relative;display:block;width:var(--stage-w,200px);height:var(--stage-h,230px);margin:0 auto calc(var(--stage-overlap,22px) * -1);flex:none}
+.masthead-title{position:relative;margin:0;font:inherit}
 .mark{position:relative;display:inline-block;padding:0 4px 14px;font:700 31px/1.1 var(--serif);letter-spacing:var(--word-spacing,.07em);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);cursor:pointer}
 .mark::before{content:"";position:absolute;left:-26px;right:-26px;bottom:-16px;height:56px;z-index:-1;pointer-events:none;background:var(--desk-glow,none) center/100% 100% no-repeat}
 .mark .brush{left:0;top:calc(100% - 13px)}
-.masthead-tools{display:flex;flex-wrap:nowrap;gap:6px 14px;justify-content:space-between;align-items:center;width:100%;margin-top:6px;padding:9px 0 0;border-top:1px dashed var(--edge-lo2)}
+.masthead-tools{display:flex;flex-wrap:nowrap;gap:6px 14px;justify-content:space-between;align-items:center;width:100%;margin-top:12px;padding:9px 0 0;border-top:1px dashed var(--edge-lo2)}
 #updated{font-size:13px;color:var(--muted)}
 #settings-open{flex:none;width:34px;height:34px;border-radius:5px;color:var(--muted);background:var(--inset);box-shadow:var(--sunk)}
 #settings-open svg{width:24px;height:24px;overflow:visible}
@@ -216,8 +219,8 @@ a.app-pill.off:hover,a.app-pill.off:focus-visible{transform:rotate(0)}
 /* seep: a thin wet band of ink fills the bottom third from the left, and one drop falls (with a cooldown). */
 .seep-fill{position:absolute;bottom:0;left:0;height:30%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
 .seep-text{--fx-ink:var(--seep-ink);clip-path:inset(70% 100% 0 0);transition:clip-path var(--dur-fast) var(--ease)}
-a.app-pill:hover .seep-fill,a.app-pill:focus-visible .seep-fill{transform:translateX(0);transition:transform var(--dur) var(--ease-out)}
-a.app-pill:hover .seep-text,a.app-pill:focus-visible .seep-text{clip-path:inset(70% 0 0 0);transition:clip-path var(--dur) var(--ease-out)}
+a.app-pill:is(:hover,:focus-visible,.fx-settled) .seep-fill{transform:translateX(0);transition:transform var(--dur) var(--ease-out)}
+a.app-pill:is(:hover,:focus-visible,.fx-settled) .seep-text{clip-path:inset(70% 0 0 0);transition:clip-path var(--dur) var(--ease-out)}
 .pill-drip{position:absolute;top:calc(100% - 2px);width:5px;height:7px;margin-left:-2.5px;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;background:var(--seep);opacity:0;pointer-events:none}
 .pill-drip.falling{animation:pill-drip .9s ease-in forwards}
 @keyframes pill-drip{0%{opacity:1;transform:scale(.2,.3)}35%{opacity:1;transform:scale(1,1)}100%{opacity:0;transform:translateY(11px) scale(.8,1.4)}}
@@ -235,7 +238,16 @@ a.app-pill:hover .seep-text,a.app-pill:focus-visible .seep-text{clip-path:inset(
 .blocks-edge{position:absolute;top:0;bottom:0;left:100%;width:100%;pointer-events:none;transform:translateX(calc(-100% - 16px));transition:transform var(--dur-fast) steps(4,end);
 background:conic-gradient(var(--charge) 0 75%,transparent 0) 0 0/3px 3px;
 -webkit-mask:linear-gradient(90deg,#000 0 5px,rgba(0,0,0,.6) 5px 10px,rgba(0,0,0,.3) 10px 15px,transparent 15px);mask:linear-gradient(90deg,#000 0 5px,rgba(0,0,0,.6) 5px 10px,rgba(0,0,0,.3) 10px 15px,transparent 15px)}
-a.app-pill:hover :is(.charge-fill,.charge-text,.blocks-edge),a.app-pill:focus-visible :is(.charge-fill,.charge-text,.blocks-edge){transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
+a.app-pill:is(:hover,:focus-visible,.fx-settled) :is(.charge-fill,.charge-text,.blocks-edge){transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
+/* press: for keys. The theme moves the key down (travel and a shorter wall, in its deskCss); here the legend lights up as if
+   backlit: a copy of the label in --legend-lit with a --legend-glow halo fades in over it, by opacity only. */
+.press-text{--fx-ink:var(--legend-lit,var(--tag-ink));opacity:0;background:var(--legend-wash,none);text-shadow:var(--legend-glow,none);transition:opacity var(--dur-fast) var(--ease)}
+.press-text svg{filter:drop-shadow(0 0 2px var(--legend-halo,transparent))}
+a.app-pill.failed .press-text{--fx-ink:var(--legend-lit-bad,var(--tag-bad));--legend-halo:var(--legend-halo-bad,transparent);background:var(--legend-wash-bad,none);text-shadow:var(--legend-glow-bad,none)}
+a.app-pill:is(:hover,:focus-visible,.fx-settled) .press-text{opacity:1;transition-duration:var(--dur)}
+/* Settled: a pill or button rebuilt under a pointer that was already hovering it starts in its hovered state with no
+   transition, so a click (or any re-render) never replays the fill. It clears as soon as the pointer leaves. */
+.fx-settled :is(.seep-fill,.seep-text,.charge-fill,.charge-text,.blocks-edge,.press-text,.bfx-fill,.bfx-text),.fx-settled>.bfx::after{transition:none!important}
 @media (prefers-reduced-motion:reduce){.pill-drip,.pill-splat{display:none}}
 a.app-pill:hover .dot.broken{animation-duration:1s}
 a.app-pill:hover .fx-text .dot.broken svg{transform:scale(1.15)}
@@ -270,12 +282,22 @@ html[data-button-hover="seep"] .bfx{--fx-ink:var(--seep-ink)}
 html[data-button-hover="seep"] .bfx-fill{inset:auto 0 0 0;height:30%;padding-top:0;padding-bottom:0;background:var(--seep);border-radius:0 0 0 2px;transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
 html[data-button-hover="seep"] .bfx-fill::after{content:"";position:absolute;top:-3px;right:-6px;width:12px;height:calc(100% + 3px);background:var(--seep);border-radius:60% 40% 0 0}
 html[data-button-hover="seep"] .bfx-text{inset:auto 0 0 0;height:333.34%;transform:translateX(102%)}
-:is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible) > .bfx :is(.bfx-fill,.bfx-text),
-html[data-button-hover="blocks"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible) > .bfx::after,
-.settings .segmented label:is(:hover,:has(input:focus-visible)) > .bfx :is(.bfx-fill,.bfx-text),html[data-button-hover="blocks"] .settings .segmented label:is(:hover,:has(input:focus-visible)) > .bfx::after{transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
-html[data-button-hover="seep"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible) > .bfx :is(.bfx-fill,.bfx-text),
-html[data-button-hover="seep"] .settings .segmented label:is(:hover,:has(input:focus-visible)) > .bfx :is(.bfx-fill,.bfx-text){transition-timing-function:var(--ease-out)}
+:is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="blocks"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
+.settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text),html[data-button-hover="blocks"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx::after{transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
+html[data-button-hover="seep"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="seep"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text){transition-timing-function:var(--ease-out)}
 html[data-button-hover="seep"] .settings .segmented label:has(input:checked) > .bfx{display:none}
+/* press: no fill. The legend copy (in --legend-lit, with a --legend-glow halo) fades in over the label, so the key looks backlit;
+   the theme supplies the travel. The behind badge is a readout of its own and stays as it is. */
+html[data-button-hover="press"] .bfx{--fx-ink:var(--legend-lit,var(--btn-ink))}
+html[data-button-hover="press"] .bfx-fill{transform:none;background:var(--legend-wash,none);opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+html[data-button-hover="press"] .bfx-text{transform:none;text-shadow:var(--legend-glow,none)}
+html[data-button-hover="press"] .bfx-text *{text-shadow:inherit!important}
+html[data-button-hover="press"] .bfx-text svg{filter:drop-shadow(0 0 2px var(--legend-halo,transparent))}
+html[data-button-hover="press"] .bfx-text .behind-badge{visibility:hidden}
+html[data-button-hover="press"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx .bfx-fill,
+html[data-button-hover="press"] .settings .segmented label:is(:hover,:has(input:focus-visible),:has(input:checked),.fx-settled) > .bfx .bfx-fill{opacity:1;transition-duration:var(--dur);transition-timing-function:var(--ease-out)}
 .bfx-drip{z-index:2}
 /* Two focus rings: the surface colour, then a contrasting accent, so focus shows on every texture. */
 :focus-visible{outline:none;box-shadow:var(--ring)}
@@ -625,11 +647,16 @@ var THEMES = {
       badDim: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#8f0414' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#8f0414'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#8f0414'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
       down: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round'><path d='M6 22c9 11 17 15 27 15 9 0 15-4 21-12' stroke-width='6'/><path d='M15 31l-4 6M51 29l4 6' stroke-width='4.5'/></g><path d='M33 40c3 5 7 9 7 14a7 7 0 0 1-14 0c0-5 4-9 7-14z' fill='#e0061f'/></svg>"
     },
-    logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/><circle cx='32' cy='29' r='7.1' stroke-width='5.8'/></g><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
-    anatomy: {iris: [32, 29, 10], pupil: 4.2, tips: [[20.4, 56.9, 44], [32.4, 63.6, 47], [47.7, 53.3, 42]]},
+    // The character it ships with; a stored Character pick wins.
+    character: "eye",
     palette: {
       light: ["#4a020a", "#7d0312", "#a8041a", "#c8051c", "#e0061f"],
       dark: ["#5c020c", "#9a0414", "#c4051b", "#e0061f", "#ff3348"]
+    },
+    // Named ramps for characters that show status in colour (Blip): sepia for starting, a hotter blood red for problems.
+    inks: {
+      light: {warn: ["#3d2600", "#4f3200", "#5e3a00", "#6e4500", "#7a4e00"], bad: ["#4a020a", "#7d0312", "#a8041a", "#c8051c", "#a8001a"]},
+      dark: {warn: ["#3a2800", "#6a4a10", "#a07a30", "#c8943c", "#e0a948"], bad: ["#5c020c", "#9a0414", "#c4051b", "#ff3348", "#ff5c68"]}
     },
     brushStroke: {
       colors: {core: "var(--brush)", edge: "var(--brush-deep)"},
@@ -650,7 +677,6 @@ var THEMES = {
     },
     pillHover: "seep",
     buttonHover: "seep",
-    eyeModes: ["full", "subtle", "static"],
     // Every mark is brush ink, so it matches the halftone eye and the brushstrokes around it.
     statusGlyphs: {
       ok: inkIcon('<path d="M2 12.5C5.5 7 9 5.4 12.2 5.4s6.7 1.7 9.8 7" stroke-width="2.5"/><path d="M2.7 13.5C6 17.6 9 19 12 19s6.1-1.7 8.9-5.3" stroke-width="1.9"/><circle cx="12" cy="12.3" r="3.5" fill="currentColor" stroke="none"/>'),
@@ -862,13 +888,16 @@ THEMES.neon = (function () {
     },
     favicon: fav(BITS.ok, "#ff3ea5"),
     favicons: {ok: fav(BITS.ok, "#ff3ea5"), warn: fav(BITS.warn, "#ffc23c"), bad: fav(BITS.broken, "#ff3b30"), badDim: fav(BITS.broken, "#7a1a14"), down: fav(BITS.down, "#ff3b30")},
-    // The same eye artwork; only its inks change. In light magenta cannot carry dots on pale acrylic, so the eye is printed
-    // in near-black with the magenta as the off-register second ink.
-    logoSource: horror.logoSource,
-    anatomy: horror.anatomy,
+    // The same eye as Horror; only its inks change. In light magenta cannot carry dots on pale acrylic, so the character is
+    // printed in near-black with the magenta as the off-register second ink.
+    character: "eye",
     palette: {
       light: ["#6a6478", "#4a4458", "#302c3c", "#1b1824", "#0d0b10"],
       dark: ["#4a0a30", "#850f56", "#bf1a7a", "#e82a93", "#ff3ea5"]
+    },
+    inks: {
+      light: {warn: ["#7a5a2a", "#6a4600", "#5a3a00", "#4a2f00", "#3a2400"], bad: ["#d0607a", "#c4102c", "#a8001f", "#8a0018", "#6a0012"]},
+      dark: {warn: ["#4a3600", "#7a5a00", "#b38400", "#e0a820", "#ffc23c"], bad: ["#4a0a08", "#7f1610", "#c4221a", "#ff3b30", "#ff6a5e"]}
     },
     halftoneOverprint: {dx: 2.4, dy: 1.8, scale: 0.6, alpha: 0.8, dark: {color: "#2fe6ff", blend: "destination-over"}, light: {color: "#ff3ea5", blend: "destination-over"}},
     glitch: {every: [3.5, 11], frames: [2, 4], shift: [4, 14], bands: [1, 3]},
@@ -901,7 +930,6 @@ THEMES.neon = (function () {
     },
     pillHover: "charge",
     buttonHover: "charge",
-    eyeModes: horror.eyeModes,
     deskArt: {mount: tape},
     deskCss: [
       N + ' #desk .desk-light{background:radial-gradient(62vmax 46vmax at 90% 4%,var(--pool) 0,transparent 70%),radial-gradient(58vmax 46vmax at 4% 98%,var(--pool-2) 0,transparent 70%),radial-gradient(130vmax 95vmax at 50% 45%,transparent 36%,var(--desk-vignette) 100%)}',
@@ -963,183 +991,11 @@ THEMES.neon = (function () {
     copy: horror.copy
   };
 })();
-// Terminal: a chunky beige PC in an old office. A putty CRT on a desktop case, screened into the same halftone dots as the
-// eye, with an ASCII face on a phosphor-green screen. The face follows the cursor a cell at a time, blinks, and types
-// nonsense at a prompt while green characters fall behind it. Its expression is the backend rollup.
+// Terminal: a chunky beige PC in an old office, after RobCo terminals and the Pip-Boy. The eye card is a CRT: a curved dark-glass
+// screen set in a putty bezel, with scanlines, phosphor bloom, a slow refresh band and a turn-on line, all pre-rendered layers.
+// Its character is Blip, the ASCII face. Panels are putty plastic, and the pills and buttons are keycaps that press down.
 THEMES.terminal = (function () {
   var T = 'html[data-theme="terminal"]';
-  /* ---------- the character ---------- */
-  // The monitor is laid out in whole grid cells. At the 4.5px pitch on the 200px canvas, column c sits at u = 0.32 + 1.44c
-  // and row r at v = 2.64 + 1.44r in logo units, so every edge, vent and slot lands on the dot grid.
-  function U(c) { return 0.32 + 1.44 * c }
-  function V(r) { return 2.64 + 1.44 * r }
-  function box(c0, r0, c1, r1, rx, fill) {
-    return "<rect x='" + (U(c0) - 0.72).toFixed(2) + "' y='" + (V(r0) - 0.72).toFixed(2) + "' width='" + ((c1 - c0 + 1) * 1.44).toFixed(2) + "' height='" + ((r1 - r0 + 1) * 1.44).toFixed(2) + "' rx='" + rx + "' fill='" + fill + "'/>";
-  }
-  var SCREEN = [7, 4, 37, 23], PIVOT = 29, POWER = [10, 26], DRIVE = [22, 34];
-  var holes = [box(SCREEN[0], SCREEN[1], SCREEN[2], SCREEN[3], 3, "#000"), box(25, 34, 38, 34, 0.4, "#000"), box(25, 37, 38, 37, 0.4, "#000")], c;
-  for (c = 27; c <= 37; c += 2) holes.push(box(c, 25, c, 27, 0.4, "#000"));
-  for (c = 5; c <= 13; c += 2) holes.push(box(c, 33, c, 38, 0.4, "#000"));
-  var monitor = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><mask id='m'><rect width='64' height='64' fill='#fff'/>" + holes.join("") + "</mask></defs>" +
-    "<g mask='url(#m)'>" + box(3, 1, 41, 28, 5, "#d8cfb8") + box(16, 29, 28, 30, 0.6, "#d8cfb8") + box(2, 31, 42, 40, 2.5, "#d8cfb8") + "</g></svg>";
-  // Screen glyphs: 5x7 face characters (parentheses 3x7) and 3x5 prompt characters.
-  var G = {
-    "(": ["..#", ".#.", "#..", "#..", "#..", ".#.", "..#"], ")": ["#..", ".#.", "..#", "..#", "..#", ".#.", "#.."],
-    "^": [".....", "..#..", ".#.#.", "#...#", ".....", ".....", "....."],
-    o: [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###."],
-    O: [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
-    ">": [".....", "#....", ".##..", "...##", ".##..", "#....", "....."],
-    "<": [".....", "....#", "..##.", "##...", "..##.", "....#", "....."],
-    "?": [".###.", "#...#", "....#", "..##.", "..#..", ".....", "..#.."],
-    "-": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
-    _: [".....", ".....", ".....", ".....", ".....", ".....", "#####"],
-    Z: ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"],
-    z: ["#####", "...#.", "..#..", ".#...", "#####"],
-    prompt: ["#..", ".#.", "..#", ".#.", "#.."], cursor: ["###", "###", "###", "###", "###"],
-    spin: [[".#.", ".#.", ".#.", ".#.", ".#."], ["..#", "..#", ".#.", "#..", "#.."], ["...", "...", "###", "...", "..."], ["#..", "#..", ".#.", "..#", "..#"]]
-  };
-  // Inks: 0 putty (the palette), 1 screen glass, 2 phosphor green, 3 amber, 4 red. Faces per backend rollup.
-  var GLASS = 1, GREEN = 2, AMBER = 3, RED = 4;
-  var FACES = {ok: ["^", "^", GREEN], warn: ["o", "O", AMBER], broken: [">", "<", RED], attn: ["O", "O", RED], unknown: ["?", "?", GREEN]};
-  var LED = {ok: GREEN, warn: AMBER, broken: RED, attn: RED, unknown: AMBER};
-  function character(config) {
-    var E, cols, bodyValue, glassBack, fgVal, fgInk, nonsense, rain, blinks, typing, layers, sc0, sr0, sc1, sr1, faceLeft, faceTop, promptTop;
-    var mode = {id: config.id, label: config.label, tracks: !!config.tracks, still: config.still, idle: !!config.idle, lean: 0, leanAt: -1};
-    function stamp(rows, c0, r0, value, ink) {
-      for (var y = 0; y < rows.length; y++) for (var x = 0; x < rows[y].length; x++) {
-        if (rows[y][x] !== "#") continue;
-        var cc = c0 + x, rr = r0 + y;
-        if (cc >= sc0 && cc <= sc1 && rr >= sr0 && rr <= sr1) { var i = rr * cols + cc; fgVal[i] = value; fgInk[i] = ink }
-      }
-    }
-    // Falling characters keep a one-cell gap around the face and prompt so those always read.
-    function near(i) { return fgVal[i] || fgVal[i - 1] || fgVal[i + 1] || fgVal[i - cols] || fgVal[i + cols] || fgVal[i - cols - 1] || fgVal[i - cols + 1] || fgVal[i + cols - 1] || fgVal[i + cols + 1] }
-    // A lean shears the monitor above its neck by whole cells: the top shifts most, the base never moves.
-    function shiftRow(r, s) {
-      var base = r * cols;
-      for (var k = 0; k < layers.length; k++) {
-        var arr = layers[k], x;
-        if (s > 0) for (x = cols - 1; x >= 0; x--) arr[base + x] = x - s >= 0 ? arr[base + x - s] : 0;
-        else for (x = 0; x < cols; x++) arr[base + x] = x - s < cols ? arr[base + x - s] : 0;
-      }
-    }
-    mode.init = function (engine) {
-      E = engine; cols = E.cols; var count = E.count, i, r, cc;
-      sc0 = E.colOf(U(SCREEN[0])); sr0 = E.rowOf(V(SCREEN[1])); sc1 = E.colOf(U(SCREEN[2])); sr1 = E.rowOf(V(SCREEN[3]));
-      bodyValue = new Float32Array(count); glassBack = new Uint8Array(count); fgVal = new Float32Array(count); fgInk = new Uint8Array(count);
-      layers = [E.intensity, E.ink, E.back, E.radiusScale];
-      for (i = 0; i < count; i++) bodyValue[i] = E.shade(i, -0.5, -0.55, 0.67, 0.3, 1);
-      // The glass: dark backdrop dots, a little brighter in the middle, with a curved reflection across the top-left corner.
-      for (r = sr0; r <= sr1; r++) for (cc = sc0; cc <= sc1; cc++) {
-        var ex = Math.min(cc - sc0, sc1 - cc), ey = Math.min(r - sr0, sr1 - r), x = (cc - sc0) / (sc1 - sc0), y = (r - sr0) / (sr1 - sr0);
-        if (ex + ey < 2) continue;
-        var shade = Math.min(ex, ey) < 1 ? 0 : Math.hypot(x - 0.5, (y - 0.5) * 0.8) < 0.24 ? 2 : 1;
-        if (x + y > 0.16 && x + y < 0.3 && x < 0.32 && y < 0.36) shade = 3;
-        glassBack[r * cols + cc] = GLASS * 5 + shade + 1;
-      }
-      var random = E.random(config.seed);
-      nonsense = [];
-      for (i = 0; i < 64; i++) { var glyph = []; for (var k = 0; k < 5; k++) { var bits = 1 + Math.floor(random() * 7); glyph.push((bits & 4 ? "#" : ".") + (bits & 2 ? "#" : ".") + (bits & 1 ? "#" : ".")) } nonsense.push(glyph) }
-      faceLeft = Math.round((sc0 + sc1) / 2) - 13; faceTop = sr0 + 4; promptTop = sr1 - 6;
-      // Rain: each column runs its own seeded schedule of drops with uneven speeds, trails and rests, so it never repeats.
-      rain = [];
-      for (cc = sc0 + 1; cc + 2 <= sc1 - 1; cc += config.rainStep) {
-        var next = E.random(config.seed * 31 + cc), starts = [], drops = [], t = next() * config.rainRest[1];
-        while (t < E.horizon) {
-          var speed = config.rainSpeed[0] + next() * (config.rainSpeed[1] - config.rainSpeed[0]), trail = 2 + Math.floor(next() * 3), life = (sr1 - sr0 + 12 + trail * 6) / speed;
-          starts.push(t); drops.push({speed: speed, trail: trail, life: life, seed: Math.floor(next() * 1e6)});
-          t += life + config.rainRest[0] + next() * (config.rainRest[1] - config.rainRest[0]);
-        }
-        rain.push({col: cc, starts: new Float64Array(starts), drops: drops});
-      }
-      blinks = E.schedules(config.seed + 5, 5 + random() * 4, config.blinkGap, function () { return null });
-      typing = E.schedules(config.seed + 9, 1.2, config.typeGap, function (next) {
-        var length = 3 + Math.floor(next() * 3), at = [], when = 0.25, glyphs = [];
-        for (var n = 0; n < length; n++) { when += 0.08 + next() * next() * 0.3; at.push(when); glyphs.push(Math.floor(next() * 64)) }
-        return {glyphs: glyphs, at: at, hold: when + 1.2 + next() * 1.4};
-      });
-      this.lean = 0; this.leanAt = -1;
-    };
-    mode.frame = function (t, real) {
-      var count = E.count, step = Math.floor(t * E.fps) / E.fps, timeline = step % E.horizon, status = E.status || "unknown", i, n;
-      for (i = 0; i < count; i++) { E.intensity[i] = bodyValue[i]; E.back[i] = glassBack[i] }
-      fgVal.fill(0);
-      // The face looks one cell towards the cursor; a big move leans the whole monitor a cell, overshooting by one first.
-      var lookC = 0, lookR = 0, leanTarget = 0, aim = this.tracks && real ? E.aim(faceLeft + 13, faceTop + 3) : null;
-      if (aim) {
-        var reach = Math.min(1, aim.distance / 90), d = aim.distance || 1;
-        lookC = Math.max(-1, Math.min(1, Math.round(aim.dx / d * reach * 1.4)));
-        lookR = Math.max(-1, Math.min(1, Math.round(aim.dy / d * reach * 1.4)));
-        leanTarget = Math.abs(aim.dx) > 280 ? (aim.dx > 0 ? 1 : -1) : 0;
-      }
-      if (leanTarget !== this.lean) { this.lean = leanTarget; this.leanAt = step }
-      var lean = this.lean && step - this.leanAt < 2 / E.fps ? this.lean * 2 : this.lean;
-      if (status === "down") {
-        // Down: the screen is off, just dark glass and a slow zZ drifting up.
-        for (i = 0; i < count; i++) if (E.back[i]) E.back[i] = GLASS * 5 + 1;
-        var drift = Math.floor(step * 0.7 + 0.8 * Math.sin(step * 0.31)) % 3;
-        stamp(G.z, faceLeft + 6, faceTop + 7 - drift, 0.5, GREEN);
-        stamp(G.Z, faceLeft + 13, faceTop + 1 - drift, 0.62, GREEN);
-      } else {
-        var face = FACES[status] || FACES.unknown, ink = face[2], blinkFrame = -1;
-        if (!E.reduced()) { var j = E.findAt(blinks.starts, timeline); if (j >= 0) blinkFrame = Math.floor((timeline - blinks.starts[j]) * E.fps) }
-        // A slow blink, (-_-), with one squashed frame either side.
-        var squash = blinkFrame === 0 || blinkFrame === 6, shut = blinkFrame >= 1 && blinkFrame <= 5;
-        stamp(G["("], faceLeft, faceTop, 1, ink); stamp(G[")"], faceLeft + 24, faceTop, 1, ink);
-        for (var k = 0; k < 2; k++) {
-          var rows = shut ? G["-"] : G[face[k]];
-          if (squash) rows = rows.map(function (row, y) { return y < 3 ? "....." : row });
-          stamp(rows, faceLeft + 5 + k * 12 + lookC, faceTop + lookR, 1, ink);
-        }
-        stamp(G._, faceLeft + 11 + lookC, faceTop, 1, ink);
-        // The prompt: a spinner while starting; otherwise a blinking cursor and, now and then, a short line of nonsense.
-        stamp(G.prompt, faceLeft, promptTop, 0.9, AMBER);
-        var typed = 0, busy = false;
-        if (status === "warn") stamp(G.spin[Math.floor(step * 8) % 4], faceLeft + 4, promptTop, 0.95, AMBER);
-        else {
-          var line = null, jj = E.findAt(typing.starts, timeline);
-          if (jj >= 0) {
-            line = typing.data[jj]; var age = timeline - typing.starts[jj];
-            if (age < line.hold) { for (n = 0; n < line.at.length; n++) if (age >= line.at[n]) typed = n + 1; busy = typed > 0 }
-            else typed = Math.max(0, line.at.length - Math.floor((age - line.hold) / 0.06));
-          }
-          for (n = 0; n < typed; n++) stamp(nonsense[line.glyphs[n]], faceLeft + 4 + n * 4, promptTop, 0.85, GREEN);
-          if (busy || Math.floor(step * 1.9 + 0.6 * Math.sin(step * 0.37) + 0.4 * Math.sin(step * 0.13 + 1)) % 2 === 0) stamp(G.cursor, faceLeft + 4 + typed * 4, promptTop, 0.9, GREEN);
-        }
-        rain.forEach(function (column) {
-          var j = E.findAt(column.starts, timeline);
-          if (j < 0) return;
-          var drop = column.drops[j], age = timeline - column.starts[j];
-          if (age > drop.life) return;
-          var head = sr0 - 5 + Math.floor(age * drop.speed);
-          for (var k = 0; k <= drop.trail; k++) {
-            var top = head - k * 6, glyph = nonsense[(drop.seed + k * 7 + Math.floor((timeline + k * 0.37 + drop.seed % 5) / (0.6 + (drop.seed % 7) * 0.15))) % 64];
-            var value = k === 0 ? 0.72 : 0.58 - k * 0.08;
-            for (var y = 0; y < 5; y++) for (var x = 0; x < 3; x++) {
-              var rr = top + y;
-              if (glyph[y][x] !== "#" || rr < sr0 || rr > sr1) continue;
-              var index = rr * cols + column.col + x;
-              if (!E.back[index] || near(index)) continue;
-              E.intensity[index] = value; E.ink[index] = GREEN;
-            }
-          }
-        });
-        // The drive light shows activity: on while a line is being typed or the backend is starting.
-        if (busy || status === "warn") { E.intensity[DRIVE[1] * cols + DRIVE[0]] = 0.9; E.ink[DRIVE[1] * cols + DRIVE[0]] = AMBER }
-        E.intensity[POWER[1] * cols + POWER[0]] = 0.95; E.ink[POWER[1] * cols + POWER[0]] = LED[status] || AMBER;
-      }
-      for (i = 0; i < count; i++) if (fgVal[i]) { E.intensity[i] = fgVal[i]; E.ink[i] = fgInk[i]; E.radiusScale[i] = 1.08 }
-      if (lean) for (var r = 0; r < PIVOT; r++) { var s = Math.round(lean * (PIVOT - r) / PIVOT); if (s) shiftRow(r, s) }
-    };
-    return mode;
-  }
-  var calm = {seed: 19, rainStep: 8, rainSpeed: [2, 4], rainRest: [1.5, 6], blinkGap: [11, 26], typeGap: [14, 30], still: 2.9};
-  function extend(base, own) { var out = {}; Object.keys(base).forEach(function (k) { out[k] = base[k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
-  var modes = [
-    character({id: "full", label: "Full", tracks: true, seed: 7, rainStep: 4, rainSpeed: [3, 7], rainRest: [0.4, 3.5], blinkGap: [7, 18], typeGap: [7, 16], still: 2.9}),
-    character(extend(calm, {id: "subtle", label: "Subtle"})),
-    character(extend(calm, {id: "static", label: "Static", idle: true}))
-  ];
   /* ---------- marks: tiny ASCII faces for status, blocky DOS icons for actions ---------- */
   var EYE = {"^": [".....", "..#..", ".#.#.", "#...#", ".....", "....."], o: [".....", ".....", ".###.", "#...#", "#...#", ".###."],
     O: [".###.", "#...#", "#...#", "#...#", "#...#", ".###."], ">": ["#....", ".##..", "...##", ".##..", "#....", "....."], "<": ["....#", "..##.", "##...", "..##.", "....#", "....."],
@@ -1176,8 +1032,12 @@ THEMES.terminal = (function () {
         "--key-ink": "#1d1a14", "--key-hover-ink": "#1d1a14", "--key-wall": "#7d745e", "--badge-bg": "#0a140d", "--badge-ink": "#ffb000", "--toggle-edge": "#a89e84",
         "--picker-radius": "6px", "--picker-hl": "#0a140d", "--picker-hl-ink": "#33ff66", "--picker-hl-shadow": "none", "--picker-check": "#7a4200", "--picker-hl-check": "#33ff66",
         "--focus-outer": "#1d1a14", "--cap-hi": "#fbf8ef", "--cap-wall": "#a89e84", "--mould-hi": "rgba(255,255,255,.6)", "--mould-lo": "rgba(90,78,50,.32)",
-        "--groove": "rgba(90,78,50,.30)", "--vent": "#4a4334", "--vent-lip": "rgba(255,255,255,.6)", "--paper": "#f3f1e7", "--paper2": "#e8e5d8", "--paper-bar": "rgba(60,150,80,.10)",
-        "--perf": "rgba(90,80,60,.35)", "--pad-edge": "#3b4237", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.45)",
+        "--groove": "rgba(90,78,50,.30)", "--vent": "#4a4334", "--vent-lip": "rgba(255,255,255,.6)", "--pad-edge": "#3b4237",
+        "--screen-bed": "#103a1d", "--screen-dim": "#178a3a", "--screen-glow2": "rgba(51,255,102,.2)", "--bezel-gap": "#1d1a14", "--scanline": "rgba(0,0,0,.34)",
+        "--band": "rgba(90,255,140,.025)", "--band-core": "rgba(170,255,200,.05)", "--cap-shade": "rgba(60,50,30,.18)",
+        "--power": "#2fd85a", "--power-warn": "#ffb000", "--power-bad": "#ff5a46", "--power-off": "#7d745e",
+        "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
+        "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,235,220,.85)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.45)",
         "--screen-warn": "#ffb000", "--bezel": "#c4ba9f", "--dymo": "#1d1d20", "--dymo-ink": "#f2efe6"},
       dark: {"--inset": "#24211c", "--text": "#efe7d2", "--muted": "#c7bca3", "--border": "#4d473c", "--rule": "#5a5446", "--ok": "#4fe07a", "--bad": "#ff7a6a", "--warn": "#ffb000",
         "--idle": "#8f8775", "--glyph-ok": "#a89e86", "--glyph-bad": "#ff5a48", "--accent": "#ffb000", "--accent-ink": "#1a1206", "--ok-ink": "#0a140d", "--warn-ink": "#1a1206", "--bad-ink": "#1a0806",
@@ -1196,8 +1056,12 @@ THEMES.terminal = (function () {
         "--key-ink": "#1d1a14", "--key-hover-ink": "#1d1a14", "--key-wall": "#4a4436", "--badge-bg": "#0a140d", "--badge-ink": "#ffb000", "--toggle-edge": "#6b6352",
         "--picker-radius": "6px", "--picker-hl": "#0a140d", "--picker-hl-ink": "#33ff66", "--picker-hl-shadow": "none", "--picker-check": "#ffb000", "--picker-hl-check": "#33ff66",
         "--focus-outer": "#ffb000", "--cap-hi": "#f4efe0", "--cap-wall": "#6b6352", "--mould-hi": "rgba(255,246,222,.10)", "--mould-lo": "rgba(0,0,0,.45)",
-        "--groove": "rgba(0,0,0,.38)", "--vent": "#141210", "--vent-lip": "rgba(255,240,210,.09)", "--paper": "#3b3a33", "--paper2": "#33322c", "--paper-bar": "rgba(120,220,140,.05)",
-        "--perf": "rgba(0,0,0,.45)", "--pad-edge": "#0c0e0b", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.55)",
+        "--groove": "rgba(0,0,0,.38)", "--vent": "#141210", "--vent-lip": "rgba(255,240,210,.09)", "--pad-edge": "#0c0e0b",
+        "--screen-bed": "#103a1d", "--screen-dim": "#178a3a", "--screen-glow2": "rgba(51,255,102,.22)", "--bezel-gap": "#050504", "--scanline": "rgba(0,0,0,.36)",
+        "--band": "rgba(90,255,140,.025)", "--band-core": "rgba(170,255,200,.05)", "--cap-shade": "rgba(0,0,0,.22)",
+        "--power": "#2fd85a", "--power-warn": "#ffb000", "--power-bad": "#ff5a46", "--power-off": "#2c2923",
+        "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
+        "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,255,255,.6)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.55)",
         "--screen-warn": "#ffb000", "--bezel": "#5a5446", "--dymo": "#141416", "--dymo-ink": "#f2efe6"}
     },
     fonts: {
@@ -1208,17 +1072,21 @@ THEMES.terminal = (function () {
     favicon: screenFavicon(TINY.ok, "#33ff66", "#33ff66"),
     favicons: {ok: screenFavicon(TINY.ok, "#33ff66", "#33ff66"), warn: screenFavicon(TINY.warn, "#ffb000", "#ffb000"), bad: screenFavicon(TINY.broken, "#ff5a46", "#ff5a46"),
       badDim: screenFavicon(TINY.broken, "#7f1610", "#7f1610"), down: screenFavicon(TINY.down, "#2a5a38", "#3a3426")},
-    logoSource: monitor,
-    // Putty plastic for the monitor; the screen has its own inks (glass, phosphor green, amber, red) on dark glass in both schemes.
+    character: "blip",
+    // The character sits on the CRT's dark glass in both schemes, so its inks are phosphor green, amber and red in both.
+    screen: true,
     palette: {
-      light: ["#3f382b", "#5a513f", "#776c55", "#93876b", "#aa9d80"],
-      dark: ["#2c2821", "#4e4739", "#746a55", "#9a8f75", "#c2b698"]
+      light: ["#0e4020", "#17752f", "#22a844", "#2fd85a", "#5cff86"],
+      dark: ["#0e4020", "#17752f", "#22a844", "#2fd85a", "#5cff86"]
     },
     inks: (function () {
-      var screen = [["#040906", "#08130c", "#0c1c12", "#183424", "#0c1c12"], ["#0e4020", "#17752f", "#22a844", "#2fd85a", "#5cff86"],
-        ["#4a3000", "#7a5000", "#b37600", "#e09600", "#ffb81a"], ["#4a0c08", "#7f1610", "#b81f17", "#e8301f", "#ff5a46"]];
+      var screen = {warn: ["#4a3000", "#7a5000", "#b37600", "#e09600", "#ffb81a"], bad: ["#4a0c08", "#7f1610", "#b81f17", "#e8301f", "#ff5a46"]};
       return {light: screen, dark: screen};
     })(),
+    // Phosphor bloom: two soft halos under the lit dots, drawn into the canvas with the frame (no live filter).
+    bloom: [[1.35, 0.09, 1], [0.9, 0.13, 2]],
+    // Now and then the phosphor slips for a frame or two.
+    glitch: {every: [18, 40], frames: [1, 2], shift: [2, 6], bands: [1, 2]},
     statusGlyphs: {ok: bitIcon(TINY.ok), warn: bitIcon(TINY.warn), broken: bitIcon(TINY.broken), down: bitIcon(TINY.down), attn: bitIcon(TINY.attn), unknown: bitIcon(TINY.unknown),
       awake: bitIcon(TINY.awake, TINY.pupil)},
     actionIcons: {
@@ -1238,9 +1106,8 @@ THEMES.terminal = (function () {
       },
       rule: {style: "blocks", height: 24, baseline: 12, block: 4.5, gap: 1.5, drop: 0.1, light: 0.18, opacity: 0.85, colors: {core: "var(--rule-ink)", edge: "var(--rule-ink-deep)"}}
     },
-    pillHover: "blocks",
-    buttonHover: "blocks",
-    eyeModes: modes,
+    pillHover: "press",
+    buttonHover: "press",
     deskArt: {
       // A sticky note on the printout's corner, with a few pen squiggles (no words).
       badge: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 66"><path fill="#000" fill-opacity=".35" d="M8 9h52v44c-5 1-10 4-14 9H8z"/><path fill="#f6e27a" d="M5 6h54v44c-6 1-11 4-15 9H5z"/><path fill="#fff6b0" fill-opacity=".5" d="M5 6h54v5H5z"/><path fill="#d9c35a" d="M44 59c2-5 7-8 15-9-3 4-8 7-15 9z"/><path fill="none" stroke="#3a4f9a" stroke-width="1.8" stroke-linecap="round" d="M12 21c5-3 8 3 13 0s7-2 10 1M12 31c6-2 10 2 16-1M12 41c4-2 7 1 11-1"/></svg>'
@@ -1261,16 +1128,49 @@ THEMES.terminal = (function () {
         T + ' main::after{top:12px;left:auto;right:24px;width:88px;height:8px;border-radius:2px;background:' + vents + ';box-shadow:0 1px 0 var(--vent-lip)}',
         T + ' .backend::after{inset:13px 18px auto auto;width:48px;height:8px;transform:none;border-radius:2px;z-index:0;background:' + vents + ';box-shadow:0 1px 0 var(--vent-lip)}',
         T + ' main{padding:30px 38px 26px}',
-        // The eye card is a sheet of tractor-feed printout: sprocket holes down both edges, perforations and faint green bars.
-        T + ' .eye-card{--eye-tilt:-1deg;padding:28px 30px 16px}',
-        T + ' .desk-obj .paper,' + T + ' .desk-obj .sheet{--obj-radius:1px;background:radial-gradient(circle,var(--desk-blotter-color) 0 2.6px,var(--perf) 3px,transparent 3.6px) 3px 8px/12px 16px repeat-y,' +
-          'radial-gradient(circle,var(--desk-blotter-color) 0 2.6px,var(--perf) 3px,transparent 3.6px) right 3px top 8px/12px 16px repeat-y,' +
-          'linear-gradient(var(--perf) 50%,transparent 0) 18px 0/1px 6px repeat-y,linear-gradient(var(--perf) 50%,transparent 0) right 18px top 0/1px 6px repeat-y,' +
-          'repeating-linear-gradient(180deg,transparent 0 22px,var(--paper-bar) 22px 44px) 19px 0/calc(100% - 38px) 100% no-repeat,var(--paper)}',
-        T + ' .desk-obj .sheet{background-color:var(--paper2)}',
-        T + ' .desk-obj .badge{left:auto;right:-16px;top:-18px;width:58px;height:58px;transform:rotate(8deg)}',
-        T + ' .mark{--word-spacing:.16em;font-size:28px;padding-left:.16em}',
-        T + ' .mark .brush{top:calc(100% - 11px)}',
+        // The eye card is the CRT: a chunky putty bezel with a groove and moulded lips, a curved dark-glass screen set into it,
+        // and the freshness label and the Settings key on the chin below. A sticky note is stuck to the corner of the bezel.
+        T + ' .eye-card{--eye-tilt:-.4deg;padding:15px 15px 13px}',
+        T + ' .desk-obj .sheet{display:none}',
+        T + ' .desk-obj .shadow{inset:8px 4px 2px}',
+        T + ' .desk-obj .paper{--obj-radius:18px;background:radial-gradient(140% 70% at 30% 0,var(--edge-hi),transparent 60%),var(--stock);outline:1.5px solid var(--groove);outline-offset:-7px;' +
+          'box-shadow:inset 0 1px 0 var(--edge-hi),inset 3px 3px 0 var(--mould-hi),inset -3px -4px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),inset 0 0 40px var(--age),0 2px 0 var(--edge-lo),0 4px 0 var(--edge-lo),0 6px 0 var(--edge-lo2),0 8px 0 var(--edge-lo2)}',
+        T + ' .desk-obj .badge{left:auto;right:-18px;top:-20px;width:58px;height:58px;transform:rotate(8deg)}',
+        // The screen: curved corners, the phosphor bed glowing faintly behind the character, and a black recess round the glass.
+        T + ' .stage{display:block;position:relative;isolation:isolate;width:100%;padding:12px 0 8px;border-radius:24px/28px;overflow:hidden;' +
+          'background:radial-gradient(70% 62% at 50% 42%,var(--screen-bed) 0,var(--screen) 78%);box-shadow:0 0 0 3px var(--bezel-gap),0 -1px 0 4px var(--mould-lo),0 1px 0 4px var(--mould-hi)}',
+        T + '[data-rollup="down"] .stage{background:var(--screen)}',
+        T + ' .stage .masthead-title{display:block;text-align:center;margin-top:2px}',
+        T + ' .stage .mark{--brush:var(--screen-ink);--brush-deep:var(--screen-dim);--word-spacing:.2em;padding:0 0 12px .2em;font-size:25px;color:var(--screen-ink);text-shadow:0 0 1px var(--screen-ink),0 0 7px var(--screen-glow),0 0 18px var(--screen-glow2)}',
+        T + ' .stage .mark .brush{top:calc(100% - 11px)}',
+        // Screen effects are fixed layers over the glass: scanlines, the curvature vignette with an inner shadow, and a reflection.
+        // Only the slow refresh band (transform), a slight irregular flicker (opacity) and the one-off turn-on line move.
+        T + ' .stage-fx{display:block;position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:inherit;overflow:hidden}',
+        T + ' .stage-fx>i{position:absolute;inset:0;display:block}',
+        T + ' .fx-scan{background:repeating-linear-gradient(180deg,var(--scanline) 0 1px,transparent 1px 3px)}',
+        T + ' .fx-glass{border-radius:inherit;background:radial-gradient(70% 34% at 30% 4%,rgba(255,255,255,.11) 0,rgba(255,255,255,.035) 48%,transparent 72%),' +
+          'linear-gradient(112deg,transparent 64%,rgba(255,255,255,.04) 71%,transparent 79%),radial-gradient(135% 120% at 50% 48%,transparent 56%,rgba(0,0,0,.45) 84%,rgba(0,0,0,.8) 100%);' +
+          'box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.9),inset 0 5px 14px rgba(0,0,0,.7),inset 0 -3px 9px rgba(0,0,0,.55),inset 0 0 34px rgba(0,0,0,.45)}',
+        T + ' .fx-band{inset:auto 0;top:0;height:36%;transform:translateY(-100%);will-change:transform;background:linear-gradient(180deg,transparent 0,var(--band) 42%,var(--band-core) 52%,var(--band) 62%,transparent 100%)}',
+        T + ' .fx-flicker{opacity:0;background:var(--band-core)}',
+        T + ' .fx-on{opacity:0;background:var(--screen)}',
+        T + ' .fx-on::after{content:"";position:absolute;left:3%;right:3%;top:50%;height:2px;margin-top:-1px;background:#e6ffea;box-shadow:0 0 6px 2px var(--screen-glow);opacity:0;transform:scaleX(0)}',
+        '@media (prefers-reduced-motion:no-preference){' +
+          T + ':is([data-logo-mode="full"],[data-logo-mode="subtle"]):not([data-rollup="down"]) .fx-band{animation:crt-roll 11s linear infinite}' +
+          T + '[data-logo-mode="full"]:not([data-rollup="down"]) .fx-flicker{animation:crt-flicker 8.3s steps(1,end) infinite}' +
+          T + ':not([data-logo-mode="static"]) .fx-on{animation:crt-on .6s ease-out .05s both}' +
+          T + ':not([data-logo-mode="static"]) .fx-on::after{animation:crt-line .6s ease-out .05s both}}',
+        '@keyframes crt-roll{0%{transform:translateY(-100%)}70%{transform:translateY(290%)}100%{transform:translateY(290%)}}',
+        '@keyframes crt-flicker{0%{opacity:0}17%{opacity:.8}17.6%{opacity:0}46%{opacity:0}46.3%{opacity:1}46.9%{opacity:.35}47.4%{opacity:0}79%{opacity:.6}79.5%{opacity:0}}',
+        '@keyframes crt-on{0%{opacity:1}52%{opacity:1}100%{opacity:0}}',
+        '@keyframes crt-line{0%{opacity:1;transform:scaleX(0)}32%{opacity:1;transform:scaleX(1)}62%{opacity:.85;transform:scale(1,20)}100%{opacity:0;transform:scale(1,60)}}',
+        // The chin: a power LED that shows the backend rollup, the freshness label pressed into the plastic, and the Settings key.
+        T + ' .masthead-tools{margin-top:13px;padding:0 2px 0 8px;border-top:0;gap:10px}',
+        T + ' .masthead-tools::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--power);box-shadow:0 0 0 1.5px var(--groove),0 0 7px var(--power)}',
+        T + '[data-rollup="warn"] .masthead-tools::before{--power:var(--power-warn)}',
+        T + ':is([data-rollup="broken"],[data-rollup="attn"]) .masthead-tools::before{--power:var(--power-bad)}',
+        T + '[data-rollup="down"] .masthead-tools::before{--power:var(--power-off);box-shadow:0 0 0 1.5px var(--groove)}',
+        T + ' #updated{margin-right:auto;font:600 12.5px/1.2 var(--mono);letter-spacing:.03em;color:var(--muted);text-shadow:var(--emboss)}',
         T + ' .branch{font-size:19px;letter-spacing:-.01em}',
         T + ' .backend .rollup .title{letter-spacing:.2em}',
         // The backend rollup is a small green CRT sunk into the case; a problem shows in inverse video.
@@ -1285,44 +1185,52 @@ THEMES.terminal = (function () {
         T + ' .app-pill.failed::after{background:var(--tag-bad)}',
         T + ' .app-pill.off{transform:translateY(3px)}',
         T + ' .app-pill.off::after{inset:-1px -1px -2px}',
-        T + ' a.app-pill:hover,' + T + ' a.app-pill:focus-visible{transform:translateY(1px)}',
+        // The press hover: the key travels down and its wall gets shorter (the wall stays put while the cap sinks); pressed, it
+        // bottoms out. The legend lights up green as if backlit (the press layer). No fill.
+        T + ' .app-pill::after{transform-origin:50% 0;transition:transform var(--dur-fast) var(--ease-out)}',
+        T + ' a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(2px)}',
+        T + ' a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:scaleY(.95)}',
+        T + ' a.app-pill:active{transform:translateY(4px)}',
+        T + ' a.app-pill:active::after{transform:scaleY(.9)}',
         T + ' a.app-pill.off:hover,' + T + ' a.app-pill.off:focus-visible{transform:translateY(3px)}',
         // Slot numbers are embossed label tape.
         T + ' .slot-card .head{padding-right:6.4em}',
         T + ' .slotno{top:26px;padding:4px 9px 3px;border-radius:2px;background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 45%),var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 rgba(0,0,0,.4),0 2px 3px var(--contact);' +
           'font:700 12px/1.2 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.6),0 -1px 0 rgba(255,255,255,.22);transform:rotate(calc(var(--stamp-tilt,-2deg) * .4))}',
-        // The update key and details toggle are keycaps in mono type; the behind count is an amber readout.
+        // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
+        // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+          'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
+        T + ' #settings-open{width:36px;height:30px}',
+        T + ' #settings-open svg{width:21px;height:21px}',
+        T + ' .slot-card button.icon{width:30px;height:28px}',
+        T + ' .slot-card button.icon svg{width:18px;height:18px}',
+        T + ' .slot-card .tools{gap:8px}',
+        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
+        T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
+        T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
+        T + ' .settings .segmented label{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em}',
+        // The update key: the same travel, on its own taller wall; the behind count is an amber readout set into it.
         T + ' .backend .update-btn,' + T + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
         T + ' .backend .update-btn{font-size:13px;border-radius:5px}',
-        T + ' .backend .toggle{font-size:11.5px}',
+        T + ' .backend .update-btn:hover:not(:disabled),' + T + ' .backend .update-btn:is(:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),0 1.5px 0 var(--key-wall),0 2px 3px -1px var(--contact)}',
+        T + ' .backend .update-btn:focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--key-wall)}',
+        T + ' .backend .toggle{min-height:28px;padding:5px 11px 4px 9px;font-size:11.5px}',
+        T + ' .backend .toggle .chev{color:currentColor}',
         T + ' .backend .update-btn .behind-badge{background:var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 50%,transparent);box-shadow:inset 0 1px 3px #000}',
         T + ' .sessions-title,' + T + ' .settings h2{letter-spacing:.12em}',
-        // The chosen Appearance segment is lit in inverse video.
-        T + ' .settings .segmented label:has(input:checked){background:var(--charge);color:var(--charge-ink);box-shadow:inset 0 1px 3px #000}',
         T + ' .settings select::picker(select){outline:1.5px solid var(--groove);outline-offset:-6px}',
         T + ' .settings option{font:14px/1.3 var(--mono);letter-spacing:.04em}'
       ].join("\n");
     })(),
-    // A wooden desk with a felt pad, putty plastic panels, and a mug and a stack of floppies screened into the eye's dots.
+    // A wooden desk with a felt pad and putty plastic panels. No props: the floppies and the mug did not share the character's art.
     desk: {seed: 41, surface: "wood", blotter: "velvet", stock: "plastic",
-      props: [
-        {art: "floppies", halftone: true, side: "left", offset: 10, bottom: 6, width: 238, height: 182},
-        {art: "mug", halftone: true, side: "right", offset: 34, bottom: 8, width: 146, height: 162}],
-      art: {
-        floppies: (function () {
-          function disk(x, y, rot, color) {
-            return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')"><rect x="-32" y="-33" width="64" height="66" rx="3" fill="' + color + '"/><path d="M-32 -33h4v5h-4z" fill="#111"/>' +
-              '<rect x="-14" y="-33" width="30" height="22" fill="#d3d7dc"/><rect x="4" y="-29" width="7" height="14" fill="#5a5e64"/>' +
-              '<rect x="-22" y="4" width="44" height="26" rx="1.5" fill="#f6efdc"/><path d="M-18 12h34M-18 20h26" stroke="#3a5aa0" stroke-width="3"/></g>';
-          }
-          return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 130"><ellipse cx="88" cy="122" rx="78" ry="7" fill="#000" fill-opacity=".5"/>' +
-            disk(56, 84, -10, "#f07a62") + disk(88, 80, 3, "#7aa8f0") + disk(118, 86, 13, "#c4c8d2") + '</svg>';
-        })(),
-        mug: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 116"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#f6efdc"/><stop offset=".45" stop-color="#ddd3b8"/><stop offset="1" stop-color="#6e6450"/></linearGradient></defs>' +
-          '<ellipse cx="50" cy="109" rx="42" ry="6" fill="#000" fill-opacity=".5"/><path d="M76 44c16 0 22 8 22 18s-8 20-24 20" fill="none" stroke="#bdb296" stroke-width="10"/>' +
-          '<path d="M14 30h68v68c0 7-8 11-34 11S14 105 14 98z" fill="url(#g)"/><path d="M14 56h68v13H14z" fill="#38a052"/><path d="M14 72h68v4H14z" fill="#e0a020"/>' +
-          '<ellipse cx="48" cy="30" rx="34" ry="7" fill="#efe7d0"/><ellipse cx="48" cy="31" rx="29" ry="5" fill="#3a2414"/></svg>'
-      },
       dark: {surface: {ramp: ["#0a0705", "#120c08", "#1a120c", "#24180f"], seam: "#050302"}, blotter: {ramp: ["#101410", "#151a15", "#1b211b"]},
         stock: {ramp: ["#322e27", "#36322a", "#3b372e"]}},
       light: {surface: {ramp: ["#8a6440", "#9c7449", "#ad8454", "#bd9462"], seam: "#6b4a2c"}, blotter: {ramp: ["#5d6a5b", "#677464", "#717e6e"]},
@@ -1331,6 +1239,223 @@ THEMES.terminal = (function () {
   };
 })();
 /* ===== end THEMES ================================================================= */
+/* ===== CHARACTERS =================================================================
+The character is the animated figure on the eye card. It is its own setting (Settings > Character), separate from the theme:
+each theme names a default character (`character`), and a stored pick wins. A character supplies its art and behaviour (source
+art, face, idle animation, cursor-following, status expressions, and what Full, Subtle and Static do). The theme it appears in
+supplies the inks (its palette plus named ramps), the card or screen it sits on, and print effects (halftoneOverprint, glitch,
+bloom). So every character renders in every theme, in that theme's palette: Eye in Terminal is a phosphor eye on the CRT, Blip
+in Horror is a blood-red face on card stock.
+Characters: Eye (the halftone eye: Horror's and Neon's default) and Blip (an ASCII face: Terminal's default).
+  name        label in the Character picker
+  stage       {width, height}: the canvas in CSS px; pitch: the halftone dot pitch in px; overlap: px the wordmark tucks under
+              the canvas; size and centerY map logoSource's 64-unit box onto the canvas (size px wide, unit 32 at y = centerY)
+  logoSource  optional SVG string, 64x64 viewBox, transparent background; the halftone grid samples its opaque pixels (alpha[])
+              and lights them with shade(). A character drawn entirely by its renderer (Blip) leaves it out.
+  anatomy     optional {iris:[x, y, r], pupil:r, tips:[[x, tipY, topY], ...]} in logo units; needed by the built-in eye modes
+  inks        optional names of the theme ramps it draws with besides the palette (ink 0): ink n is the theme's
+              inks[scheme][inks[n - 1]]. Every theme supplies every name used here; ?debug=1 reports a missing one.
+  modes       the Logo animation options. Always the three ids full / subtle / static, so a stored pick carries across
+              characters and themes: "full" (cursor-following, blinks, all idle life), "subtle" (only the slow ambient motion)
+              and "static" (subtle's still frame, no loop at all). Old stored values map over: watcher and coin to full,
+              bleeding to subtle, off to static. Each entry is either a built-in eye mode by id (needs anatomy) or a custom
+              renderer {id, label, tracks, init(engine), frame(t, real, engine), still, idle}. A renderer draws on the halftone
+              grid through the engine: cols, rows, count, pitch, fps, horizon, alpha[] (sampled logoSource), shade(),
+              intensity[], ink[], radiusScale[], back[] (a full-size backdrop dot, bucket ink*5+shade+1), put(col,row,value,ink)
+              (raise), set(...) (overwrite), aim(col,row) (the cursor offset in px while tracking, else null), status (the
+              backend rollup: ok, warn, broken, down, attn, unknown), screen (true when the theme seats the character on a lit
+              screen), random(seed), schedules(seed, first, gap, extra), findAt(starts, t) and reduced(). tracks: true makes
+              the cursor engage tracking; still is the time of the still frame; idle: true runs no loop.
+              Status expressions: a renderer may change its face with engine.status (Blip does). The eye looks the same in
+              every state; the backend card carries the status.
+How to add a character: add one entry below; nothing else changes, and it shows up in the picker for every theme. To make it a
+theme's default, set that theme's `character`. The owl from docs/THEME_IDEAS.md becomes one entry:
+  CHARACTERS.owl = {
+    name: "Owl",
+    stage: {width: 200, height: 230, pitch: 4.5, size: 200, centerY: 96, overlap: 18},
+    logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>...the head and its two eye discs...</svg>",
+    inks: ["warn", "bad"],
+    modes: [owl("full", {tracks: true}), owl("subtle", {}), owl("static", {idle: true})]   // custom renderers
+  };
+==================================================================================== */
+var CHARACTERS = {
+  // Eye: the halftone eye. It follows the cursor, blinks, and drips onto the wordmark.
+  eye: {
+    name: "Eye",
+    stage: {width: 200, height: 230, pitch: 4.5, size: 200, centerY: 92, overlap: 22},
+    logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/><circle cx='32' cy='29' r='7.1' stroke-width='5.8'/></g><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
+    anatomy: {iris: [32, 29, 10], pupil: 4.2, tips: [[20.4, 56.9, 44], [32.4, 63.6, 47], [47.7, 53.3, 42]]},
+    modes: ["full", "subtle", "static"]
+  }
+};
+// Blip: an ASCII face drawn on the halftone grid. Each glyph pixel is a 2x2 block of dots (smoothed with scale2x), so the face
+// is the main thing on its card. It looks a cell or two towards the cursor, leans on big moves, blinks (-_-), and its
+// expression is the backend rollup. On a lit screen (the theme's `screen`) faint characters fall behind it; printed on a card,
+// its ink now and then runs and drips off the bottom of the face instead.
+CHARACTERS.blip = (function () {
+  // Face glyphs: 5x7 (parentheses 3x7), and 3x5 for the falling characters.
+  var G = {
+    "(": ["..#", ".#.", "#..", "#..", "#..", ".#.", "..#"], ")": ["#..", ".#.", "..#", "..#", "..#", ".#.", "#.."],
+    "^": [".....", "..#..", ".#.#.", "#...#", ".....", ".....", "....."],
+    o: [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###."],
+    O: [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    ">": [".....", "#....", ".##..", "...##", ".##..", "#....", "....."],
+    "<": [".....", "....#", "..##.", "##...", "..##.", "....#", "....."],
+    "?": [".###.", "#...#", "....#", "..##.", "..#..", ".....", "..#.."],
+    "-": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
+    _: [".....", ".....", ".....", ".....", ".....", ".....", "#####"],
+    Z: ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"],
+    z: ["#####", "...#.", "..#..", ".#...", "#####"]
+  };
+  // scale2x (EPX): doubles a glyph and fills the inside corners of its diagonals, so big strokes stay smooth.
+  function scale2x(rows) {
+    var h = rows.length, w = rows[0].length, out = [];
+    function at(x, y) { return x < 0 || y < 0 || x >= w || y >= h ? "." : rows[y][x] }
+    for (var y = 0; y < h; y++) {
+      var top = "", bottom = "";
+      for (var x = 0; x < w; x++) {
+        var P = at(x, y), A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+        top += (C === A && C !== D && A !== B ? A : P) + (A === B && A !== C && B !== D ? B : P);
+        bottom += (D === C && D !== B && C !== A ? C : P) + (B === D && B !== A && D !== C ? D : P);
+      }
+      out.push(top, bottom);
+    }
+    return out;
+  }
+  var BIG = {};
+  Object.keys(G).forEach(function (key) { BIG[key] = scale2x(G[key]) });
+  // Ink 0 is the theme's palette; 1 and 2 are its warn and bad ramps. Faces per backend rollup (down is drawn on its own).
+  var WARN = 1, BAD = 2;
+  var FACES = {ok: ["^", "^", 0], warn: ["o", "O", WARN], broken: [">", "<", BAD], attn: ["O", "O", BAD], unknown: ["?", "?", 0]};
+  // Layout in grid cells: ( at 0, eyes at 10 and 34, the mouth at 22, ) at 48; 54 cells wide and 14 tall.
+  var WIDTH = 54, HEIGHT = 14;
+  function renderer(config) {
+    var E, cols, rows, fgVal, fgInk, nonsense, rain, blinks, drips, faceLeft, faceTop;
+    var mode = {id: config.id, label: config.label, tracks: !!config.tracks, still: config.still, idle: !!config.idle, lean: 0, leanAt: -1};
+    function stamp(glyph, c0, r0, value, ink) {
+      for (var y = 0; y < glyph.length; y++) for (var x = 0; x < glyph[y].length; x++) {
+        if (glyph[y][x] !== "#") continue;
+        var cc = c0 + x, rr = r0 + y;
+        if (cc >= 0 && cc < cols && rr >= 0 && rr < rows) { var i = rr * cols + cc; fgVal[i] = value; fgInk[i] = ink }
+      }
+    }
+    // Drop shapes, 3 cells wide, hanging from their top row: a bead, swelling, swollen, and tall while it falls.
+    var DROPS = [[[0, 1, 0]], [[0, 1, 0], [0.55, 1, 0.55]], [[0, 1, 0], [0.5, 1, 0.5], [0.45, 0.9, 0.45]], [[0, 1, 0], [0.4, 1, 0.4], [0.85, 1, 0.85], [0.55, 1, 0.55], [0, 0.7, 0]]];
+    function blot(col, top, size, value, ink) { var shape = DROPS[size]; for (var r = 0; r < shape.length; r++) for (var c = 0; c < 3; c++) if (shape[r][c]) E.put(col + c - 1, top + r, value * shape[r][c], ink) }
+    // Falling characters keep a one-cell gap around the face so it always reads.
+    function near(i) { return fgVal[i] || fgVal[i - 1] || fgVal[i + 1] || fgVal[i - cols] || fgVal[i + cols] || fgVal[i - cols - 1] || fgVal[i - cols + 1] || fgVal[i + cols - 1] || fgVal[i + cols + 1] }
+    mode.init = function (engine) {
+      E = engine; cols = E.cols; rows = E.rows;
+      fgVal = new Float32Array(E.count + cols + 1); fgInk = new Uint8Array(E.count);
+      faceLeft = Math.floor((cols - WIDTH) / 2); faceTop = Math.floor((rows - HEIGHT) / 2) - 1;
+      var random = E.random(config.seed), i, cc;
+      nonsense = [];
+      for (i = 0; i < 64; i++) { var glyph = []; for (var k = 0; k < 5; k++) { var bits = 1 + Math.floor(random() * 7); glyph.push((bits & 4 ? "#" : ".") + (bits & 2 ? "#" : ".") + (bits & 1 ? "#" : ".")) } nonsense.push(glyph) }
+      // Rain: each column runs its own seeded schedule of drops with uneven speeds, trails and rests, so it never repeats.
+      rain = [];
+      for (cc = 1; cc + 3 <= cols - 1; cc += config.rainStep) {
+        var next = E.random(config.seed * 31 + cc), starts = [], drops = [], t = next() * config.rainRest[1];
+        while (t < E.horizon) {
+          var speed = config.rainSpeed[0] + next() * (config.rainSpeed[1] - config.rainSpeed[0]), trail = 1 + Math.floor(next() * 3), life = (rows + 12 + trail * 6) / speed;
+          starts.push(t); drops.push({speed: speed, trail: trail, life: life, seed: Math.floor(next() * 1e6)});
+          t += life + config.rainRest[0] + next() * (config.rainRest[1] - config.rainRest[0]);
+        }
+        rain.push({col: cc, starts: new Float64Array(starts), drops: drops});
+      }
+      blinks = E.schedules(config.seed + 5, 5 + random() * 4, config.blinkGap, function () { return null });
+      // Drips hang from the bottom of the parentheses and the mouth: they swell, stretch, fall in whole cells and soak away.
+      drips = [[3, 12], [27, 14], [51, 12]].map(function (spot, n) {
+        return {dx: spot[0], dy: spot[1], plan: E.schedules(config.seed * 7 + n * 13, 0.6 + n * 1.3, config.dripGap, function (next) { return {swell: 0.7 + next() * 0.9, wobble: Math.floor(next() * 3) - 1} })};
+      });
+      this.lean = 0; this.leanAt = -1;
+    };
+    mode.frame = function (t, real) {
+      var step = Math.floor(t * E.fps) / E.fps, timeline = step % E.horizon, status = E.status || "unknown", i;
+      fgVal.fill(0);
+      // The eyes look up to two cells towards the cursor; a big sideways move leans the whole face two cells, overshooting first.
+      var lookC = 0, lookR = 0, leanTarget = 0, aim = this.tracks && real ? E.aim(faceLeft + WIDTH / 2, faceTop + HEIGHT / 2) : null;
+      if (aim) {
+        var reach = Math.min(1, aim.distance / 120), d = aim.distance || 1;
+        lookC = Math.max(-2, Math.min(2, Math.round(aim.dx / d * reach * 2.4)));
+        lookR = Math.max(-2, Math.min(2, Math.round(aim.dy / d * reach * 2.2)));
+        leanTarget = Math.abs(aim.dx) > 260 ? (aim.dx > 0 ? 2 : -2) : 0;
+      }
+      if (leanTarget !== this.lean) { this.lean = leanTarget; this.leanAt = step }
+      var lean = this.lean && step - this.leanAt < 2 / E.fps ? this.lean + Math.sign(this.lean) : this.lean, left = faceLeft + lean, faceInk = (FACES[status] || FACES.unknown)[2];
+      if (status === "down") {
+        // Down: the face is asleep, a slow zZ drifting up.
+        var drift = (Math.floor(step * 0.7 + 0.8 * Math.sin(step * 0.31)) % 3) * 2;
+        stamp(BIG.z, left + 12, faceTop + 6 - drift, 0.5, 0);
+        stamp(BIG.Z, left + 28, faceTop - 2 - drift, 0.62, 0);
+      } else {
+        var face = FACES[status] || FACES.unknown, ink = face[2], blinkFrame = -1;
+        if (!E.reduced()) { var j = E.findAt(blinks.starts, timeline); if (j >= 0) blinkFrame = Math.floor((timeline - blinks.starts[j]) * E.fps) }
+        // A slow blink, (-_-), with one squashed frame either side.
+        var squash = blinkFrame === 0 || blinkFrame === 6, shut = blinkFrame >= 1 && blinkFrame <= 5;
+        stamp(BIG["("], left, faceTop, 1, ink); stamp(BIG[")"], left + 48, faceTop, 1, ink);
+        for (var k = 0; k < 2; k++) {
+          var glyphRows = shut ? BIG["-"] : BIG[face[k]];
+          if (squash) glyphRows = glyphRows.map(function (row, y) { return y < 6 ? ".........." : row });
+          stamp(glyphRows, left + 10 + k * 24 + lookC, faceTop + lookR, 1, ink);
+        }
+        stamp(BIG._, left + 22 + lookC, faceTop, 1, ink);
+      }
+      if (!E.screen && status !== "down") drips.forEach(function (drip) {
+        var j = E.findAt(drip.plan.starts, timeline);
+        if (j < 0) return;
+        var plan = drip.plan.data[j], age = timeline - drip.plan.starts[j], col = left + drip.dx, top = faceTop + drip.dy, floor = rows - 2;
+        if (age < plan.swell) { blot(col, top, age < plan.swell * 0.45 ? 0 : age < plan.swell * 0.8 ? 1 : 2, 0.85, faceInk); return }
+        age -= plan.swell;
+        var fall = Math.round(0.5 * 70 * age * age), row = top + 2 + fall;
+        if (row < floor - 1) {
+          // Tall while it falls, with a thin trail for the first few frames.
+          blot(col, row, 3, 0.9, faceInk);
+          if (age < 3 / E.fps) for (var r = top; r < row; r++) E.put(col, r, 0.5, faceInk);
+          return;
+        }
+        var landed = age - Math.sqrt(2 * Math.max(1, floor - 3 - top) / 70);
+        if (landed > 1.6) return;
+        // Wide on impact, then the spot soaks into the card.
+        var soak = Math.max(0, 1 - landed / 1.6);
+        for (var dc = -2; dc <= 2; dc++) E.put(col + dc + (landed < 1 / E.fps ? 0 : plan.wobble * (dc === 2 ? 1 : 0)), floor, (Math.abs(dc) === 2 ? 0.5 : 0.85) * soak, faceInk);
+        if (landed < 2 / E.fps) { E.put(col - 3, floor - 1, 0.6, faceInk); E.put(col + 3, floor - 2, 0.55, faceInk) }
+      });
+      if (E.screen) rain.forEach(function (column) {
+        var j = E.findAt(column.starts, timeline);
+        if (j < 0) return;
+        var drop = column.drops[j], age = timeline - column.starts[j];
+        if (age > drop.life) return;
+        var head = -6 + Math.floor(age * drop.speed);
+        for (var k = 0; k <= drop.trail; k++) {
+          var top = head - k * 6, glyph = nonsense[(drop.seed + k * 7 + Math.floor((timeline + k * 0.37 + drop.seed % 5) / (0.6 + (drop.seed % 7) * 0.15))) % 64];
+          var value = (k === 0 ? 0.46 : 0.36 - k * 0.06) * (status === "down" ? 0.6 : 1);
+          for (var y = 0; y < 5; y++) for (var x = 0; x < 3; x++) {
+            var rr = top + y;
+            if (glyph[y][x] !== "#" || rr < 0 || rr >= rows) continue;
+            var index = rr * cols + column.col + x;
+            if (near(index)) continue;
+            E.intensity[index] = value; E.ink[index] = 0;
+          }
+        }
+      });
+      for (i = 0; i < E.count; i++) if (fgVal[i]) { E.intensity[i] = fgVal[i]; E.ink[i] = fgInk[i]; E.radiusScale[i] = 1.08 }
+    };
+    return mode;
+  }
+  var calm = {seed: 19, rainStep: 9, rainSpeed: [2, 4], rainRest: [2, 7], blinkGap: [14, 30], dripGap: [5, 11], still: 2.1};
+  function extend(base, own) { var out = {}; Object.keys(base).forEach(function (k) { out[k] = base[k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
+  return {
+    name: "Blip",
+    stage: {width: 242, height: 150, pitch: 4, overlap: 0},
+    inks: ["warn", "bad"],
+    modes: [
+      renderer({id: "full", label: "Full", tracks: true, seed: 7, rainStep: 6, rainSpeed: [3, 6], rainRest: [0.8, 4.5], blinkGap: [7, 18], dripGap: [7, 16], still: 2.9}),
+      renderer(extend(calm, {id: "subtle", label: "Subtle"})),
+      renderer(extend(calm, {id: "static", label: "Static", idle: true}))
+    ]
+  };
+})();
+/* ===== end CHARACTERS ============================================================= */
 var QA_THEME = (function () {
   var active = null, query = new URLSearchParams(location.search), systemDark = window.matchMedia("(prefers-color-scheme: dark)");
   var DEFAULT = "terminal", RENAMED = {blood: "horror"};
@@ -1353,6 +1478,31 @@ var QA_THEME = (function () {
     }
     return THEMES[name] ? name : DEFAULT;
   }
+  // Character: null follows the theme's default; a stored pick (or ?character=) wins. An unknown stored id is dropped.
+  function pickCharacter() {
+    var id = query.get("character");
+    if (CHARACTERS[id]) return id;
+    try { id = localStorage.getItem("qaDashboardCharacter") } catch (e) { id = null }
+    if (id && !CHARACTERS[id]) { try { localStorage.removeItem("qaDashboardCharacter") } catch (e) {} id = null }
+    return id || null;
+  }
+  var characterPick = pickCharacter();
+  function characterId() { var id = characterPick || (active && active.theme.character); return CHARACTERS[id] ? id : "eye" }
+  // The canvas size comes from the character and is set before first paint, so the card never jumps.
+  function applyCharacter() {
+    var id = characterId(), stage = CHARACTERS[id].stage || {}, root = document.documentElement;
+    root.setAttribute("data-character", id);
+    root.style.setProperty("--stage-w", (stage.width || 200) + "px");
+    root.style.setProperty("--stage-h", (stage.height || 230) + "px");
+    root.style.setProperty("--stage-overlap", (stage.overlap || 0) + "px");
+  }
+  // The Logo animation pick is read here too, so CSS-driven character effects (the CRT's band and flicker) start right.
+  (function () {
+    var stored = null, legacy = {watcher: "full", coin: "full", bleeding: "subtle", off: "static"};
+    try { stored = query.get("eye") || localStorage.getItem("qaDashboardEyeMode") } catch (e) {}
+    stored = legacy[stored] || stored;
+    document.documentElement.setAttribute("data-logo-mode", /^(full|subtle|static)$/.test(stored || "") ? stored : "full");
+  })();
   function deskArtVars(theme) {
     var art = theme.deskArt || {};
     var check = theme.actionIcons && theme.actionIcons.check;
@@ -1376,6 +1526,8 @@ var QA_THEME = (function () {
     root.setAttribute("data-theme", active.id);
     root.setAttribute("data-pill-hover", theme.pillHover || "seep");
     root.setAttribute("data-button-hover", theme.buttonHover || "seep");
+    root.setAttribute("data-screen", theme.screen ? "1" : "0");
+    applyCharacter();
     var icon = document.querySelector('link[rel="icon"]');
     if (icon) { icon.href = "data:image/svg+xml," + encodeURIComponent(theme.favicon); icon.dataset.state = "" }
     document.dispatchEvent(new CustomEvent("qa-theme"));
@@ -1384,6 +1536,16 @@ var QA_THEME = (function () {
   return {
     current: function () { return active.theme },
     id: function () { return active.id },
+    character: function () { return CHARACTERS[characterId()] },
+    characterId: characterId,
+    characterPick: function () { return characterPick || "" },
+    // "" follows the theme again.
+    chooseCharacter: function (id) {
+      characterPick = CHARACTERS[id] ? id : null;
+      try { if (characterPick) localStorage.setItem("qaDashboardCharacter", id); else localStorage.removeItem("qaDashboardCharacter") } catch (e) {}
+      applyCharacter();
+      document.dispatchEvent(new CustomEvent("qa-character"));
+    },
     has: function (id) { return Object.prototype.hasOwnProperty.call(THEMES, id) },
     merged: merged,
     schemePreference: function () { return schemePreference },
@@ -1421,7 +1583,13 @@ var QA_THEME = (function () {
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
     ["light", "dark"].forEach(function (scheme) { REQUIRED_KEYS.forEach(function (key) { if (!(theme.css[scheme] || {})[key]) problems.push(id + " " + scheme + " is missing " + key) }) });
-    ["name", "fonts", "favicon", "logoSource", "palette", "desk", "settingsIcon", "brushStroke"].forEach(function (key) { if (!theme[key]) problems.push(id + " is missing " + key) });
+    ["name", "fonts", "favicon", "palette", "desk", "settingsIcon", "brushStroke"].forEach(function (key) { if (!theme[key]) problems.push(id + " is missing " + key) });
+    if (!CHARACTERS[theme.character]) problems.push(id + " names an unknown default character " + JSON.stringify(theme.character));
+    // Every character renders in every theme, so the theme needs each named ramp any character draws with.
+    Object.keys(CHARACTERS).forEach(function (cid) { (CHARACTERS[cid].inks || []).forEach(function (ink) { ["light", "dark"].forEach(function (scheme) {
+      var ramp = theme.inks && theme.inks[scheme] && theme.inks[scheme][ink];
+      if (!ramp || ramp.length !== 5) problems.push(id + " inks." + scheme + "." + ink + " (5 colours) is missing; " + cid + " needs it");
+    }) }) });
     ["light", "dark"].forEach(function (scheme) { if (!theme.palette || (theme.palette[scheme] || []).length !== 5) problems.push(id + " palette." + scheme + " needs 5 colours") });
     var marks = [["settingsIcon", theme.settingsIcon], ["chevron", theme.chevron], ["favicon", theme.favicon]];
     Object.keys(ICONS).forEach(function (set) { ICONS[set].forEach(function (key) {
@@ -1430,7 +1598,15 @@ var QA_THEME = (function () {
     }) });
     marks.forEach(function (mark) { if (!mark[1]) return; if (seen[mark[1]] && seen[mark[1]].id !== id) problems.push(id + " inherits " + mark[0] + " from " + seen[mark[1]].id + " (" + seen[mark[1]].name + ")"); else seen[mark[1]] = {id: id, name: mark[0]} });
   });
-  console.log("theme check: " + Object.keys(THEMES).length + " themes, " + problems.length + " problems");
+  Object.keys(CHARACTERS).forEach(function (cid) {
+    var character = CHARACTERS[cid], stage = character.stage || {};
+    if (!character.name) problems.push("character " + cid + " is missing name");
+    if (!(stage.width > 0 && stage.height > 0 && stage.pitch > 0)) problems.push("character " + cid + " needs stage.width, height and pitch");
+    var ids = (character.modes || []).map(function (entry) { return typeof entry === "string" ? entry : entry && entry.id });
+    ["full", "subtle", "static"].forEach(function (mode) { if (ids.indexOf(mode) < 0) problems.push("character " + cid + " is missing the " + mode + " mode") });
+    if (ids.some(function (mode) { return mode === "full" || mode === "subtle" }) && (character.modes || []).some(function (entry) { return typeof entry === "string" && entry !== "static" }) && !character.anatomy) problems.push("character " + cid + " uses the built-in eye modes without anatomy");
+  });
+  console.log("theme check: " + Object.keys(THEMES).length + " themes, " + Object.keys(CHARACTERS).length + " characters, " + problems.length + " problems");
   problems.forEach(function (p) { console.warn("theme check: " + p) });
   // Contrast: resolve var() chains in the merged map, composite translucent inks over their fill, and compare luminance.
   function resolve(map, key) { var v = map[key], m; for (var n = 0; n < 8 && v && (m = /^var\((--[\w-]+)(?:,\s*(.+))?\)$/.exec(v)); n++) v = map[m[1]] || m[2]; return v }
@@ -1445,7 +1621,11 @@ var QA_THEME = (function () {
     ["--warn", "--desk-card"], ["--bad", "--hl"], ["--tag-muted", "--tag"], ["--tag-bad", "--tag"], ["--banner-text", "--banner"], ["--glyph-ok", "--desk-card", 3], ["--glyph-bad", "--desk-card", 3],
     ["--focus-outer", "--desk-card", 3], ["--focus-outer", "--desk-floor", 3], ["--focus-outer", "--focus-inner", 3],
     // Foil-stamped headings (Horror): every stop of the foil gradient has to read on the stock on its own.
-    ["--foil-hi", "--desk-card"], ["--foil-mid", "--desk-card"], ["--foil-lo", "--desk-card"]];
+    ["--foil-hi", "--desk-card"], ["--foil-mid", "--desk-card"], ["--foil-lo", "--desk-card"],
+    // Lit keycap legends (the press hover): on the caps and keys they light up on.
+    ["--legend-lit", "--tag"], ["--legend-lit", "--btn-face"], ["--legend-lit", "--key-face"], ["--legend-lit-bad", "--tag"],
+    // Text on the CRT screen (Terminal's wordmark).
+    ["--screen-ink", "--screen"]];
   // Decorative inks (divider strokes, the index card's margin line) are not text; a few inks sit on a fill with another name.
   var DECOR = {"--rule-ink": 1, "--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag"};
   var failures = [], checked = 0, table = [];
@@ -1787,8 +1967,9 @@ var QA_DESK=(function(){
 })();
 </script>
 <div id="banner" role="alert"></div>
-<div class="page"><div class="side"><div class="eye-card"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><canvas id="eye" width="200" height="230" aria-hidden="true"></canvas>
-<div class="masthead"><h1 class="masthead-title"><span class="mark">Overseer</span></h1><div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div></div>
+<div class="page"><div class="side"><div class="eye-card"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><div class="stage"><canvas id="eye" width="200" height="230" aria-hidden="true"></canvas>
+<h1 class="masthead-title"><span class="mark">Overseer</span></h1><span class="stage-fx" aria-hidden="true"><i class="fx-scan"></i><i class="fx-band"></i><i class="fx-flicker"></i><i class="fx-glass"></i><i class="fx-on"></i></span></div>
+<div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
 <main><h2 class="sessions-title">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
@@ -1796,6 +1977,7 @@ var QA_DESK=(function(){
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
+<div class="settings-row"><label for="character-pick">Character</label><select id="character-pick" title="Default follows the theme"></select></div>
 <div class="settings-row"><span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div></div>
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
@@ -1944,6 +2126,8 @@ var PILL_HOVERS={
   charge:function(awake){return'<span class="pill-fx" aria-hidden="true"><span class="charge-fill"><span class="fx-text charge-text">'+awake+'</span></span></span>'},
   // A DOS block fill: the same stepped bar, led by a ▓▒░ edge, in inverse video.
   blocks:function(awake){return'<span class="pill-fx" aria-hidden="true"><span class="charge-fill blocks"><span class="fx-text charge-text">'+awake+'</span></span><span class="blocks-edge"></span></span>'},
+  // A keycap: the theme presses the key down; the legend lights up as if backlit through the cap.
+  press:function(awake){return'<span class="pill-fx" aria-hidden="true"><span class="fx-text press-text">'+awake+'</span></span>'},
   none:function(){return""}
 };
 // Button hover effects (the theme's buttonHover): every button gets a copy of its label inside a fill layer, so the effect
@@ -1964,7 +2148,23 @@ function buttonFx(root){
     fill.appendChild(text);layer.appendChild(fill);button.appendChild(layer);
     if(kind==="seep"){var drip=document.createElement("span");drip.className="pill-drip bfx-drip";drip.setAttribute("aria-hidden","true");drip.style.left=(30+hashText(button.textContent||"x")%40)+"%";button.appendChild(drip)}
     button.__fx=kind+"|"+button.innerHTML;
+    // A new layer inside the button that is already hovered starts full, so it does not replay under the pointer.
+    if(button===FX_HOVER.over)settleFx(button);
   });
+  settleUnderPointer();
+}
+// Hover fills play once, when the pointer arrives. A click that rebuilds the hovered pill or button (Show details re-renders the
+// backend card) or a poll that re-renders its card would otherwise start a fresh, empty fill under the pointer. FX_HOVER
+// remembers what the pointer is over; after a rebuild, the new element under it is marked settled (filled, no transition) until
+// the pointer leaves it.
+var FX_TARGETS="a.app-pill,"+FX_BUTTONS,FX_HOVER={over:null,x:0,y:0,inside:false,settled:[]};
+function settleFx(element){if(!element.classList.contains("fx-settled")){element.classList.add("fx-settled");FX_HOVER.settled.push(element)}}
+function settleUnderPointer(){
+  var was=FX_HOVER.over;
+  if(!FX_HOVER.inside||!was||was.isConnected)return;
+  var hit=document.elementFromPoint(FX_HOVER.x,FX_HOVER.y),target=hit&&hit.closest&&hit.closest(FX_TARGETS);
+  FX_HOVER.over=target||null;
+  if(target&&!target.disabled)settleFx(target);
 }
 function buildFailed(a){return!!(a.httpReady&&a.build&&a.build.state==="failed")}
 function appPill(a){
@@ -2058,9 +2258,10 @@ function render(){
   var changedCards=reconcileCards(slotsBox,cards);
   if(backendChanged)buttonFx(backendBox);
   changedCards.forEach(buttonFx);
+  settleUnderPointer();
   // The character's expression follows the backend rollup.
   var rollup=backend?backendTone(backend):"unknown";
-  if(window.QA_ROLLUP!==rollup){window.QA_ROLLUP=rollup;document.dispatchEvent(new CustomEvent("qa-status",{detail:rollup}))}
+  if(window.QA_ROLLUP!==rollup){window.QA_ROLLUP=rollup;document.documentElement.setAttribute("data-rollup",rollup);document.dispatchEvent(new CustomEvent("qa-status",{detail:rollup}))}
   if(window.QA_BRUSH)changedCards.forEach(function(card){QA_BRUSH.decorate(card)});
   updateAgo();
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
@@ -2165,6 +2366,18 @@ window.addEventListener("focus",updateFavicon);window.addEventListener("blur",up
 document.addEventListener("visibilitychange",updateFavicon);
 // The seep hover lets one drop fall per pill or button (with a cooldown), and a press spatters a few drops; the pupil in the hover glyph follows the cursor.
 (function pillLife(){
+  // FX_HOVER bookkeeping (see settleUnderPointer): where the pointer is and which pill or button it is over.
+  document.addEventListener("pointerover",function(e){
+    var target=e.target.closest&&e.target.closest(FX_TARGETS);
+    FX_HOVER.over=target||null;FX_HOVER.x=e.clientX;FX_HOVER.y=e.clientY;FX_HOVER.inside=true;
+    FX_HOVER.settled=FX_HOVER.settled.filter(function(element){if(element.isConnected&&element.contains(e.target))return true;element.classList.remove("fx-settled");return false});
+  });
+  document.addEventListener("pointermove",function(e){FX_HOVER.x=e.clientX;FX_HOVER.y=e.clientY;FX_HOVER.inside=true},{passive:true});
+  document.addEventListener("pointerout",function(e){
+    if(e.relatedTarget)return;
+    FX_HOVER.inside=false;FX_HOVER.over=null;
+    FX_HOVER.settled.forEach(function(element){element.classList.remove("fx-settled")});FX_HOVER.settled=[];
+  });
   document.addEventListener("pointerover",function(e){
     var pill=e.target.closest&&e.target.closest("a.app-pill,"+FX_BUTTONS);
     if(!pill||pill.contains(e.relatedTarget)||reducedMotion.matches||pill.disabled)return;
@@ -2454,22 +2667,27 @@ var QA_BRUSH=(function(){
   if(fakePointer){var parts=fakePointer.split(",");pointer.x=+parts[0];pointer.y=+parts[1];pointer.known=true;pointer.movedAt=1e15}
 
   /* ---------- halftone grid engine ---------- */
+  // The grid is laid out per character (its stage: canvas size, dot pitch and where logo unit 32 sits); layout() reallocates it.
   var canvas=document.getElementById("eye"),ctx=canvas.getContext("2d");
-  var W=200,H=230,PITCH=QA_THEME.current().artPitch,SIZE=200,RES=512,UNIT=RES/64,SCALE=SIZE/64,CENTER_Y=92,FPS=12,LIGHT_FPS=24;
+  var W=200,H=230,PITCH=4.5,SIZE=200,RES=512,SCALE=SIZE/64,CENTER_Y=92,FPS=12,LIGHT_FPS=24;
   var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
-  var cols=Math.floor(W/PITCH)+1,rows=Math.floor(H/PITCH)+1,count=cols*rows;
-  var offsetX=(W-(cols-1)*PITCH)/2,offsetY=(H-(rows-1)*PITCH)/2;
-  var engine={cols:cols,rows:rows,count:count,pitch:PITCH,poolRow:rows-3,
-    dotX:new Float32Array(count),dotY:new Float32Array(count),hash:new Uint8Array(count),
-    intensity:new Float32Array(count),radiusScale:new Float32Array(count),ink:new Uint8Array(count),back:new Uint8Array(count),
-    alpha:new Float32Array(count),normalX:new Float32Array(count),normalY:new Float32Array(count),normalZ:new Float32Array(count),
-    dropout:new Uint8Array(count),inIris:new Uint8Array(count),
-    edgeIn:new Uint8Array(count),edgeOut:new Uint8Array(count),angle:new Float32Array(count),
-    veinPaths:[],veins:null,
-    source:null,anatomy:null,track:{active:false,lastMoveAt:-1e9},inks:[[]],fps:FPS,status:window.QA_ROLLUP||"unknown"};
-  for(var cell=0;cell<count;cell++){
-    engine.dotX[cell]=offsetX+(cell%cols)*PITCH;engine.dotY[cell]=offsetY+Math.floor(cell/cols)*PITCH;
-    engine.hash[cell]=(Math.imul(cell+1,2654435761)>>>24)&255;
+  var cols=0,rows=0,count=0,offsetX=0,offsetY=0;
+  var engine={veinPaths:[],veins:null,source:null,anatomy:null,track:{active:false,lastMoveAt:-1e9},inks:[[]],fps:FPS,status:window.QA_ROLLUP||"unknown"};
+  var dotShade,dotRadius,drawnShade,drawnRadius,drawnBack,dotOrder,shadeStart=new Uint16Array(41),bucketCounts=new Uint16Array(40),forceDraw=true;
+  function layout(character){
+    var stage=character.stage||{};
+    W=stage.width||200;H=stage.height||230;PITCH=stage.pitch||4.5;SIZE=stage.size||W;CENTER_Y=stage.centerY!=null?stage.centerY:H/2;SCALE=SIZE/64;
+    cols=Math.floor(W/PITCH)+1;rows=Math.floor(H/PITCH)+1;count=cols*rows;
+    offsetX=(W-(cols-1)*PITCH)/2;offsetY=(H-(rows-1)*PITCH)/2;
+    engine.cols=cols;engine.rows=rows;engine.count=count;engine.pitch=PITCH;engine.poolRow=rows-3;
+    ["dotX","dotY","intensity","radiusScale","alpha","normalX","normalY","normalZ","angle"].forEach(function(name){engine[name]=new Float32Array(count)});
+    ["hash","ink","back","dropout","inIris","edgeIn","edgeOut"].forEach(function(name){engine[name]=new Uint8Array(count)});
+    for(var cell=0;cell<count;cell++){
+      engine.dotX[cell]=offsetX+(cell%cols)*PITCH;engine.dotY[cell]=offsetY+Math.floor(cell/cols)*PITCH;
+      engine.hash[cell]=(Math.imul(cell+1,2654435761)>>>24)&255;
+    }
+    dotShade=new Int8Array(count);dotRadius=new Uint8Array(count);drawnShade=new Int8Array(count);drawnRadius=new Uint8Array(count);drawnBack=new Uint8Array(count);dotOrder=new Uint16Array(count);
+    forceDraw=true;
   }
   engine.colOf=function(u){return Math.round(((u-32)*SCALE+W/2-offsetX)/PITCH)};
   engine.rowOf=function(v){return Math.round(((v-32)*SCALE+CENTER_Y-offsetY)/PITCH)};
@@ -2523,7 +2741,7 @@ var QA_BRUSH=(function(){
   }
   function buildSource(image){
     var off=document.createElement("canvas");off.width=off.height=RES;
-    var octx=off.getContext("2d");octx.drawImage(image,0,0,RES,RES);
+    var octx=off.getContext("2d");if(image)octx.drawImage(image,0,0,RES,RES);
     var pixels=octx.getImageData(0,0,RES,RES).data,total=RES*RES,alpha=new Float32Array(total),i;
     for(i=0;i<total;i++)alpha[i]=pixels[i*4+3]/255;
     var soft=blurField(blurField(alpha,4),4),normalX=new Float32Array(total),normalY=new Float32Array(total),normalZ=new Float32Array(total);
@@ -2534,7 +2752,7 @@ var QA_BRUSH=(function(){
       normalX[i]=-gx/length;normalY[i]=-gy/length;normalZ[i]=1/length;
     }
     engine.source={alpha:alpha,soft:soft,normalX:normalX,normalY:normalY,normalZ:normalZ};
-    var anatomy=engine.anatomy=QA_THEME.current().anatomy||null;
+    var anatomy=engine.anatomy=QA_THEME.character().anatomy||null;
     for(i=0;i<count;i++){
       var sx=Math.floor((engine.dotX[i]-W/2)*RES/SIZE+RES/2),sy=Math.floor((engine.dotY[i]-CENTER_Y)*RES/SIZE+RES/2),index=sy*RES+sx;
       var inside=sx>=0&&sy>=0&&sx<RES&&sy<RES;
@@ -2626,8 +2844,6 @@ var QA_BRUSH=(function(){
   // Each dot's shade and radius are bucketed before drawing; a frame identical to the last one skips the canvas entirely.
   // Each dot's ink, shade and radius are bucketed before drawing; a frame identical to the last one skips the canvas entirely.
   // A bucket is ink*5+shade. Backdrop dots (engine.back, bucket+1) are drawn first at full size, under everything.
-  var dotShade=new Int8Array(count),dotRadius=new Uint8Array(count),drawnShade=new Int8Array(count),drawnRadius=new Uint8Array(count),drawnBack=new Uint8Array(count);
-  var dotOrder=new Uint16Array(count),shadeStart=new Uint16Array(41),bucketCounts=new Uint16Array(40),forceDraw=true;
   function present(){
     var intensity=engine.intensity,radiusScale=engine.radiusScale,ink=engine.ink,back=engine.back,changed=forceDraw,i,buckets=Math.min(40,engine.inks.length*5);
     for(i=0;i<count;i++){
@@ -2660,6 +2876,24 @@ var QA_BRUSH=(function(){
         ctx.moveTo(engine.dotX[i]+full,engine.dotY[i]);ctx.arc(engine.dotX[i],engine.dotY[i],full,0,6.2832);
       }
       if(started)ctx.fill();
+    }
+    // Optional bloom (the theme's): soft halos in each ramp's brightest ink under the lit dots, one union per ink and pass.
+    var bloom=engine.bloom;
+    if(bloom){
+      ctx.save();
+      for(var pass=0;pass<bloom.length;pass++){
+        var reach=bloom[pass][0]*PITCH,from=bloom[pass][2]||0;ctx.globalAlpha=bloom[pass][1];
+        for(var inkIndex=0;inkIndex*5<buckets;inkIndex++){
+          var any=false;
+          for(b=inkIndex*5+from;b<Math.min(buckets,inkIndex*5+5);b++){
+            if(shadeStart[b+1]===shadeStart[b])continue;
+            if(!any){ctx.fillStyle=inks[inkIndex][4];ctx.beginPath();any=true}
+            for(k=shadeStart[b];k<shadeStart[b+1];k++){var lit=dotOrder[k];ctx.moveTo(engine.dotX[lit]+reach,engine.dotY[lit]);ctx.arc(engine.dotX[lit],engine.dotY[lit],reach,0,6.2832)}
+          }
+          if(any)ctx.fill();
+        }
+      }
+      ctx.restore();
     }
     for(b=0;b<buckets;b++){
       if(shadeStart[b+1]===shadeStart[b])continue;
@@ -2967,9 +3201,9 @@ var QA_BRUSH=(function(){
   /* ---------- engine lifecycle and controls ---------- */
   var mode=blank,ready=false,running=false,onScreen=true,modalOpen=false,frameTimer=0,lastKey=-1,start=clock(),modeSelect=document.getElementById("eye-mode"),themeSelect=document.getElementById("theme-pick");
   function availableModes(){
-    var theme=QA_THEME.current();
-    return(theme.eyeModes||["static"]).map(function(entry){return typeof entry==="string"?MODES[LEGACY_MODES[entry]||entry]:entry})
-      .filter(function(entry){return entry&&(!(entry===full||entry===subtle)||theme.anatomy)});
+    var character=QA_THEME.character();
+    return(character.modes||["static"]).map(function(entry){return typeof entry==="string"?MODES[LEGACY_MODES[entry]||entry]:entry})
+      .filter(function(entry){return entry&&(!(entry===full||entry===subtle)||character.anatomy)});
   }
   function chooseMode(id){
     var modes=availableModes(),next=modes.filter(function(entry){return entry.id===id})[0]||modes[0]||still;
@@ -2977,6 +3211,7 @@ var QA_BRUSH=(function(){
     mode=next;engine.clear();
     if(ready)mode.init(engine);
     if(modeSelect)modeSelect.value=mode.id;
+    if(mode.id)document.documentElement.setAttribute("data-logo-mode",mode.id);
     update(true);
   }
   function renderOnce(t,real){
@@ -3004,9 +3239,11 @@ var QA_BRUSH=(function(){
     if(animate&&!running){running=true;lastKey=-1;tick()}
     else if(!animate){stopLoop();if(!(wanted&&modalOpen)||force)renderOnce(isFrozen?frozen:mode.still,0)}
   }
+  // Inks come from the theme: its palette is ink 0, and the character's named ramps (inks: ["warn", "bad"]) are 1..n.
   function readPalette(){
-    var theme=QA_THEME.current(),palette=theme.palette,over=theme.halftoneOverprint,scheme=QA_THEME.isDark()?"dark":"light";
-    engine.inks=[palette[scheme]].concat(theme.inks&&theme.inks[scheme]||[]);
+    var theme=QA_THEME.current(),palette=theme.palette,over=theme.halftoneOverprint,scheme=QA_THEME.isDark()?"dark":"light",named=theme.inks&&theme.inks[scheme]||{};
+    engine.inks=[palette[scheme]].concat((QA_THEME.character().inks||[]).map(function(name){return named[name]||palette[scheme]}));
+    engine.bloom=theme.bloom||null;engine.screen=!!theme.screen;
     engine.overprint=over?{dx:over.dx,dy:over.dy,scale:over.scale,alpha:over.alpha,color:over[scheme].color,blend:over[scheme].blend}:null;
     forceDraw=true;
   }
@@ -3015,7 +3252,7 @@ var QA_BRUSH=(function(){
     canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);forceDraw=true;
   }
   function loadTheme(){
-    ready=false;stopLoop();readPalette();
+    ready=false;stopLoop();layout(QA_THEME.character());readPalette();
     var settingsButton=document.getElementById("settings-open");
     if(settingsButton){settingsButton.innerHTML=QA_THEME.icon("settings");buttonFx(settingsButton.parentNode)}
     var image=new Image(),wanted=query.get("eye"),stored=null;
@@ -3023,24 +3260,40 @@ var QA_BRUSH=(function(){
     // Stored ids from before the three-option picker move to the nearest new option.
     if(stored&&LEGACY_MODES[stored]){stored=LEGACY_MODES[stored];try{localStorage.setItem("qaDashboardEyeMode",stored)}catch(e){}}
     wanted=LEGACY_MODES[wanted]||wanted||stored;
-    image.onload=function(){
-      try{buildSource(image)}catch(e){return}
+    var source=QA_THEME.character().logoSource,token=++loads;
+    function begin(art){
+      if(token!==loads)return;
+      try{buildSource(art)}catch(e){return}
       ready=true;setupCanvas();
       if(modeSelect)modeSelect.innerHTML=availableModes().map(function(entry){return'<option value="'+entry.id+'" data-label="'+entry.label+'">'+entry.label+'</option>'}).join("");
       chooseMode(mode!==blank?mode.id:wanted||"full");
-    };
-    image.src="data:image/svg+xml,"+encodeURIComponent(QA_THEME.current().logoSource);
+    }
+    if(!source){begin(null);return}
+    image.onload=function(){begin(image)};
+    image.src="data:image/svg+xml,"+encodeURIComponent(source);
   }
+  var loads=0;
   if(themeSelect){
     themeSelect.innerHTML=Object.keys(THEMES).map(function(id){return'<option value="'+id+'" data-label="'+THEMES[id].name+'">'+THEMES[id].name+'</option>'}).join("");
     themeSelect.value=QA_THEME.id();
     themeSelect.addEventListener("change",function(){QA_THEME.choose(themeSelect.value)});
   }
+  // Character: "Default" follows the theme's own character; any other pick is stored and wins across themes.
+  var characterSelect=document.getElementById("character-pick");
+  function characterOptions(){
+    if(!characterSelect)return;
+    var fallback=CHARACTERS[QA_THEME.current().character]||CHARACTERS.eye,label="Default ("+fallback.name+")";
+    characterSelect.innerHTML='<option value="" data-label="'+esc(label)+'">'+esc(label)+'</option>'+Object.keys(CHARACTERS).map(function(id){return'<option value="'+id+'" data-label="'+esc(CHARACTERS[id].name)+'">'+esc(CHARACTERS[id].name)+'</option>'}).join("");
+    characterSelect.value=QA_THEME.characterPick();
+  }
+  characterOptions();
+  if(characterSelect)characterSelect.addEventListener("change",function(){QA_THEME.chooseCharacter(characterSelect.value)});
+  document.addEventListener("qa-character",function(){mode=blank;loadTheme()});
   if(modeSelect)modeSelect.addEventListener("change",function(){
     try{localStorage.setItem("qaDashboardEyeMode",modeSelect.value)}catch(e){}
     chooseMode(modeSelect.value);
   });
-  document.addEventListener("qa-theme",function(){mode=blank;loadTheme();if(typeof render==="function")render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document)});
+  document.addEventListener("qa-theme",function(){mode=blank;characterOptions();loadTheme();if(typeof render==="function")render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document)});
   // The backend rollup reaches renderers as engine.status; a still frame is redrawn when it changes.
   document.addEventListener("qa-status",function(e){engine.status=e.detail||"unknown";if(!running)update(true)});
   QA_BRUSH.wordmark();QA_BRUSH.decorate(document);
