@@ -306,6 +306,161 @@ a:hover{text-decoration-thickness:2px}
 .error{color:var(--bad);font-weight:600;margin-top:4px}
 .pill{border:1px solid var(--border);border-radius:0;padding:0 8px;font-size:12px;background:var(--inset);box-shadow:inset 2px 0 0 var(--shade),2px 2px 0 var(--shade)}
 .head-line{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ===== Desk: every panel is a physical object lying on a real surface. Tiles (--desk-*) are painted once per theme and
+   scheme by the desk background painter; themes add their own flourishes through deskCss. Only opacity and transform move. ===== */
+#desk,.divider,.coin>.desk-obj,.coin>.masthead{display:none}
+html[data-scene="desk"]{--obj-radius:3px;--emboss:0 1px 0 var(--emb-hi),0 -1px 0 var(--emb-lo);--sunk:inset 0 1px 3px var(--well),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--emb-hi);
+--obj-face:inset 0 1px 0 var(--edge-hi),inset 0 0 0 1px var(--edge-line),inset 0 0 46px var(--age);--obj-edge:0 1px 0 var(--edge-lo),0 2px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 0 var(--edge-lo2);
+--obj-shadow:0 5px 4px -1px var(--contact),0 24px 44px -18px var(--lift);--stock:var(--desk-card) var(--desk-stock,none) 0 0/var(--desk-stock-size,320px) repeat}
+html[data-scene="desk"] header,html[data-scene="desk"] #bg-canvas,html[data-scene="desk"] body::before,html[data-scene="desk"] body::after{display:none}
+html[data-scene="desk"] body{background:var(--desk-floor)}
+html[data-scene="desk"] #desk{display:block;position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none;background:var(--desk-floor) var(--desk-surface,none) 0 0/var(--desk-surface-size,1024px 512px) repeat}
+#desk>*{position:absolute;inset:0;display:block}
+#desk .desk-fog{top:auto;left:0;bottom:-6vh;height:44vh;width:calc(100% + 1024px);background:var(--desk-fog,none) 0 100%/1024px 100% repeat-x;opacity:var(--fog-a,.55);will-change:transform}
+#desk .desk-fog.b{bottom:22vh;height:30vh;width:calc(100% + 1536px);background-size:1536px 100%;opacity:var(--fog-b,.3)}
+#desk .desk-props{inset:auto 0 0 0;height:0}
+.desk-prop{position:absolute;bottom:0;background:center bottom/100% 100% no-repeat}
+.desk-prop .light{position:absolute;width:var(--s,12px);height:calc(var(--s,12px) * 2);margin:calc(var(--s,12px) * -2) 0 0 calc(var(--s,12px) * -.5);transform-origin:50% 100%;border-radius:50% 50% 45% 45%/62% 62% 38% 38%;
+background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff7d6 0 22%,#ffd36a 38%,#f08a2c 62%,rgba(200,70,20,0) 74%)}
+.desk-prop .light::before{content:"";position:absolute;left:50%;top:55%;width:calc(var(--s,12px) * 9);height:calc(var(--s,12px) * 9);margin:calc(var(--s,12px) * -4.5) 0 0 calc(var(--s,12px) * -4.5);border-radius:50%;background:radial-gradient(circle,rgba(255,190,90,.34) 0,rgba(255,150,60,.12) 35%,rgba(255,140,50,0) 70%)}
+@media (max-width:1399px){#desk .desk-props{display:none}}
+@media (prefers-reduced-motion:no-preference){
+html[data-scene="desk"] #desk .desk-fog.a{animation:desk-drift 150s linear infinite}
+html[data-scene="desk"] #desk .desk-fog.b{animation:desk-drift-b 230s linear infinite}
+html[data-scene="desk"] #desk .desk-flicker{animation:desk-flicker 7.3s linear infinite}
+html[data-scene="desk"] #desk .desk-flicker.b{animation:desk-flicker-b 4.7s linear infinite}
+html[data-scene="desk"] .desk-prop .light{animation:desk-flame 2.3s ease-in-out infinite}
+html[data-scene="desk"] .desk-prop .light:nth-child(2n){animation-duration:1.7s;animation-direction:reverse}
+html[data-scene="desk"] .desk-prop .light:nth-child(3n){animation-duration:3.1s}
+}
+html.modal-open #desk *,html.modal-open .desk-obj *{animation-play-state:paused!important}
+@keyframes desk-drift{from{transform:translateX(-1024px)}to{transform:translateX(0)}}
+@keyframes desk-drift-b{from{transform:translateX(0)}to{transform:translateX(-1536px)}}
+@keyframes desk-flicker{0%{opacity:.86}6%{opacity:.7}8%{opacity:.93}19%{opacity:.8}22%{opacity:.97}37%{opacity:.73}40%{opacity:.9}55%{opacity:.82}57%{opacity:1}71%{opacity:.76}74%{opacity:.88}88%{opacity:.7}91%{opacity:.95}100%{opacity:.86}}
+@keyframes desk-flicker-b{0%{opacity:.6}11%{opacity:.9}14%{opacity:.68}29%{opacity:.84}46%{opacity:.55}49%{opacity:.92}63%{opacity:.7}79%{opacity:.95}83%{opacity:.62}100%{opacity:.6}}
+@keyframes desk-flame{0%{transform:scale(1,1) skewX(0)}12%{transform:scale(.9,1.1) skewX(-4deg)}21%{transform:scale(1.05,.93) skewX(2deg)}38%{transform:scale(.96,1.06) skewX(-1deg)}52%{transform:scale(1.02,.9) skewX(3deg)}67%{transform:scale(.93,1.12) skewX(-3deg)}81%{transform:scale(1.04,.97) skewX(1deg)}100%{transform:scale(1,1) skewX(0)}}
+/* Layout: the eye card and the backend card in a left column, one Sessions card on the right, centred on the blotter. */
+html[data-scene="desk"] .page{position:relative;max-width:1180px;margin:0 auto;padding:68px 64px 104px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:46px;align-items:start}
+html[data-scene="desk"] .page>*{grid-column:auto;grid-row:auto;margin-top:0;min-width:0}
+html[data-scene="desk"] .page::before{content:"";position:absolute;inset:26px 16px 46px;z-index:-2;pointer-events:none;border-radius:var(--blotter-radius,6px);background:var(--desk-blotter-color,transparent) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px) repeat}
+html[data-scene="desk"] .book-left{display:flex;flex-direction:column;gap:34px;min-width:0;grid-column:1;grid-row:1}
+html[data-scene="desk"] .page>main{grid-column:2;grid-row:1}
+html[data-scene="desk"] .page>main,html[data-scene="desk"] .book-left>.backend,html[data-scene="desk"] .settings,.desk-obj .paper{background:var(--stock);border:0;border-radius:var(--obj-radius);box-shadow:var(--obj-face),var(--obj-edge),var(--obj-shadow)}
+/* A second sheet peeks out under each object; it sits in the page's stacking context, behind the card and above the blotter. */
+html[data-scene="desk"] .page>main::before,html[data-scene="desk"] .book-left>.backend::after,.desk-obj .sheet{content:"";position:absolute;inset:9px -7px -9px 7px;z-index:-1;pointer-events:none;transform:rotate(.8deg);border-radius:var(--obj-radius);
+background:var(--desk-card2) var(--desk-stock,none) 70px 30px/var(--desk-stock-size,320px) repeat;box-shadow:inset 0 0 30px var(--age),var(--obj-edge),var(--obj-shadow)}
+html[data-scene="desk"] .book-left>.backend::after{inset:7px 6px -8px -6px;transform:rotate(-1.1deg)}
+/* The Sessions card */
+html[data-scene="desk"] .page>main{position:relative;display:block;isolation:auto;padding:28px 36px 24px}
+html[data-scene="desk"] .page>main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22px;height:62px;pointer-events:none;background:var(--desk-drip,none) center top/100% 100% no-repeat}
+html[data-scene="desk"] .console-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 2px;font:700 27px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss)}
+html[data-scene="desk"] .console-count{font:600 13px/1 var(--mono);letter-spacing:.04em;color:var(--muted);padding:5px 9px 4px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);text-shadow:none}
+html[data-scene="desk"] .slots{display:block}
+html[data-scene="desk"] .slot-card,html[data-scene="desk"] .slots>.card{background:none;border:0;box-shadow:none;padding:18px 0 14px;isolation:auto}
+html[data-scene="desk"] .slots .card::before{display:none}
+html[data-scene="desk"] .slot-card .head{padding-left:0;padding-right:4.5em;border-bottom:0;padding-bottom:6px}
+html[data-scene="desk"] .slotno{top:24px;right:0;padding:3px 7px 2px;border-radius:3px;background:var(--inset);box-shadow:var(--sunk)}
+html[data-scene="desk"] .branch{font-size:22px;text-shadow:var(--emboss)}
+html[data-scene="desk"] .slot-card .card-drip{position:absolute;left:-20px;top:26px;width:6px;height:calc(100% - 44px)}
+html[data-scene="desk"] .slot-card .divider{display:block;height:18px;margin:-16px -10px 6px;pointer-events:none;overflow:visible}
+html[data-scene="desk"] .slots>:first-child .divider{display:none}
+.divider .brush{position:static;display:block;width:100%;height:auto;max-height:22px;overflow:visible}
+html[data-scene="desk"] .hint{margin:12px 0 0;padding:14px 0 0;border-top:1px dashed var(--edge-lo2)}
+html[data-scene="desk"] .muted.small{color:var(--muted)}
+html[data-scene="desk"] button.icon{border-radius:4px}
+html[data-scene="desk"] button.icon:hover,html[data-scene="desk"] button.icon:focus-visible{box-shadow:var(--sunk)}
+html[data-scene="desk"] button.icon:active{transform:translateY(1px)}
+/* The eye card is the masthead: halftone eye, wordmark, freshness and Settings, taped to the desk at a slight tilt. */
+html[data-scene="desk"] .book-left>.coin{position:relative;isolation:isolate;height:auto;min-height:0;overflow:visible;pointer-events:auto;flex-direction:column;justify-content:flex-start;padding:28px 22px 16px;margin:8px 6px 0;transform:rotate(var(--eye-tilt,-1.4deg))}
+html[data-scene="desk"] .coin>.desk-obj{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none}
+.desk-obj>i{position:absolute;display:block;pointer-events:none}
+.desk-obj .sheet{inset:12px -9px -11px 9px;transform:rotate(3.2deg)}
+.desk-obj .shadow{inset:6px 3px 8px;box-shadow:var(--obj-shadow)}
+.desk-obj .paper{inset:0;clip-path:var(--deckle,none);box-shadow:var(--obj-face),0 -1px 0 var(--edge-hi)}
+.desk-obj .fold{display:none;right:0;bottom:0;width:30px;height:30px;clip-path:polygon(0 0,100% 0,0 100%);background:linear-gradient(135deg,var(--edge-lo) 0,var(--desk-card2) 30%,var(--desk-card) 52%,var(--edge-lo2) 54%)}
+html[data-deckle="1"] .desk-obj .fold{display:block}
+.desk-obj .mount{top:-13px;left:50%;width:118px;height:32px;margin-left:-59px;transform:rotate(-3.5deg);background:var(--desk-mount,none) center/100% 100% no-repeat}
+.desk-obj .badge{left:-20px;top:-16px;width:66px;height:66px;transform:rotate(-14deg);background:var(--desk-badge,none) center/100% 100% no-repeat}
+html[data-scene="desk"] .loading .coin{height:auto}
+html[data-scene="desk"] .coin canvas{position:relative;display:block;margin:0 auto -22px;flex:none}
+html[data-scene="desk"] .coin .portrait-label{display:none}
+html[data-scene="desk"] .coin>.masthead{display:flex;position:relative;flex-direction:column;align-items:center;gap:6px;width:100%}
+html[data-scene="desk"] .masthead .mark{position:relative;display:inline-block;padding:0 4px 14px;font:700 31px/1.1 var(--serif);letter-spacing:var(--word-spacing,.07em);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);cursor:pointer}
+html[data-scene="desk"] .masthead .mark::before{content:"";position:absolute;left:-26px;right:-26px;bottom:-16px;height:56px;z-index:-1;pointer-events:none;background:var(--desk-glow,none) center/100% 100% no-repeat}
+html[data-scene="desk"] .masthead .mark .brush{left:0;top:calc(100% - 13px)}
+html[data-scene="desk"] .masthead .header-tools{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;width:100%;margin-top:6px;padding:9px 0 0;background:none;border-top:1px dashed var(--edge-lo2);z-index:auto}
+html[data-scene="desk"] #updated{font-size:13px;color:var(--muted)}
+html[data-scene="desk"] #settings-open{border-radius:5px;background:var(--inset);box-shadow:var(--sunk);color:var(--muted)}
+html[data-scene="desk"] #settings-open:hover,html[data-scene="desk"] #settings-open:focus-visible{color:var(--text);transform:rotate(-8deg)}
+/* The backend card: square, on the grid; its rollup is a big inked rubber stamp. */
+html[data-scene="desk"] .book-left>.backend{position:relative;top:auto;z-index:auto;isolation:auto;width:auto;max-height:none;padding:20px 22px 16px;overflow:visible}
+html[data-scene="desk"] .backend::before{display:none}
+html[data-scene="desk"] .backend-body{overflow:visible}
+html[data-scene="desk"] .backend .rollup{gap:10px}
+html[data-scene="desk"] .backend .rollup .title{padding-left:0;font:700 15px/1.2 var(--serif);letter-spacing:.14em;font-variant:var(--head-variant);text-transform:uppercase;color:var(--muted);text-shadow:var(--emboss)}
+html[data-scene="desk"] .backend .rollup .state{position:relative;gap:10px;margin:2px 0 8px 4px;padding:6px 16px 7px 11px;font:800 31px/1 var(--serif);letter-spacing:.07em;text-transform:uppercase;color:var(--stamp-ok);border:3px solid currentColor;border-radius:8px;
+box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;transform:rotate(-4deg);-webkit-mask:var(--desk-grit,none) 0 0/150px repeat;mask:var(--desk-grit,none) 0 0/150px repeat}
+html[data-scene="desk"] .backend .rollup .state .dot{width:28px;height:28px}
+html[data-scene="desk"] .backend .rollup:not(.tone-ok) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-6deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
+html[data-scene="desk"] .backend .rollup.tone-warn .state{color:var(--warn);background:none}
+html[data-scene="desk"] .backend .meta{border-top:1px dashed var(--edge-lo2)}
+html[data-scene="desk"] .backend-details{border-top:1px dashed var(--edge-lo2)}
+html[data-scene="desk"] .backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+html[data-scene="desk"] .backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
+/* App pills are tags: a face, a darker body edge and a mount (eyelet or LED) cut to one shape. The seep ink is clipped to it too. */
+html[data-scene="desk"] .apps{gap:12px 14px;margin:9px 0 11px}
+html[data-scene="desk"] .app-pill{--pill-pad:7px 17px 8px 31px;--muted:var(--tag-muted);--glyph-ok:var(--tag-ok);--warn:var(--tag-warn);--glyph-bad:var(--tag-bad);position:relative;isolation:isolate;min-height:36px;padding:var(--pill-pad);border:0;background:none;color:var(--tag-ink);transition:transform .15s ease-out}
+html[data-scene="desk"] .app-pill::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape,none);background:var(--tag-mount,none),var(--tag-face,var(--tag))}
+html[data-scene="desk"] .app-pill::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape,none);background:var(--tag-rim,var(--tag-edge))}
+html[data-scene="desk"] .app-pill .seep{clip-path:var(--tag-shape,none);border-radius:0}
+html[data-scene="desk"] .seep-text{padding:var(--pill-pad)}
+
+html[data-scene="desk"] a.app-pill:hover,html[data-scene="desk"] a.app-pill:focus-visible{transform:translateY(-2px) rotate(-.6deg)}
+html[data-scene="desk"] a.app-pill:active{transform:translateY(1px) scale(.97)}
+html[data-scene="desk"] .app-pill.failed{--tag-rim:var(--tag-bad)}
+html[data-scene="desk"] .app-pill.failed::after{inset:-2.5px -2.5px -4.5px}
+html[data-scene="desk"] .app-pill.tone-warn{--tag-rim:var(--warn)}
+html[data-scene="desk"] .app-pill.off::before{background:var(--tag-mount-off,none),var(--tag-off)}
+html[data-scene="desk"] .app-pill.off.tone-warn::before{background:var(--tag-mount,none),var(--tag-face,var(--tag))}
+html[data-scene="desk"] .app-pill.off{--muted:var(--tag-off-ink);--glyph-bad:var(--tag-off-bad);--glyph-ok:var(--tag-off-ink);color:var(--tag-off-ink);transform:rotate(-1.6deg)}
+html[data-scene="desk"] .app-pill.off.tone-warn{--muted:var(--tag-muted);--warn:var(--tag-warn);color:var(--tag-ink)}
+html[data-scene="desk"] .app-pill.off .app-name{text-shadow:none}
+html[data-scene="desk"] .app-pill.off.tone-warn{transform:none}
+html[data-scene="desk"] a.app-pill.off:hover,html[data-scene="desk"] a.app-pill.off:focus-visible{transform:rotate(0)}
+@media (prefers-reduced-motion:reduce){html[data-scene="desk"] .app-pill{transition:none}}
+/* Popups are lifted higher off the same desk: same stock, a bigger shadow, sunk fields and buttons that press down. */
+html[data-scene="desk"] .settings{--parchment:var(--desk-card);--parchment-ink:var(--text);--parchment-muted:var(--muted);--parchment-field:var(--inset);--parchment-edge:var(--edge-lo);padding:30px 30px 26px;overflow:visible;
+box-shadow:var(--obj-face),var(--obj-edge),0 8px 8px -2px var(--contact),0 22px 36px -12px var(--lift),0 60px 90px -30px var(--lift)}
+html[data-scene="desk"] .settings::before,html[data-scene="desk"] .settings::after{background:none;-webkit-mask:none;mask:none}
+html[data-scene="desk"] .settings::backdrop{background:var(--dim)}
+html[data-scene="desk"] .settings h2{font:700 26px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);text-shadow:var(--emboss)}
+html[data-scene="desk"] .settings label,html[data-scene="desk"] .settings .field-label{font-variant:var(--head-variant);text-transform:var(--head-case);letter-spacing:var(--head-spacing)}
+html[data-scene="desk"] .settings input:not([type="radio"]),html[data-scene="desk"] .settings select{border:0;border-radius:4px;background-color:var(--inset);box-shadow:var(--sunk);padding:7px 10px 6px}
+html[data-scene="desk"] .settings select{padding-right:28px}
+html[data-scene="desk"] .settings input:not([type="radio"]):hover,html[data-scene="desk"] .settings select:hover{background-color:var(--inset)}
+html[data-scene="desk"] .settings input:not([type="radio"]):focus-visible,html[data-scene="desk"] .settings select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+html[data-scene="desk"] .settings .segmented{gap:3px;padding:3px;border:0;border-radius:6px;background:var(--inset);box-shadow:var(--sunk);overflow:visible}
+html[data-scene="desk"] .settings .segmented label{border-radius:4px;padding:7px 8px 7px}
+html[data-scene="desk"] .settings .segmented label+label{border-left:0}
+html[data-scene="desk"] .settings .segmented label:hover{background:color-mix(in srgb,var(--desk-card) 45%,transparent)}
+html[data-scene="desk"] .settings .segmented label:has(input:checked){background:var(--stock);box-shadow:inset 0 1px 0 var(--edge-hi),0 1px 0 var(--edge-lo),0 2px 0 var(--edge-lo2),0 3px 4px var(--contact)}
+html[data-scene="desk"] .settings .segmented label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+html[data-scene="desk"] .settings .done,html[data-scene="desk"] .confirm-actions button{border:0;border-radius:5px;padding:9px 20px 8px;font:700 15px/1 var(--serif);letter-spacing:.08em;font-variant:var(--head-variant);text-transform:var(--head-case);background:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge),0 6px 7px -2px var(--contact);transition:transform .07s ease-out}
+html[data-scene="desk"] .confirm-actions #stop-cancel{background:var(--inset);color:var(--text);box-shadow:inset 0 1px 0 var(--edge-hi),0 4px 0 var(--edge-lo2),0 6px 7px -2px var(--contact)}
+html[data-scene="desk"] .confirm-actions .danger{background:var(--seep);color:var(--seep-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 0 var(--blood-deep),0 6px 7px -2px var(--contact)}
+html[data-scene="desk"] .settings .done:hover:not(:disabled),html[data-scene="desk"] .confirm-actions button:hover:not(:disabled){transform:translateY(-1px)}
+html[data-scene="desk"] .settings .done:active,html[data-scene="desk"] .confirm-actions button:active{transform:translateY(4px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge),0 1px 2px var(--contact)}
+html[data-scene="desk"] .settings .done:focus-visible,html[data-scene="desk"] .confirm-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+html[data-scene="desk"] .confirm-dialog h2{font-size:24px}
+html[data-scene="desk"] .confirm-dialog p{font-size:16px}
+@media (max-width:899px){
+html[data-scene="desk"] .page{grid-template-columns:minmax(0,1fr);padding:34px 16px 80px;gap:30px}
+html[data-scene="desk"] .page::before{inset:12px 4px 24px}
+html[data-scene="desk"] .book-left{position:static;align-items:stretch}
+html[data-scene="desk"] .page>main{grid-column:1;grid-row:2;padding:22px 18px 20px}
+html[data-scene="desk"] .book-left>.coin{align-self:center;width:min(330px,calc(100% - 12px))}
+html[data-scene="desk"] .slot-card .card-drip{left:-12px}
+}
 </style>
 <script>
 "use strict";
@@ -348,10 +503,33 @@ How to add a theme: add one entry to THEMES below; the shared SCENES registry su
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
-  backgrounds   ambient assets used by scenes, not picker options. Supply "book" for Book and "console" for Console;
-                each has its kind; the Console painter takes its colours from consoleArt. Extra assets can remain unselected.
+  backgrounds   ambient assets used by scenes, not picker options. Supply "desk" for Desk, "book" for Book and "console" for
+                Console; each has its kind; the Console painter takes its colours from consoleArt. Extra assets can remain unselected.
+                The "desk" kind is painted once per scheme into tiles (no loop):
+                  {kind: "desk", seed, surface, blotter, stock: material ids ("wood", "leather", "metal", "mat", "paper", "acrylic"),
+                   deckle: true tears the eye card's bottom edge and folds a dog-ear, glow: {color, core} pre-renders a tube glow
+                   under the wordmark, props: [{art: SVG, side: "left"|"right", offset, bottom, width, height, rotate, flip,
+                   lights: [[x%, y%, size px], ...]}] (lights flicker; hidden below 1400px),
+                   dark/light: {surface: {ramp, seam}, blotter: {ramp, grid, grid2}, stock: {ramp, fiber, fox}, fog: colour}}
+                  ramps are 3-4 hex colours, darkest first. The painter exposes --desk-surface, --desk-blotter, --desk-stock,
+                  --desk-fog, --desk-grit (a rubber-stamp mask), --desk-glow and --deckle to CSS.
+  deskArt       optional {mount, badge, drip} SVG strings for Desk: mount holds the eye card down (tape, sticker), badge sits
+                on its corner (a wax seal), drip hangs off the Sessions card's bottom edge
+  deskCss       optional CSS string for this theme's Desk flourishes (lighting, blotter, tag shapes, dialog mounts); scope
+                every rule to html[data-theme="<id>"][data-scene="desk"]. Desk also reads these css keys: --desk-floor,
+                --desk-card, --desk-card2, --edge-*, --age, --contact, --lift, --emb-*, --well, --stamp-ok, --rule-ink*, --tag*,
+                --btn-*, --head-case, --head-variant, --head-spacing, --dim, plus the lighting keys --pool* and --flicker-*
+  inkGlyphs     optional statusGlyphs set (same keys, including awake) drawn as brush ink; Desk uses it instead of the
+                pixel glyphs so marks match the halftone and brush language. inkIcons does the same for {copy, terminal, stop,
+                settings}. Omit both to keep the pixel set in Desk too (Neon does, since pixels suit its retro-PC look).
+  halftoneOverprint  optional {dx, dy, scale, alpha, dark: {color, blend}, light: {color, blend}}: a second ink pass of the
+                halftone eye, offset by (dx, dy) px for misregistration; blend is a canvas composite mode ("screen", "multiply")
+  glitch        optional {every: [min, max] s, frames: [min, max], shift: [min, max] px, bands: [min, max]}: the halftone
+                eye occasionally slips a few horizontal slices sideways
+  brushStroke.rule   optional preset (with optional colors) for the seeded dividers between sessions in Desk
+  brushStroke.overprint   optional {color, dx, dy, opacity}: every stroke is also printed in a second, offset ink
   consoleArt    {dark, light} colours for the static control room, portrait window, and shared pixel plate frame.
-  SCENES        shared {book, console} registry maps each layout to an asset id. The default scene is Book.
+  SCENES        shared {desk, book, console} registry maps each layout to an asset id. The default scene is Desk.
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
   copy          optional text overrides: {emptyTitle, characterName}; characterName labels the Console portrait
@@ -377,8 +555,18 @@ Minimal skeleton:
 // All dashboard controls and status marks use one 24-cell engraved silhouette language.
 function plateIcon(parts){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd">'+parts+'</svg>'}
 // Scenes choose composition and an ambient asset; themes provide the visual language for both.
-var SCENES={book:{label:"Book",layout:"book",background:"book"},console:{label:"Console",layout:"console",background:"console"}};
+var SCENES={desk:{label:"Desk",layout:"desk",background:"desk"},book:{label:"Book",layout:"book",background:"book"},console:{label:"Console",layout:"console",background:"console"}};
 function svgAsset(svg){return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'")'}
+// Brush-ink marks in the same 24-unit box as plateIcon; strokes vary in weight so they read hand-drawn.
+function inkIcon(parts){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'+parts+'</svg>'}
+// Re-inks an SVG string by swapping exact colour literals, so a theme can reuse another theme's art in its own palette.
+function retone(svg,map){return Object.keys(map).reduce(function(out,from){return out.split(from).join(map[from])},svg)}
+// A lumpy closed outline (wax, blobs): r is the mean radius, bumps the number of lobes, amp their depth as a fraction of r.
+function blobPath(cx,cy,r,bumps,amp,phase){
+  var points=[];
+  for(var i=0;i<48;i++){var a=i/48*Math.PI*2,k=r*(1+amp*Math.sin(a*bumps+phase)+amp*0.45*Math.sin(a*(bumps*2+1)+phase*1.7));points.push((cx+Math.cos(a)*k).toFixed(2)+" "+(cy+Math.sin(a)*k).toFixed(2))}
+  return "M"+points.join("L")+"Z";
+}
 // A 36-unit 9-slice plate: four-unit stair cuts, a continuous raised edge, an inner light band and a bottom shadow.
 function consoleFrame(art,fill){
   return '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" shape-rendering="crispEdges"><path fill="'+art.rim+'" d="M8 0h20v4h4v4h4v20h-4v4h-4v4H8v-4H4v-4H0V8h4V4h4z"/><path fill="'+art.shadow+'" d="M8 4h20v4h4v20h-4v4H8v-4H4V8h4z"/><path fill="'+art.edge+'" d="M8 4h20v4H8zM4 8h4v20H4z"/><path fill="'+fill+'" d="M12 8h12v4h4v12h-4v4H12v-4H8V12h4z"/>'+(fill==="none"?"":'<rect x="12" y="12" width="12" height="12" fill="'+fill+'"/>')+'<path fill="'+art.shine+'" d="M12 8h12v4H12zM8 12h4v12H8z"/><path fill="'+art.rim+'" d="M24 12h4v12h-4zM12 24h12v4H12z"/></svg>';
@@ -397,12 +585,32 @@ var THEMES = {
         "--border": "#cdb994", "--rule": "#a8001a", "--ok": "#1f7a45", "--bad": "#a8001a", "--warn": "#704500",
         "--idle": "#867460", "--glyph-ok": "#7d6b58", "--glyph-bad": "#a8001a", "--accent": "#a8001a", "--blood": "#e0061f", "--blood-deep": "#8a0313", "--seep": "#a8001a", "--seep-ink": "#ffffff", "--parchment": "#f1e3bf", "--parchment-ink": "#2a1a0e", "--parchment-muted": "#4d3a26", "--parchment-field": "#e8d6ab", "--parchment-edge": "#b89d6a", "--hl": "#f6d9d3", "--banner": "#a8001a",
         "--banner-text": "#fff", "--shade": "rgba(80,50,20,.10)", "--grain": ".06", "--grain-blend": "multiply",
-        "--vignette": "rgba(96,62,22,.10)"},
+        "--vignette": "rgba(96,62,22,.10)",
+        "--ink2": "#a8001a", "--desk-floor": "#3a2c21", "--desk-card": "#f1e6cc", "--desk-card2": "#e2d3b1", "--edge-hi": "rgba(255,255,255,.75)", "--edge-line": "rgba(120,86,40,.2)",
+        "--edge-lo": "#cdb68b", "--edge-lo2": "#9c8460", "--age": "rgba(150,100,40,.30)", "--contact": "rgba(28,14,4,.6)", "--lift": "rgba(28,14,4,.6)",
+        "--emb-hi": "rgba(255,255,255,.8)", "--emb-lo": "rgba(80,50,20,.16)", "--well": "rgba(80,50,20,.32)", "--stamp-ok": "#3b2a1d",
+        "--rule-ink": "#7e231c", "--rule-ink-deep": "#4e100c", "--tag": "#e3cc98", "--tag-off": "#d9cdb3", "--tag-off-bad": "#a3001a", "--tag-edge": "#8a7048",
+        "--tag-failed": "#f1c9bd", "--tag-ink": "#1f140b", "--tag-muted": "#4a3520", "--tag-off-ink": "#4a3a2a", "--tag-ok": "#5a4630", "--tag-warn": "#704500", "--tag-bad": "#920018",
+        "--btn-face": "#2b1b10", "--btn-ink": "#f8efda", "--btn-hi": "rgba(255,255,255,.16)", "--btn-edge": "#0e0603",
+        "--head-case": "none", "--head-variant": "small-caps", "--head-spacing": ".05em", "--dim": "rgba(28,16,6,.55)",
+        "--pool": "rgba(255,214,150,.30)", "--pool-2": "rgba(255,200,130,.0)", "--flicker-1": "rgba(255,170,80,.36)", "--flicker-2": "rgba(255,190,110,.16)",
+        "--desk-vignette": "rgba(14,8,3,.62)", "--blotter-corner": "#3a1512", "--blotter-edge": "#1c0807", "--stitch": "rgba(214,170,120,.55)",
+        "--margin-ink": "rgba(168,0,26,.42)", "--ruled": "rgba(70,100,150,.20)"},
       dark: {"--bg": "#0e0909", "--card": "#180f0f", "--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
         "--border": "#3b2320", "--rule": "#6e0a12", "--ok": "#5fd18a", "--bad": "#ff5c68", "--warn": "#e0a948",
         "--idle": "#8a7b6c", "--glyph-ok": "#a39482", "--glyph-bad": "#ff3348", "--accent": "#ff5c68", "--blood": "#e0061f", "--blood-deep": "#7a0310", "--seep": "#9a0414", "--seep-ink": "#f4ead5", "--parchment": "#33291c", "--parchment-ink": "#efe2c4", "--parchment-muted": "#d2c09c", "--parchment-field": "#241c12", "--parchment-edge": "#5a4830", "--hl": "#3a1214", "--banner": "#8f0414",
         "--banner-text": "#f4ead5", "--shade": "rgba(0,0,0,.55)", "--grain": ".05", "--grain-blend": "screen",
-        "--vignette": "rgba(0,0,0,.45)"}
+        "--vignette": "rgba(0,0,0,.45)",
+        "--ink2": "#e0061f", "--desk-floor": "#070403", "--desk-card": "#1e1613", "--desk-card2": "#17100d", "--edge-hi": "rgba(255,232,200,.08)", "--edge-line": "rgba(0,0,0,.4)",
+        "--edge-lo": "#0c0806", "--edge-lo2": "#050302", "--age": "rgba(0,0,0,.6)", "--contact": "rgba(0,0,0,.85)", "--lift": "rgba(0,0,0,.9)",
+        "--emb-hi": "rgba(255,236,210,.07)", "--emb-lo": "rgba(0,0,0,.75)", "--well": "rgba(0,0,0,.65)", "--stamp-ok": "#cdbda2",
+        "--rule-ink": "#9a221b", "--rule-ink-deep": "#5e100d", "--tag": "#cfb98c", "--tag-off": "#4a3f31", "--tag-off-bad": "#ff6b6b", "--tag-edge": "#3a2c1c",
+        "--tag-failed": "#e8bfae", "--tag-ink": "#1d1209", "--tag-muted": "#47331d", "--tag-off-ink": "#f1e6d0", "--tag-ok": "#5a4630", "--tag-warn": "#5e3900", "--tag-bad": "#780014",
+        "--btn-face": "#e6d8bd", "--btn-ink": "#1a100c", "--btn-hi": "rgba(255,255,255,.55)", "--btn-edge": "#7d6b54",
+        "--head-case": "none", "--head-variant": "small-caps", "--head-spacing": ".05em", "--dim": "rgba(4,1,1,.68)",
+        "--pool": "rgba(255,160,80,.085)", "--pool-2": "rgba(255,140,60,.0)", "--flicker-1": "rgba(255,140,50,.20)", "--flicker-2": "rgba(255,150,70,.075)",
+        "--desk-vignette": "rgba(0,0,0,.72)", "--blotter-corner": "#1d0d0b", "--blotter-edge": "#000", "--stitch": "rgba(150,96,70,.45)",
+        "--margin-ink": "rgba(224,6,31,.34)", "--ruled": "rgba(150,170,210,.07)"}
     },
     fonts: {
       serif: '"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif',
@@ -453,14 +661,82 @@ var THEMES = {
         hooked: {weight: 3.8, taperIn: 0.1, taperOut: 0.22, wobble: 0.7, bristles: 2, dryEnd: 2, hook: 1, drips: [1, 1], dripLength: 7, spatter: [0, 2]},
         dripping: {weight: 4, taperIn: 0.09, taperOut: 0.24, wobble: 0.7, bristles: 2, dryEnd: 2, hook: 0.15, drips: [2, 3], dripLength: 12, spatter: [0, 2]},
         thin: {weight: 2.6, taperIn: 0.14, taperOut: 0.3, wobble: 0.6, bristles: 2, dryEnd: 3, hook: 0.25, drips: [0, 1], dripLength: 5, spatter: [0, 2]}
-      }
+      },
+      // Dried-ink dividers between sessions: long, thin, dry at the end, with the odd fleck of spatter.
+      rule: {weight: 4.2, taperIn: 0.05, taperOut: 0.3, wobble: 2.4, bristles: 3, dryEnd: 2, hook: 0, drips: [0, 1], dripLength: 5, spatter: [2, 4],
+        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink-deep)"}}
     },
     eyeModes: ["watcher", "coin", "bleeding", "off"],
+    // Desk marks are brush ink rather than pixels, so they match the halftone eye and the brushstrokes around them.
+    inkGlyphs: {
+      ok: inkIcon('<path d="M2 12.5C5.5 7 9 5.4 12.2 5.4s6.7 1.7 9.8 7" stroke-width="2.5"/><path d="M2.7 13.5C6 17.6 9 19 12 19s6.1-1.7 8.9-5.3" stroke-width="1.9"/><circle cx="12" cy="12.3" r="3.5" fill="currentColor" stroke="none"/>'),
+      warn: inkIcon('<path d="M2.2 12.8c3.6-2.3 6.6-3 9.9-3s6.4.8 9.7 2.8" stroke-width="2.8"/><path d="M2.7 13.6C6 17.6 9 19 12 19s6.1-1.7 8.9-5.3" stroke-width="1.9"/><path d="M8.6 11.9a3.4 3.4 0 0 0 6.8 0z" fill="currentColor" stroke="none"/>'),
+      broken: inkIcon('<path d="M2 11.8C5.5 6.8 9 5.2 12.2 5.2s6.7 1.6 9.8 6.6" stroke-width="2.5"/><path d="M2.7 12.9C6 16.4 9 17.5 12 17.5s6-1.2 8.9-4.5" stroke-width="1.9"/><circle cx="12" cy="11.5" r="3.1" fill="currentColor" stroke="none"/><path d="M8.6 17.2v3.1" stroke-width="2.1"/><circle cx="8.6" cy="21.3" r="1.6" fill="currentColor" stroke="none"/>'),
+      down: inkIcon('<path d="M2.3 10.4c3.4 4.7 6.6 6.1 9.7 6.1s6.4-1.6 9.7-6.1" stroke-width="2.5"/><path d="M5.6 14.4 4.1 17.1M18.4 14.4l1.5 2.7" stroke-width="2"/><path d="M12 17.3c1.5 2.1 2.5 3.1 2.5 4.2a2.5 2.5 0 0 1-5 0c0-1.1 1-2.1 2.5-4.2z" fill="currentColor" stroke="none"/>'),
+      attn: inkIcon('<circle cx="12" cy="3.2" r="1.7" fill="currentColor" stroke="none"/><path d="M12 4.8v3.2" stroke-width="2.4"/><path d="M6.3 8.7c2.1-.7 3.9-1 5.7-1s3.6.3 5.7 1" stroke-width="2.5"/><path d="M10.2 9.6h3.6L12 22.4z" fill="currentColor" stroke="none"/>'),
+      awake: inkIcon('<path d="M1.8 12.3C5.4 6.6 9 5 12.2 5s6.9 1.7 10 7.3" stroke-width="2.5"/><path d="M2.5 13.4C6 17.8 9 19.3 12 19.3s6.2-1.8 9.1-5.5" stroke-width="1.9"/><g class="glyph-pupil"><circle cx="12" cy="12.3" r="4.3" fill="currentColor" stroke="none"/></g>'),
+      unknown: inkIcon('<path d="M12 4.4a7.6 7.6 0 1 1-7.4 6" stroke-width="2.3"/><circle cx="5.4" cy="7.6" r=".9" fill="currentColor" stroke="none"/>')
+    },
+    inkIcons: {
+      copy: inkIcon('<rect x="8.5" y="8.5" width="11" height="12" rx="1.5" stroke-width="2"/><path d="M5 15.5V5.6A1.6 1.6 0 0 1 6.6 4h9" stroke-width="1.8"/>'),
+      terminal: inkIcon('<rect x="3" y="4.5" width="18" height="15" rx="1.5" stroke-width="2"/><path d="m7 10 3 2.5L7 15M12.5 15.5h4.5" stroke-width="2.1"/>'),
+      stop: inkIcon('<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v5.5m0-3a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.4a6 6 0 0 1-4.6-2.2L4.5 15.6a1.5 1.5 0 0 1 2.3-1.9L8 15" stroke-width="1.9"/>'),
+      settings: inkIcon('<path d="M3 6h18M3 12h18M3 18h18" stroke-width="2"/><circle cx="15" cy="6" r="2.3" fill="var(--inset)" stroke-width="2"/><circle cx="8" cy="12" r="2.3" fill="var(--inset)" stroke-width="2"/><circle cx="17" cy="18" r="2.3" fill="var(--inset)" stroke-width="2"/>')
+    },
+    deskArt: {
+      // Masking tape: translucent, with torn ends and a few fibres.
+      mount: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118 32"><path fill="rgb(221,203,160)" fill-opacity=".62" d="M3 4l3-2 3 2 4-3 3 3 3-2h80l3 2 3-3 3 2 3-1 2 4-2 3 3 4-2 4 2 4-3 3 2 5-3 2-3-2-3 3-3-2H16l-3 2-3-3-3 2-3-2-2-4 2-4-3-3 2-4-2-4 3-3z"/><path stroke="rgb(255,250,235)" stroke-opacity=".22" stroke-width=".7" d="M10 9h44M30 15h60M14 22h30M60 25h40"/><path fill="rgb(120,96,60)" fill-opacity=".14" d="M2 27h114v3H2z"/></svg>',
+      // A red wax seal pressed with the eye.
+      badge: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 66"><defs><radialGradient id="w" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#e2323a"/><stop offset=".5" stop-color="#a50c17"/><stop offset="1" stop-color="#4e030a"/></radialGradient></defs><path fill="#000" fill-opacity=".45" d="'+blobPath(34.5,35.5,28,7,0.05,0.6)+'"/><path fill="url(#w)" d="'+blobPath(33,33,28,7,0.05,0.6)+'"/><circle cx="33" cy="33" r="19.5" fill="none" stroke="#5a040c" stroke-width="2.4"/><circle cx="33" cy="34" r="19.5" fill="none" stroke="#f0646a" stroke-opacity=".35" stroke-width="1"/><path d="M19 33c4-6 9-9 14-9s10 3 14 9c-4 6-9 9-14 9s-10-3-14-9z" fill="#7d0711" stroke="#4a0309" stroke-width="2"/><path d="M19.5 34.2c4 5.6 8.8 8.4 13.5 8.4s9.5-2.8 13.5-8.4" fill="none" stroke="#f0646a" stroke-opacity=".45" stroke-width="1"/><circle cx="33" cy="33" r="5.2" fill="#3e0207"/><circle cx="31" cy="31" r="1.3" fill="#f6a0a3" fill-opacity=".6"/><path d="M27 41v5M33 42v7M39 41v4" stroke="#5a040c" stroke-width="2" stroke-linecap="round"/><ellipse cx="24" cy="18" rx="7" ry="3" fill="#fff" fill-opacity=".16" transform="rotate(-30 24 18)"/></svg>',
+      // One stylised drip hanging off the Sessions card's bottom edge.
+      drip: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 62"><path fill="#8f0412" d="M0 0h22c-4 1-7 3-7.6 8.5L14 42c2.8 2.8 3.8 5.6 3.8 8.6a6.8 6.8 0 0 1-13.6 0c0-3 1-5.8 3.8-8.6L7.6 8.5C7 3 4 1 0 0z"/><path fill="none" stroke="#e23a44" stroke-opacity=".55" stroke-width="1.1" stroke-linecap="round" d="M9.4 9v29M7.6 48.6a3.6 3.6 0 0 1 2.6-3.2"/></svg>'
+    },
+    deskCss: (function () {
+      var D = 'html[data-theme="blood"][data-scene="desk"]';
+      return [
+        // Light: a warm, irregular candle pool on the desk and a dark falloff at the edges.
+        D + ' #desk .desk-light{background:radial-gradient(58vmax 46vmax at 24% 30%,var(--pool) 0,transparent 72%),radial-gradient(130vmax 95vmax at 50% 42%,transparent 32%,var(--desk-vignette) 100%)}',
+        D + ' #desk .desk-flicker{background:radial-gradient(42vmax 36vmax at 6% 100%,var(--flicker-1) 0,transparent 70%),radial-gradient(34vmax 30vmax at 95% 100%,var(--flicker-1) 0,transparent 70%)}',
+        D + ' #desk .desk-flicker.b{background:radial-gradient(48vmax 40vmax at 25% 32%,var(--flicker-2) 0,transparent 70%)}',
+        // The blotter: worn leather, darker leather corner pockets and a stitched border.
+        D + ' .page::before{box-shadow:inset 0 0 0 1px var(--blotter-edge),inset 0 0 80px rgba(0,0,0,.55),0 2px 0 var(--blotter-edge),0 3px 0 var(--blotter-edge),0 16px 40px -10px rgba(0,0,0,.75);' +
+          'background:linear-gradient(135deg,var(--blotter-corner) 0 76px,rgba(0,0,0,.5) 76px 78px,transparent 78px) left top/160px 160px no-repeat,linear-gradient(225deg,var(--blotter-corner) 0 76px,rgba(0,0,0,.5) 76px 78px,transparent 78px) right top/160px 160px no-repeat,' +
+          'linear-gradient(45deg,var(--blotter-corner) 0 76px,rgba(0,0,0,.5) 76px 78px,transparent 78px) left bottom/160px 160px no-repeat,linear-gradient(315deg,var(--blotter-corner) 0 76px,rgba(0,0,0,.5) 76px 78px,transparent 78px) right bottom/160px 160px no-repeat,' +
+          'var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px) repeat}',
+        D + ' .page::after{content:"";position:absolute;inset:37px 27px 57px;z-index:-2;pointer-events:none;border:1.5px dashed var(--stitch);border-radius:4px}',
+        // The backend card is an index card: ruled lines, a red margin and a brass grommet.
+        D + ' .book-left>.backend{background:radial-gradient(circle at calc(100% - 19px) 19px,var(--desk-floor) 0 3.6px,#e4c06a 4.2px,#9d742a 6.2px,#3c2a0c 7.4px,transparent 8px),linear-gradient(90deg,transparent 11px,var(--margin-ink) 11px 12.5px,transparent 12.5px),repeating-linear-gradient(180deg,transparent 0 23px,var(--ruled) 23px 24px) 0 49px/100% 100% no-repeat,var(--stock)}',
+        // Tags: a luggage-tag cut with a brass eyelet; a stopped tag has lost its brass.
+        D + ' .app-pill{--tag-shape:polygon(13px 0,100% 0,100% 100%,13px 100%,0 calc(100% - 11px),0 11px);--tag-face:var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
+          '--tag-mount:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px);--tag-mount-off:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,var(--tag-edge) 3.2px 4.6px,transparent 5.2px)}',
+        // Popups are taped down at both top corners.
+        D + ' .settings::before,' + D + ' .settings::after{content:"";width:100px;height:28px;background:var(--desk-mount,none) center/100% 100% no-repeat}',
+        D + ' .settings::before{top:-10px;left:-26px;right:auto;transform:rotate(-31deg)}',
+        // Lifted towards the candle, the popup catches more of its light.
+        D + ' .settings{background:radial-gradient(120% 90% at 30% 0,var(--flicker-1) 0,transparent 60%),var(--stock)}',
+        D + ' .settings::after{top:-10px;right:-26px;left:auto;bottom:auto;transform:rotate(29deg)}'
+      ].join("\n");
+    })(),
     consoleArt: {
       dark: {room:"#100b0e",void:"#090a12",rib:"#302126",edge:"#76584b",shine:"#b49a7c",rim:"#5a4039",shadow:"#21171d",deck:"#1c151b",vent:"#503b39",star:"#aa9a81"},
       light: {room:"#d6c9b4",void:"#b3b6ad",rib:"#a48c79",edge:"#775f50",shine:"#f7ebcc",rim:"#8b7061",shadow:"#b49c88",deck:"#bda992",vent:"#907765",star:"#564e48"}
     },
     backgrounds: {
+      // A black-stained wooden desk with a worn leather blotter, card stock with foxing, smoky fog and candles in the margins.
+      desk: {kind: "desk", seed: 7, surface: "wood", blotter: "leather", stock: "paper", deckle: true,
+        props: [
+          {art: "candles", side: "left", offset: 26, bottom: 6, width: 160, height: 220, lights: [[28.75, 16.4, 12], [51.9, 38.2, 10], [75, 60, 10]]},
+          {art: "candles", side: "right", offset: 30, bottom: 4, width: 124, height: 170, flip: true, lights: [[28.75, 16.4, 10], [51.9, 38.2, 8], [75, 60, 8]]}],
+        art: {candles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 220"><defs><linearGradient id="c" x1="0" x2="1"><stop offset="0" stop-color="#e4cfa2"/><stop offset=".35" stop-color="#b39a6e"/><stop offset="1" stop-color="#3f3020"/></linearGradient><radialGradient id="p" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#c8b080"/><stop offset="1" stop-color="#5e4c34"/></radialGradient><radialGradient id="t" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#8a7a5c"/><stop offset="1" stop-color="#c9bb98"/></radialGradient></defs>' +
+          '<ellipse cx="82" cy="211" rx="78" ry="9" fill="#000" fill-opacity=".5"/><path fill="url(#p)" d="M10 207c12-7 34-9 70-9s58 2 70 9c-8 7-36 10-70 10s-62-3-70-10z"/>' +
+          '<path fill="url(#c)" d="M30 44c0-4 7-6 16-6s16 2 16 6v162H30z"/><path fill="#e8d4a8" d="M31 45h5v30a2.5 2.5 0 0 1-5 0zM49 46h4v16a2 2 0 0 1-4 0zM56 45h4.5v44a2.2 2.2 0 0 1-4.5 0z"/><ellipse cx="46" cy="44" rx="16" ry="4.2" fill="url(#t)"/><path d="M46 44v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
+          '<path fill="url(#c)" d="M70 92c0-3 6-5 13-5s13 2 13 5v114H70z"/><path fill="#e8d4a8" d="M71 93h4v20a2 2 0 0 1-4 0zM88 93h4v34a2 2 0 0 1-4 0z"/><ellipse cx="83" cy="92" rx="13" ry="3.6" fill="url(#t)"/><path d="M83 92v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
+          '<path fill="url(#c)" d="M104 140c0-4 7-6 16-6s16 2 16 6v66h-32z"/><path fill="#e8d4a8" d="M105 141h5v14a2.5 2.5 0 0 1-5 0zM127 141h4v24a2 2 0 0 1-4 0z"/><ellipse cx="120" cy="140" rx="16" ry="4.2" fill="url(#t)"/><path d="M120 140v-7" stroke="#1a120c" stroke-width="2" stroke-linecap="round"/>' +
+          '<path fill="#c9b282" d="M22 205c3-4 6-6 8-11v12zM62 206c2-6 6-8 8-14v14zM96 206c3-3 6-5 8-10v10zM136 205c4-2 8-2 12 1z"/></svg>'},
+        dark: {surface: {ramp: ["#050302", "#0d0806", "#170f0b", "#24170f"], seam: "#020101"}, blotter: {ramp: ["#120908", "#1b0e0c", "#261411"]},
+          stock: {ramp: ["#18110e", "#1e1613", "#251b17"], fiber: "#3c2e26", fox: "#3e2617"}, tag: {ramp: ["#bea676", "#cdb688", "#d9c69c"], fiber: "#a08758", fox: "#9e7444"}, fog: "#8c8282"},
+        light: {surface: {ramp: ["#33271d", "#4a3a2c", "#5f4b39", "#73604c"], seam: "#1f1710"}, blotter: {ramp: ["#341311", "#451b16", "#56241d"]},
+          stock: {ramp: ["#e8dbbd", "#f1e6cc", "#f8efdb"], fiber: "#c9b48c", fox: "#cfa77a"}, tag: {ramp: ["#d6bd88", "#e1ca96", "#eadaaf"], fiber: "#b89c66", fox: "#b48552"}, fog: "#f3efe8"}},
       console: {kind:"console"},
       candlelight: {label: "Candlelight", kind: "candles",
         // Geometry is in CSS pixels; x is the candle's centre as a fraction of the width.
@@ -481,6 +757,156 @@ var THEMES = {
     copy: {emptyTitle: "No sessions running", characterName: "Overseer"}
   }
 };
+// Neon: the same eye, re-inked as two misregistered spot inks (magenta and cyan) on near-black acrylic and a cutting mat.
+THEMES.neon = (function () {
+  var blood = THEMES.blood, ink = {"#e0061f": "#ff3ea5", "#0b0505": "#0b0a12", "#8f0414": "#8a1a5a", "#e0a948": "#ffd23f"};
+  var favicons = {};
+  Object.keys(blood.favicons).forEach(function (key) { favicons[key] = retone(blood.favicons[key], ink) });
+  var N = 'html[data-theme="neon"][data-scene="desk"]';
+  var screw = function (x, y) { return "radial-gradient(circle at " + x + " " + y + ",var(--screw-hi) 0 1.3px,var(--screw) 1.9px 3.5px,var(--screw-lo) 4px 4.8px,transparent 5.3px)" };
+  var screws = [screw("12px", "12px"), screw("calc(100% - 12px)", "12px"), screw("12px", "calc(100% - 12px)"), screw("calc(100% - 12px)", "calc(100% - 12px)")].join(",");
+  var scan = "repeating-linear-gradient(0deg,var(--scan) 0 1px,transparent 1px 3px)";
+  return {
+    name: "Neon",
+    artPitch: 4.5,
+    folioArt: blood.folioArt,
+    css: {
+      light: {"--bg": "#e8e5f0", "--card": "#f6f3fb", "--inset": "#e6e2f0", "--text": "#17142a", "--muted": "#443e5c",
+        "--border": "#c6bfdc", "--rule": "#00728a", "--ok": "#00764a", "--bad": "#b4141b", "--warn": "#7a5600",
+        "--idle": "#6c6785", "--glyph-ok": "#6a6584", "--glyph-bad": "#b4141b", "--accent": "#a8005e", "--blood": "#d1006f", "--blood-deep": "#7a0a50", "--seep": "#c4006a", "--seep-ink": "#ffffff", "--parchment": "#f6f3fb", "--parchment-ink": "#17142a", "--parchment-muted": "#443e5c", "--parchment-field": "#e6e2f0", "--parchment-edge": "#b5aecd", "--hl": "#fbdcdc", "--banner": "#b4141b",
+        "--banner-text": "#fff", "--shade": "rgba(40,30,80,.10)", "--grain": ".05", "--grain-blend": "multiply",
+        "--vignette": "rgba(60,50,110,.10)",
+        "--ink2": "#00728a", "--desk-floor": "#8f8e9c", "--desk-card": "#f4f2f9", "--desk-card2": "#e1deeb", "--edge-hi": "rgba(255,255,255,.95)", "--edge-line": "rgba(60,50,110,.16)",
+        "--edge-lo": "#c4c0d4", "--edge-lo2": "#9a95ae", "--age": "rgba(90,80,150,.08)", "--contact": "rgba(20,15,45,.45)", "--lift": "rgba(20,15,45,.42)",
+        "--emb-hi": "rgba(255,255,255,.95)", "--emb-lo": "rgba(40,30,80,.12)", "--well": "rgba(40,30,80,.26)", "--stamp-ok": "#2fe6ff",
+        "--rule-ink": "#00728a", "--rule-ink-deep": "#d1006f", "--tag": "#fdfcff", "--tag-off": "#dcd8e6", "--tag-off-bad": "#b4141b", "--tag-edge": "#9f9ab4",
+        "--tag-failed": "#fbdcdc", "--tag-ink": "#17142a", "--tag-muted": "#443e5c", "--tag-off-ink": "#3f3956", "--tag-ok": "#00728a", "--tag-warn": "#7a5600", "--tag-bad": "#b4141b",
+        "--btn-face": "#17142a", "--btn-ink": "#f4f2f9", "--btn-hi": "rgba(255,255,255,.2)", "--btn-edge": "#000",
+        "--head-case": "uppercase", "--head-variant": "normal", "--head-spacing": ".12em", "--dim": "rgba(30,24,60,.5)",
+        "--pool": "rgba(255,62,165,.20)", "--pool-2": "rgba(0,190,230,.18)", "--flicker-1": "rgba(255,62,165,.22)", "--flicker-2": "rgba(0,200,240,.14)",
+        "--desk-vignette": "rgba(40,30,80,.34)", "--blotter-corner": "#d1006f", "--blotter-edge": "#7a7690", "--stitch": "rgba(0,114,138,.55)",
+        "--margin-ink": "rgba(209,0,111,.35)", "--ruled": "rgba(0,114,138,.14)",
+        "--scan": "rgba(40,30,90,.035)", "--screw": "#b9b6c8", "--screw-hi": "#ffffff", "--screw-lo": "#6e6a84", "--cap-hi": "#ffffff",
+        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.55)", "--led-bad": "#ff6a5f", "--led-bg": "#0b0a14"},
+      dark: {"--bg": "#0b0a12", "--card": "#13111d", "--inset": "#0d0c16", "--text": "#ece8ff", "--muted": "#b1acd0",
+        "--border": "#2d2944", "--rule": "#2fe6ff", "--ok": "#3ee6a0", "--bad": "#ff6a5f", "--warn": "#ffd23f",
+        "--idle": "#8c87aa", "--glyph-ok": "#a49fc0", "--glyph-bad": "#ff5a4e", "--accent": "#2fe6ff", "--blood": "#ff3ea5", "--blood-deep": "#8a1a5a", "--seep": "#ff3ea5", "--seep-ink": "#0b0a12", "--parchment": "#1b1828", "--parchment-ink": "#ece8ff", "--parchment-muted": "#b9b4d8", "--parchment-field": "#110f1b", "--parchment-edge": "#3a3456", "--hl": "#3a1416", "--banner": "#a3161c",
+        "--banner-text": "#fff", "--shade": "rgba(0,0,0,.55)", "--grain": ".05", "--grain-blend": "screen",
+        "--vignette": "rgba(0,0,0,.5)",
+        "--ink2": "#2fe6ff", "--desk-floor": "#07070b", "--desk-card": "#15131f", "--desk-card2": "#100e19", "--edge-hi": "rgba(190,240,255,.13)", "--edge-line": "rgba(47,230,255,.12)",
+        "--edge-lo": "#05050a", "--edge-lo2": "#020204", "--age": "rgba(0,0,0,.4)", "--contact": "rgba(0,0,0,.85)", "--lift": "rgba(0,0,0,.9)",
+        "--emb-hi": "rgba(255,255,255,.07)", "--emb-lo": "rgba(0,0,0,.8)", "--well": "rgba(0,0,0,.75)", "--stamp-ok": "#2fe6ff",
+        "--rule-ink": "#2fe6ff", "--rule-ink-deep": "#ff3ea5", "--tag": "#221e33", "--tag-off": "#13111c", "--tag-off-bad": "#ff5a4e", "--tag-edge": "#020205",
+        "--tag-failed": "#3a1416", "--tag-ink": "#ece8ff", "--tag-muted": "#b1acd0", "--tag-off-ink": "#a8a3c6", "--tag-ok": "#2fe6ff", "--tag-warn": "#ffd23f", "--tag-bad": "#ff6a5f",
+        "--btn-face": "#2fe6ff", "--btn-ink": "#06121a", "--btn-hi": "rgba(255,255,255,.6)", "--btn-edge": "#0a7586",
+        "--head-case": "uppercase", "--head-variant": "normal", "--head-spacing": ".12em", "--dim": "rgba(4,3,10,.72)",
+        "--pool": "rgba(255,62,165,.13)", "--pool-2": "rgba(47,230,255,.09)", "--flicker-1": "rgba(255,62,165,.17)", "--flicker-2": "rgba(47,230,255,.09)",
+        "--desk-vignette": "rgba(0,0,0,.7)", "--blotter-corner": "#ff3ea5", "--blotter-edge": "#000", "--stitch": "rgba(47,230,255,.45)",
+        "--margin-ink": "rgba(255,62,165,.35)", "--ruled": "rgba(47,230,255,.07)",
+        "--scan": "rgba(255,255,255,.022)", "--screw": "#4a4760", "--screw-hi": "#c9c6dc", "--screw-lo": "#0a0912", "--cap-hi": "#2e2944",
+        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.6)", "--led-bad": "#ff6a5f", "--led-bg": "#07060d"}
+    },
+    fonts: {
+      serif: '"JetBrains Mono","Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace',
+      mono: blood.fonts.mono,
+      body: blood.fonts.body
+    },
+    favicon: retone(blood.favicon, ink),
+    favicons: favicons,
+    headerMark: {eye: retone(blood.headerMark.eye, ink), travel: blood.headerMark.travel, lid: blood.headerMark.lid, underlineCss: blood.headerMark.underlineCss},
+    // The same eye artwork; only its inks change.
+    logoSource: blood.logoSource,
+    anatomy: blood.anatomy,
+    palette: {
+      light: ["#4a0630", "#7a0a50", "#a80c6c", "#d1006f", "#ff3ea5"],
+      dark: ["#5a0a3a", "#8f1063", "#c2178a", "#ff3ea5", "#ff8fd0"]
+    },
+    halftoneOverprint: {dx: 1.9, dy: 1.4, scale: 0.9, alpha: 0.9, dark: {color: "#2fe6ff", blend: "destination-over"}, light: {color: "#00a7c4", blend: "multiply"}},
+    glitch: {every: [3.5, 11], frames: [2, 4], shift: [4, 14], bands: [1, 3]},
+    statusGlyphs: blood.statusGlyphs,
+    actionIcons: blood.actionIcons,
+    settingsIcon: blood.settingsIcon,
+    // Marker and spray-tag strokes: blunt ends, no bristles or drips, a fine overspray, printed again in cyan slightly off register.
+    brushStroke: {
+      colors: {core: "var(--blood)", edge: "var(--blood)"},
+      overprint: {color: "var(--ink2)", dx: 1.6, dy: 1.2, opacity: 0.8},
+      presets: {
+        marker: {weight: 3.4, taperIn: 0.02, taperOut: 0.04, wobble: 0.4, bristles: 0, dryEnd: 0, hook: 0, drips: [0, 0], dripLength: 0, spatter: [0, 2]},
+        tag: {weight: 4, taperIn: 0.03, taperOut: 0.12, wobble: 0.7, bristles: 0, dryEnd: 1, hook: 0.6, drips: [0, 1], dripLength: 6, spatter: [1, 3]},
+        fine: {weight: 2.6, taperIn: 0.02, taperOut: 0.05, wobble: 0.3, bristles: 0, dryEnd: 0, hook: 0.2, drips: [0, 0], dripLength: 0, spatter: [0, 1]}
+      },
+      rule: {weight: 2.2, taperIn: 0.01, taperOut: 0.03, wobble: 1.4, bristles: 0, dryEnd: 0, hook: 0, drips: [0, 0], dripLength: 0, spatter: [3, 6],
+        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink)"}, overprint: {color: "var(--rule-ink-deep)", dx: 2, dy: 1.6, opacity: 0.7}}
+    },
+    eyeModes: blood.eyeModes,
+    deskArt: {
+      // A die-cut holographic sticker of the eye, in place of tape.
+      mount: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 74 74"><defs><linearGradient id="h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9ee0"/><stop offset=".28" stop-color="#a8e9ff"/><stop offset=".52" stop-color="#d3ffc2"/><stop offset=".74" stop-color="#fff0a6"/><stop offset="1" stop-color="#e0a8ff"/></linearGradient></defs><rect x="2" y="3" width="70" height="70" rx="15" fill="#000" fill-opacity=".35"/><rect x="1" y="1" width="70" height="70" rx="15" fill="#fbfaff"/><rect x="5" y="5" width="62" height="62" rx="12" fill="url(#h)"/><path d="M12 22l50 26M12 34l50 26M12 10l50 26" stroke="#fff" stroke-opacity=".35" stroke-width="3"/><path d="M14 36c6-9 14-13 22-13s16 4 22 13c-6 9-14 13-22 13s-16-4-22-13z" fill="none" stroke="#17142a" stroke-width="3.4" stroke-linejoin="round"/><circle cx="36" cy="36" r="7" fill="#17142a"/><circle cx="33.5" cy="33.5" r="2" fill="#fff"/></svg>'
+    },
+    deskCss: [
+      N + ' #desk .desk-light{background:radial-gradient(62vmax 46vmax at 90% 4%,var(--pool) 0,transparent 70%),radial-gradient(58vmax 46vmax at 4% 98%,var(--pool-2) 0,transparent 70%),radial-gradient(130vmax 95vmax at 50% 45%,transparent 36%,var(--desk-vignette) 100%)}',
+      N + ' #desk .desk-flicker{background:radial-gradient(36vmax 26vmax at 93% 0,var(--flicker-1) 0,transparent 70%)}',
+      N + ' #desk .desk-flicker.b{background:radial-gradient(34vmax 28vmax at 3% 100%,var(--flicker-2) 0,transparent 70%)}',
+      N + ' #desk .desk-overlay{background:' + scan + '}',
+      // A neon tube buzzes: long steady stretches broken by quick, uneven dropouts.
+      '@media (prefers-reduced-motion:no-preference){' + N + ' #desk .desk-flicker{animation:neon-buzz 9.7s steps(1,end) infinite}' + N + ' #desk .desk-flicker.b{animation:neon-buzz 13.3s steps(1,end) infinite reverse}}',
+      '@keyframes neon-buzz{0%{opacity:1}31%{opacity:1}31.6%{opacity:.3}32.2%{opacity:1}33%{opacity:.55}33.6%{opacity:1}70%{opacity:1}70.5%{opacity:.62}71.3%{opacity:1}88%{opacity:.85}88.4%{opacity:.4}89%{opacity:1}}',
+      // The cutting mat: rounded rubber with a printed grid (in the tile) and ruler ticks along two edges.
+      N + ' .page::before{border-radius:14px;box-shadow:inset 0 0 0 1px var(--blotter-edge),inset 0 1px 0 var(--edge-hi),0 2px 0 var(--edge-lo2),0 4px 0 var(--edge-lo2),0 20px 44px -14px var(--lift)}',
+      N + ' .page::after{content:"";position:absolute;inset:26px 16px 46px;z-index:-2;pointer-events:none;border-radius:14px;background:repeating-linear-gradient(90deg,var(--stitch) 0 1px,transparent 1px 16px) 30px 7px/calc(100% - 60px) 5px no-repeat,repeating-linear-gradient(90deg,var(--stitch) 0 1.5px,transparent 1.5px 80px) 30px 7px/calc(100% - 60px) 11px no-repeat,repeating-linear-gradient(180deg,var(--stitch) 0 1px,transparent 1px 16px) 7px 30px/5px calc(100% - 60px) no-repeat,repeating-linear-gradient(180deg,var(--stitch) 0 1.5px,transparent 1.5px 80px) 7px 30px/11px calc(100% - 60px) no-repeat}',
+      // Panels are matte acrylic, screwed down at the corners, with faint scanlines.
+      N + ' .page>main,' + N + ' .book-left>.backend,' + N + ' .settings,' + N + ' .desk-obj .paper{--obj-radius:10px;background:' + screws + ',' + scan + ',var(--stock)}',
+      N + ' .page>main::before,' + N + ' .book-left>.backend::after,' + N + ' .desk-obj .sheet{--obj-radius:10px}',
+      N + ' .page>main{padding:30px 38px 26px}',
+      N + ' .book-left>.coin{--eye-tilt:-.8deg}',
+      N + ' .desk-obj .mount{top:-18px;left:auto;right:-20px;width:76px;height:76px;margin:0;transform:rotate(11deg);border-radius:16px;overflow:hidden}',
+      N + ' .desk-obj .mount::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.7) 48%,transparent 60%);transform:translateX(-70%);transition:transform .9s ease-out}',
+      N + ' .coin:hover .desk-obj .mount::after{transform:translateX(70%)}',
+      '@media (prefers-reduced-motion:reduce){' + N + ' .desk-obj .mount::after{transition:none}}',
+      N + ' .masthead .mark{--word-spacing:.24em;font-size:27px;color:var(--ink2);padding-left:.24em}',
+      N + ' .console-title,' + N + ' .settings h2{color:var(--ink2)}',
+      N + ' .branch{font-size:19px;letter-spacing:-.01em}',
+      N + ' .backend .rollup .title{letter-spacing:.2em}',
+      // The backend rollup is an LED readout sunk into the plate.
+      N + ' .backend .rollup .state{align-self:stretch;transform:none;-webkit-mask:none;mask:none;margin:2px 0 6px;padding:13px 14px 12px;border:0;border-radius:6px;background:' + scan + ',var(--led-bg);box-shadow:inset 0 2px 7px #000,inset 0 0 0 1px rgba(255,255,255,.07),0 1px 0 var(--emb-hi);font:700 28px/1 var(--mono);letter-spacing:.12em;color:var(--led-ok);text-shadow:0 0 10px var(--led-ok-glow)}',
+      N + ' .backend .rollup:not(.tone-ok) .state{color:var(--led-bad);text-shadow:0 0 10px rgba(255,106,95,.6);transform:none;background:' + scan + ',var(--led-bg)}',
+      N + ' .backend .rollup.tone-warn .state{color:#ffd23f}',
+      // App pills are backlit keycaps: a lit face, a dark key wall below it, and an LED glow behind the status glyph.
+      N + ' .app-pill{--pill-pad:7px 15px 8px 12px;--led:var(--ink2);--tag-shape:inset(0 round 7px);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--tag) 55%);--tag-mount:radial-gradient(circle at 21px 50%,color-mix(in srgb,var(--led) 42%,transparent) 0,transparent 15px);font-family:var(--mono);font-size:14px}',
+      N + ' .app-pill::after{inset:0 0 -4px}',
+      N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--hl) 55%)}',
+      N + ' .app-pill.tone-warn{--led:var(--warn)}',
+      N + ' .app-pill.off{transform:translateY(3px)}',
+      N + ' .app-pill.off::after{inset:0 0 -1px}',
+      N + ' a.app-pill.off:hover,' + N + ' a.app-pill.off:focus-visible{transform:translateY(2px)}',
+      N + ' a.app-pill:hover,' + N + ' a.app-pill:focus-visible{transform:translateY(2px)}',
+      N + ' .slotno{font-weight:600;letter-spacing:.06em}'
+    ].join("\n"),
+    consoleArt: {
+      dark: {room: "#0b0a12", void: "#05050b", rib: "#1e1b2e", edge: "#3a3456", shine: "#6b63a0", rim: "#2a2540", shadow: "#141220", deck: "#12101c", vent: "#2d2944", star: "#2fe6ff"},
+      light: {room: "#d9d5e6", void: "#c3bfd6", rib: "#a9a3c2", edge: "#7a7398", shine: "#f6f3fb", rim: "#8e87ad", shadow: "#b5afc8", deck: "#bdb7d0", vent: "#9690b2", star: "#d1006f"}
+    },
+    backgrounds: {
+      // Brushed gunmetal under a rubber cutting mat; panels are smoky acrylic; a magenta tube glows off-screen.
+      desk: {kind: "desk", seed: 23, surface: "metal", blotter: "mat", stock: "acrylic", glow: {color: "#ff3ea5", core: "#ffd2ec"},
+        props: [{art: "floppy", side: "left", offset: 46, bottom: 40, width: 128, height: 128, rotate: -14},
+          {art: "screws", side: "right", offset: 60, bottom: 50, width: 90, height: 60}],
+        art: {
+          floppy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect x="9" y="12" width="114" height="114" rx="6" fill="#000" fill-opacity=".5"/><path fill="#2a2342" d="M10 4h96l14 14v96a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V10a6 6 0 0 1 6-6z"/><path fill="#ff3ea5" fill-opacity=".85" d="M10 4h96l14 14v4H4V10a6 6 0 0 1 6-6z"/><rect x="32" y="4" width="60" height="38" rx="2" fill="#b9b8c8"/><rect x="70" y="10" width="12" height="26" rx="1" fill="#2a2342"/><rect x="40" y="8" width="2" height="30" fill="#fff" fill-opacity=".5"/><rect x="18" y="60" width="92" height="56" rx="3" fill="#f3f1fa"/><path d="M26 74h76M26 86h60M26 98h70" stroke="#2fe6ff" stroke-width="2.4" stroke-linecap="round"/><path d="M26 74h40" stroke="#ff3ea5" stroke-width="2.4" stroke-linecap="round"/><rect x="8" y="110" width="6" height="6" fill="#17142a"/></svg>',
+          screws: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 60"><defs><radialGradient id="s" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#e6e4f2"/><stop offset=".6" stop-color="#7d7a92"/><stop offset="1" stop-color="#2a2838"/></radialGradient></defs><g fill="#000" fill-opacity=".5"><circle cx="20" cy="20" r="8"/><circle cx="58" cy="44" r="7"/><circle cx="76" cy="16" r="6"/></g><circle cx="18" cy="18" r="8" fill="url(#s)"/><path d="M13 14l10 8" stroke="#17142a" stroke-width="2"/><circle cx="56" cy="42" r="7" fill="url(#s)"/><path d="M51 42h10" stroke="#17142a" stroke-width="2"/><circle cx="74" cy="14" r="6" fill="url(#s)"/><path d="M70 17l8-6" stroke="#17142a" stroke-width="1.8"/></svg>'
+        },
+        dark: {surface: {ramp: ["#08080c", "#101017", "#191921", "#24242e"]}, blotter: {ramp: ["#0b0a15", "#0f0d1b", "#131126"], grid: "rgba(47,230,255,.13)", grid2: "rgba(255,62,165,.24)"},
+          stock: {ramp: ["#12101c", "#15131f", "#191625"]}, fog: "#6a3c8a"},
+        light: {surface: {ramp: ["#8a8996", "#a3a2ae", "#b7b6c2", "#cbcad4"]}, blotter: {ramp: ["#d2cee0", "#dad6e8", "#e1deee"], grid: "rgba(0,114,138,.24)", grid2: "rgba(209,0,111,.30)"},
+          stock: {ramp: ["#eeebf6", "#f4f2f9", "#faf9fd"]}, fog: "#ffffff"}},
+      book: {label: "Book", kind: "book", seed: 23,
+        dark: {paper: ["#1a1726", "#171422", "#14111e"], gutter: "#0b0a12", fox: "#241f36", ink: "#1d1a2c", edge: ["#2a2540", "#0e0c16"], desk: "#07060c", underside: "#2a2540", shadow: "#0b0a12"},
+        light: {paper: ["#f1eef8", "#e9e5f3", "#e0dbee"], gutter: "#d6d0e6", fox: "#e2dcef", ink: "#e7e2f2", edge: ["#e1dcec", "#bcb5d0"], desk: "#b5afc8", underside: "#faf9fd", shadow: "#bcb5d0"}},
+      console: {kind: "console"}
+    },
+    copy: blood.copy
+  };
+})();
 /* ===== end THEMES ================================================================= */
 var QA_THEME = (function () {
   var active = null, query = new URLSearchParams(location.search), systemDark = window.matchMedia("(prefers-color-scheme: dark)");
@@ -491,7 +917,7 @@ var QA_THEME = (function () {
     return /^(dark|light)$/.test(value) ? value : "system";
   }
   var schemePreference = pickScheme();
-  var sceneId = "book";
+  var sceneId = "desk";
   function mapScene(value) {
     if (SCENES[value]) return value;
     if (value === "plain" || value === "candlelight" || value === "fog") return "console";
@@ -501,7 +927,7 @@ var QA_THEME = (function () {
     if (active && SCENES[sceneId]) return sceneId;
     var value = mapScene(query.get("scene")) || mapScene(query.get("bg"));
     if (!value) { try { value = mapScene(localStorage.getItem("qaDashboardScene")) || mapScene(localStorage.getItem("qaDashboardBackground")) } catch (e) {} }
-    return value || "book";
+    return value || "desk";
   }
   function showBackground(theme) {
     var scene = SCENES[sceneId],asset = scene.background,entry = (theme.backgrounds || {})[asset],root = document.documentElement;
@@ -513,6 +939,10 @@ var QA_THEME = (function () {
     var name = query.get("theme");
     if (!THEMES[name]) { try { name = localStorage.getItem("qaDashboardTheme") } catch (e) { name = null } }
     return THEMES[name] ? name : "blood";
+  }
+  function deskArtVars(theme) {
+    var art = theme.deskArt || {};
+    return ";--desk-mount:" + (art.mount ? svgAsset(art.mount) : "none") + ";--desk-badge:" + (art.badge ? svgAsset(art.badge) : "none") + ";--desk-drip:" + (art.drip ? svgAsset(art.drip) : "none");
   }
   function block(vars) { return Object.keys(vars).map(function (key) { return key + ":" + vars[key] }).join(";") }
   // Film grain as one small pre-rendered tile of plain alpha noise. "multiply" grain darkens with black and "screen" grain
@@ -552,9 +982,9 @@ var QA_THEME = (function () {
     if (!style) { style = document.createElement("style"); style.id = "theme-style"; document.head.appendChild(style) }
     // data-scheme is "system", "dark" or "light": the media query applies only unless light is forced, and a forced dark wins by specificity.
     var dark = block(theme.css.dark) + ";--grain-image:" + grainTile(theme.css.dark) + consoleVars(theme,"dark");
-    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + consoleVars(theme,"light") + ";--folio-art:url(\"data:image/svg+xml," + encodeURIComponent(theme.folioArt || "") + "\");--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
+    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + consoleVars(theme,"light") + ";--folio-art:url(\"data:image/svg+xml," + encodeURIComponent(theme.folioArt || "") + "\")" + deskArtVars(theme) + ";--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
       "@media (prefers-color-scheme:dark){:root:not([data-scheme=\"light\"]){" + dark + "}}" +
-      ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}" + (theme.headerMark.underlineCss || "");
+      ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}" + (theme.headerMark.underlineCss || "") + "\n" + (theme.deskCss || "");
     document.documentElement.setAttribute("data-scheme", schemePreference);
     document.documentElement.setAttribute("data-theme", active.id);
     var icon = document.querySelector('link[rel="icon"]');
@@ -587,7 +1017,13 @@ var QA_THEME = (function () {
       document.dispatchEvent(new CustomEvent("qa-scheme"));
     },
     choose: function (name) { try { localStorage.setItem("qaDashboardTheme", name) } catch (e) {} apply(name) },
-    glyph: function (tone) { var glyphs = active.theme.statusGlyphs; return glyphs[tone] || glyphs.unknown },
+    // Desk swaps in the theme's brush-ink marks when it has them, so marks match the halftone and brush art around them.
+    glyph: function (tone) { var ink = sceneId === "desk" && active.theme.inkGlyphs, glyphs = ink || active.theme.statusGlyphs; return glyphs[tone] || glyphs.unknown },
+    icon: function (name) {
+      var ink = sceneId === "desk" && active.theme.inkIcons;
+      if (ink && ink[name]) return ink[name];
+      return name === "settings" ? active.theme.settingsIcon || "" : active.theme.actionIcons[name];
+    },
     favicon: function (state) {
       var icons = active.theme.favicons, svg = icons && icons[state] || active.theme.favicon, icon = document.querySelector('link[rel="icon"]');
       if (icon && icon.dataset.state !== state) { icon.href = "data:image/svg+xml," + encodeURIComponent(svg); icon.dataset.state = state }
@@ -832,11 +1268,218 @@ var QA_BG=(function(){
     return function step(){draw((performance.now()-begun)/1000);timer=setTimeout(step,1000/(cfg.fps||6))};
   }
 
-  var KINDS={candles:candles,book:book,console:consoleRoom,fog:fog};
+  /* ---- desk: a real surface for the Desk scene. Each material is painted once per theme and scheme into a full-resolution tile
+     and handed to CSS as a background, so nothing is filtered or blended live. Light, fog and flames move by opacity and transform. ---- */
+  var deskLayer=document.createElement("div"),deskTiles={};
+  deskLayer.id="desk";deskLayer.setAttribute("aria-hidden","true");
+  deskLayer.innerHTML='<i class="desk-light"></i><i class="desk-flicker"></i><i class="desk-flicker b"></i><i class="desk-fog a"></i><i class="desk-fog b"></i><i class="desk-overlay"></i><div class="desk-props"></div>';
+  document.body.insertBefore(deskLayer,canvas);
+  document.addEventListener("qa-modal",function(e){document.documentElement.classList.toggle("modal-open",!!e.detail)});
+  function rgb(hex){var n=parseInt(hex.slice(1),16);return[n>>16&255,n>>8&255,n&255]}
+  function rgba(hex,alpha){return"rgba("+rgb(hex).join(",")+","+alpha+")"}
+  function ramp(colors){
+    var stops=colors.map(rgb),last=stops.length-1;
+    return function(t,out){
+      t=Math.max(0,Math.min(0.9999,t))*last;var i=Math.floor(t),f=t-i,a=stops[i],b=stops[Math.min(last,i+1)];
+      out[0]=a[0]+(b[0]-a[0])*f;out[1]=a[1]+(b[1]-a[1])*f;out[2]=a[2]+(b[2]-a[2])*f;return out;
+    };
+  }
+  // Seamless value noise: periods are whole lattice cells (at most 256), so every tile wraps without a seam.
+  function noiseField(seed){
+    var next=seeded(seed),lattice=new Float32Array(65536);
+    for(var i=0;i<65536;i++)lattice[i]=next();
+    function value(x,y,px,py){
+      var xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+      var x0=((xi%px)+px)%px,x1=(x0+1)%px,y0=((yi%py)+py)%py,y1=(y0+1)%py;
+      var a=lattice[y0<<8|x0],b=lattice[y0<<8|x1],c=lattice[y1<<8|x0],d=lattice[y1<<8|x1];
+      return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+    }
+    function fbm(u,v,fx,fy,octaves){
+      var sum=0,amp=0.5,norm=0;
+      for(var o=0;o<octaves;o++){sum+=amp*value(u*fx,v*fy,fx,fy);norm+=amp;amp*=0.5;fx=Math.min(256,fx*2);fy=Math.min(256,fy*2)}
+      return sum/norm;
+    }
+    return{value:value,fbm:fbm,next:next};
+  }
+  function paintTile(width,height,shade){
+    var piece=document.createElement("canvas");piece.width=width;piece.height=height;
+    var context=piece.getContext("2d"),data=context.createImageData(width,height),bytes=data.data,out=[0,0,0,255];
+    for(var y=0;y<height;y++)for(var x=0;x<width;x++){
+      out[3]=255;shade(x,y,x/width,y/height,out);
+      var k=(y*width+x)*4;bytes[k]=out[0];bytes[k+1]=out[1];bytes[k+2]=out[2];bytes[k+3]=out[3];
+    }
+    context.putImageData(data,0,0);
+    return{canvas:piece,context:context};
+  }
+  // Small marks (pores, fibres, scratches, foxing) drawn on top, repeated across the edges so the tile still wraps.
+  function scatter(tile,count,n,draw){
+    var c=tile.context,w=tile.canvas.width,h=tile.canvas.height;
+    for(var i=0;i<count;i++){
+      var x=n.next()*w,y=n.next()*h,r=n.next(),s=n.next();
+      // Only marks near an edge need a wrapped copy; reach covers the longest mark.
+      var xs=[0],ys=[0],reach=170;
+      if(x<reach)xs.push(1);if(x>w-reach)xs.push(-1);if(y<reach)ys.push(1);if(y>h-reach)ys.push(-1);
+      for(var a=0;a<xs.length;a++)for(var b=0;b<ys.length;b++){c.save();c.translate(x+xs[a]*w,y+ys[b]*h);draw(c,r,s);c.restore()}
+    }
+  }
+  function scratches(tile,n,count,color,alpha){
+    scatter(tile,count,n,function(c,r,s){c.rotate(r*Math.PI*2);c.globalAlpha=alpha*(0.4+s);c.strokeStyle=color;c.lineWidth=0.6;c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(20+s*40,(r-0.5)*8,30+r*130,(s-0.5)*6);c.stroke()});
+  }
+  var MATERIALS={
+    // Planks of stained wood: figure from warped rings, long fibre streaks, seams, pores and wear.
+    wood:function(p,n){
+      var w=768,h=384,planks=4,ph=h/planks,R=ramp(p.ramp),seam=rgb(p.seam||p.ramp[0]),offsets=[],tones=[],joints=[];
+      for(var k=0;k<planks;k++){offsets.push(n.next()*10);tones.push((n.next()-0.5)*0.14);joints.push(Math.floor(n.next()*w))}
+      var tile=paintTile(w,h,function(x,y,u,v,out){
+        var plank=Math.floor(y/ph),ly=y-plank*ph;
+        if(ly<2||(x>=joints[plank]&&x<joints[plank]+2)){out[0]=seam[0];out[1]=seam[1];out[2]=seam[2];return}
+        var warp=n.fbm(u,v,4,4,2),figure=ly/ph*2.6+warp*2.2+offsets[plank]+n.value(u*2,v*16,2,16)*0.8;
+        var ring=0.5+0.5*Math.sin(figure*Math.PI*2);ring=ring*ring*ring;
+        var streak=n.fbm(u,v,8,256,2);
+        R(0.1+0.52*streak+0.3*ring+0.16*(warp-0.5)+tones[plank]+(ly<5?0.1:0),out);
+      });
+      scatter(tile,1300,n,function(c,r,s){c.globalAlpha=0.25+0.35*s;c.fillStyle=p.seam||p.ramp[0];c.fillRect(0,0,2+r*9,1)});
+      scratches(tile,n,46,p.ramp[p.ramp.length-1],0.12);
+      return tile;
+    },
+    // Pebbled leather with soft mottling, creases and scuffs.
+    leather:function(p,n){
+      var s=384,R=ramp(p.ramp);
+      var tile=paintTile(s,s,function(x,y,u,v,out){
+        var mottle=n.fbm(u,v,4,4,3),pebble=n.value(u*112,v*112,112,112);
+        R(0.18+0.64*mottle+(pebble>0.68?-0.12:pebble<0.24?0.07:0)+(n.next()-0.5)*0.08,out);
+      });
+      scratches(tile,n,30,p.ramp[p.ramp.length-1],0.1);
+      scatter(tile,70,n,function(c,r,s){c.globalAlpha=0.1+0.15*s;c.fillStyle=p.ramp[0];c.beginPath();c.ellipse(0,0,2+r*7,1+s*3,r*3,0,Math.PI*2);c.fill()});
+      return tile;
+    },
+    // Brushed metal: fine horizontal grain over a slow sheen.
+    metal:function(p,n){
+      var R=ramp(p.ramp),tile=paintTile(512,256,function(x,y,u,v,out){
+        R(0.22+0.4*n.fbm(u,v,4,256,2)+0.34*(n.value(u*2,v*2,2,2)-0.5)+(n.next()-0.5)*0.1,out);
+      });
+      scratches(tile,n,34,p.ramp[p.ramp.length-1],0.12);
+      return tile;
+    },
+    // A rubber cutting mat with a printed grid and the knife marks of earlier jobs.
+    mat:function(p,n){
+      var s=320,R=ramp(p.ramp),tile=paintTile(s,s,function(x,y,u,v,out){R(0.5+(n.fbm(u,v,8,8,3)-0.5)*0.5+(n.next()-0.5)*0.12,out)});
+      var c=tile.context,i;
+      c.fillStyle=p.grid;for(i=0;i<s;i+=16){c.fillRect(i,0,1,s);c.fillRect(0,i,s,1)}
+      c.fillStyle=p.grid2;for(i=0;i<s;i+=80){c.fillRect(i,0,1.5,s);c.fillRect(0,i,s,1.5)}
+      for(i=0;i<s;i+=80){c.fillRect(i+38,i+39,4,2);c.fillRect(i+39,i+38,2,4)}
+      scratches(tile,n,40,p.ramp[p.ramp.length-1],0.16);
+      return tile;
+    },
+    // Card stock: cloudy mottling, grain, short fibres and a few foxing spots.
+    paper:function(p,n){
+      var s=320,R=ramp(p.ramp);
+      var tile=paintTile(s,s,function(x,y,u,v,out){
+        R(0.5+(n.fbm(u,v,5,5,3)-0.5)*0.8+(n.value(u*2,v*2,2,2)-0.5)*0.4+(n.next()-0.5)*0.1,out);
+      });
+      scatter(tile,360,n,function(c,r,s){c.rotate(r*Math.PI*2);c.globalAlpha=0.1+0.22*s;c.strokeStyle=p.fiber;c.lineWidth=0.7;c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(3+r*4,(s-0.5)*4,4+s*9,(r-0.5)*3);c.stroke()});
+      scatter(tile,8,n,function(c,r,s){
+        var radius=1.5+r*6,glow=c.createRadialGradient(0,0,0,0,0,radius);
+        glow.addColorStop(0,rgba(p.fox,0.55));glow.addColorStop(0.6,rgba(p.fox,0.22));glow.addColorStop(1,rgba(p.fox,0));
+        c.fillStyle=glow;c.beginPath();c.arc(0,0,radius,0,Math.PI*2);c.fill();
+        c.fillStyle=rgba(p.fox,0.4);for(var k=0;k<3;k++){c.beginPath();c.arc((s-0.5)*radius*3+k*2,(r-0.5)*radius*2-k,0.6+s,0,Math.PI*2);c.fill()}
+      });
+      return tile;
+    },
+    // Smoky acrylic: almost flat, with faint cloud and hairline scratches.
+    acrylic:function(p,n){
+      var R=ramp(p.ramp),tile=paintTile(256,256,function(x,y,u,v,out){R(0.5+(n.fbm(u,v,4,4,2)-0.5)*0.35+(n.next()-0.5)*0.08,out)});
+      scratches(tile,n,14,p.ramp[p.ramp.length-1],0.12);
+      return tile;
+    }
+  };
+  function fogTile(color,n){
+    var c=rgb(color);
+    return paintTile(512,128,function(x,y,u,v,out){
+      var a=n.fbm(u,v,4,2,3),body=Math.pow(Math.sin(Math.PI*v),1.4);
+      out[0]=c[0];out[1]=c[1];out[2]=c[2];out[3]=Math.max(0,Math.min(255,(a-0.36)*2.8*body*230));
+    });
+  }
+  // An alpha mask that knocks small gaps and worn streaks out of a rubber stamp's ink.
+  function gritTile(n){
+    return paintTile(150,150,function(x,y,u,v,out){
+      var blot=n.value(u*30,v*30,30,30),streak=n.fbm(u,v,3,48,2);
+      out[0]=out[1]=out[2]=255;out[3]=blot>0.84||n.next()<0.02?40:streak>0.74?150:255;
+    });
+  }
+  function glowSprite(glow){
+    var piece=document.createElement("canvas");piece.width=360;piece.height=64;
+    var c=piece.getContext("2d");c.lineCap="round";
+    c.shadowColor=glow.color;c.shadowBlur=18;c.strokeStyle=glow.color;c.lineWidth=4;
+    c.beginPath();c.moveTo(42,36);c.lineTo(318,36);c.stroke();c.stroke();
+    c.shadowBlur=5;c.strokeStyle=glow.core;c.lineWidth=1.6;c.beginPath();c.moveTo(46,36);c.lineTo(314,36);c.stroke();
+    return{canvas:piece};
+  }
+  // A torn bottom edge with a dog-eared corner, for the eye card's clip-path.
+  function deckle(n){
+    var points=["0 0","100% 0","100% calc(100% - 30px)","calc(100% - 30px) 100%"];
+    for(var x=86;x>0;x-=3.4)points.push(x.toFixed(1)+"% calc(100% - "+(n.next()*5).toFixed(1)+"px)");
+    points.push("0 calc(100% - 2px)");
+    return"polygon("+points.join(",")+")";
+  }
+  function deskProps(cfg){
+    var box=deskLayer.querySelector(".desk-props"),art=cfg.art||{};
+    box.textContent="";
+    (cfg.props||[]).forEach(function(prop){
+      var element=document.createElement("div"),svg=art[prop.art]||prop.art;
+      element.className="desk-prop";
+      element.style.cssText=prop.side+":"+(prop.offset||0)+"px;bottom:"+(prop.bottom||0)+"px;width:"+prop.width+"px;height:"+prop.height+"px;background-image:"+svgAsset(svg)+
+        (prop.rotate||prop.flip?";transform:"+(prop.flip?"scaleX(-1) ":"")+(prop.rotate?"rotate("+prop.rotate+"deg)":""):"");
+      (prop.lights||[]).forEach(function(light,index){
+        var flame=document.createElement("i");flame.className="light";
+        flame.style.cssText="left:"+light[0]+"%;top:"+light[1]+"%;--s:"+light[2]+"px;animation-delay:-"+((index*0.77+light[0]*0.031)%2).toFixed(2)+"s";
+        element.appendChild(flame);
+      });
+      box.appendChild(element);
+    });
+  }
+  // Finished tiles are cached in memory and in localStorage (keyed by a hash of the theme's desk entry), so a reload paints nothing.
+  var DESK_CACHE_VERSION=1;
+  function deskStoreKey(cfg,scheme){
+    var text=JSON.stringify({v:DESK_CACHE_VERSION,cfg:cfg,scheme:scheme}),hash=2166136261;
+    for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)}
+    return"qaDashboardDesk:"+QA_THEME.id()+":"+scheme+":"+(hash>>>0).toString(36);
+  }
+  function desk(cfg,palette){
+    var scheme=QA_THEME.isDark()?"dark":"light",key=QA_THEME.id()+":"+scheme,vars=deskTiles[key],root=document.documentElement,storeKey=deskStoreKey(cfg,scheme);
+    if(!vars){try{vars=JSON.parse(localStorage.getItem(storeKey)||"null")}catch(e){vars=null}if(vars)deskTiles[key]=vars}
+    if(!vars){
+      var n=noiseField(cfg.seed||7);vars={};
+      var put=function(name,tile,type){vars["--desk-"+name]='url("'+tile.canvas.toDataURL(type||"image/png",0.92)+'")';vars["--desk-"+name+"-size"]=tile.canvas.width+"px "+tile.canvas.height+"px"};
+      try{
+        if(MATERIALS[cfg.surface])put("surface",MATERIALS[cfg.surface](palette.surface,n),"image/jpeg");
+        if(MATERIALS[cfg.blotter]){put("blotter",MATERIALS[cfg.blotter](palette.blotter,n),"image/jpeg");vars["--desk-blotter-color"]=palette.blotter.ramp[1]}
+        if(MATERIALS[cfg.stock])put("stock",MATERIALS[cfg.stock](palette.stock,n),"image/jpeg");
+        if(palette.tag&&MATERIALS[cfg.stock])put("tag",MATERIALS[cfg.stock](palette.tag,n),"image/jpeg");
+        if(palette.fog)put("fog",fogTile(palette.fog,n));
+        put("grit",gritTile(n));
+        if(cfg.glow)put("glow",glowSprite(cfg.glow));
+        vars["--deckle"]=cfg.deckle?deckle(n):"none";
+      }catch(e){}
+      deskTiles[key]=vars;
+      try{
+        Object.keys(localStorage).forEach(function(name){if(name.indexOf("qaDashboardDesk:"+QA_THEME.id()+":"+scheme+":")===0&&name!==storeKey)localStorage.removeItem(name)});
+        localStorage.setItem(storeKey,JSON.stringify(vars));
+      }catch(e){}
+    }
+    Object.keys(vars).forEach(function(name){root.style.setProperty(name,vars[name])});
+    ["--desk-fog","--desk-glow","--desk-blotter","--desk-tag"].forEach(function(name){if(!vars[name])root.style.setProperty(name,"none")});
+    root.setAttribute("data-deckle",cfg.deckle?"1":"0");
+    deskProps(cfg);
+    return null;
+  }
+
+  var KINDS={candles:candles,book:book,console:consoleRoom,fog:fog,desk:desk};
   function start(){
     stop();
     var cfg=config(),make=KINDS[cfg.kind];
     if(!make)return;
+    if(cfg.kind==="desk"){desk(cfg,cfg[QA_THEME.isDark()?"dark":"light"]||cfg.dark);return}
     resize();
     var scheme=QA_THEME.isDark()?"dark":"light",palette=cfg.kind==="console"?QA_THEME.current().consoleArt[scheme]:cfg[scheme]||cfg.dark;
     running=make(cfg,palette);
@@ -859,7 +1502,7 @@ var QA_BG=(function(){
 <div class="header-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></header>
 <div id="banner" role="alert"></div>
 <div class="page"><div class="book-left"><section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
-<main><h2 class="console-title">Sessions <span id="console-count" class="console-count"></span></h2><div id="slots" class="slots"></div><div class="coin" aria-hidden="true"><canvas id="coin" width="200" height="230"></canvas><span class="portrait-label">Overseer</span></div><p id="hint" class="hint muted" hidden></p></main></div>
+<main><h2 class="console-title">Sessions <span id="console-count" class="console-count"></span></h2><div id="slots" class="slots"></div><div class="coin"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><canvas id="coin" width="200" height="230" aria-hidden="true"></canvas><span class="portrait-label" aria-hidden="true">Overseer</span><div class="masthead"></div></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off">
@@ -876,16 +1519,21 @@ var QA_BG=(function(){
 <script>
 "use strict";
 var INITIAL=/*INITIAL*/null/*END*/;
-// Keep one canvas and one eye engine. Both scenes give it an independent place in the left column.
+// Keep one canvas and one eye engine. Every scene gives it an independent place in the left column. Desk has no header:
+// the wordmark, freshness and Settings move into the eye card (the masthead) and go back to the header in other scenes.
 (function placeEye(){
   var coin=document.querySelector(".coin"),left=document.querySelector(".book-left"),backend=document.getElementById("backend"),label=coin.querySelector(".portrait-label");
+  var masthead=coin.querySelector(".masthead"),header=document.querySelector("header"),title=header.querySelector("h1"),mark=title.querySelector(".mark"),tools=header.querySelector(".header-tools");
   function sync(){
     label.textContent=QA_THEME.copy("characterName","Overseer");
-    var book=document.documentElement.getAttribute("data-scene")==="book";
-    if(book&&coin.parentNode===left&&coin.previousElementSibling===backend)return;
-    if(!book&&coin.parentNode===left&&coin.nextElementSibling===backend)return;
-    if(book)left.appendChild(coin);else left.insertBefore(coin,backend);
+    var scene=document.documentElement.getAttribute("data-scene"),book=scene==="book",desk=scene==="desk",moved=false;
+    if(desk&&mark.parentNode!==masthead){masthead.appendChild(mark);masthead.appendChild(tools);moved=true}
+    else if(!desk&&mark.parentNode===masthead){title.appendChild(mark);header.appendChild(tools);moved=true}
+    var placed=coin.parentNode===left&&(book?coin.previousElementSibling===backend:coin.nextElementSibling===backend);
+    if(!placed){if(book)left.appendChild(coin);else left.insertBefore(coin,backend);moved=true}
+    if(!moved)return;
     document.dispatchEvent(new Event("qa-layout"));
+    if(window.QA_BRUSH)QA_BRUSH.header();
   }
   sync();document.addEventListener("qa-bg",sync);document.addEventListener("qa-theme",sync);
 })();
@@ -1022,18 +1670,18 @@ function appPill(a){
   if(ready){
     var seed=hashText(name+":"+a.port),awake=inner.replace(dot(status.tone),dot(status.tone==="ok"?"awake":status.tone));
     var seep='<span class="seep" aria-hidden="true">'+seepFill(seed)+'<span class="seep-text">'+awake+'</span></span><span class="pill-drip" aria-hidden="true" style="left:'+(28+seed%44)+'%"></span>';
-    return'<a class="app-pill'+(status.failed?" failed":"")+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(title)+'">'+inner+seep+'</a>';
+    return'<a class="app-pill tone-'+status.tone+(status.failed?" failed":"")+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(title)+'">'+inner+seep+'</a>';
   }
-  if(url)return'<a class="app-pill off" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
-  return'<span class="app-pill off" title="'+esc(name)+' has no link">'+inner+'</span>';
+  if(url)return'<a class="app-pill off tone-'+status.tone+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
+  return'<span class="app-pill off tone-'+status.tone+'" title="'+esc(name)+' has no link">'+inner+'</span>';
 }
-function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.current().actionIcons[icon]+'</button>'}
+function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
 function renderSlot(s){
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"");
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno">slot '+esc(s.slot)+'</span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
-      ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.current().actionIcons.stop+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
+      ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
@@ -1273,7 +1921,9 @@ var QA_BRUSH=(function(){
   function svg(width,seed,scale,presetName){
     var config=QA_THEME.current().brushStroke;
     if(!config)return"";
-    var next=random(seed),names=Object.keys(config.presets),pick=names[Math.floor(next()*names.length)],preset=config.presets[presetName]||config.presets[pick];
+    // presetName may also be a preset object (the divider rule); a preset can carry its own colours.
+    var next=random(seed),names=Object.keys(config.presets),pick=names[Math.floor(next()*names.length)],preset=typeof presetName==="object"&&presetName?presetName:config.presets[presetName]||config.presets[pick];
+    var colors=preset.colors||config.colors,overprint=preset.overprint||config.overprint;
     var k=scale||1,weight=jitter(next,preset.weight)*k,dripLength=jitter(next,preset.dripLength)*k,wobble=jitter(next,preset.wobble)*k;
     var taperIn=jitter(next,preset.taperIn),taperOut=jitter(next,preset.taperOut),height=Math.ceil(weight+dripLength+6*k);
     var pressureA=smoothNoise(next,3),pressureB=smoothNoise(next,7),drift=smoothNoise(next,5),slope=Math.tan((next()*3-1.5)*Math.PI/180);
@@ -1286,23 +1936,23 @@ var QA_BRUSH=(function(){
       top.push(fixed(x)+" "+fixed(y-w/2));bottom.unshift(fixed(x)+" "+fixed(y+w/2));
       coreTop.push(fixed(x)+" "+fixed(y-w*0.3));coreBottom.unshift(fixed(x)+" "+fixed(y+w*0.3));
     }
-    var edge='style="fill:'+config.colors.edge+'"',core='style="fill:'+config.colors.core+'"',out=[];
+    var edge='style="fill:'+colors.edge+'"',core='style="fill:'+colors.core+'"',out=[];
     out.push('<path '+edge+' d="M'+top.join("L")+"L"+bottom.join("L")+'Z"/>');
     out.push('<path '+core+' d="M'+coreTop.join("L")+"L"+coreBottom.join("L")+'Z"/>');
     function at(u){var i=Math.round(Math.max(0,Math.min(1,u))*samples);return{x:centre[i][0],y:centre[i][1],w:thickness[i]}}
     for(var b=0;b<preset.bristles;b++){
       var offset=(b-(preset.bristles-1)/2)*0.32,line=[];
       for(var s=0.15;s<=0.78;s+=0.07){var p=at(s);line.push(fixed(p.x)+" "+fixed(p.y+offset*p.w))}
-      out.push('<path style="stroke:'+config.colors.edge+'" fill="none" stroke-opacity=".45" stroke-width="'+fixed(0.45*k)+'" d="M'+line.join("L")+'"/>');
+      out.push('<path style="stroke:'+colors.edge+'" fill="none" stroke-opacity=".45" stroke-width="'+fixed(0.45*k)+'" d="M'+line.join("L")+'"/>');
     }
     var dry=Math.round(jitter(next,preset.dryEnd));
     for(var d=0;d<dry;d++){
       var from=at(0.74+next()*0.06),reach=end+(next()*5-1)*k,dy=(d-(dry-1)/2)*weight*0.32+(next()-0.5)*k;
-      out.push('<path style="stroke:'+config.colors.core+'" fill="none" stroke-linecap="round" stroke-width="'+fixed((0.5+next()*0.6)*k)+'" stroke-dasharray="'+fixed((3+next()*6)*k)+" "+fixed((0.8+next()*1.6)*k)+'" d="M'+fixed(from.x)+" "+fixed(from.y+dy)+"L"+fixed(reach)+" "+fixed(from.y+dy+slope*(reach-from.x)+(next()-0.5)*k)+'"/>');
+      out.push('<path style="stroke:'+colors.core+'" fill="none" stroke-linecap="round" stroke-width="'+fixed((0.5+next()*0.6)*k)+'" stroke-dasharray="'+fixed((3+next()*6)*k)+" "+fixed((0.8+next()*1.6)*k)+'" d="M'+fixed(from.x)+" "+fixed(from.y+dy)+"L"+fixed(reach)+" "+fixed(from.y+dy+slope*(reach-from.x)+(next()-0.5)*k)+'"/>');
     }
     if(next()<preset.hook){
       var tail=at(0.97);
-      out.push('<path style="stroke:'+config.colors.core+'" fill="none" stroke-linecap="round" stroke-width="'+fixed(1.2*k)+'" d="M'+fixed(tail.x)+" "+fixed(tail.y)+"Q"+fixed(tail.x+3.5*k)+" "+fixed(tail.y-0.5*k)+" "+fixed(tail.x+2.2*k)+" "+fixed(tail.y-3*k)+'"/>');
+      out.push('<path style="stroke:'+colors.core+'" fill="none" stroke-linecap="round" stroke-width="'+fixed(1.2*k)+'" d="M'+fixed(tail.x)+" "+fixed(tail.y)+"Q"+fixed(tail.x+3.5*k)+" "+fixed(tail.y-0.5*k)+" "+fixed(tail.x+2.2*k)+" "+fixed(tail.y-3*k)+'"/>');
     }
     var drips=preset.drips[0]+Math.floor(next()*(preset.drips[1]-preset.drips[0]+1));
     for(var j=0;j<drips;j++){
@@ -1315,7 +1965,10 @@ var QA_BRUSH=(function(){
       var nearEnd=next()<0.6,sx=nearEnd?end-next()*10*k+2*k:start+next()*8*k,sy=baseY+(next()*2-1)*5*k;
       out.push('<circle '+(next()<0.5?core:edge)+' cx="'+fixed(sx)+'" cy="'+fixed(Math.max(0.6,sy))+'" r="'+fixed((0.35+next()*0.5)*k)+'"/>');
     }
-    return'<svg class="brush" viewBox="0 '+fixed(-3*k)+" "+fixed(width+6*k)+" "+fixed(height+3*k)+'" width="'+fixed(width+6*k)+'" height="'+fixed(height+3*k)+'" aria-hidden="true">'+out.join("")+"</svg>";
+    var ink=out.join("");
+    // A second ink prints the same stroke slightly off register, underneath the first.
+    if(overprint)ink='<g transform="translate('+fixed(overprint.dx*k)+" "+fixed(overprint.dy*k)+')" opacity="'+(overprint.opacity==null?1:overprint.opacity)+'">'+ink.split(colors.core).join(overprint.color).split(colors.edge).join(overprint.color)+"</g>"+ink;
+    return'<svg class="brush" viewBox="0 '+fixed(-3*k)+" "+fixed(width+6*k)+" "+fixed(height+3*k)+'" width="'+fixed(width+6*k)+'" height="'+fixed(height+3*k)+'" aria-hidden="true">'+ink+"</svg>";
   }
   function paint(host,width,seed,scale,animate,presetName){
     var old=host.querySelector(":scope > .brush");
@@ -1326,13 +1979,26 @@ var QA_BRUSH=(function(){
     return brush;
   }
   function header(){
-    var mark=document.querySelector("header .mark");
+    var mark=document.querySelector(".mark");
     if(!mark||!QA_THEME.current().brushStroke)return;
     mark.classList.add("has-brush");
     paint(mark,mark.getBoundingClientRect().width||110,(Math.random()*4294967296)>>>0,1,true);
   }
+  // Hand-inked dividers between sessions (shown in Desk), seeded per branch so they stay put across refreshes.
+  function rules(root){
+    var config=QA_THEME.current().brushStroke;
+    if(!config||!config.rule)return;
+    var cards=root.classList&&root.classList.contains("slot-card")?[root]:root.querySelectorAll(".slot-card");
+    Array.prototype.forEach.call(cards,function(card){
+      var branch=card.querySelector(".branch"),name=(branch?branch.textContent:"")+"|"+QA_THEME.id(),old=card.querySelector(":scope > .divider");
+      if(old&&old.dataset.ruleFor===name)return;
+      if(old)old.remove();
+      card.insertAdjacentHTML("afterbegin",'<div class="divider" aria-hidden="true" data-rule-for="'+esc(name)+'">'+svg(720,hashText("rule:"+name),1,config.rule)+'</div>');
+    });
+  }
   function decorate(root){
     if(!QA_THEME.current().brushStroke)return;
+    rules(root||document);
     (root||document).querySelectorAll(".branch").forEach(function(branch){
       var name=branch.textContent;
       if(branch.dataset.brushFor===name&&branch.querySelector(":scope > .brush"))return;
@@ -1382,7 +2048,7 @@ var QA_BRUSH=(function(){
     var mark=QA_THEME.current().headerMark;
     header.host.innerHTML=mark.eye;
     var settingsButton=document.getElementById("settings-open");
-    if(settingsButton)settingsButton.innerHTML=QA_THEME.current().settingsIcon||"";
+    if(settingsButton)settingsButton.innerHTML=QA_THEME.icon("settings");
 
     header.iris=header.host.querySelector("[data-eye-iris]");header.pupil=header.host.querySelector("[data-eye-pupil]");
     header.lid=header.host.querySelector("[data-eye-lid]");header.cover=header.host.querySelector("[data-eye-cover]");
@@ -1452,7 +2118,7 @@ var QA_BRUSH=(function(){
     if(headerBusy(now,aim))scheduleHeader();else headerSleep(now);
   }
   function updateHeader(){
-    var animate=!document.hidden&&!reduced.matches;
+    var animate=!document.hidden&&!reduced.matches&&QA_THEME.scene()!=="desk";
     if(animate&&!header.running){header.running=true;header.last=0;scheduleHeader()}
     else if(!animate){header.running=false;clearTimeout(header.timer);header.x=header.y=0;header.scale=1;drawHeader(0)}
   }
@@ -1648,6 +2314,43 @@ var QA_BRUSH=(function(){
       }
       ctx.fill();
     }
+    // Optional second ink: the same dots again, smaller and off register, composited on this small canvas only.
+    var over=engine.overprint;
+    if(over){
+      ctx.save();ctx.globalCompositeOperation=over.blend||"source-over";ctx.globalAlpha=over.alpha==null?0.85:over.alpha;ctx.fillStyle=over.color;ctx.beginPath();
+      for(i=0;i<count;i++){
+        if(dotShade[i]<1)continue;
+        var r2=dotRadius[i]/32*(over.scale||1),ox=engine.dotX[i]+over.dx,oy=engine.dotY[i]+over.dy;
+        ctx.moveTo(ox+r2,oy);ctx.arc(ox,oy,r2,0,6.2832);
+      }
+      ctx.fill();ctx.restore();
+    }
+  }
+  // Optional glitch: now and then a few horizontal slices of the finished frame slip sideways for a few frames.
+  var glitch={next:0,until:0,bands:[],was:false},glitchBuffer=null;
+  function glitchActive(real){
+    var config=QA_THEME.current().glitch;
+    if(!config||!real||reduced.matches)return false;
+    function between(range){return range[0]+Math.random()*(range[1]-range[0])}
+    if(real>=glitch.next&&real>=glitch.until){
+      if(glitch.next){
+        glitch.until=real+Math.round(between(config.frames))/FPS;glitch.bands=[];
+        for(var b=Math.round(between(config.bands));b>0;b--)glitch.bands.push({y:Math.floor(Math.random()*(H-24)),h:4+Math.floor(Math.random()*18),dx:Math.round(between(config.shift))*(Math.random()<0.5?-1:1)});
+      }
+      glitch.next=real+between(config.every);
+    }
+    return real<glitch.until;
+  }
+  function drawGlitch(){
+    var ratio=canvas.width/W;
+    if(!glitchBuffer){glitchBuffer=document.createElement("canvas")}
+    if(glitchBuffer.width!==canvas.width||glitchBuffer.height!==Math.ceil(24*ratio)){glitchBuffer.width=canvas.width;glitchBuffer.height=Math.ceil(24*ratio)}
+    var g=glitchBuffer.getContext("2d");
+    glitch.bands.forEach(function(band){
+      var sy=Math.round(band.y*ratio),sh=Math.round(band.h*ratio);
+      g.clearRect(0,0,glitchBuffer.width,glitchBuffer.height);g.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
+      ctx.clearRect(0,band.y,W,band.h);ctx.drawImage(glitchBuffer,0,0,canvas.width,sh,band.dx,band.y,W,band.h);
+    });
   }
   engine.clear=function(){engine.intensity.fill(0);engine.radiusScale.fill(1)};
 
@@ -1983,7 +2686,11 @@ var QA_BRUSH=(function(){
   function renderOnce(t,real){
     if(real)engine.gazeExpire(real);
     if(debug)window.__eyeFrames=(window.__eyeFrames||0)+1;
+    var glitching=glitchActive(real);
+    if(glitching||glitch.was)forceDraw=true;
     engine.clear();mode.frame(t,real);present();
+    if(glitching)drawGlitch();
+    glitch.was=glitching;
   }
   // The art moves in 12fps steps and its light in 24fps steps, so one timer step per 24th of a second is the finest change there is.
   function tick(){
@@ -2001,7 +2708,12 @@ var QA_BRUSH=(function(){
     if(animate&&!running){running=true;lastKey=-1;tick()}
     else if(!animate){stopLoop();if(!(wanted&&modalOpen)||force)renderOnce(isFrozen?frozen:mode.still,0)}
   }
-  function readPalette(){var palette=QA_THEME.current().palette;engine.palette=QA_THEME.isDark()?palette.dark:palette.light;forceDraw=true}
+  function readPalette(){
+    var theme=QA_THEME.current(),palette=theme.palette,over=theme.halftoneOverprint,scheme=QA_THEME.isDark()?"dark":"light";
+    engine.palette=palette[scheme];
+    engine.overprint=over?{dx:over.dx,dy:over.dy,scale:over.scale,alpha:over.alpha,color:over[scheme].color,blend:over[scheme].blend}:null;
+    forceDraw=true;
+  }
   function setupCanvas(){
     var ratio=window.devicePixelRatio||1;
     canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);forceDraw=true;
@@ -2036,9 +2748,11 @@ var QA_BRUSH=(function(){
   }
   fillScenes();
   if(backgroundSelect)backgroundSelect.addEventListener("change",function(){QA_THEME.chooseScene(backgroundSelect.value)});
-  document.addEventListener("qa-theme",function(){mode=off;fillScenes();loadTheme();if(typeof render==="function")render();QA_BRUSH.header()});
+  document.addEventListener("qa-theme",function(){mode=off;fillScenes();loadTheme();if(typeof render==="function")render();QA_BRUSH.header();QA_BRUSH.decorate(document)});
+  // Desk swaps glyph and icon sets and hides the header eye, so a scene change re-renders marks and re-checks the header loop.
+  document.addEventListener("qa-bg",function(){var button=document.getElementById("settings-open");if(button)button.innerHTML=QA_THEME.icon("settings");if(typeof render==="function")render();QA_BRUSH.decorate(document);updateHeader()});
   QA_BRUSH.header();QA_BRUSH.decorate(document);
-  var titleMark=document.querySelector("header .mark");
+  var titleMark=document.querySelector(".mark");
   if(titleMark)titleMark.addEventListener("click",QA_BRUSH.header);
   // The canvas box is measured again only after a scroll, resize or re-render, not on every pointer move.
   var boxRect=null;

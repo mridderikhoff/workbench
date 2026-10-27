@@ -1,40 +1,43 @@
 # Design guide: workbench dev tools
 
-Dev tools in this repo should be **fun**. They're tools I look at all day, so they get to have
-personality: pixel art, pulpy horror-poster energy, little moments of delight. Fun never costs
-legibility, speed or accessibility.
+Dev tools in this repo should be **fun first**. They're tools I look at all day, so they get to have
+personality: printed ink on real objects, pulpy horror-poster energy, little moments of delight.
+**Maximalism is welcome**: more flourishes, more effects, more texture, as long as status still
+scans instantly. Fun never costs legibility, speed or accessibility.
 
 The Overseer dashboard (`bin/qa-dashboard`) is the reference implementation. When in doubt, match it.
 
 ## The animated character comes first
 
-Expressive pixel art and animation are the heart of Overseer. The animated character is a focal
+An expressive, animated character (the halftone eye) is the heart of Overseer. The animated character is a focal
 part of the experience, not a decorative footer or just another status icon. Give it a deliberate
 place in each scene and protect its presence as the session list grows.
 
 - A **scene** determines the composition: layout, surfaces, and where the character and sessions
-  live. It can rearrange the interface substantially, as Book does; it is more than a background.
+  live. It can rearrange the interface substantially, as Desk and Book do; it is more than a background.
 - A **theme** supplies the visual world: palette, materials, typography, icons, and character.
   Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
 - The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
-  the pleasure of deliberate pixels, expressive animation, and responsive interaction rather than
-  copying the eye's anatomy into every theme.
+  the pleasure of deliberate marks, expressive animation, and responsive interaction rather than
+  copying the eye's anatomy into every theme. A theme may also re-ink the same character instead of
+  drawing a new one, as Neon does.
 - Character animation can remain alive when services are healthy. Keep status signals clear and
   distinct from the character's personality; neither should depend only on colour or motion.
 
 ## Make the interface belong to its scene
 
 Take inspiration from [Obra Dinn's logbook](https://dukope.com/devlogs/obra-dinn/tig-37/): give the
-interface a coherent place in its world. In Book, entries should look printed on the pages. In
-Console, the animated character should inhabit a display and the controls should belong to its
-panel. Avoid ordinary floating cards pasted over unrelated artwork.
+interface a coherent place in its world. In Desk, every panel is an object lying on a real desk.
+In Book, entries should look printed on the pages. In Console, the animated character should
+inhabit a display and the controls should belong to its panel. Avoid ordinary floating cards pasted
+over unrelated artwork.
 
 Use this within reason: this is a developer workspace. Keep information scannable, actions plain,
 and controls familiar. Never add fictional meters, pretend controls, or cumbersome navigation just
 to complete a metaphor. The art is here to bring play and joy to the workday, not to turn routine
 development into a game or a task to optimize. Leave room for the owner's taste and experiments.
 
-Current scene scope is **Book and Console only**. Other scene ideas live in
+Current scene scope is **Desk (the default), Book and Console only**. Other scene ideas live in
 [the scene notebook](docs/SCENE_IDEAS.md) until explicitly requested.
 
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
@@ -53,14 +56,24 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 - Show less text. A commit is its hash plus "committed 2h ago"; the message goes in a tooltip.
   A path is its last folder; the full path goes in a tooltip.
 
-### 2. Pixel art, style over realism
-- Prefer **deliberate pixel art** to realistic rendering. Chunky cells on a fixed grid, scaled with
-  nearest-neighbour (`image-rendering: pixelated`), hard edges.
-- Treat frames and controls as pixel artwork too: draw stepped contours and discrete highlight
-  and shadow cells around their edges. Carry the same edge grammar into small boxed controls.
-- **Limited palette:** 4–6 colours from the theme per piece, stepped and never blended. Gradients
-  are made with **ordered (Bayer) dithering** between adjacent palette steps.
-- **Stepped animation:** anything that moves position runs at about 8–12fps in whole-cell steps.
+### 2. Printed ink on real objects
+- **Panels are physical objects**: card stock, acrylic, a brass-eyeleted tag, a ledger card, an LED
+  plate. Give them visible edge thickness, a contact shadow, texture, controls sunk into the
+  surface and headings pressed in. A second sheet may peek out underneath. Status cards stay square
+  and on the grid; the character's card may tilt, be taped or stickered down, torn or dog-eared.
+- **The surface is real too**: stained wood, a leather blotter, brushed metal, a cutting mat. Light
+  falls on it (a candle pool, a neon tube off-screen) and fades towards the edges, so the objects sit
+  on it convincingly.
+- **Ink goes where a hand would make a mark**: the halftone character, brush underlines, seeded
+  dividers, rubber stamps, a seal, a single drip, the seep on a pill. Keep that mark language
+  consistent within a scene: don't mix smooth vector icons with pixel glyphs and brush ink at random.
+- **Two-ink printing is welcome**: a theme may overprint a second spot ink slightly off register.
+- **Popups belong to the same world**: same materials, lifted higher with a bigger shadow, fields
+  sunk in, buttons that press down, a plain dim behind them.
+- The **halftone character** keeps a fixed dot grid and a limited ramp (4–6 colours from the
+  theme); the pixel-art scenes (Book, Console) keep chunky cells, nearest-neighbour scaling and
+  ordered (Bayer) dithering.
+- **Stepped animation** for the character: anything that moves position runs at about 8–12fps in whole-cell steps.
   Light and brightness may step at about 24fps.
 - Use the classic tricks: squash and stretch (tall while falling, wide on impact), one-frame smears
   on fast moves, a few frames of anticipation, and easing done by **holding frames** rather than
@@ -108,7 +121,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   scheme, including canvases (re-derive cached palettes when the scheme changes).
 
 ### 7. Fast, or it isn't fun
-- Pixel art is a performance tool: draw small, scale up crisply, and swap pre-rendered frames.
+- Pre-rendered art is a performance tool: paint textures, fog and glows once per theme and scheme
+  into tiles (cache them), draw small, scale up crisply, and swap pre-rendered frames.
 - Animate only composited properties (`opacity`, `transform`). No live SVG filters
   (`feTurbulence`), large blurs, `backdrop-filter` or blend modes on full-page layers: pre-render
   them to a tile once.
@@ -121,8 +135,9 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 ### 8. Pluggable themes
 - Everything themeable lives in **one registry section** (`THEMES`): colours for dark and light,
   fonts, favicon variants, header art, logo source art, palettes, status glyphs, settings icon,
-  backgrounds, brushstroke presets and eye modes. The engines (halftone grid, dithering, drips,
-  brushstrokes, cursor tracking) stay theme-agnostic.
+  backgrounds (including the Desk materials and props), desk art and CSS, brushstroke presets and
+  eye modes. The engines (halftone grid, dithering, drips,
+  brushstrokes, desk materials, cursor tracking) stay theme-agnostic.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
 - Options belong in Settings (theme, appearance, logo animation, background) and persist across
   visits, applied before first paint so nothing flashes.
@@ -131,16 +146,17 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 
 Paste this when asking an agent to build or restyle a tool in this repo:
 
-> Build this as a **fun dev tool** following `DESIGN.md` in the workbench repo. Use deliberate pixel
-> art (fixed grid, nearest-neighbour scaling, a 4–6 colour palette with ordered dithering, stepped
-> animation at 8–12fps, squash/stretch and smear frames) with a pulpy horror-poster attitude, and
-> keep it SFW. Style over realism. Theme the **visuals only**: every word on screen stays plain and
+> Build this as a **fun-first dev tool** following `DESIGN.md` in the workbench repo; maximalism is
+> welcome. Make panels physical objects lying on a real, textured surface (edge thickness, contact
+> shadows, sunk controls, pressed-in headings), and put ink where a hand would mark: halftone art,
+> brush underlines, stamps, seeded dividers. Animate the character in stepped frames (8–12fps,
+> squash/stretch and smear frames) with a pulpy horror-poster attitude, and keep it SFW. Theme the **visuals only**: every word on screen stays plain and
 > standard. Make the most important status the biggest, most scannable element; healthy detail is
 > quiet and problems are loud. Status glyphs differ by shape, with labels beside them. No rhythmic
 > pulsing of decorative art; irregular flicker or drift is fine. Hand-made imperfection: strokes
 > don't end perfectly, and procedural art is seeded so it never repeats identically. Stay
 > accessible (AA text, 3:1 glyphs, focus rings, keyboard, reduced motion, System/Dark/Light) and
-> fast (composited properties only, no live filters, canvases at the art's frame rate that pause
-> when hidden, DOM rebuilt only on change). Put every themeable piece in the theme registry. Show
+> fast (composited properties only, no live filters, textures pre-rendered to cached tiles, canvases
+> at the art's frame rate that pause when hidden, DOM rebuilt only on change). Put every themeable piece in the theme registry. Show
 > screenshots in dark and light, at desktop and phone width, and report contrast and `?perf=1`
 > numbers.
