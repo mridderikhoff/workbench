@@ -27,14 +27,18 @@ HTML = r"""<!doctype html>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 var(--body);font-variant-numeric:tabular-nums}
-header{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:1fr auto 1fr;gap:10px 16px;align-items:center;padding:12px 16px 14px;border-bottom:3px solid var(--rule);background:var(--card);box-shadow:inset 0 3px 0 var(--border),0 3px 0 var(--shade)}
-header::before{content:"";position:absolute;top:6px;left:16px;right:16px;height:3px;pointer-events:none;background:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 9px) left/45px 3px no-repeat,repeating-linear-gradient(90deg,transparent 0 6px,var(--rule) 6px 9px) right/45px 3px no-repeat;opacity:.7}
-header::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;pointer-events:none;background:repeating-linear-gradient(90deg,var(--rule) 0 9px,var(--border) 9px 12px,var(--rule) 12px 24px)}
-header h1{grid-column:2;display:flex;align-items:center;gap:10px;margin:0;font:600 20px/1.2 var(--serif);letter-spacing:.06em;font-variant:small-caps}
-.eye{width:28px;height:28px;flex:none;border-radius:0;overflow:hidden;box-shadow:3px 0 0 var(--border),0 3px 0 var(--border)}
+header{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:1fr auto 1fr;gap:10px 16px;align-items:center;padding:11px 20px 13px;border-bottom:2px solid var(--blood-deep);background:var(--card);box-shadow:0 1px 0 var(--border),0 5px 14px var(--shade)}
+header::before,header::after{content:"";grid-row:1;height:1px;min-width:20px;background:var(--rule);align-self:center;opacity:.8;pointer-events:none}
+header::before{grid-column:1;margin-left:max(0px,calc(100% - 220px));margin-right:0}
+header::after{grid-column:3;margin-right:max(0px,calc(100% - 220px));margin-left:0}
+header h1{grid-column:2;grid-row:1;display:flex;align-items:center;gap:13px;margin:0;font:600 20px/1.2 var(--serif);letter-spacing:.06em;font-variant:small-caps}
+header h1::before,header h1::after{content:"";display:block;flex:none;width:24px;height:24px;background:var(--border);-webkit-mask:var(--folio-art) center/contain no-repeat;mask:var(--folio-art) center/contain no-repeat}
+header h1::before{transform:rotate(-45deg)}
+header h1::after{transform:rotate(135deg)}
+.eye{width:40px;height:40px;flex:none;overflow:hidden}
 .eye svg{display:block;width:100%;height:100%}
-.header-tools{grid-column:3;justify-self:end;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:flex-end}
-@media (max-width:640px){header{grid-template-columns:1fr}header h1{grid-column:1;justify-self:center}.header-tools{grid-column:1;justify-self:center;justify-content:center}}
+.header-tools{grid-column:3;grid-row:1;justify-self:end;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:flex-end;background:var(--card);padding-left:10px;z-index:1}
+@media (max-width:640px){header{grid-template-columns:1fr;padding:9px 12px 11px}header::before,header::after{display:none}header h1{grid-column:1;justify-self:center}.header-tools{grid-column:1;grid-row:2;justify-self:center;justify-content:center;padding-left:0}}
 .mark{position:relative;padding-bottom:7px}
 label{color:var(--muted);font-size:13px}
 input{font:13px var(--mono);padding:4px 7px;border:1px solid var(--border);border-radius:0;background:var(--inset);color:var(--text);width:11em;box-shadow:inset 3px 3px 0 var(--shade);transition:border-color .15s}
@@ -48,20 +52,20 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .slots{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .slots>*,main>*{min-width:0}
 .slots>.hint,.slots>.empty{grid-column:1/-1}
-.card{--frame:var(--border);position:relative;isolation:isolate;background:transparent;border:0;border-radius:0;padding:11px 14px;transition:filter .15s}
-/* The two cut paper layers paint behind the contents. Focus rings and drips stay outside their clipped edges. */
-.card::before,.card::after{content:"";position:absolute;pointer-events:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,calc(100% - 9px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 9px,100% 9px,100% calc(100% - 9px),calc(100% - 3px) calc(100% - 9px),calc(100% - 3px) calc(100% - 3px),calc(100% - 9px) calc(100% - 3px),calc(100% - 9px) 100%,9px 100%,9px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 9px),0 calc(100% - 9px),0 9px,3px 9px,3px 3px,9px 3px)}
-.card::before{inset:0;z-index:-2;background:var(--frame)}
-.card::after{inset:1px;z-index:-1;background-color:var(--card);background-image:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 9px),linear-gradient(var(--rule),var(--rule)),linear-gradient(var(--rule),var(--rule));background-repeat:no-repeat;background-size:45px 3px,12px 3px,3px 12px;background-position:18px 3px,calc(100% - 18px) calc(100% - 4px),calc(100% - 4px) calc(100% - 18px)}
+.card{--frame:var(--border);position:relative;isolation:isolate;background:var(--card);border:1px solid var(--frame);padding:17px 21px 18px;box-shadow:inset 0 0 0 4px var(--card),inset 0 0 0 5px var(--frame),0 5px 14px var(--shade)}
+/* Inner hairline and opposing engraved folio corners share the plate's ink. */
+.card::before{content:"";position:absolute;top:8px;left:8px;width:32px;height:32px;pointer-events:none;z-index:1;background:var(--muted);-webkit-mask:var(--folio-art) center/contain no-repeat;mask:var(--folio-art) center/contain no-repeat}
+.card.err::before{background:var(--bad)}
+.backend .head,.slot-card .head{padding-left:29px}
 #bg-canvas{display:none;position:fixed;left:0;top:0;z-index:-2;pointer-events:none;image-rendering:pixelated}
 html:not([data-bg-kind="none"]) #bg-canvas{display:block}
 html[data-bg-kind="book"] #bg-canvas{position:absolute}
 html[data-bg-kind="book"] .page{max-width:none;padding:28px 96px 80px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 160px;align-items:start}
 html[data-bg-kind="book"] .page>*{grid-column:auto;grid-row:auto;min-width:0;margin-top:0}
 html[data-bg-kind="book"] .page>.backend{width:auto;justify-self:stretch;top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px)}
-html[data-bg-kind="book"] .card{background:repeating-linear-gradient(90deg,var(--border) 0 9px,transparent 9px 12px) left bottom/100% 1px no-repeat}
-html[data-bg-kind="book"] .card::before{inset:auto auto 0 0;width:3px;height:12px;clip-path:none;background:var(--border)}
-html[data-bg-kind="book"] .card::after{inset:auto 0 0 auto;width:12px;height:3px;clip-path:none;background:var(--border)}
+html[data-bg-kind="book"] .card{background:linear-gradient(var(--border),var(--border)) left bottom/100% 1px no-repeat;border:0;box-shadow:none}
+html[data-bg-kind="book"] .card::before{top:auto;left:auto;right:0;bottom:-4px;width:18px;height:18px;transform:rotate(180deg);opacity:.65}
+html[data-bg-kind="book"] .backend .head,html[data-bg-kind="book"] .slot-card .head{padding-left:0}
 html[data-bg-kind="book"] .backend{box-shadow:none}
 html[data-bg-kind="book"] .app-pill,html[data-bg-kind="book"] .chip,html[data-bg-kind="book"] .pill,html[data-bg-kind="book"] .backend .rollup .state{background:transparent}
 html[data-bg-kind="book"] .hint{padding-inline:0}
@@ -103,7 +107,7 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .backend .rollup.tone-warn{--hero:var(--warn)}
 .backend .rollup.tone-down,.backend .rollup.tone-broken,.backend .rollup.tone-attn{--hero:var(--bad)}
 .backend .rollup .title{font:600 21px/1.25 var(--serif);letter-spacing:0;font-variant:normal;color:var(--text)}
-.backend .rollup .state{gap:8px;padding:4px 11px 4px 9px;border:1px solid var(--border);border-radius:0;background:var(--inset);box-shadow:inset 3px 3px 0 var(--shade),3px 3px 0 var(--shade);font:600 17px/1.2 var(--serif);color:var(--hero)}
+.backend .rollup .state{gap:8px;padding:5px 12px 5px 7px;border-left:3px solid currentColor;background:var(--inset);font:600 18px/1.2 var(--serif);color:var(--hero)}
 .backend .rollup .state .dot{width:22px;height:22px;color:currentColor}
 .backend .rel{display:inline-flex;align-items:center}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
@@ -117,7 +121,7 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
 .backend .action-result{margin:6px 0 0}
-.backend .svc{display:grid;grid-template-columns:14px 6.5em minmax(0,1fr);gap:1px 8px;align-items:center}
+.backend .svc{display:grid;grid-template-columns:18px 6.5em minmax(0,1fr);gap:1px 8px;align-items:center}
 .backend .svc>*{min-width:0}
 .backend .svc .name{min-width:0}
 .backend .svc .small{grid-column:3}
@@ -133,8 +137,8 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .backend .head>.rel{align-self:flex-start}
 .backend-details{margin-top:10px;padding-top:8px}
 }
-.slot-card .head{padding-right:5em;align-items:center}
-.slotno{position:absolute;top:9px;right:12px;font:13px var(--mono);color:var(--muted)}
+.slot-card .head{padding-right:5em;align-items:center;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.slotno{position:absolute;top:13px;right:19px;padding-left:9px;border-left:1px solid var(--rule);font:12px var(--mono);color:var(--muted);font-variant:small-caps}
 .tools{display:inline-flex;flex-wrap:wrap;gap:6px}
 .muted{color:var(--muted)}.small{font-size:13px;font-family:var(--mono);overflow-wrap:anywhere}
 code{font-family:var(--mono);font-size:13.5px}
@@ -143,18 +147,19 @@ code{font-family:var(--mono);font-size:13.5px}
 .svc>*{flex-shrink:0;max-width:100%}
 .svc .name{min-width:7em;font-family:var(--mono);font-size:14px}
 .chips{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border:1px solid var(--border);border-radius:0;background:var(--inset);box-shadow:inset 3px 0 0 var(--shade),2px 2px 0 var(--shade);font:14px var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border-left:2px solid var(--rule);background:var(--inset);font:14px var(--mono)}
 button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:3px}
-.dot{display:inline-flex;width:14px;height:14px;flex:none;color:var(--idle)}
+.dot{display:inline-flex;width:18px;height:18px;flex:none;color:var(--idle)}
 .dot svg{display:block;width:100%;height:100%}
 .dot.ok{color:var(--glyph-ok)}.dot.warn{color:var(--warn)}.dot.attn,.dot.down{color:var(--glyph-bad)}
 .tone-ok{color:var(--muted)}
 .svc.tone-broken,.svc.tone-down,.svc.tone-attn,.state.tone-broken,.state.tone-down,.state.tone-attn,.chip.tone-broken,.chip.tone-down,.chip.tone-attn{color:var(--glyph-bad);font-weight:600}
 .dot.broken{color:var(--glyph-bad);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}
 .apps{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
-.app-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px 5px 11px;border:1px solid var(--border);border-radius:0;background:var(--inset);box-shadow:inset 3px 3px 0 var(--shade),3px 3px 0 var(--shade);color:var(--text);text-decoration:none;font-size:15px;transition:border-color .15s,background-color .15s}
+.app-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px 5px 11px;border:1px solid var(--border);background:var(--inset);color:var(--text);text-decoration:none;font-size:15px;transition:border-color .15s,background-color .15s}
 a.app-pill{position:relative;isolation:isolate}
-a.app-pill::after{content:"";position:absolute;top:3px;right:3px;width:3px;height:3px;background:currentColor;box-shadow:-3px 3px 0 currentColor;opacity:.45;pointer-events:none;z-index:2}
+a.app-pill::after{content:"";position:absolute;left:10px;right:10px;bottom:2px;height:1px;background:var(--border);pointer-events:none;z-index:2}
+a.app-pill:hover::after,a.app-pill:focus-visible::after{background:var(--accent)}
 a.app-pill:hover,a.app-pill:focus-visible{border-color:var(--seep)}
 .seep{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:1}
 .seep-fill{position:absolute;bottom:0;left:0;height:30%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform .2s ease-in}
@@ -181,13 +186,13 @@ a.app-pill.failed{border-color:var(--glyph-bad);background:var(--hl)}
 .app-pill .build-failed{color:var(--glyph-bad);font-weight:600;font-size:13px}
 .app-pill .port{font:600 13px var(--mono);color:var(--muted)}
 .app-pill.off{border-style:dashed;background:transparent;color:var(--muted)}
-button{font:inherit;font-size:14px;color:var(--text);background:var(--inset);border:1px solid var(--border);border-radius:0;padding:2px 10px;box-shadow:inset 2px 2px 0 var(--shade),2px 2px 0 var(--shade);cursor:pointer;transition:border-color .15s,background-color .15s}
+button{font:inherit;font-size:14px;color:var(--text);background:var(--inset);border:1px solid var(--border);border-radius:0;padding:2px 10px;box-shadow:none;cursor:pointer;transition:border-color .15s,background-color .15s}
 button:hover:not(:disabled){border-color:var(--accent)}
 button:disabled{cursor:progress;color:var(--muted)}
 button.act{position:relative;font-weight:600;border-color:var(--accent);color:var(--accent);background:transparent}
-button.act::after{content:"";position:absolute;top:2px;right:2px;width:3px;height:3px;background:currentColor;box-shadow:-3px 3px 0 currentColor;opacity:.45;pointer-events:none}
-button.icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;color:var(--muted)}
-button.icon svg{width:16px;height:16px}
+button.act::after{display:none}
+button.icon{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;padding:0;color:var(--muted);background-color:transparent;border:0;border-bottom:1px solid transparent}
+button.icon svg{width:20px;height:20px}
 .copied{font-size:13px;color:var(--ok);font-weight:600}
 .action-result{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin:0 0 6px;font-size:14px}
 .action-result>span{display:inline-flex;align-items:center;gap:6px}
@@ -200,10 +205,13 @@ pre{margin:4px 0 0;padding:8px 10px;max-height:16em;overflow:auto;background:var
 .loading .coin{height:calc(75vh - var(--header-h,58px));min-height:236px}
 .coin{height:236px;display:flex;justify-content:center;align-items:center;overflow:hidden;pointer-events:none}
 .coin canvas{width:200px;height:230px}
-.settings{position:fixed;width:min(360px,calc(100vw - 32px));max-width:none;margin:auto;padding:20px 22px 18px;color:var(--parchment-ink);background:radial-gradient(ellipse at 30% 20%,transparent 40%,color-mix(in srgb,var(--parchment-edge) 30%,transparent) 100%),var(--parchment);border-color:var(--parchment-edge) !important;border:2px solid var(--border);border-radius:0;box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--parchment-edge) 30%,transparent),6px 6px 0 var(--parchment-edge),0 12px 40px rgba(0,0,0,.45);overflow:visible}
+.settings{position:fixed;width:min(360px,calc(100vw - 32px));max-width:none;margin:auto;padding:25px 25px 21px;color:var(--parchment-ink);background:var(--parchment);border:1px solid var(--parchment-edge);border-radius:0;box-shadow:inset 0 0 0 4px var(--parchment),inset 0 0 0 5px var(--parchment-edge),0 8px 20px rgba(0,0,0,.28);overflow:visible}
+.settings::before,.settings::after{content:"";position:absolute;width:23px;height:23px;pointer-events:none;background:var(--parchment-muted);-webkit-mask:var(--folio-art) center/contain no-repeat;mask:var(--folio-art) center/contain no-repeat}
+.settings::before{top:8px;right:8px;transform:rotate(90deg)}
+.settings::after{bottom:8px;left:8px;transform:rotate(-90deg)}
 .settings::backdrop{background:rgba(8,3,3,.62)}
 .settings-form{display:grid;grid-template-columns:auto 1fr;gap:12px 14px;align-items:center}
-.settings h2{grid-column:1/-1;margin:0 0 4px;font:600 22px/1.2 var(--serif);letter-spacing:.05em;font-variant:small-caps}
+.settings h2{grid-column:1/-1;margin:0 0 7px;padding-right:25px;font:600 22px/1.2 var(--serif);letter-spacing:.05em;font-variant:small-caps}
 .settings label,.settings .field-label{font:600 15px/1.2 var(--serif);letter-spacing:.04em;font-variant:small-caps;color:var(--parchment-muted)}
 .settings input,.settings select{font:16px/1.3 var(--serif);color:var(--parchment-ink);background-color:color-mix(in srgb,var(--parchment-field) 45%,transparent);
 border:0;border-bottom:1.5px solid var(--parchment-muted);border-radius:0;box-shadow:none;padding:4px 6px 3px;transition:border-color .15s,background-color .15s}
@@ -216,19 +224,18 @@ background-position:calc(100% - 13px) 55%,calc(100% - 8px) 55%;background-size:5
 .settings input:focus,.settings select:focus{outline:none;border-bottom-color:var(--blood);background-color:color-mix(in srgb,var(--parchment-field) 80%,transparent)}
 .settings input:focus-visible,.settings select:focus-visible{outline:2px solid var(--parchment-ink);outline-offset:2px}
 .settings .done{position:relative;font:600 16px/1 var(--serif);letter-spacing:.08em;font-variant:small-caps;color:var(--parchment-ink);background:transparent;
-padding:7px 18px 8px;border:1.6px solid var(--parchment-ink);border-radius:0;
-box-shadow:1px 1px 0 color-mix(in srgb,var(--parchment-ink) 35%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--parchment-ink) 12%,transparent);overflow:visible}
+padding:7px 18px 8px;border:1px solid var(--parchment-muted);border-bottom:2px solid var(--parchment-ink);border-radius:0;box-shadow:none;overflow:visible}
 .settings .done:hover:not(:disabled){border-color:var(--parchment-ink);background:color-mix(in srgb,var(--parchment-field) 50%,transparent)}
 .settings .done:active{transform:translateY(1px)}
 .settings .done:focus-visible{outline:2px solid var(--blood);outline-offset:3px}
 .settings .done .brush{left:14px;top:calc(100% - 12px)}
 .settings input,.settings select{width:100%}
-.settings .segmented{display:flex;border:1.5px solid var(--parchment-muted);border-radius:0;box-shadow:3px 3px 0 color-mix(in srgb,var(--parchment-ink) 18%,transparent);overflow:hidden}
+.settings .segmented{display:flex;border:1px solid var(--parchment-muted);border-radius:0;box-shadow:none;overflow:hidden}
 .settings .segmented label{position:relative;flex:1;text-align:center;font:600 14px/1 var(--serif);letter-spacing:.04em;font-variant:small-caps;color:var(--parchment-ink);padding:7px 8px 8px;cursor:pointer;transition:background-color .15s,color .15s}
 .settings .segmented label+label{border-left:1.5px solid var(--parchment-muted)}
 .settings .segmented input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;border:0}
 .settings .segmented label:hover{background:color-mix(in srgb,var(--parchment-field) 60%,transparent)}
-.settings .segmented label:has(input:checked){background:var(--parchment-ink);color:var(--parchment)}
+.settings .segmented label:has(input:checked){background:var(--parchment-field);color:var(--parchment-ink);box-shadow:inset 0 -3px 0 var(--parchment-ink)}
 .settings .segmented label:has(input:focus-visible){outline:2px solid var(--blood);outline-offset:-4px}
 @media (max-width:480px){.settings .segmented{grid-column:1/-1}}
 .settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:4px}
@@ -237,22 +244,14 @@ box-shadow:1px 1px 0 color-mix(in srgb,var(--parchment-ink) 35%,transparent),ins
 .confirm-dialog h2{margin:0}
 .confirm-dialog p{margin:0;overflow-wrap:anywhere}
 .confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px}
-.confirm-actions button{padding:6px 12px;color:var(--parchment-ink);border-color:var(--parchment-ink);background:transparent}
-.confirm-actions .danger{color:var(--parchment);background:var(--parchment-ink)}
+.confirm-actions button{padding:6px 12px;color:var(--parchment-ink);border-color:var(--parchment-muted);border-bottom:2px solid var(--parchment-ink);background:transparent}
+.confirm-actions .danger{color:var(--parchment-ink);background:transparent;border-color:var(--blood-deep);border-bottom:2px solid var(--blood);font-weight:600}
 .confirm-actions .danger:hover{color:var(--parchment-ink);background:var(--parchment-field)}
 .confirm-actions button:focus-visible{outline:2px solid var(--blood);outline-offset:2px}
 #settings-open{flex:none;width:34px;height:34px;color:var(--muted)}
-#settings-open svg{width:22px;height:22px;overflow:visible}
-.icon.stop svg{width:20px;height:20px}
+#settings-open svg{width:24px;height:24px;overflow:visible}
+.icon.stop svg{width:22px;height:22px}
 #settings-open:hover,#settings-open:focus-visible{color:var(--blood);border-color:var(--blood)}
-.knob{transition:transform .18s steps(2)}
-.knob-drip{opacity:0}
-#settings-open:hover .k1,#settings-open:focus-visible .k1{transform:translateX(3px)}
-#settings-open:hover .k2,#settings-open:focus-visible .k2{transform:translateX(-3px)}
-#settings-open:hover .k3,#settings-open:focus-visible .k3{transform:translateX(2.5px)}
-@media (prefers-reduced-motion:no-preference){#settings-open:hover .knob-drip,#settings-open:focus-visible .knob-drip{animation:knob-drip .7s ease-in .1s 1 forwards}}
-@keyframes knob-drip{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(5px)}}
-@media (prefers-reduced-motion:reduce){.knob{transition:none}}
 select{font:13px var(--body);color:var(--text);background:var(--inset);border:1px solid var(--border);border-radius:0;padding:2px 4px}
 select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .empty .title{display:block;margin-bottom:2px}
@@ -298,7 +297,9 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle
   brushStroke   {colors:{core, edge}, presets:{name:{weight, taperIn, taperOut, wobble, bristles, dryEnd, hook,
                 drips:[min,max], dripLength, spatter:[min,max]}}} for generated underlines; omit to keep underlineCss
-  settingsIcon  SVG string for the settings button; optional hooks .knob.k1/.k2/.k3 (slide on hover) and .knob-drip
+  actionIcons   {copy, terminal, stop} SVG strings in the same 24-unit filled family as statusGlyphs
+  folioArt      SVG mask source for the mirrored engraved title finials and framed plate corner
+  settingsIcon  SVG string for the settings button in the same 24-unit family
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
@@ -318,13 +319,20 @@ Minimal skeleton:
     logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><mask id='pupil'><rect width='64' height='64' fill='white'/><circle cx='32' cy='29' r='4.2' fill='black'/></mask></defs><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='3'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='5.6' stroke-dasharray='0 10 66 100'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6' pathLength='100' stroke-width='7' stroke-dasharray='0 26 36 100'/><path d='M9 25.8C15 16.8 22 11 33 11s19.4 6.2 26.6 18.6s1.6 3 1.8 4.2' pathLength='100' stroke-width='2.2' stroke-dasharray='0 84 3 2.6 2.4 3.4 1.4 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='3'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='6.2' stroke-dasharray='0 2 34 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='4.6' stroke-dasharray='0 2 72 100'/><path d='M4.6 33.2c9.2 10.4 17.4 14.4 27.4 14.4 9 0 15-4.2 20.6-11.4' pathLength='100' stroke-width='2' stroke-dasharray='0 86 4 3 2 100'/><g mask='url(#pupil)'><path d='M34.28 22.75 L35.18 23.12 L36.04 23.61 L36.84 24.21 L37.56 24.92 L38.18 25.74 L38.67 26.65 L39.03 27.64 L39.22 28.68 L39.23 29.75 L39.07 30.81 L38.73 31.82 L38.22 32.77 L37.56 33.61 L36.78 34.32 L35.90 34.90 L34.96 35.33 L33.97 35.62 L32.97 35.77 L31.97 35.79 L30.98 35.68 L30.01 35.45 L29.08 35.11 L28.19 34.65 L27.36 34.08 L26.60 33.39 L25.94 32.60 L25.39 31.71 L24.98 30.73 L24.73 29.69 L24.65 28.61 L24.75 27.53 L25.04 26.48 L25.50 25.49 L26.12 24.61 L26.87 23.83 L27.73 23.20 L28.67 22.71 L29.65 22.37 L30.67 22.17 L31.69 22.10 L32.70 22.17 L33.69 22.36 L34.65 22.67 L35.57 23.09 L36.43 23.64 L37.23 24.29' stroke-width='5.2'/><path d='M34.28 22.75 L35.18 23.12 L36.04 23.61 L36.84 24.21 L37.56 24.92 L38.18 25.74 L38.67 26.65 L39.03 27.64 L39.22 28.68 L39.23 29.75 L39.07 30.81 L38.73 31.82 L38.22 32.77 L37.56 33.61 L36.78 34.32 L35.90 34.90 L34.96 35.33 L33.97 35.62 L32.97 35.77 L31.97 35.79 L30.98 35.68 L30.01 35.45 L29.08 35.11 L28.19 34.65 L27.36 34.08 L26.60 33.39 L25.94 32.60 L25.39 31.71 L24.98 30.73 L24.73 29.69 L24.65 28.61 L24.75 27.53 L25.04 26.48 L25.50 25.49 L26.12 24.61 L26.87 23.83 L27.73 23.20 L28.67 22.71 L29.65 22.37 L30.67 22.17 L31.69 22.10 L32.70 22.17 L33.69 22.36 L34.65 22.67 L35.57 23.09 L36.43 23.64 L37.23 24.29' pathLength='100' stroke-width='6.4' stroke-dasharray='0 8 38 100'/></g><path d='M19.6 42V47.4L20.4 49V53' stroke-width='5'/><path d='M33.2 46V52.4L32.4 54.2V60' stroke-width='4.4'/><path d='M47 42.6V46.2L47.7 47.8V50.2' stroke-width='4.6'/></g><g fill='#e0061f'><circle cx='20.4' cy='53.9' r='3'/><circle cx='32.4' cy='61' r='2.6'/><circle cx='47.7' cy='51' r='2.3'/><circle cx='62' cy='31.4' r='0.85'/><circle cx='60.6' cy='34.6' r='0.6'/><circle cx='3.2' cy='31' r='0.7'/></g></svg>",
     palette: {light: [...], dark: [...]},
     statusGlyphs: THEMES.blood.statusGlyphs,
+    actionIcons: THEMES.blood.actionIcons,
+    settingsIcon: THEMES.blood.settingsIcon,
+    folioArt: THEMES.blood.folioArt,
     eyeModes: ["coin", "off"]
   };
 ==================================================================================== */
+// All dashboard controls and status marks use one 24-cell engraved silhouette language.
+function plateIcon(parts){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd">'+parts+'</svg>'}
 var THEMES = {
   blood: {
     name: "Blood",
     artPitch: 4.5,
+    // One engraved acanthus sprig is reused as the folio corner and the title's mirrored finials.
+    folioArt: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="black" d="M2 30h7v-2h5v-3h4v-4h4v-4h3v-5h2V5h2v9h-2v5h-3v4h-4v4h-5v3H2zM9 24H6v-2H4v-3H2v-5h3v3h2v2h3v2h3v3zM21 13v-3h-2V8h-3V6h-5V3h6v2h4v2h2v3h2v3zM26 14h3v-3h1v10h-2v3h-3v2h-4v2h-4v-3h4v-2h3v-3h2z"/></svg>',
     css: {
       light: {"--bg": "#efe5d0", "--card": "#f9f2e2", "--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
         "--border": "#cdb994", "--rule": "#a8001a", "--ok": "#1f7a45", "--bad": "#a8001a", "--warn": "#704500",
@@ -351,7 +359,7 @@ var THEMES = {
       down: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round'><path d='M6 22c9 11 17 15 27 15 9 0 15-4 21-12' stroke-width='6'/><path d='M15 31l-4 6M51 29l4 6' stroke-width='4.5'/></g><path d='M33 40c3 5 7 9 7 14a7 7 0 0 1-14 0c0-5 4-9 7-14z' fill='#e0061f'/></svg>"
     },
     headerMark: {
-      eye: '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="header-eye-opening"><path d="M5 30C13 17 22 11 33 11S52 17 59 29L54 35C48 42 42 46 33 46C23 46 15 42 6 32Z"/></clipPath></defs><rect width="64" height="64" rx="12" fill="#0b0505"/><g clip-path="url(#header-eye-opening)"><g data-eye-iris><circle cx="32" cy="29" r="10" fill="#e0061f"/><circle data-eye-pupil cx="32" cy="29" r="4.2" fill="#0b0505"/></g><rect data-eye-cover x="0" y="0" width="64" height="0" fill="#0b0505"/></g><g fill="none" stroke="#e0061f" stroke-linecap="round" stroke-linejoin="round"><path data-eye-lid d="M5 30C13 17 22 11 33 11s19 6 26 18" stroke-width="6"/><path d="M6 32c9 10 17 14 27 14 9 0 15-4 21-11" stroke-width="5"/></g><g fill="#e0061f"><path d="M17 40h5v13a2.5 2.5 0 0 1-5 0z"/><path d="M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z"/><path d="M45 41h4v9a2 2 0 0 1-4 0z"/><circle cx="19.5" cy="53.5" r="3"/><circle cx="33.25" cy="61" r="2.6"/><circle cx="47" cy="50.5" r="2.4"/></g></svg>',
+      eye: '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="header-eye-opening"><path d="M5 30C13 17 22 11 33 11S52 17 59 29L54 35C48 42 42 46 33 46C23 46 15 42 6 32Z"/></clipPath></defs><g clip-path="url(#header-eye-opening)"><g data-eye-iris><circle cx="32" cy="29" r="10" fill="#e0061f"/><circle data-eye-pupil cx="32" cy="29" r="4.2" fill="#0b0505"/></g><rect data-eye-cover x="0" y="0" width="64" height="0" fill="#0b0505"/></g><g fill="none" stroke="#e0061f" stroke-linecap="round" stroke-linejoin="round"><path data-eye-lid d="M5 30C13 17 22 11 33 11s19 6 26 18" stroke-width="6"/><path d="M6 32c9 10 17 14 27 14 9 0 15-4 21-11" stroke-width="5"/></g><g fill="#e0061f"><path d="M17 40h5v13a2.5 2.5 0 0 1-5 0z"/><path d="M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z"/><path d="M45 41h4v9a2 2 0 0 1-4 0z"/><circle cx="19.5" cy="53.5" r="3"/><circle cx="33.25" cy="61" r="2.6"/><circle cx="47" cy="50.5" r="2.4"/></g></svg>',
       travel: [8, 4.5],
       lid: {pivot: 31, top: 11, closed: -0.6},
       underlineCss: '.mark::after{content:"";position:absolute;left:0;right:-4px;bottom:0;height:9px;pointer-events:none;\nbackground:linear-gradient(var(--blood),var(--blood)) 0 0/100% 3px no-repeat,\nradial-gradient(circle,var(--blood) 1.6px,transparent 2px) 13px 3px/4px 6px no-repeat,\nlinear-gradient(var(--blood),var(--blood)) 14px 2px/2px 5px no-repeat,\nradial-gradient(circle,var(--blood) 1.3px,transparent 1.8px) 57px 1px/3px 5px no-repeat;\nborder-radius:2px 40% 2px 60%/2px 3px 1px 3px}'
@@ -363,15 +371,20 @@ var THEMES = {
       dark: ["#5c020c", "#9a0414", "#c4051b", "#e0061f", "#ff3348"]
     },
     statusGlyphs: {
-      ok: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 8C3.2 4.7 5.4 3.2 8 3.2s4.8 1.5 6.8 4.8c-2 3.3-4.2 4.8-6.8 4.8S3.2 11.3 1.2 8z" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.3" fill="currentColor" stroke="none"/></svg>',
-      warn: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 8.4c1.9 2.6 4 3.9 6.4 3.9s4.5-1.3 6.4-3.9" stroke-width="1.6"/><path d="M1.6 8.4C3.6 7 5.7 6.3 8 6.3s4.4.7 6.4 2.1" stroke-width="1.9"/><path d="M5.5 7.6h5a2.5 2.5 0 0 1-5 0z" fill="currentColor" stroke="none"/></svg>',
-      broken: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 7C3.2 3.7 5.4 2.2 8 2.2s4.8 1.5 6.8 4.8c-2 3.3-4.2 4.8-6.8 4.8S3.2 10.3 1.2 7z" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="7" r="2.7" fill="currentColor" stroke="none"/><circle cx="8" cy="7" r="1" style="fill:var(--card)" stroke="none"/><path d="M10.6 11.1c.6 1 1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 .9-2 1.5-3z" fill="currentColor" stroke="none"/></svg>',
-      down: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M1.8 5.4c1.9 2.6 3.9 3.8 6.2 3.8s4.3-1.2 6.2-3.8" stroke-width="1.9"/><path d="M3.9 8.1l-1.2 1.8M12.1 8.1l1.2 1.8" stroke-width="1.4"/><path d="M8 10.1c.7 1.1 1.7 2.1 1.7 3.2a1.7 1.7 0 0 1-3.4 0c0-1.1 1-2.1 1.7-3.2z" fill="currentColor" stroke="none"/></svg>',
-      attn: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><circle cx="8" cy="1.7" r="1"/><rect x="7.3" y="2.4" width="1.4" height="2.6" rx=".4"/><rect x="4.9" y="4.9" width="6.2" height="1.4" rx=".7"/><path d="M7 6.3h2L8 11.6z"/><path d="M8 12.4c.5.8 1.3 1.5 1.3 2.3a1.3 1.3 0 0 1-2.6 0c0-.8.8-1.5 1.3-2.3z"/></svg>',
-      awake: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 8C3.2 4.5 5.4 2.9 8 2.9s4.8 1.6 6.8 5.1c-2 3.5-4.2 5.1-6.8 5.1S3.2 11.5 1.2 8z" stroke-width="1.6" stroke-linejoin="round"/><g class="glyph-pupil"><circle cx="8" cy="8" r="2.5" fill="currentColor" stroke="none"/></g></svg>',
-      unknown: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>'
+      ok: plateIcon('<path d="M2 11h2V9h2V7h3V6h6v1h3v2h2v2h2v2h-2v2h-2v2h-3v1H9v-1H6v-2H4v-2H2zm7-1v4h2v2h2v-2h2v-4h-2V8h-2v2z"/>'),
+      warn: plateIcon('<path d="M2 9h2V7h3V6h10v1h3v2h2v5h-2v2h-3v2H7v-2H4v-2H2zm3 2v2h3v2h8v-2h3v-2h-3v-1H8v1z"/><path d="M10 11h4v3h-4z"/>'),
+      broken: plateIcon('<path d="M2 9h2V7h3V5h10v2h3v2h2v3h-2v2h-3v2H7v-2H4v-2H2zm7-1v4h2v2h2v-2h2V8h-2V6h-2v2z"/><path d="M17 14h2v2h1v2h1v3h-1v2h-5v-2h-1v-3h1v-2h2z"/>'),
+      down: plateIcon('<path d="M2 7h2v2h3v2h3v1h4v-1h3V9h3V7h2v4h-2v2h-3v2h-3v1h-4v-1H7v-2H4v-2H2zM5 14h2v3H5zM17 14h2v3h-2zM11 17h2v2h1v2h-1v1h-2v-1h-1v-2h1z"/>'),
+      attn: plateIcon('<path d="M11 2h2v3h-2zM9 5h6v2h3v2h-5v7h-2V9H6V7h3zM11 16h2v2h-2zM10 18h4v2h-4zM11 20h2v2h-2z"/>'),
+      awake: plateIcon('<path d="M2 11h2V9h2V7h3V6h6v1h3v2h2v2h2v2h-2v2h-2v2h-3v1H9v-1H6v-2H4v-2H2zm5-1v4h3v2h4v-2h3v-4h-3V8h-4v2z"/><g class="glyph-pupil"><path d="M10 9h4v2h1v3h-1v1h-4v-1H9v-3h1z"/></g>'),
+      unknown: plateIcon('<path d="M8 3h8v2h3v3h2v8h-2v3h-3v2H8v-2H5v-3H3V8h2V5h3zm1 3v2H7v2H6v4h1v2h2v2h6v-2h2v-2h1v-4h-1V8h-2V6z"/>')
     },
-    settingsIcon: '<svg viewBox="0 0 24 24" aria-hidden="true" class="settings-icon" style="fill:var(--blood)"><path d="M2.0 6.2C5.0 5.0 15.0 4.8 22.0 6.0C20.0 7.3 6.0 7.5 2.0 6.2Z"/><path d="M2.5 12.2C5.5 11.1 15.0 11.0 21.5 12.0C19.5 13.2 6.5 13.4 2.5 12.2Z"/><path d="M2.0 18.2C5.0 16.9 15.0 16.8 22.0 18.0C20.0 19.3 6.0 19.6 2.0 18.2Z"/><g class="knobs" style="stroke:var(--card);stroke-width:1.3;paint-order:stroke"><g transform="translate(7 6.4)"><g class="knob k1"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/></g></g><g transform="translate(17 12.4)"><g class="knob k2"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/><circle class="knob-drip" cx="0" cy="4" r="0.9" stroke="none"/></g></g><g transform="translate(12 18.4)"><g class="knob k3"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/></g></g></g></svg>',
+    actionIcons: {
+      copy: plateIcon('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
+      terminal: plateIcon('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
+      stop: plateIcon('<path d="M3 11h2l2 2V5h3v6h1V3h3v8h1V5h3v7h1V8h3v8l-4 6H8l-5-7z"/>')
+    },
+    settingsIcon: plateIcon('<path d="M2 5h20v2H2zM2 11h20v2H2zM2 17h20v2H2z"/><path d="M6 3h4v6H6zM15 9h4v6h-4zM10 15h4v6h-4z" style="fill:var(--card)"/><path d="M7 4h2v4H7zM16 10h2v4h-2zM11 16h2v4h-2z"/>'),
     brushStroke: {
       colors: {core: "var(--blood)", edge: "var(--blood-deep)"},
       presets: {
@@ -459,7 +472,7 @@ var QA_THEME = (function () {
     if (!style) { style = document.createElement("style"); style.id = "theme-style"; document.head.appendChild(style) }
     // data-scheme is "system", "dark" or "light": the media query applies only unless light is forced, and a forced dark wins by specificity.
     var dark = block(theme.css.dark) + ";--grain-image:" + grainTile(theme.css.dark);
-    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + ";--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
+    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + ";--folio-art:url(\"data:image/svg+xml," + encodeURIComponent(theme.folioArt || "") + "\");--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
       "@media (prefers-color-scheme:dark){:root:not([data-scheme=\"light\"]){" + dark + "}}" +
       ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}" + (theme.headerMark.underlineCss || "");
     document.documentElement.setAttribute("data-scheme", schemePreference);
@@ -879,18 +892,13 @@ function appPill(a){
   if(url)return'<a class="app-pill off" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
   return'<span class="app-pill off" title="'+esc(name)+' has no link">'+inner+'</span>';
 }
-var ICONS={
-  copy:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M3.5 10.5h-.5A1.5 1.5 0 0 1 1.5 9V3A1.5 1.5 0 0 1 3 1.5h6A1.5 1.5 0 0 1 10.5 3v.5"/></svg>',
-  stop:'<svg viewBox="0 0 20 20" aria-hidden="true" fill="currentColor"><path d="M5 18 2 12v-2h2l2 2V5h2v6h1V3h2v8h1V5h2v6h1V8h2v7l-2 3Z"/></svg>',
-  terminal:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M4.5 6l2 2-2 2M8.5 10.5h3"/></svg>'
-};
-function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+ICONS[icon]+'</button>'}
+function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.current().actionIcons[icon]+'</button>'}
 function renderSlot(s){
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"");
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno">slot '+esc(s.slot)+'</span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
-      ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+ICONS.stop+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
+      ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.current().actionIcons.stop+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
