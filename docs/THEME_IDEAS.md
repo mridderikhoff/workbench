@@ -1,8 +1,7 @@
 # Theme ideas
 
-A theme is a set of materials plus a default character; the user can pick any character in any theme (Settings > Character, a `CHARACTERS` entry in `bin/qa-dashboard`). Every character needs (a) a clear face or
-head that can follow the cursor and (b) something to animate while idle, the way the eye's blood
-drips do. The character's expression also carries the backend status, with a different shape per
+A theme supplies materials and reusable character effects. Blip is the global default; the user can pick any character in any theme (Settings > Overseer, a `CHARACTERS` entry in `bin/qa-dashboard`). Every character needs (a) a clear face or
+head that can follow the cursor and (b) something to animate while idle, the way Blip glances or the Eye blinks. The character's expression also carries the backend status, with a different shape per
 state (see DESIGN.md rule 5).
 
 ## Built
@@ -10,10 +9,10 @@ state (see DESIGN.md rule 5).
 - **Terminal** (now the default theme): putty plastic and keycaps around a Fallout-style CRT. The
   whole eye card is the screen: a curved glass in a putty bezel with baked scanlines, glow and
   vignette, a slow rolling refresh band and an occasional flicker (transform and opacity only; still
-  in Static and reduced motion). Its default character, Blip, is a large ASCII face that follows the
-  cursor a cell at a time over falling green characters. There is no typed prompt line and no props.
+  in Static and reduced motion). Blip is a large ASCII face whose pupils follow the
+  cursor on the CRT. The glass keeps its flashes and static warble. There is no typed prompt line and no props.
   Keys press down and their legend lights LED green. See DESIGN.md rule 9.
-- **Characters** (independent of theme): Eye (the halftone eye; Horror and Neon default) and Blip.
+- **Characters** (independent of theme): Eye (the halftone eye) and Blip (global default).
 
 ## Owl (follow-up, still an idea)
 

@@ -9,8 +9,8 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 ## The calls we've made
 
 1. **A theme is one set of materials; the character is its own setting.** The character (Eye,
-   Blip the CRT face, later an owl) is the masthead. A theme names a default character and the
-   Settings pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, acrylic on a cutting mat,
+   Blip the CRT face, later an owl) is the masthead. Blip is the global default and the
+   Settings > Overseer pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, acrylic on a cutting mat,
    a CRT and putty plastic). Every pixel of the theme answers "what is this made of?"
 2. **Materials over gradients.** Inscryption's candlelit table, NieR's warm paper UI. Surfaces get
    real texture, light falloff and contact shadows; nothing is a flat colour or a generic gradient.
@@ -40,7 +40,7 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 11. **The character reacts.** It follows the cursor, glances at whatever just changed, and its
     expression is the backend status. It always lets go (leave, blur, hidden tab, idle).
 12. **Idle life is irregular and rare.** Every 20 to 40 seconds something small happens: a candle
-    flickers, a drip forms, the phosphor glitches for a frame. No loops on a fixed beat.
+    flickers, Blip winks, the phosphor glitches for a frame. No loops on a fixed beat.
 13. **Fake the expensive effect** (Bruno Simon's baked lighting). Glow, scanlines, curvature, grain
     and foil are pre-rendered tiles or static layers. Only opacity and transform animate.
 14. **Effects have an off switch.** Reduced motion gives a designed still frame; Static logo mode
@@ -70,3 +70,25 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 - **Narrator or jokey copy:** the words stay plain; personality lives in the visuals.
 - **Tiny type (Death Stranding):** 13px minimum for metadata, 14px for anything you act on.
 - **Clip-art props:** if it isn't drawn in the character's art language, cut it.
+
+## Character and material extension
+
+A character renderer owns its face geometry, status expressions, and motion schedule. It draws into
+the shared halftone grid. A theme selects reusable effects in `characterEffects`, keyed by character
+id. `CHARACTER_EFFECTS` holds small `init(engine, state)` and `frame(engine, state, time)` modules.
+`composeCharacterEffects(id, engine, state)` resolves them once and returns a cached `frame(time)`.
+State supplies grid dimensions, face bounds, foreground value and ink masks, seed, activity, status,
+and the current face ink. Fill `fgVal` and `fgInk` before the effect frame. An effect can dim `fgVal`,
+write directly with `engine.put`, and set `engine.back` to a full-dot bucket (`ink * 5 + shade`,
+where shade is 1–5). Its ink numbers must match the engine's named ramps. Commit the foreground
+masks to the grid after the effect frame, then present the canvas. A character that draws straight
+to `engine.intensity` needs matching masks and this same commit order to use `shine`.
+Seed schedules and glyphs during `init`; `frame` must avoid allocations.
+
+For a future Owl renderer, call `composeCharacterEffects("owl", engine, state)` in its mode's `init`.
+On each frame, update `state.status` and `state.ink`, fill the face masks, call the returned
+`frame(time)`, commit those masks to the engine grid, and present the canvas. `engine.aim` returns a
+reused mutable cursor sample; consume it immediately rather than keeping a reference.
+A theme can select `characterEffects: {owl: ["shine"]}` using the same theme key and effect registry.
+The Owl adds one `CHARACTERS` entry with Full, Subtle, and Static modes; the picker lists it automatically.
+The current picker labels are exactly **Blip** and **Eye**, with Blip as the global initial and fallback.

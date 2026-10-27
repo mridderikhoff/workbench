@@ -3,7 +3,8 @@
 **Desk** places every panel on a textured desk. **Radio** places the character portrait beside a message plate that reports one current status fact. It reuses Desk's backend and session cards and their controls. Book and Console were built, tried and retired; their notes are below so either can come back. Everything in the deferred list is an idea for later, not a promise to build it.
 
 The [design guide](../DESIGN.md) is authoritative: expressive animation is the heart of the app. A scene supplies a
-composition; a theme supplies its visual world and default character (the user can pick another in Settings). The eye may become an avatar, creature, machine, or another
+composition; a theme supplies its visual world. Settings > Overseer selects the character independently, with Blip as the
+default. The eye may become an avatar, creature, machine, or another
 expressive subject in a future theme. Preserve the deliberate marks, animation, responsiveness, and personality, rather
 than requiring an eye.
 

@@ -19,7 +19,7 @@ place in each scene and protect its presence as the session list grows.
 - A **scene** determines the composition: layout, surfaces, and where the character and sessions
   live. Overseer has two scenes, **Desk** and **Radio**; retired scenes and future ideas live in
   [the scene notebook](docs/SCENE_IDEAS.md).
-- A **theme** supplies the visual world: palette, materials, typography, icons, and character.
+- A **theme** supplies the visual world: palette, materials, typography, icons, and character effects.
   Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
 - The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
   the pleasure of deliberate marks, expressive animation, and responsive interaction rather than
@@ -167,24 +167,25 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 - Everything themeable lives in **one registry section** (`THEMES`): colours for dark and light,
   fonts, favicon variants, logo source art, palettes, status glyphs, settings icon, the desk
   (materials and props), desk art and CSS, brushstroke presets, the pill and button hover effects
-  (`pillHover`, `buttonHover`) and eye modes, including custom character renderers. The engines
+  (`pillHover`, `buttonHover`) and effects selected for each character. Character renderers own anatomy and expression. The engines
   (halftone grid, drips, brushstrokes, desk materials, hovers, cursor tracking) stay theme-agnostic.
 - A theme's colours merge over `BASE`, which lists every engine key with a default. New keys derive
   borders and hover fills from the text colour (`color-mix`) rather than hand-picking. On `?debug=1`
   a startup check logs any key, icon or art a theme is missing, and any icon it shares with another.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
-- Options belong in Settings (tenant, theme, character, layout, appearance, logo animation) and persist across visits,
+- Options belong in Settings (tenant, theme, Overseer, layout, appearance, logo animation) and persist across visits,
   applied before first paint so nothing flashes. Logo animation has exactly three options with
-  generic names: **Full** (the whole animation), **Subtle** (only the slow ambient motion, such as
-  drips) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions
+  generic names: **Full** (the whole animation), **Subtle** (less ambient motion with no cursor tracking) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions
   map to the nearest option.
+- The Overseer choices are labelled **Blip** and **Eye**. Blip is the global initial and fallback;
+  a valid query override wins, then a valid saved choice. Invalid queries leave the saved choice in place.
 
 ### 9. The current themes
 Terminal is the default for a first visit; a stored choice always wins (a stored "blood" becomes Horror).
 - **Terminal**: a curved phosphor CRT in a putty bezel, with baked scanlines, glow and vignette,
-  a rolling refresh band and occasional flicker. Its default character, Blip, looks a cell towards
-  the cursor, leans on big moves, blinks `(-_-)` and has green characters falling behind it.
-  Eye and Blip can be selected in any theme. Putty plastic panels have moulded edges and vent slots,
+  a rolling refresh band and occasional flicker. Blip is the global default. Its pupils look towards
+  the cursor, and it blinks, winks, glances and smiles with irregular timing. Its CRT keeps the refresh band, flashes and static warble.
+  Eye and Blip can be selected in any theme. Horror gives Blip ink horns, Neon uses seeded pixel shine, and Blip has no drips in any theme. Putty plastic panels have moulded edges and vent slots,
   with a felt pad on a wooden desk, pressing keycaps, LED legends and embossed label tape.
   Phosphor green `#33ff66` and amber `#ffb000` appear only on dark glass or in dark mode; light mode
   uses dark inks on putty. Problems are a clear red.

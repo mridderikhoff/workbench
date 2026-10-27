@@ -701,8 +701,7 @@ var THEMES = {
       badDim: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#8f0414' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#8f0414'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#8f0414'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
       down: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round'><path d='M6 22c9 11 17 15 27 15 9 0 15-4 21-12' stroke-width='6'/><path d='M15 31l-4 6M51 29l4 6' stroke-width='4.5'/></g><path d='M33 40c3 5 7 9 7 14a7 7 0 0 1-14 0c0-5 4-9 7-14z' fill='#e0061f'/></svg>"
     },
-    // The character it ships with; a stored Character pick wins.
-    character: "eye",
+    characterEffects: {blip: ["horns", "shine"]},
     palette: {
       light: ["#4a020a", "#7d0312", "#a8041a", "#c8051c", "#e0061f"],
       dark: ["#5c020c", "#9a0414", "#c4051b", "#e0061f", "#ff3348"]
@@ -945,7 +944,7 @@ THEMES.neon = (function () {
     favicons: {ok: fav(BITS.ok, "#ff3ea5"), warn: fav(BITS.warn, "#ffc23c"), bad: fav(BITS.broken, "#ff3b30"), badDim: fav(BITS.broken, "#7a1a14"), down: fav(BITS.down, "#ff3b30")},
     // The same eye as Horror; only its inks change. In light magenta cannot carry dots on pale acrylic, so the character is
     // printed in near-black with the magenta as the off-register second ink.
-    character: "eye",
+    characterEffects: {blip: ["shine"]},
     palette: {
       light: ["#6a6478", "#4a4458", "#302c3c", "#1b1824", "#0d0b10"],
       dark: ["#4a0a30", "#850f56", "#bf1a7a", "#e82a93", "#ff3ea5"]
@@ -1128,7 +1127,7 @@ THEMES.terminal = (function () {
     favicon: screenFavicon(TINY.ok, "#33ff66", "#33ff66"),
     favicons: {ok: screenFavicon(TINY.ok, "#33ff66", "#33ff66"), warn: screenFavicon(TINY.warn, "#ffb000", "#ffb000"), bad: screenFavicon(TINY.broken, "#ff5a46", "#ff5a46"),
       badDim: screenFavicon(TINY.broken, "#7f1610", "#7f1610"), down: screenFavicon(TINY.down, "#2a5a38", "#3a3426")},
-    character: "blip",
+    characterEffects: {blip: ["shine"]},
     // The character sits on the CRT's dark glass in both schemes, so its inks are phosphor green, amber and red in both.
     screen: true,
     palette: {
@@ -1296,14 +1295,14 @@ THEMES.terminal = (function () {
 })();
 /* ===== end THEMES ================================================================= */
 /* ===== CHARACTERS =================================================================
-The character is the animated figure on the eye card. It is its own setting (Settings > Character), separate from the theme:
-each theme names a default character (`character`), and a stored pick wins. A character supplies its art and behaviour (source
+The character is the animated figure on the eye card. It is its own setting (Settings > Overseer), separate from the theme:
+Blip is the global default; a valid stored pick or query wins. A character supplies its art and behaviour (source
 art, face, idle animation, cursor-following, status expressions, and what Full, Subtle and Static do). The theme it appears in
 supplies the inks (its palette plus named ramps), the card or screen it sits on, and print effects (halftoneOverprint, glitch,
 bloom). So every character renders in every theme, in that theme's palette: Eye in Terminal is a phosphor eye on the CRT, Blip
 in Horror is a blood-red face on card stock.
-Characters: Eye (the halftone eye: Horror's and Neon's default) and Blip (an ASCII face: Terminal's default).
-  name        label in the Character picker
+Characters: Eye (the halftone eye) and Blip (the default ASCII face).
+  name        label in the Overseer picker
   stage       {width, height}: the canvas in CSS px; pitch: the halftone dot pitch in px; overlap: px the wordmark tucks under
               the canvas; size and centerY map logoSource's 64-unit box onto the canvas (size px wide, unit 32 at y = centerY)
   logoSource  optional SVG string, 64x64 viewBox, transparent background; the halftone grid samples its opaque pixels (alpha[])
@@ -1318,14 +1317,14 @@ Characters: Eye (the halftone eye: Horror's and Neon's default) and Blip (an ASC
               renderer {id, label, tracks, init(engine), frame(t, real, engine), still, idle}. A renderer draws on the halftone
               grid through the engine: cols, rows, count, pitch, fps, horizon, alpha[] (sampled logoSource), shade(),
               intensity[], ink[], radiusScale[], back[] (a full-size backdrop dot, bucket ink*5+shade+1), put(col,row,value,ink)
-              (raise), set(...) (overwrite), aim(col,row) (the cursor offset in px while tracking, else null), status (the
+              (raise), set(...) (overwrite), aim(col,row) (a reused mutable cursor offset sample; consume immediately, or null), status (the
               backend rollup: ok, warn, broken, down, attn, unknown), screen (true when the theme seats the character on a lit
               screen), random(seed), schedules(seed, first, gap, extra), findAt(starts, t) and reduced(). tracks: true makes
               the cursor engage tracking; still is the time of the still frame; idle: true runs no loop.
               Status expressions: a renderer may change its face with engine.status (Blip does). The eye looks the same in
               every state; the backend card carries the status.
-How to add a character: add one entry below; nothing else changes, and it shows up in the picker for every theme. To make it a
-theme's default, set that theme's `character`. The owl from docs/THEME_IDEAS.md becomes one entry:
+How to add a character: add one entry below; it shows up in the picker for every theme. To change the global default,
+change pickCharacter() and the picker label together. The owl from docs/THEME_IDEAS.md becomes one entry:
   CHARACTERS.owl = {
     name: "Owl",
     stage: {width: 200, height: 230, pitch: 4.5, size: 200, centerY: 96, overlap: 18},
@@ -1344,12 +1343,70 @@ var CHARACTERS = {
     modes: ["full", "subtle", "static"]
   }
 };
+// Effects use the same grid as every character. A theme selects them by name; the face renderer
+// supplies only its bounds and foreground mask. Each effect owns its seeded data and schedules.
+function hornBlock(E, x, y, value, ink) {
+  E.put(x, y, value, ink); E.put(x + 1, y, value, ink);
+  E.put(x, y + 1, value, ink); E.put(x + 1, y + 1, value, ink);
+}
+var CHARACTER_EFFECTS = {
+  horns: {
+    frame: function (E, s) {
+      if (s.status === "down") return;
+      var ink = s.ink;
+      var span = Math.max(3, Math.round(s.width * 0.06));
+      for (var side = 0; side < 2; side++) {
+        var x = s.left + Math.round(s.width * (side ? 0.87 : 0.13)), y = s.top;
+        hornBlock(E, x, y - 6, 0.92, ink);
+        hornBlock(E, x - 1, y - 4, 0.95, ink); hornBlock(E, x + 1, y - 4, 0.95, ink);
+        hornBlock(E, x - 2, y - 2, 1, ink); hornBlock(E, x + 2, y - 2, 1, ink);
+        hornBlock(E, x - span, y - 1, 0.9, ink); hornBlock(E, x + span, y - 1, 0.9, ink);
+      }
+    }
+  },
+  shine: {
+    init: function (E, s) {
+      s.shine = E.schedules(s.seed + 83, 3.4, s.activity ? [7 / s.activity, 14 / s.activity] : [10000, 10000], function (next) {
+        return {col: Math.floor(s.width * (0.2 + next() * 0.6)), bright: next() < 0.7};
+      });
+    },
+    frame: function (E, s, t) {
+      if (!s.activity || E.reduced()) return;
+      var j = E.findAt(s.shine.starts, t);
+      if (j < 0 || t - s.shine.starts[j] > 0.36) return;
+      var mark = s.shine.data[j], col = s.left + mark.col, painted = 0;
+      for (var i = 0; i < s.fgVal.length && painted < 7; i++) {
+        if (!s.fgVal[i] || Math.abs(i % s.cols - col) > 2) continue;
+        if (mark.bright) {
+          E.back[i] = s.fgInk[i] * 5 + 5;
+          if (!painted) { E.put(i % s.cols - 1, (i / s.cols | 0) - 2, 0.75, s.fgInk[i]); E.put(i % s.cols + 1, (i / s.cols | 0) - 1, 0.45, s.fgInk[i]) }
+        }
+        else s.fgVal[i] = 0.48;
+        painted++;
+      }
+    }
+  }
+};
+// A renderer supplies its mask, bounds, seed, activity and current ink. Fill the foreground
+// masks before frame(); effects may alter them and write grid/backdrop cells. Commit the masks
+// to the grid after frame(). Theme selection and effect lifecycle stay here for reuse.
+function composeCharacterEffects(characterId, engine, state) {
+  var profile = (QA_THEME.current().characterEffects || {})[characterId] || [], active = [];
+  for (var i = 0; i < profile.length; i++) {
+    var effect = CHARACTER_EFFECTS[profile[i]];
+    if (!effect) continue;
+    active.push(effect);
+    if (effect.init) effect.init(engine, state);
+  }
+  return {state: state, frame: function (time) {
+    for (var i = 0; i < active.length; i++) active[i].frame(engine, state, time);
+  }};
+}
 // Blip: an ASCII face drawn on the halftone grid. Each glyph pixel is a 2x2 block of dots (smoothed with scale2x), so the face
-// is the main thing on its card. It looks a cell or two towards the cursor, leans on big moves, blinks (-_-), and its
-// expression is the backend rollup. On a lit screen (the theme's `screen`) faint characters fall behind it; printed on a card,
-// its ink now and then runs and drips off the bottom of the face instead.
+// is the main thing on its card. Eye pupils move inside fixed outlines; rare blinks, winks, glances
+// and smiles leave the backend expression legible. The theme composes material effects separately.
 CHARACTERS.blip = (function () {
-  // Face glyphs: 5x7 (parentheses 3x7), and 3x5 for the falling characters.
+  // Face glyphs: 5x7 (parentheses 3x7).
   var G = {
     "(": ["..#", ".#.", "#..", "#..", "#..", ".#.", "..#"], ")": ["#..", ".#.", "..#", "..#", "..#", ".#.", "#.."],
     "^": [".....", "..#..", ".#.#.", "#...#", ".....", ".....", "....."],
@@ -1360,6 +1417,7 @@ CHARACTERS.blip = (function () {
     "?": [".###.", "#...#", "....#", "..##.", "..#..", ".....", "..#.."],
     "-": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
     _: [".....", ".....", ".....", ".....", ".....", ".....", "#####"],
+    u: [".....", ".....", ".....", "#...#", "#...#", ".#.#.", "..#.."],
     Z: ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"],
     z: ["#####", "...#.", "..#..", ".#...", "#####"]
   };
@@ -1380,13 +1438,22 @@ CHARACTERS.blip = (function () {
   }
   var BIG = {};
   Object.keys(G).forEach(function (key) { BIG[key] = scale2x(G[key]) });
+  BIG.pupil = ["##", "##"];
+  // Precompute each eye's half-lidded pose so a squint keeps its backend status shape.
+  var SQUINT = {};
+  ["^", "o", "O", ">", "<", "?"].forEach(function (key) {
+    SQUINT[key] = BIG[key].map(function (row, y) { return y < 6 ? ".........." : row });
+  });
+  // Chevron eyes close to a clean lid; question marks keep their readable outline.
+  SQUINT["^"] = BIG["-"];
+  SQUINT["?"] = BIG["?"].slice();
   // Ink 0 is the theme's palette; 1 and 2 are its warn and bad ramps. Faces per backend rollup (down is drawn on its own).
   var WARN = 1, BAD = 2;
   var FACES = {ok: ["^", "^", 0], warn: ["o", "O", WARN], broken: [">", "<", BAD], attn: ["O", "O", BAD], unknown: ["?", "?", 0]};
   // Layout in grid cells: ( at 0, eyes at 10 and 34, the mouth at 22, ) at 48; 54 cells wide and 14 tall.
   var WIDTH = 54, HEIGHT = 14;
   function renderer(config) {
-    var E, cols, rows, fgVal, fgInk, nonsense, rain, blinks, drips, faceLeft, faceTop;
+    var E, cols, rows, fgVal, fgInk, blinks, beats, effects, effectState, faceLeft, faceTop;
     var mode = {id: config.id, label: config.label, tracks: !!config.tracks, still: config.still, idle: !!config.idle, lean: 0, leanAt: -1};
     function stamp(glyph, c0, r0, value, ink) {
       for (var y = 0; y < glyph.length; y++) for (var x = 0; x < glyph[y].length; x++) {
@@ -1395,119 +1462,84 @@ CHARACTERS.blip = (function () {
         if (cc >= 0 && cc < cols && rr >= 0 && rr < rows) { var i = rr * cols + cc; fgVal[i] = value; fgInk[i] = ink }
       }
     }
-    // Drop shapes, 3 cells wide, hanging from their top row: a bead, swelling, swollen, and tall while it falls.
-    var DROPS = [[[0, 1, 0]], [[0, 1, 0], [0.55, 1, 0.55]], [[0, 1, 0], [0.5, 1, 0.5], [0.45, 0.9, 0.45]], [[0, 1, 0], [0.4, 1, 0.4], [0.85, 1, 0.85], [0.55, 1, 0.55], [0, 0.7, 0]]];
-    function blot(col, top, size, value, ink) { var shape = DROPS[size]; for (var r = 0; r < shape.length; r++) for (var c = 0; c < 3; c++) if (shape[r][c]) E.put(col + c - 1, top + r, value * shape[r][c], ink) }
-    // Falling characters keep a one-cell gap around the face so it always reads.
-    function near(i) { return fgVal[i] || fgVal[i - 1] || fgVal[i + 1] || fgVal[i - cols] || fgVal[i + cols] || fgVal[i - cols - 1] || fgVal[i - cols + 1] || fgVal[i + cols - 1] || fgVal[i + cols + 1] }
     mode.init = function (engine) {
       E = engine; cols = E.cols; rows = E.rows;
       fgVal = new Float32Array(E.count + cols + 1); fgInk = new Uint8Array(E.count);
       faceLeft = Math.floor((cols - WIDTH) / 2); faceTop = Math.floor((rows - HEIGHT) / 2) - 1;
-      var random = E.random(config.seed), i, cc;
-      nonsense = [];
-      for (i = 0; i < 64; i++) { var glyph = []; for (var k = 0; k < 5; k++) { var bits = 1 + Math.floor(random() * 7); glyph.push((bits & 4 ? "#" : ".") + (bits & 2 ? "#" : ".") + (bits & 1 ? "#" : ".")) } nonsense.push(glyph) }
-      // Rain: each column runs its own seeded schedule of drops with uneven speeds, trails and rests, so it never repeats.
-      rain = [];
-      for (cc = 1; cc + 3 <= cols - 1; cc += config.rainStep) {
-        var next = E.random(config.seed * 31 + cc), starts = [], drops = [], t = next() * config.rainRest[1];
-        while (t < E.horizon) {
-          var speed = config.rainSpeed[0] + next() * (config.rainSpeed[1] - config.rainSpeed[0]), trail = 1 + Math.floor(next() * 3), life = (rows + 12 + trail * 6) / speed;
-          starts.push(t); drops.push({speed: speed, trail: trail, life: life, seed: Math.floor(next() * 1e6)});
-          t += life + config.rainRest[0] + next() * (config.rainRest[1] - config.rainRest[0]);
-        }
-        rain.push({col: cc, starts: new Float64Array(starts), drops: drops});
-      }
-      blinks = E.schedules(config.seed + 5, 5 + random() * 4, config.blinkGap, function () { return null });
-      // Drips hang from the bottom of the parentheses and the mouth: they swell, stretch, fall in whole cells and soak away.
-      drips = [[3, 12], [27, 14], [51, 12]].map(function (spot, n) {
-        return {dx: spot[0], dy: spot[1], plan: E.schedules(config.seed * 7 + n * 13, 0.6 + n * 1.3, config.dripGap, function (next) { return {swell: 0.7 + next() * 0.9, wobble: Math.floor(next() * 3) - 1} })};
-      });
+      var random = E.random(config.seed);
+      blinks = E.schedules(config.seed + 5, 5 + random() * 4, config.blinkGap, function (next) { return {wink: next() < 0.26, eye: next() < 0.5 ? 0 : 1} });
+      beats = E.schedules(config.seed + 17, 10 + random() * 7, config.beatGap, function (next) { return {kind: Math.floor(next() * 3), direction: next() < 0.5 ? -1 : 1} });
+      effectState = {cols: cols, rows: rows, left: faceLeft, top: faceTop, width: WIDTH, height: HEIGHT,
+        fgVal: fgVal, fgInk: fgInk, seed: config.seed, activity: config.activity, status: E.status, ink: 0};
+      effects = composeCharacterEffects("blip", E, effectState);
       this.lean = 0; this.leanAt = -1;
     };
     mode.frame = function (t, real) {
-      var step = Math.floor(t * E.fps) / E.fps, timeline = step % E.horizon, status = E.status || "unknown", i;
+      var step = Math.floor(t * E.fps) / E.fps, timeline = step % E.horizon, status = E.status || "unknown";
       fgVal.fill(0);
-      // The eyes look up to two cells towards the cursor; a big sideways move leans the whole face two cells, overshooting first.
-      var lookC = 0, lookR = 0, leanTarget = 0, aim = this.tracks && real ? E.aim(faceLeft + WIDTH / 2, faceTop + HEIGHT / 2) : null;
+      var lookC = 0, lookR = 0, leanTarget = 0;
+      var aim = this.tracks && real ? E.aim(faceLeft + WIDTH / 2, faceTop + HEIGHT / 2) : null;
       if (aim) {
         var reach = Math.min(1, aim.distance / 120), d = aim.distance || 1;
         lookC = Math.max(-2, Math.min(2, Math.round(aim.dx / d * reach * 2.4)));
         lookR = Math.max(-2, Math.min(2, Math.round(aim.dy / d * reach * 2.2)));
         leanTarget = Math.abs(aim.dx) > 260 ? (aim.dx > 0 ? 2 : -2) : 0;
       }
+      var blinkFrame = -1, blinkData = null, beatFrame = -1, beatData = null;
+      if (!E.reduced() && !this.idle) {
+        var j = E.findAt(blinks.starts, timeline);
+        if (j >= 0) { blinkFrame = Math.floor((timeline - blinks.starts[j]) * E.fps); blinkData = blinks.data[j] }
+        j = E.findAt(beats.starts, timeline);
+        if (j >= 0) { beatFrame = Math.floor((timeline - beats.starts[j]) * E.fps); beatData = beats.data[j] }
+      }
+      if (!aim && beatFrame >= 0 && beatFrame < 9 && beatData && beatData.kind === 0) lookC = beatData.direction;
       if (leanTarget !== this.lean) { this.lean = leanTarget; this.leanAt = step }
-      var lean = this.lean && step - this.leanAt < 2 / E.fps ? this.lean + Math.sign(this.lean) : this.lean, left = faceLeft + lean, faceInk = (FACES[status] || FACES.unknown)[2];
+      var lean = this.lean && step - this.leanAt < 2 / E.fps ? this.lean + Math.sign(this.lean) : this.lean;
+      var left = faceLeft + lean, face = FACES[status] || FACES.unknown, ink = face[2];
+      effectState.left = left; effectState.top = faceTop; effectState.timeline = timeline; effectState.status = status; effectState.ink = ink;
       if (status === "down") {
-        // Down: the face is asleep, a slow zZ drifting up.
-        var drift = (Math.floor(step * 0.7 + 0.8 * Math.sin(step * 0.31)) % 3) * 2;
+        var drift = this.idle || E.reduced() ? 0 : (Math.floor(step * 0.7 + 0.8 * Math.sin(step * 0.31)) % 3) * 2;
         stamp(BIG.z, left + 12, faceTop + 6 - drift, 0.5, 0);
         stamp(BIG.Z, left + 28, faceTop - 2 - drift, 0.62, 0);
       } else {
-        var face = FACES[status] || FACES.unknown, ink = face[2], blinkFrame = -1;
-        if (!E.reduced()) { var j = E.findAt(blinks.starts, timeline); if (j >= 0) blinkFrame = Math.floor((timeline - blinks.starts[j]) * E.fps) }
-        // A slow blink, (-_-), with one squashed frame either side.
-        var squash = blinkFrame === 0 || blinkFrame === 6, shut = blinkFrame >= 1 && blinkFrame <= 5;
+        var shut = blinkFrame >= 1 && blinkFrame <= 3;
+        var wink = shut && blinkData && blinkData.wink;
         stamp(BIG["("], left, faceTop, 1, ink); stamp(BIG[")"], left + 48, faceTop, 1, ink);
         for (var k = 0; k < 2; k++) {
-          var glyphRows = shut ? BIG["-"] : BIG[face[k]];
-          if (squash) glyphRows = glyphRows.map(function (row, y) { return y < 6 ? ".........." : row });
-          stamp(glyphRows, left + 10 + k * 24 + lookC, faceTop + lookR, 1, ink);
-        }
-        stamp(BIG._, left + 22 + lookC, faceTop, 1, ink);
-      }
-      if (!E.screen && status !== "down") drips.forEach(function (drip) {
-        var j = E.findAt(drip.plan.starts, timeline);
-        if (j < 0) return;
-        var plan = drip.plan.data[j], age = timeline - drip.plan.starts[j], col = left + drip.dx, top = faceTop + drip.dy, floor = rows - 2;
-        if (age < plan.swell) { blot(col, top, age < plan.swell * 0.45 ? 0 : age < plan.swell * 0.8 ? 1 : 2, 0.85, faceInk); return }
-        age -= plan.swell;
-        var fall = Math.round(0.5 * 70 * age * age), row = top + 2 + fall;
-        if (row < floor - 1) {
-          // Tall while it falls, with a thin trail for the first few frames.
-          blot(col, row, 3, 0.9, faceInk);
-          if (age < 3 / E.fps) for (var r = top; r < row; r++) E.put(col, r, 0.5, faceInk);
-          return;
-        }
-        var landed = age - Math.sqrt(2 * Math.max(1, floor - 3 - top) / 70);
-        if (landed > 1.6) return;
-        // Wide on impact, then the spot soaks into the card.
-        var soak = Math.max(0, 1 - landed / 1.6);
-        for (var dc = -2; dc <= 2; dc++) E.put(col + dc + (landed < 1 / E.fps ? 0 : plan.wobble * (dc === 2 ? 1 : 0)), floor, (Math.abs(dc) === 2 ? 0.5 : 0.85) * soak, faceInk);
-        if (landed < 2 / E.fps) { E.put(col - 3, floor - 1, 0.6, faceInk); E.put(col + 3, floor - 2, 0.55, faceInk) }
-      });
-      if (E.screen) rain.forEach(function (column) {
-        var j = E.findAt(column.starts, timeline);
-        if (j < 0) return;
-        var drop = column.drops[j], age = timeline - column.starts[j];
-        if (age > drop.life) return;
-        var head = -6 + Math.floor(age * drop.speed);
-        for (var k = 0; k <= drop.trail; k++) {
-          var top = head - k * 6, glyph = nonsense[(drop.seed + k * 7 + Math.floor((timeline + k * 0.37 + drop.seed % 5) / (0.6 + (drop.seed % 7) * 0.15))) % 64];
-          var value = (k === 0 ? 0.46 : 0.36 - k * 0.06) * (status === "down" ? 0.6 : 1);
-          for (var y = 0; y < 5; y++) for (var x = 0; x < 3; x++) {
-            var rr = top + y;
-            if (glyph[y][x] !== "#" || rr < 0 || rr >= rows) continue;
-            var index = rr * cols + column.col + x;
-            if (near(index)) continue;
-            E.intensity[index] = value; E.ink[index] = 0;
+          var eye = face[k];
+          if (eye === "^" && (aim || lookC || lookR)) eye = "o";
+          var glyph = shut && (!wink || blinkData.eye === k) ? BIG["-"] : BIG[eye];
+          if (!shut && (blinkFrame === 0 || blinkFrame === 4 || (beatFrame >= 0 && beatFrame < 6 && beatData && beatData.kind === 1))) glyph = SQUINT[eye];
+          var eyeLeft = left + 10 + k * 24, eyeTop = faceTop;
+          if (glyph !== BIG.o && glyph !== BIG.O && glyph !== BIG["-"] && glyph !== SQUINT[eye]) {
+            eyeLeft += Math.max(-1, Math.min(1, lookC));
+            eyeTop += Math.max(-1, Math.min(1, lookR));
+          }
+          stamp(glyph, eyeLeft, eyeTop, 1, ink);
+          // Pupil moves inside the fixed eye outline. The parentheses and mouth stay put.
+          if (glyph === BIG.o || glyph === BIG.O) {
+            var px = eyeLeft + 4 + lookC, py = eyeTop + 7 + (glyph === BIG.o ? Math.max(-1, lookR) : lookR);
+            stamp(BIG.pupil, px, py, 0.9, ink);
           }
         }
-      });
-      for (i = 0; i < E.count; i++) if (fgVal[i]) { E.intensity[i] = fgVal[i]; E.ink[i] = fgInk[i]; E.radiusScale[i] = 1.08 }
+        var smile = beatFrame >= 0 && beatFrame < 10 && beatData && beatData.kind === 2;
+        stamp(BIG[smile ? "u" : "_"], left + 22, faceTop, 1, ink);
+      }
+      effects.frame(timeline);
+      for (var i = 0; i < E.count; i++) if (fgVal[i]) { E.intensity[i] = fgVal[i]; E.ink[i] = fgInk[i]; E.radiusScale[i] = 1.08 }
     };
     return mode;
   }
-  var calm = {seed: 19, rainStep: 9, rainSpeed: [2, 4], rainRest: [2, 7], blinkGap: [14, 30], dripGap: [5, 11], still: 2.1};
+  var calm = {seed: 19, activity: 0.45, blinkGap: [24, 46], beatGap: [31, 57], still: 2.1};
   function extend(base, own) { var out = {}; Object.keys(base).forEach(function (k) { out[k] = base[k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
   return {
     name: "Blip",
     stage: {width: 242, height: 150, pitch: 4, overlap: 0},
     inks: ["warn", "bad"],
     modes: [
-      renderer({id: "full", label: "Full", tracks: true, seed: 7, rainStep: 6, rainSpeed: [3, 6], rainRest: [0.8, 4.5], blinkGap: [7, 18], dripGap: [7, 16], still: 2.9}),
+      renderer({id: "full", label: "Full", tracks: true, seed: 7, activity: 1, blinkGap: [8, 21], beatGap: [18, 38], still: 2.9}),
       renderer(extend(calm, {id: "subtle", label: "Subtle"})),
-      renderer(extend(calm, {id: "static", label: "Static", idle: true}))
+      renderer(extend(calm, {id: "static", label: "Static", idle: true, activity: 0}))
     ]
   };
 })();
@@ -1541,16 +1573,16 @@ var QA_THEME = (function () {
     }
     return THEMES[name] ? name : DEFAULT;
   }
-  // Character: null follows the theme's default; a stored pick (or ?character=) wins. An unknown stored id is dropped.
+  // Blip is the global default. A valid query or saved pick wins before first paint.
   function pickCharacter() {
     var id = query.get("character");
     if (CHARACTERS[id]) return id;
     try { id = localStorage.getItem("qaDashboardCharacter") } catch (e) { id = null }
     if (id && !CHARACTERS[id]) { try { localStorage.removeItem("qaDashboardCharacter") } catch (e) {} id = null }
-    return id || null;
+    return id || "blip";
   }
   var characterPick = pickCharacter();
-  function characterId() { var id = characterPick || (active && active.theme.character); return CHARACTERS[id] ? id : "eye" }
+  function characterId() { return CHARACTERS[characterPick] ? characterPick : "blip" }
   // The canvas size comes from the character and is set before first paint, so the card never jumps.
   function applyCharacter() {
     var id = characterId(), stage = CHARACTERS[id].stage || {}, root = document.documentElement;
@@ -1603,11 +1635,10 @@ var QA_THEME = (function () {
     id: function () { return active.id },
     character: function () { return CHARACTERS[characterId()] },
     characterId: characterId,
-    characterPick: function () { return characterPick || "" },
-    // "" follows the theme again.
+    characterPick: function () { return characterId() },
     chooseCharacter: function (id) {
-      characterPick = CHARACTERS[id] ? id : null;
-      try { if (characterPick) localStorage.setItem("qaDashboardCharacter", id); else localStorage.removeItem("qaDashboardCharacter") } catch (e) {}
+      characterPick = CHARACTERS[id] ? id : "blip";
+      try { localStorage.setItem("qaDashboardCharacter", characterPick) } catch (e) {}
       applyCharacter();
       document.dispatchEvent(new CustomEvent("qa-character"));
     },
@@ -1649,7 +1680,10 @@ var QA_THEME = (function () {
     var theme = THEMES[id];
     ["light", "dark"].forEach(function (scheme) { REQUIRED_KEYS.forEach(function (key) { if (!(theme.css[scheme] || {})[key]) problems.push(id + " " + scheme + " is missing " + key) }) });
     ["name", "fonts", "favicon", "palette", "desk", "radio", "settingsIcon", "brushStroke"].forEach(function (key) { if (!theme[key]) problems.push(id + " is missing " + key) });
-    if (!CHARACTERS[theme.character]) problems.push(id + " names an unknown default character " + JSON.stringify(theme.character));
+    Object.keys(theme.characterEffects || {}).forEach(function (cid) {
+      if (!CHARACTERS[cid]) problems.push(id + " names an unknown effect character " + cid);
+      theme.characterEffects[cid].forEach(function (effect) { if (!CHARACTER_EFFECTS[effect]) problems.push(id + " names an unknown character effect " + effect) });
+    });
     // Every character renders in every theme, so the theme needs each named ramp any character draws with.
     Object.keys(CHARACTERS).forEach(function (cid) { (CHARACTERS[cid].inks || []).forEach(function (ink) { ["light", "dark"].forEach(function (scheme) {
       var ramp = theme.inks && theme.inks[scheme] && theme.inks[scheme][ink];
@@ -2046,7 +2080,7 @@ var QA_DESK=(function(){
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
-<div class="settings-row"><label for="character-pick">Character</label><select id="character-pick" title="Default follows the theme"></select></div>
+<div class="settings-row"><label for="character-pick">Overseer</label><select id="character-pick"></select></div>
 <div class="settings-row"><label for="scene-pick">Layout</label><select id="scene-pick"><option value="desk">Desk</option><option value="radio">Radio</option></select></div>
 <div class="settings-row"><span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div></div>
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
@@ -2872,11 +2906,13 @@ var QA_BRUSH=(function(){
     if(col<0||row<0||col>=cols||row>=rows)return;
     var index=row*cols+col;engine.intensity[index]=value;engine.ink[index]=ink||0;
   };
-  // For custom renderers: the cursor's offset in CSS px from a cell while tracking is engaged, else null.
+  // For custom renderers: the cursor's offset in CSS px while tracking, else null.
+  // The result is one reused mutable sample; consume it immediately and do not retain it.
+  var aimResult={dx:0,dy:0,distance:0};
   engine.aim=function(col,row){
     if(!engine.track.active||!pointer.known)return null;
     var rect=canvas.getBoundingClientRect(),dx=pointer.x-(rect.left+engine.dotX[0]+col*PITCH),dy=pointer.y-(rect.top+engine.dotY[0]+row*PITCH);
-    return{dx:dx,dy:dy,distance:Math.hypot(dx,dy)};
+    aimResult.dx=dx;aimResult.dy=dy;aimResult.distance=Math.hypot(dx,dy);return aimResult;
   };
   engine.random=function(seed){return mulberry(seed)};
   engine.reduced=function(){return reduced.matches};
@@ -3448,12 +3484,11 @@ var QA_BRUSH=(function(){
     themeSelect.value=QA_THEME.id();
     themeSelect.addEventListener("change",function(){QA_THEME.choose(themeSelect.value)});
   }
-  // Character: "Default" follows the theme's own character; any other pick is stored and wins across themes.
+  // Blip appears first; every registered character gets one plain-label choice.
   var characterSelect=document.getElementById("character-pick");
   function characterOptions(){
     if(!characterSelect)return;
-    var fallback=CHARACTERS[QA_THEME.current().character]||CHARACTERS.eye,label="Default ("+fallback.name+")";
-    characterSelect.innerHTML='<option value="" data-label="'+esc(label)+'">'+esc(label)+'</option>'+Object.keys(CHARACTERS).map(function(id){return'<option value="'+id+'" data-label="'+esc(CHARACTERS[id].name)+'">'+esc(CHARACTERS[id].name)+'</option>'}).join("");
+    characterSelect.innerHTML=["blip"].concat(Object.keys(CHARACTERS).filter(function(id){return id!=="blip"})).map(function(id){var label=CHARACTERS[id].name;return'<option value="'+id+'" data-label="'+esc(label)+'">'+esc(label)+'</option>'}).join("");
     characterSelect.value=QA_THEME.characterPick();
   }
   characterOptions();
