@@ -64,6 +64,7 @@ write_unit() {
   local service="$1" kind extra="" after directory="$QA_TREE" exec="$QA_TREE/dev-start.sh $service" group
   group=$(group_for "$service")
   after=$(dependencies "$service")
+  [ "$service" = backend ] && exec="$(dirname "$(readlink -f "$0")")/qa-backend-serve"
   case "$service" in
     keycloak) kind=$'Type=oneshot\nRemainAfterExit=yes\nTimeoutStartSec=420' ;;
     azurite) kind=$'Type=simple\nRemainAfterExit=yes\nRestart=on-failure\nRestartSec=5' ;;

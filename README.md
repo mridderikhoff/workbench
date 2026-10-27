@@ -1,4 +1,4 @@
-# Way of working
+# workbench
 
 My personal tooling for running many coding-agent sessions side by side against the cl-strategy
 repository: one worktree per task, a shared QA backend, per-task frontends, and a status page to
@@ -20,8 +20,8 @@ watch it all.
 ## Install
 
 ```bash
-git clone <this repo> ~/way-of-working
-cd ~/way-of-working
+git clone <this repo> ~/workbench
+cd ~/workbench
 ./install.sh --dry-run   # shows what would be linked
 ./install.sh             # links bin/, scripts/ and hooks/ into ~/.claude, backing up what was there
 ```

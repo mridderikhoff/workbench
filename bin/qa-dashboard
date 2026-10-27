@@ -22,12 +22,12 @@ BACKEND_ACTIONS = ("update", "heal", "ensure")
 HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QA status</title>
+<title>Overseer</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Crect%20width=%2764%27%20height=%2764%27%20rx=%2712%27%20fill=%27%230b0505%27/%3E%3Cg%20fill=%27none%27%20stroke=%27%23e0061f%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27M5%2030C13%2017%2022%2011%2033%2011s19%206%2026%2018%27%20stroke-width=%276%27/%3E%3Cpath%20d=%27M6%2032c9%2010%2017%2014%2027%2014%209%200%2015-4%2021-11%27%20stroke-width=%275%27/%3E%3C/g%3E%3Ccircle%20cx=%2732%27%20cy=%2729%27%20r=%2710%27%20fill=%27%23e0061f%27/%3E%3Ccircle%20cx=%2732%27%20cy=%2729%27%20r=%274.2%27%20fill=%27%230b0505%27/%3E%3Cg%20fill=%27%23e0061f%27%3E%3Cpath%20d=%27M17%2040h5v13a2.5%202.5%200%200%201-5%200z%27/%3E%3Cpath%20d=%27M31%2044h4.5v17a2.25%202.25%200%200%201-4.5%200z%27/%3E%3Cpath%20d=%27M45%2041h4v9a2%202%200%200%201-4%200z%27/%3E%3Ccircle%20cx=%2719.5%27%20cy=%2753.5%27%20r=%273%27/%3E%3Ccircle%20cx=%2733.25%27%20cy=%2761%27%20r=%272.6%27/%3E%3Ccircle%20cx=%2747%27%20cy=%2750.5%27%20r=%272.4%27/%3E%3C/g%3E%3C/svg%3E">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 var(--body);font-variant-numeric:tabular-nums}
-header{display:grid;grid-template-columns:1fr auto 1fr;gap:10px 16px;align-items:center;padding:12px 16px 14px;border-bottom:2px solid var(--rule);background:var(--card)}
+header{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:1fr auto 1fr;gap:10px 16px;align-items:center;padding:12px 16px 14px;border-bottom:2px solid var(--rule);background:var(--card)}
 header h1{grid-column:2;display:flex;align-items:center;gap:10px;margin:0;font:600 20px/1.2 var(--serif);letter-spacing:.06em;font-variant:small-caps}
 .eye{width:28px;height:28px;flex:none;border-radius:6px;overflow:hidden}
 .eye svg{display:block;width:100%;height:100%}
@@ -39,18 +39,21 @@ input{font:13px var(--mono);padding:4px 7px;border:1px solid var(--border);borde
 input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
 #updated{color:var(--muted);font-size:13px}
 #banner{display:none;padding:9px 16px;background:var(--banner);color:var(--banner-text);font-weight:600;border-bottom:1px solid var(--rule)}
-main{max-width:1000px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.page{max-width:1000px;margin:0 auto;padding:16px}
+.page>*+*{margin-top:14px}
+.page>*{min-width:0}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .slots{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .slots>*,main>*{min-width:0}
 .slots>.hint,.slots>.empty{grid-column:1/-1}
 .card{background:var(--card);border:1px solid var(--border);border-radius:3px 6px 4px 7px/6px 3px 7px 4px;padding:10px 13px;box-shadow:inset 0 0 18px var(--shade),0 1px 0 var(--shade);transition:border-color .15s}
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
-body::before{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:var(--grain);mix-blend-mode:var(--grain-blend)}
+body::before{background:var(--grain-image,none) 0 0/128px 128px}
 body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--vignette) 100%)}
 .card{position:relative}
-.card.err,.card:has(.svc.attn){border-color:var(--bad)}
-.card.err::before,.card:has(.svc.attn)::before{content:"";position:absolute;left:-1px;top:-1px;width:3px;height:58%;background:var(--blood);border-radius:2px 0 3px 2px/2px 0 6px 2px;pointer-events:none}
-.card.err::after,.card:has(.svc.attn)::after{content:"";position:absolute;left:-2.5px;top:calc(58% - 4px);width:6px;height:8px;background:var(--blood);border-radius:50% 50% 50% 50%/40% 40% 60% 60%;pointer-events:none}
+.card.err{border-color:var(--bad)}
+.card.err::before{content:"";position:absolute;left:-1px;top:-1px;width:3px;height:58%;background:var(--blood);border-radius:2px 0 3px 2px/2px 0 6px 2px;pointer-events:none}
+.card.err::after{content:"";position:absolute;left:-2.5px;top:calc(58% - 4px);width:6px;height:8px;background:var(--blood);border-radius:50% 50% 50% 50%/40% 40% 60% 60%;pointer-events:none}
 .branch{position:relative}
 .brush{position:absolute;left:-2px;top:calc(100% - 10px);pointer-events:none;overflow:visible}
 .mark.has-brush::after{display:none}
@@ -64,7 +67,7 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 @keyframes fresh-paint{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @media (prefers-reduced-motion:no-preference){
 .dot.warn{animation:flicker 3.7s infinite}
-.dot.bad{animation:pulse 2.6s ease-in-out infinite}
+.dot.broken{animation:pulse 2.6s ease-in-out infinite}
 @keyframes flicker{0%,100%{opacity:1}8%{opacity:.78}12%{opacity:1}37%{opacity:.9}41%{opacity:.68}45%{opacity:.97}71%{opacity:.86}74%{opacity:1}}
 @keyframes pulse{0%,100%{opacity:1;filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}50%{opacity:.7;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--glyph-bad) 70%,transparent))}}
 }
@@ -72,6 +75,31 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .title{font:600 19px/1.25 var(--serif);letter-spacing:.04em;font-variant:small-caps}
 .branch{font:600 21px/1.25 var(--serif);overflow-wrap:anywhere}
 .slot-card{position:relative}
+.backend{position:sticky;top:var(--header-h,58px);z-index:20;display:flex;flex-direction:column;max-height:calc(100vh - var(--header-h,58px) - 12px);padding:7px 13px;box-shadow:inset 0 0 18px var(--shade),0 8px 10px -8px var(--shade)}
+.backend-body{min-height:0;overflow:auto;overscroll-behavior:contain}
+.backend .head{margin-bottom:0}
+.backend .head .toggle{margin-left:auto}
+.backend .title{font-size:17px}
+.backend .state{font-weight:600}
+.backend .state .dot{width:18px;height:18px}
+.backend-details{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+.backend-details .pill{display:inline-block;margin-bottom:4px}
+.backend .action-result{margin:6px 0 0}
+.backend .svc{display:grid;grid-template-columns:14px 6.5em minmax(0,1fr);gap:1px 8px;align-items:center}
+.backend .svc>*{min-width:0}
+.backend .svc .name{min-width:0}
+.backend .svc .small{grid-column:3}
+@media (min-width:1280px){
+.page{max-width:none;display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1000px) minmax(0,1fr);column-gap:20px;align-items:start}
+.page>*{grid-column:2}
+.page>.backend{grid-column:1;grid-row:1;justify-self:end;width:280px}
+.page>*+*{margin-top:0}
+.backend{top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px);padding:12px 14px;box-shadow:inset 0 0 18px var(--shade),0 1px 0 var(--shade)}
+.backend .head{flex-direction:column;align-items:flex-start;gap:8px}
+.backend .head .toggle{margin-left:0;padding-left:0}
+.backend .title{font-size:19px}
+.backend-details{margin-top:10px;padding-top:8px}
+}
 .slot-card .head{padding-right:5em;align-items:center}
 .slotno{position:absolute;top:9px;right:12px;font:13px var(--mono);color:var(--muted)}
 .tools{display:inline-flex;flex-wrap:wrap;gap:6px}
@@ -86,29 +114,29 @@ code{font-family:var(--mono);font-size:13.5px}
 button.link{border:0;background:none;padding:2px 4px;color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:3px}
 .dot{display:inline-flex;width:14px;height:14px;flex:none;color:var(--idle)}
 .dot svg{display:block;width:100%;height:100%}
-.dot.ok{color:var(--glyph-ok)}.dot.warn{color:var(--warn)}.dot.attn{color:var(--glyph-bad)}
+.dot.ok{color:var(--glyph-ok)}.dot.warn{color:var(--warn)}.dot.attn,.dot.down{color:var(--glyph-bad)}
 .tone-ok{color:var(--muted)}
-.svc.tone-bad,.svc.tone-attn,.state.tone-bad,.state.tone-attn,.chip.tone-bad,.chip.tone-attn{color:var(--glyph-bad);font-weight:600}
-.dot.bad{color:var(--glyph-bad);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}
+.svc.tone-broken,.svc.tone-down,.svc.tone-attn,.state.tone-broken,.state.tone-down,.state.tone-attn,.chip.tone-broken,.chip.tone-down,.chip.tone-attn{color:var(--glyph-bad);font-weight:600}
+.dot.broken{color:var(--glyph-bad);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}
 .apps{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .app-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px 5px 11px;border:1px solid var(--border);border-radius:999px;background:var(--inset);color:var(--text);text-decoration:none;font-size:15px;transition:border-color .15s,background-color .15s}
 a.app-pill{position:relative;isolation:isolate}
 a.app-pill:hover,a.app-pill:focus-visible{border-color:var(--seep)}
 .seep{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:1}
-.seep-fill{position:absolute;top:0;left:0;height:100%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform .2s ease-in}
-.seep-text{position:absolute;inset:0;display:flex;align-items:center;gap:7px;padding:inherit;padding:5px 14px 5px 11px;color:var(--seep-ink);font-weight:inherit;clip-path:inset(0 100% 0 0);transition:clip-path .2s ease-in}
+.seep-fill{position:absolute;bottom:0;left:0;height:30%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform .2s ease-in}
+.seep-text{position:absolute;inset:0;display:flex;align-items:center;gap:7px;padding:inherit;padding:5px 14px 5px 11px;color:var(--seep-ink);font-weight:inherit;clip-path:inset(70% 100% 0 0);transition:clip-path .2s ease-in}
 .app-pill .seep-text .port,.app-pill .seep-text .build-failed,.app-pill .seep-text .app-name{color:var(--seep-ink)}
 .seep-text .dot{color:var(--seep-ink);filter:none}
 a.app-pill:hover .seep-fill,a.app-pill:focus-visible .seep-fill{transform:translateX(0);transition:transform .25s ease-out}
-a.app-pill:hover .seep-text,a.app-pill:focus-visible .seep-text{clip-path:inset(0 0 0 0);transition:clip-path .25s ease-out}
+a.app-pill:hover .seep-text,a.app-pill:focus-visible .seep-text{clip-path:inset(70% 0 0 0);transition:clip-path .25s ease-out}
 a.app-pill:active{transform:scale(.97)}
 .pill-drip{position:absolute;top:calc(100% - 2px);width:5px;height:7px;margin-left:-2.5px;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;background:var(--seep);opacity:0;pointer-events:none}
 .pill-drip.falling{animation:pill-drip .9s ease-in forwards}
 @keyframes pill-drip{0%{opacity:1;transform:scale(.2,.3)}35%{opacity:1;transform:scale(1,1)}100%{opacity:0;transform:translateY(11px) scale(.8,1.4)}}
 .pill-splat{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--seep);pointer-events:none;animation:pill-splat .35s ease-out forwards}
 @keyframes pill-splat{from{opacity:1;transform:none}to{opacity:0;transform:translate(var(--dx),var(--dy))}}
-a.app-pill:hover .dot.bad{animation-duration:1s}
-a.app-pill:hover .seep-text .dot.bad svg{transform:scale(1.15)}
+a.app-pill:hover .dot.broken{animation-duration:1s}
+a.app-pill:hover .seep-text .dot.broken svg{transform:scale(1.15)}
 @media (prefers-reduced-motion:reduce){.seep-fill,.seep-text,a.app-pill:hover .seep-fill,a.app-pill:hover .seep-text{transition:none}.pill-drip,.pill-splat{display:none}}
 button.act,button.icon{background-image:linear-gradient(var(--seep),var(--seep));background-repeat:no-repeat;background-size:0% 100%;transition:background-size .22s ease-out,color .22s,border-color .15s}
 button.act:hover:not(:disabled),button.icon:hover,button.act:focus-visible,button.icon:focus-visible{background-size:100% 100%;color:var(--seep-ink)}
@@ -139,26 +167,44 @@ pre{margin:4px 0 0;padding:8px 10px;max-height:16em;overflow:auto;background:var
 .settings::backdrop{background:rgba(8,3,3,.62);backdrop-filter:blur(2px)}
 .settings-form{display:grid;grid-template-columns:auto 1fr;gap:12px 14px;align-items:center}
 .settings h2{grid-column:1/-1;margin:0 0 4px;font:600 22px/1.2 var(--serif);letter-spacing:.05em;font-variant:small-caps}
-.settings label{font-size:14px;color:var(--parchment-muted)}
-.settings h2 .subtitle{display:block;font:600 12px/1.4 var(--body);letter-spacing:.12em;text-transform:uppercase;font-variant:normal;color:var(--parchment-muted);margin-top:2px}
-.settings input,.settings select{background:var(--parchment-field);color:var(--parchment-ink);border-color:var(--parchment-edge)}
-.seal{width:46px;height:46px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center;color:rgba(40,0,6,.7);border:0;
-background:radial-gradient(circle at 38% 32%,#ff4a5c 0,#c8001d 38%,#7a0310 100%);box-shadow:inset 0 0 0 4px rgba(122,3,16,.55),inset 0 2px 3px rgba(255,140,150,.45),inset 0 -3px 4px rgba(40,0,6,.55),0 2px 4px rgba(0,0,0,.35)}
-.seal svg{width:26px;height:26px}
-.seal:hover:not(:disabled){border:0;filter:brightness(1.08)}
-.seal:focus-visible{outline:2px solid var(--parchment-ink);outline-offset:3px}
-.settings input,.settings select{width:100%;font-size:14px;padding:5px 8px}
+.settings label,.settings .field-label{font:600 15px/1.2 var(--serif);letter-spacing:.04em;font-variant:small-caps;color:var(--parchment-muted)}
+.settings input,.settings select{font:16px/1.3 var(--serif);color:var(--parchment-ink);background-color:color-mix(in srgb,var(--parchment-field) 45%,transparent);
+border:0;border-bottom:1.5px solid var(--parchment-muted);border-radius:2px 2px 0 0;box-shadow:none;padding:4px 6px 3px;transition:border-color .15s,background-color .15s}
+.settings input{font-family:var(--mono);font-size:14px}
+.settings select{appearance:none;-webkit-appearance:none;padding-right:26px;cursor:pointer;
+background-image:linear-gradient(45deg,transparent 50%,var(--parchment-muted) 50%),linear-gradient(135deg,var(--parchment-muted) 50%,transparent 50%);
+background-position:calc(100% - 13px) 55%,calc(100% - 8px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.settings select option{background:var(--parchment);color:var(--parchment-ink)}
+.settings input:hover,.settings select:hover{background-color:color-mix(in srgb,var(--parchment-field) 75%,transparent)}
+.settings input:focus,.settings select:focus{outline:none;border-bottom-color:var(--blood);background-color:color-mix(in srgb,var(--parchment-field) 80%,transparent)}
+.settings input:focus-visible,.settings select:focus-visible{outline:2px solid var(--parchment-ink);outline-offset:2px}
+.settings .done{position:relative;font:600 16px/1 var(--serif);letter-spacing:.08em;font-variant:small-caps;color:var(--parchment-ink);background:transparent;
+padding:7px 18px 8px;border:1.6px solid var(--parchment-ink);border-radius:2px 5px 3px 6px/5px 2px 6px 3px;transform:rotate(-.6deg);
+box-shadow:1px 1px 0 color-mix(in srgb,var(--parchment-ink) 35%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--parchment-ink) 12%,transparent);overflow:visible}
+.settings .done:hover:not(:disabled){border-color:var(--parchment-ink);background:color-mix(in srgb,var(--parchment-field) 50%,transparent)}
+.settings .done:active{transform:rotate(-.6deg) translateY(1px)}
+.settings .done:focus-visible{outline:2px solid var(--blood);outline-offset:3px}
+.settings .done .brush{left:14px;top:calc(100% - 12px)}
+.settings input,.settings select{width:100%}
+.settings .segmented{display:flex;border:1.5px solid var(--parchment-muted);border-radius:2px 5px 3px 6px/5px 2px 6px 3px;overflow:hidden}
+.settings .segmented label{position:relative;flex:1;text-align:center;font:600 14px/1 var(--serif);letter-spacing:.04em;font-variant:small-caps;color:var(--parchment-ink);padding:7px 8px 8px;cursor:pointer;transition:background-color .15s,color .15s}
+.settings .segmented label+label{border-left:1.5px solid var(--parchment-muted)}
+.settings .segmented input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;border:0}
+.settings .segmented label:hover{background:color-mix(in srgb,var(--parchment-field) 60%,transparent)}
+.settings .segmented label:has(input:checked){background:var(--parchment-ink);color:var(--parchment)}
+.settings .segmented label:has(input:focus-visible){outline:2px solid var(--blood);outline-offset:-4px}
 .settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:4px}
 #settings-open{flex:none;width:34px;height:34px;color:var(--muted)}
 #settings-open svg{width:22px;height:22px;overflow:visible}
 #settings-open:hover,#settings-open:focus-visible{color:var(--blood);border-color:var(--blood)}
-.tome-cover{transform-box:view-box;transform-origin:5.4px 12px;transition:transform .24s steps(3)}
-.tome-glow{opacity:0;transition:opacity .24s steps(3)}
-.tome-pages{opacity:0;transition:opacity .24s steps(3)}
-#settings-open:hover .tome-cover,#settings-open:focus-visible .tome-cover{transform:scaleX(.8) skewY(-4deg)}
-#settings-open:hover .tome-glow,#settings-open:focus-visible .tome-glow{opacity:.45;filter:drop-shadow(0 0 2px var(--blood))}
-#settings-open:hover .tome-pages,#settings-open:focus-visible .tome-pages{opacity:1}
-@media (prefers-reduced-motion:reduce){.tome-cover,.tome-glow,.tome-pages{transition:none}}
+.knob{transition:transform .18s steps(2)}
+.knob-drip{opacity:0}
+#settings-open:hover .k1,#settings-open:focus-visible .k1{transform:translateX(3px)}
+#settings-open:hover .k2,#settings-open:focus-visible .k2{transform:translateX(-3px)}
+#settings-open:hover .k3,#settings-open:focus-visible .k3{transform:translateX(2.5px)}
+@media (prefers-reduced-motion:no-preference){#settings-open:hover .knob-drip,#settings-open:focus-visible .knob-drip{animation:knob-drip .7s ease-in .1s 1 forwards}}
+@keyframes knob-drip{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(5px)}}
+@media (prefers-reduced-motion:reduce){.knob{transition:none}}
 select{font:13px var(--body);color:var(--text);background:var(--inset);border:1px solid var(--border);border-radius:3px;padding:2px 4px}
 select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .empty .title{display:block;margin-bottom:2px}
@@ -171,10 +217,23 @@ a:hover{text-decoration-thickness:2px}
 </style>
 <script>
 "use strict";
+// ?perf=1 logs animation-callback counts and long tasks to the console every 2s without adding frames of its own.
+var QA_PERF=(function(){
+  if(new URLSearchParams(location.search).get("perf")!=="1")return null;
+  var raf=window.requestAnimationFrame.bind(window),stats={frames:0,busyMs:0,worstMs:0,longTasks:[],renders:0,cardsRebuilt:0};
+  window.requestAnimationFrame=function(callback){return raf(function(time){var began=performance.now();callback(time);var spent=performance.now()-began;stats.frames++;stats.busyMs+=spent;if(spent>stats.worstMs)stats.worstMs=spent})};
+  try{new PerformanceObserver(function(list){list.getEntries().forEach(function(entry){stats.longTasks.push(Math.round(entry.duration))})}).observe({entryTypes:["longtask"]})}catch(e){}
+  setInterval(function(){
+    console.log("perf "+JSON.stringify({animationCallbacksPerSecond:stats.frames/2,callbackMsAverage:+(stats.busyMs/Math.max(1,stats.frames)).toFixed(2),callbackMsWorst:+stats.worstMs.toFixed(1),longTasksMs:stats.longTasks,renders:stats.renders,cardsRebuilt:stats.cardsRebuilt}));
+    stats.frames=stats.busyMs=stats.worstMs=stats.renders=stats.cardsRebuilt=0;stats.longTasks=[];
+  },2000);
+  return stats;
+})();
 /* ===== THEMES =====================================================================
 How to add a theme: add one entry to THEMES below; nothing outside this section needs to change.
   name          label in the theme picker
   css           {light:{...}, dark:{...}} custom properties; provide every key that "blood" provides
+                (--grain is the noise opacity and --grain-blend is "multiply" or "screen"; both are baked into a tile)
   fonts         {serif, mono, body} font stacks
   favicon       SVG string for the tab icon
   headerMark    {eye, travel, lid, underlineCss}
@@ -186,13 +245,13 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
   anatomy       optional {iris:[x, y, r], pupil:r, tips:[[x, tipY, topY], ...]} in logo units;
                 needed by the "watcher" and "bleeding" modes
   palette       {light:[5 colours], dark:[5 colours]} halftone ramp, darkest first
-  statusGlyphs  {ok, warn, bad, attn, unknown} SVG strings drawn with currentColor, distinct shapes;
+  statusGlyphs  {ok, warn, broken, down, attn, unknown} SVG strings drawn with currentColor, distinct shapes;
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle
   brushStroke   {colors:{core, edge}, presets:{name:{weight, taperIn, taperOut, wobble, bristles, dryEnd, hook,
                 drips:[min,max], dripLength, spatter:[min,max]}}} for generated underlines; omit to keep underlineCss
-  settingsIcon  SVG string for the settings button; optional hooks .tome-cover (opens), .tome-pages and .tome-glow
-  favicons      {ok, warn, bad, badDim} SVG strings (open eye = running, closed eye = down); the tab icon
-                follows page health and alternates bad/badDim
+  settingsIcon  SVG string for the settings button; optional hooks .knob.k1/.k2/.k3 (slide on hover) and .knob-drip
+  favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
+                (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
@@ -232,10 +291,11 @@ var THEMES = {
     },
     favicon: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#e0061f'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
     favicons: {
-      ok: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#e0061f'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
+      ok: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 32C13 19 22 13 33 13s19 6 26 18' stroke-width='6'/><path d='M6 34c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='31' r='10' fill='#e0061f'/><circle cx='32' cy='31' r='4.2' fill='#0b0505'/></svg>",
       warn: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0a948' stroke-linecap='round' stroke-linejoin='round'><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><path d='M23 31a9.5 9.5 0 0 0 19 0z' fill='#e0a948'/><path d='M28.5 31a4 4 0 0 0 8 0z' fill='#0b0505'/><path d='M5 31c9-5 18-7.5 28-7.5s19 2.5 26 7' fill='none' stroke='#e0a948' stroke-width='6' stroke-linecap='round'/><g fill='#e0a948'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
-      bad: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M6 30c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='6'/><path d='M16 37l-3 5M33 44v6M48 37l3 5' stroke-width='3.4'/></g><g fill='#e0061f'><path d='M17 41h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
-      badDim: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#8f0414' stroke-linecap='round' stroke-linejoin='round'><path d='M6 30c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='6'/><path d='M16 37l-3 5M33 44v6M48 37l3 5' stroke-width='3.4'/></g><g fill='#8f0414'><path d='M17 41h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>"
+      bad: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#e0061f'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
+      badDim: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#8f0414' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/></g><circle cx='32' cy='29' r='10' fill='#8f0414'/><circle cx='32' cy='29' r='4.2' fill='#0b0505'/><g fill='#8f0414'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
+      down: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round'><path d='M6 22c9 11 17 15 27 15 9 0 15-4 21-12' stroke-width='6'/><path d='M15 31l-4 6M51 29l4 6' stroke-width='4.5'/></g><path d='M33 40c3 5 7 9 7 14a7 7 0 0 1-14 0c0-5 4-9 7-14z' fill='#e0061f'/></svg>"
     },
     headerMark: {
       eye: '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="header-eye-opening"><path d="M5 30C13 17 22 11 33 11S52 17 59 29L54 35C48 42 42 46 33 46C23 46 15 42 6 32Z"/></clipPath></defs><rect width="64" height="64" rx="12" fill="#0b0505"/><g clip-path="url(#header-eye-opening)"><g data-eye-iris><circle cx="32" cy="29" r="10" fill="#e0061f"/><circle data-eye-pupil cx="32" cy="29" r="4.2" fill="#0b0505"/></g><rect data-eye-cover x="0" y="0" width="64" height="0" fill="#0b0505"/></g><g fill="none" stroke="#e0061f" stroke-linecap="round" stroke-linejoin="round"><path data-eye-lid d="M5 30C13 17 22 11 33 11s19 6 26 18" stroke-width="6"/><path d="M6 32c9 10 17 14 27 14 9 0 15-4 21-11" stroke-width="5"/></g><g fill="#e0061f"><path d="M17 40h5v13a2.5 2.5 0 0 1-5 0z"/><path d="M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z"/><path d="M45 41h4v9a2 2 0 0 1-4 0z"/><circle cx="19.5" cy="53.5" r="3"/><circle cx="33.25" cy="61" r="2.6"/><circle cx="47" cy="50.5" r="2.4"/></g></svg>',
@@ -250,14 +310,15 @@ var THEMES = {
       dark: ["#5c020c", "#9a0414", "#c4051b", "#e0061f", "#ff3348"]
     },
     statusGlyphs: {
-      ok: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 8C3.2 4.5 5.4 2.9 8 2.9s4.8 1.6 6.8 5.1c-2 3.5-4.2 5.1-6.8 5.1S3.2 11.5 1.2 8z" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.7" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" style="fill:var(--card)" stroke="none"/></svg>',
+      ok: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 8C3.2 4.7 5.4 3.2 8 3.2s4.8 1.5 6.8 4.8c-2 3.3-4.2 4.8-6.8 4.8S3.2 11.3 1.2 8z" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.3" fill="currentColor" stroke="none"/></svg>',
       warn: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 8.4c1.9 2.6 4 3.9 6.4 3.9s4.5-1.3 6.4-3.9" stroke-width="1.6"/><path d="M1.6 8.4C3.6 7 5.7 6.3 8 6.3s4.4.7 6.4 2.1" stroke-width="1.9"/><path d="M5.5 7.6h5a2.5 2.5 0 0 1-5 0z" fill="currentColor" stroke="none"/></svg>',
-      bad: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M1.8 7.2c1.9 2.6 3.9 3.8 6.2 3.8s4.3-1.2 6.2-3.8" stroke-width="1.9"/><path d="M4.4 10l-1 1.9M8 11.1v2.2M11.6 10l1 1.9" stroke-width="1.4"/></svg>',
+      broken: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 7C3.2 3.7 5.4 2.2 8 2.2s4.8 1.5 6.8 4.8c-2 3.3-4.2 4.8-6.8 4.8S3.2 10.3 1.2 7z" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="7" r="2.7" fill="currentColor" stroke="none"/><circle cx="8" cy="7" r="1" style="fill:var(--card)" stroke="none"/><path d="M10.6 11.1c.6 1 1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 .9-2 1.5-3z" fill="currentColor" stroke="none"/></svg>',
+      down: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M1.8 5.4c1.9 2.6 3.9 3.8 6.2 3.8s4.3-1.2 6.2-3.8" stroke-width="1.9"/><path d="M3.9 8.1l-1.2 1.8M12.1 8.1l1.2 1.8" stroke-width="1.4"/><path d="M8 10.1c.7 1.1 1.7 2.1 1.7 3.2a1.7 1.7 0 0 1-3.4 0c0-1.1 1-2.1 1.7-3.2z" fill="currentColor" stroke="none"/></svg>',
       attn: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><circle cx="8" cy="1.7" r="1"/><rect x="7.3" y="2.4" width="1.4" height="2.6" rx=".4"/><rect x="4.9" y="4.9" width="6.2" height="1.4" rx=".7"/><path d="M7 6.3h2L8 11.6z"/><path d="M8 12.4c.5.8 1.3 1.5 1.3 2.3a1.3 1.3 0 0 1-2.6 0c0-.8.8-1.5 1.3-2.3z"/></svg>',
       awake: '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"><path d="M1.2 8C3.2 4.5 5.4 2.9 8 2.9s4.8 1.6 6.8 5.1c-2 3.5-4.2 5.1-6.8 5.1S3.2 11.5 1.2 8z" stroke-width="1.6" stroke-linejoin="round"/><g class="glyph-pupil"><circle cx="8" cy="8" r="2.5" fill="currentColor" stroke="none"/></g></svg>',
       unknown: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>'
     },
-    settingsIcon: '<svg viewBox="0 0 24 24" aria-hidden="true" class="settings-icon"><path class="tome-glow" d="M8.4 4.4h10v15.2h-10z" style="fill:var(--blood)"/><g class="tome-pages" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M17.6 5v14M16.2 5.2v13.6"/></g><g class="tome-cover" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 4.6c3.8-.9 8.4-1 12.6-.4l.2 15.4c-4.2-.5-8.6-.4-12.7.5z" stroke-width="1.9"/><path d="M7.6 4.3l-.2 15.2" stroke-width="1.3"/><path d="M9.4 11.6c1.1-1.5 2.2-2.2 3.4-2.2s2.3.7 3.4 2.2c-1.1 1.5-2.2 2.2-3.4 2.2s-2.3-.7-3.4-2.2z" stroke-width="1.3"/><circle cx="12.8" cy="11.6" r="1.1" fill="currentColor" stroke="none"/><path d="M18 10.4h1.6v2.6H18" stroke-width="1.3"/></g></svg>',
+    settingsIcon: '<svg viewBox="0 0 24 24" aria-hidden="true" class="settings-icon" style="fill:var(--blood)"><path d="M2.0 6.2C5.0 5.0 15.0 4.8 22.0 6.0C20.0 7.3 6.0 7.5 2.0 6.2Z"/><path d="M2.5 12.2C5.5 11.1 15.0 11.0 21.5 12.0C19.5 13.2 6.5 13.4 2.5 12.2Z"/><path d="M2.0 18.2C5.0 16.9 15.0 16.8 22.0 18.0C20.0 19.3 6.0 19.6 2.0 18.2Z"/><g class="knobs" style="stroke:var(--card);stroke-width:1.3;paint-order:stroke"><g transform="translate(7 6.4)"><g class="knob k1"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/></g></g><g transform="translate(17 12.4)"><g class="knob k2"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/><circle class="knob-drip" cx="0" cy="4" r="0.9" stroke="none"/></g></g><g transform="translate(12 18.4)"><g class="knob k3"><path d="M0 -3.6c1 1.5 2.6 2.8 2.6 4.3a2.6 2.6 0 0 1-5.2 0c0-1.5 1.6-2.8 2.6-4.3z"/></g></g></g></svg>',
     brushStroke: {
       colors: {core: "var(--blood)", edge: "var(--blood-deep)"},
       presets: {
@@ -275,20 +336,50 @@ var THEMES = {
 };
 /* ===== end THEMES ================================================================= */
 var QA_THEME = (function () {
-  var active = null, query = new URLSearchParams(location.search);
+  var active = null, query = new URLSearchParams(location.search), systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+  // Appearance: "system" follows the OS live, "dark" and "light" force the scheme. Read here so it is applied before first paint.
+  function pickScheme() {
+    var value = query.get("scheme");
+    if (!/^(system|dark|light)$/.test(value)) { try { value = localStorage.getItem("qaDashboardScheme") } catch (e) { value = null } }
+    return /^(dark|light)$/.test(value) ? value : "system";
+  }
+  var schemePreference = pickScheme();
   function pick() {
     var name = query.get("theme");
     if (!THEMES[name]) { try { name = localStorage.getItem("qaDashboardTheme") } catch (e) { name = null } }
     return THEMES[name] ? name : "blood";
   }
   function block(vars) { return Object.keys(vars).map(function (key) { return key + ":" + vars[key] }).join(";") }
+  // Film grain as one small pre-rendered tile of plain alpha noise. "multiply" grain darkens with black and "screen" grain
+  // lightens with white; at these opacities that matches blending the noise with mix-blend-mode, without a full-page blend layer.
+  function grainTile(vars) {
+    try {
+      var size = 128, canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      var context = canvas.getContext("2d"), image = context.createImageData(size, size), seed = 1234567;
+      var lighten = vars["--grain-blend"] === "screen", opacity = parseFloat(vars["--grain"]) || 0;
+      var next = function () { seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 };
+      var bell = function () { return (next() + next() + next()) / 3 };
+      for (var i = 0; i < size * size; i++) {
+        var tone = bell(), coverage = bell(), alpha = opacity * coverage * (lighten ? tone : 1 - tone);
+        image.data[i * 4] = image.data[i * 4 + 1] = image.data[i * 4 + 2] = lighten ? 255 : 0;
+        image.data[i * 4 + 3] = Math.round(alpha * 255);
+      }
+      context.putImageData(image, 0, 0);
+      return 'url("' + canvas.toDataURL("image/png") + '")';
+    } catch (e) { return "none" }
+  }
   function apply(name) {
     var theme = THEMES[name] || THEMES.blood, fonts = theme.fonts;
     active = {id: THEMES[name] ? name : "blood", theme: theme};
     var style = document.getElementById("theme-style");
     if (!style) { style = document.createElement("style"); style.id = "theme-style"; document.head.appendChild(style) }
-    style.textContent = ":root{" + block(theme.css.light) + ";--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
-      "@media (prefers-color-scheme:dark){:root{" + block(theme.css.dark) + "}}" + (theme.headerMark.underlineCss || "");
+    // data-scheme is "system", "dark" or "light": the media query applies only unless light is forced, and a forced dark wins by specificity.
+    var dark = block(theme.css.dark) + ";--grain-image:" + grainTile(theme.css.dark);
+    style.textContent = ":root{" + block(theme.css.light) + ";--grain-image:" + grainTile(theme.css.light) + ";--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
+      "@media (prefers-color-scheme:dark){:root:not([data-scheme=\"light\"]){" + dark + "}}" +
+      ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}" + (theme.headerMark.underlineCss || "");
+    document.documentElement.setAttribute("data-scheme", schemePreference);
     document.documentElement.setAttribute("data-theme", active.id);
     var icon = document.querySelector('link[rel="icon"]');
     if (icon) { icon.href = "data:image/svg+xml," + encodeURIComponent(theme.favicon); icon.dataset.state = "" }
@@ -298,6 +389,15 @@ var QA_THEME = (function () {
   return {
     current: function () { return active.theme },
     id: function () { return active.id },
+    schemePreference: function () { return schemePreference },
+    isDark: function () { return schemePreference === "dark" || (schemePreference === "system" && systemDark.matches) },
+    chooseScheme: function (value) {
+      if (!/^(system|dark|light)$/.test(value)) return;
+      try { localStorage.setItem("qaDashboardScheme", value) } catch (e) {}
+      schemePreference = value;
+      document.documentElement.setAttribute("data-scheme", value);
+      document.dispatchEvent(new CustomEvent("qa-scheme"));
+    },
     choose: function (name) { try { localStorage.setItem("qaDashboardTheme", name) } catch (e) {} apply(name) },
     glyph: function (tone) { var glyphs = active.theme.statusGlyphs; return glyphs[tone] || glyphs.unknown },
     favicon: function (state) {
@@ -309,16 +409,18 @@ var QA_THEME = (function () {
 })();
 </script>
 </head><body>
-<header><h1><span id="header-eye" class="eye"></span><span class="mark">QA status</span></h1>
+<header><h1><span id="header-eye" class="eye"></span><span class="mark">Overseer</span></h1>
 <div class="header-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></header>
 <div id="banner" role="alert"></div>
-<main><div id="backend" class="card muted">Loading&hellip;</div><div id="slots" class="slots"></div><div class="coin" aria-hidden="true"><canvas id="coin" width="200" height="230"></canvas></div><p id="hint" class="hint muted" hidden></p></main>
+<div class="page"><section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section>
+<main><div id="slots" class="slots"></div><div class="coin" aria-hidden="true"><canvas id="coin" width="200" height="230"></canvas></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
-<h2 id="settings-title">Grimoire <span class="subtitle">Settings</span></h2>
+<h2 id="settings-title">Settings</h2>
 <label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off">
-<label for="eye-mode">Eye</label><select id="eye-mode"></select>
+<label for="eye-mode">Logo animation</label><select id="eye-mode"></select>
 <label for="theme-pick">Theme</label><select id="theme-pick"></select>
-<div class="settings-actions"><button type="submit" class="seal" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M4.5 12c2.3-3.2 4.8-4.8 7.5-4.8s5.2 1.6 7.5 4.8c-2.3 3.2-4.8 4.8-7.5 4.8S6.8 15.2 4.5 12z" stroke-width="1.6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button></div>
+<span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div>
+<div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
 <script>
 "use strict";
@@ -326,7 +428,10 @@ var INITIAL=/*INITIAL*/null/*END*/;
 var APP_NAMES={ri:"RI","ds-demo":"ds-demo",strategy:"Strategy"};
 var tenantInput=document.getElementById("tenant");
 try{tenantInput.value=localStorage.getItem("qaDashboardTenant")||"mridderikhoff"}catch(e){}
-var data=null,lastOk=null,failure=null,actionError=null,outputOpen=false,servicesOpen=false,pollTimer=null;
+var data=null,lastOk=null,failure=null,actionError=null,outputOpen=false,pollTimer=null;
+// The user's expand/collapse choice for the backend details applies only while the health it was made under still holds.
+var detailsChoice=null;
+try{detailsChoice=JSON.parse(sessionStorage.getItem("qaDashboardBackendDetails"))}catch(e){}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function tone(state,attn){
   if(attn)return"attn";
@@ -337,7 +442,25 @@ function tone(state,attn){
   if(/listening|degraded|starting|activating/.test(s))return"warn";
   return"";
 }
+// Rank decides the worst state shown on the overall badge and in the favicon.
+var TONE_RANK={ok:0,unknown:1,warn:2,down:3,broken:4,attn:5};
+function serviceTone(s){
+  if(!s)return"unknown";
+  if(s.needsAttention||/attention/i.test(s.status||""))return"attn";
+  if(s.probe==="ready"||/^ready/.test(s.status||""))return"ok";
+  if(/listening/.test(s.status||"")||s.unitState==="activating"||s.unitState==="reloading")return"warn";
+  if(s.unitState==="active")return"broken";
+  if(s.unitState==="failed"||s.unitState==="inactive"||/down|fail/.test(s.status||s.probe||""))return"down";
+  return"unknown";
+}
+function worstTone(tones){return tones.reduce(function(worst,t){return(TONE_RANK[t]||0)>(TONE_RANK[worst]||0)?t:worst},"ok")}
+function backendTone(b){
+  var services=b.services||{},names=Object.keys(services);
+  if(!names.length)return tone(b.overall)==="ok"?"ok":tone(b.overall)==="warn"?"warn":"down";
+  return worstTone(names.map(function(n){return serviceTone(services[n])}));
+}
 function dot(t){return'<span class="dot '+(t||"unknown")+'">'+QA_THEME.glyph(t||"unknown")+'</span>'}
+function agoSpan(iso){return'<span data-since="'+esc(iso)+'"></span>'}
 function agoText(iso){
   if(!iso)return"";var s=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/1000));
   return s<60?s+"s":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d";
@@ -360,40 +483,40 @@ function renderActionResult(){
     var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:""),text,t;
     if(a.state==="running"){text=verb+" running since "+clock(a.startedAt);t="warn"}
     else if(a.state==="ok"){text=verb+" finished at "+clock(a.endedAt);t="ok"}
-    else{text=verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt);t="bad"}
+    else{text=verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt);t="down"}
     h+='<span>'+dot(t)+esc(text)+'</span>';
     if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary>show output</summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
   return h+'</div>';
 }
+function backendHealthy(b){
+  var svcs=b.services||{};
+  return tone(b.overall)==="ok"&&Object.keys(svcs).every(function(n){var t=serviceTone(svcs[n]);return t==="ok"||t==="warn"});
+}
+function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===healthy?!!detailsChoice.open:!healthy}
+// Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
 function renderBackend(b){
   if(!b)return'<div class="muted">No backend data.</div>';
-  var behind=/behind|attached|not develop/i.test(b.relation||"");
-  var h='<div class="head"><span class="title">Backend</span>'+
+  var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
+  var h='<div class="backend-body"><div class="head"><span class="title">Backend</span>'+
+    '<span class="state tone-'+rollup+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span>'+
     (behind?actionButton("update",esc(b.relation.charAt(0).toUpperCase()+b.relation.slice(1))+" &middot; update"):'<span class="pill">'+esc(b.relation||"?")+'</span>')+
     '<span class="muted">sha <code>'+esc(b.sha||"?")+'</code></span>'+
-    (b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"")+
-    '<span class="state tone-'+(tone(b.overall)||"unknown")+'">'+dot(tone(b.overall)==="ok"?"ok":"bad")+esc(b.overall||"unknown")+'</span>'+
-    (tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"")+'</div>'+renderActionResult();
-  var svcs=b.services||{},names=Object.keys(svcs);
-  var attnOf=function(s){return!!s.needsAttention||/attention/i.test(s.status||"")};
-  var healthy=tone(b.overall)==="ok"&&names.every(function(n){var s=svcs[n];var t=tone(s.status||s.probe);return!attnOf(s)&&t!=="bad"&&t!=="attn"});
-  if(healthy&&!servicesOpen){
-    return h+'<div class="chips">'+names.map(function(n){var s=svcs[n];
-      var t=tone(s.status||s.probe);
-      return'<span class="chip tone-'+(t||"unknown")+'" title="'+esc(s.status||s.probe||s.unitState)+'">'+dot(t)+esc(n)+'</span>'}).join("")+
-      '<button type="button" class="link" data-toggle="services" aria-expanded="false">show details</button></div>';
+    (tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"")+
+    '<button type="button" class="link toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+(open?"hide":"show")+' details</button></div>'+renderActionResult();
+  if(open){
+    var svcs=b.services||{};
+    h+='<div id="backend-details" class="backend-details">'+(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
+    Object.keys(svcs).forEach(function(n){
+      var s=svcs[n],t=serviceTone(s),attn=!!s.needsAttention||/attention/i.test(s.status||"");
+      h+='<div class="svc tone-'+(t||"unknown")+(attn?" attn":"")+'">'+dot(t)+
+        '<span class="name">'+esc(n)+'</span><span>'+esc(s.status||s.probe||s.unitState)+'</span>'+
+        (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+'</div>';
+    });
+    h+='</div>';
   }
-  names.forEach(function(n){
-    var s=svcs[n],attn=attnOf(s);
-    var t=tone(s.status||s.probe,attn);
-    h+='<div class="svc tone-'+(t||"unknown")+(attn?" attn":"")+'">'+dot(t)+
-      '<span class="name">'+esc(n)+'</span><span>'+esc(s.status||s.probe||s.unitState)+'</span>'+
-      (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+'</div>';
-  });
-  if(healthy)h+='<button type="button" class="link" data-toggle="services" aria-expanded="true">hide details</button>';
-  return h;
+  return h+'</div>';
 }
 function appUrl(a){
   var url=a.url||"";
@@ -406,16 +529,19 @@ function appUrl(a){
 // Down or not ready beats a failed build, which beats rebuilding, which beats ok.
 function appStatus(a){
   var build=a.build&&a.build.state;
-  if(!a.httpReady)return a.unitState==="active"?{tone:"warn",label:"starting"}:{tone:"bad",label:a.unitState||"down"};
-  if(build==="failed"){var errors=a.build.errorCount;return{tone:"bad",label:"build failed"+(errors?" \u00b7 "+errors+" error"+(errors===1?"":"s"):""),failed:true}}
+  if(!a.httpReady)return a.unitState==="active"?{tone:"warn",label:"starting"}:{tone:"down",label:a.unitState||"down"};
+  if(build==="failed"){var errors=a.build.errorCount;return{tone:"broken",label:"build failed"+(errors?" \u00b7 "+errors+" error"+(errors===1?"":"s"):""),failed:true}}
   if(build==="building")return{tone:"warn",label:"rebuilding"};
   return{tone:"ok",label:""};
 }
 function hashText(text){var h=2166136261;for(var i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 // The fill's leading edge is ragged and wet; seeded per pill so each one seeps differently.
 function seepFill(seed){
-  var points=["0 0","100 0"],value=seed;
-  for(var y=4;y<=40;y+=4){value=Math.imul(value^value>>>13,1274126177)>>>0;points.push((100+(value%1400)/100).toFixed(1)+" "+y)}
+  // A low wet band: ragged along its top surface and at its leading edge, so the pill text stays clear.
+  var points=[],value=seed;
+  function next(){value=Math.imul(value^value>>>13,1274126177)>>>0;return(value%1000)/1000}
+  for(var x=0;x<=100;x+=10)points.push(x+" "+(6+next()*14).toFixed(1));
+  for(var y=12;y<=40;y+=7)points.push((100+next()*14).toFixed(1)+" "+y);
   points.push("0 40");
   return'<svg class="seep-fill" viewBox="0 0 114 40" preserveAspectRatio="none" aria-hidden="true"><path style="fill:var(--seep)" d="M'+points.join("L")+'Z"/></svg>';
 }
@@ -425,7 +551,7 @@ function appPill(a){
   var state=status.label||(a.httpReady&&!url?"no link":"");
   var inner=dot(status.tone)+'<span class="app-name">'+esc(name)+'</span>'+
     (status.failed?'<span class="build-failed">'+esc(state)+'</span>':
-    (state||a.startedAt?'<span class="port">'+[state&&esc(state),a.httpReady&&a.startedAt&&agoText(a.startedAt)+" alive"].filter(Boolean).join(" &middot; ")+'</span>':""));
+    (state||a.startedAt?'<span class="port">'+[state&&esc(state),a.httpReady&&a.startedAt&&"up "+agoSpan(a.startedAt)].filter(Boolean).join(" &middot; ")+'</span>':""));
   var since=a.startedAt?" (dev server started "+clock(a.startedAt)+"; if your tab is older, hard-refresh)":"";
   var title=status.failed?"Build failed: "+(a.build.error||"see the browser overlay"):"Open "+name+" on :"+a.port+since;
   if(ready){
@@ -443,7 +569,8 @@ var ICONS={
 };
 function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+ICONS[icon]+'</button>'}
 function renderSlot(s){
-  var h='<div class="card slot-card'+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+'"><span class="slotno">slot '+esc(s.slot)+'</span>'+
+  var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"");
+  var h='<span class="slotno">slot '+esc(s.slot)+'</span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
       ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+ICONS.stop+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
@@ -452,11 +579,11 @@ function renderSlot(s){
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
   h+='</div>';
   if(s.head)h+='<div class="muted small head-line" title="'+esc(s.head.subject||"")+'"><code>'+esc(s.head.sha)+'</code>'+
-    ' &middot; committed '+agoText(s.head.committedAt)+' ago'+
+    ' &middot; committed '+agoSpan(s.head.committedAt)+' ago'+
     (s.head.uncommitted?' &middot; <span style="color:var(--warn)">'+esc(s.head.uncommitted)+' uncommitted</span>':'')+'</div>';
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
-  return h+'</div>';
+  return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
 function hasRi(s){return(s.apps||[]).some(function(a){return a.app==="ri"})}
 function sortedSlots(slots){
@@ -470,27 +597,54 @@ function updatedText(){
   var s=Math.max(0,Math.round((Date.now()-lastOk.getTime())/1000));
   return"updated "+(s<5?"just now":s<60?s+"s ago":s<3600?Math.floor(s/60)+"m ago":"at "+lastOk.toLocaleTimeString());
 }
+function setHtml(element,html){if(element.__html===html)return false;element.__html=html;element.innerHTML=html;return true}
+function setClass(element,cls){if(element.className!==cls)element.className=cls}
+// Keeps each card's element while its markup is unchanged; only cards whose data changed are touched, and the changed ones are returned.
+function reconcileCards(box,cards){
+  var existing={},wanted={},changed=[];
+  Array.prototype.forEach.call(box.children,function(element){if(element.__key)existing[element.__key]=element});
+  cards.forEach(function(card,index){
+    var key=wanted[card.key]?card.key+"#"+index:card.key;card.key=key;wanted[key]=true;
+    var element=existing[key];
+    if(!element){element=document.createElement("div");element.__key=key;changed.push(element)}
+    if(element.__html!==card.html){element.__html=card.html;element.innerHTML=card.html;if(changed.indexOf(element)<0)changed.push(element)}
+    setClass(element,card.cls);
+    if(box.children[index]!==element)box.insertBefore(element,box.children[index]||null);
+  });
+  Array.prototype.slice.call(box.children).forEach(function(element){if(!wanted[element.__key])element.remove()});
+  return changed;
+}
+function updateAgo(){
+  document.querySelectorAll("[data-since]").forEach(function(element){
+    var text=agoText(element.getAttribute("data-since"));
+    if(element.textContent!==text)element.textContent=text;
+  });
+}
 function render(){
-  var backend=data&&data.backend;
-  document.getElementById("backend").className="card";
-  document.getElementById("backend").innerHTML=renderBackend(backend);
+  var backend=data&&data.backend,backendBox=document.getElementById("backend");
+  setClass(backendBox,"card backend"+(backend?(backendHealthy(backend)?"":" err"):" muted"));
+  var backendChanged=setHtml(backendBox,renderBackend(backend));
   var slots=(data&&data.slots)||[];
-  var hint=document.getElementById("hint");
-  hint.hidden=!slots.length;
-  hint.innerHTML=slots.length?"To start another session, "+START_HINT+".":"";
+  var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
+  hint.hidden=!slots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
-  slotsBox.innerHTML=slots.length?
-    sortedSlots(slots).map(renderSlot).join(""):
-    '<div class="card empty"><span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div></div>';
-  if(window.QA_BRUSH)QA_BRUSH.decorate(slotsBox);
+  var cards=slots.length?sortedSlots(slots).map(renderSlot):
+    [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
+  var changedCards=reconcileCards(slotsBox,cards);
+  if(window.QA_BRUSH)changedCards.forEach(function(card){QA_BRUSH.decorate(card)});
+  updateAgo();
+  if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
   var unhealthy=failure||(backend&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
-  document.title=(unhealthy?"(!) ":"")+"QA status · "+slots.length+" session"+(slots.length===1?"":"s");
-  var b=document.getElementById("banner");
-  document.getElementById("updated").textContent=updatedText();
-  if(failure){b.style.display="block";b.textContent="Status unavailable"+(data?" - showing stale data":"")+": "+failure}
-  else b.style.display="none";
+  var title=(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
+  if(document.title!==title)document.title=title;
+  var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":"")+": "+failure:"";
+  setText(document.getElementById("updated"),updatedText());
+  if(failure){b.style.display="block";setText(b,banner)}
+  else if(b.style.display!=="none")b.style.display="none";
+  if(changedCards.length||backendChanged)document.dispatchEvent(new Event("qa-layout"));
 }
+function setText(element,text){if(element.textContent!==text)element.textContent=text}
 function copyText(text,button){
   function done(ok){
     var note=button.parentNode.querySelector(".copied");
@@ -518,26 +672,27 @@ function runAction(name,branch){
 document.addEventListener("click",function(e){
   var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop]");
   if(!t||t.disabled)return;
-  if(t.hasAttribute("data-toggle")){servicesOpen=!servicesOpen;render();var again=document.querySelector("[data-toggle]");if(again)again.focus()}
+  if(t.hasAttribute("data-toggle")){
+    var healthy=!data||!data.backend||backendHealthy(data.backend);
+    detailsChoice={healthy:healthy,open:!detailsOpen(healthy)};
+    try{sessionStorage.setItem("qaDashboardBackendDetails",JSON.stringify(detailsChoice))}catch(e){}
+    render();var again=document.querySelector("[data-toggle]");if(again)again.focus();
+  }
   else if(t.hasAttribute("data-copy"))copyText(t.getAttribute("data-copy"),t);
   else if(t.hasAttribute("data-stop")){
     var branch=t.getAttribute("data-stop");
-    if(window.confirm("Stop the dev servers for "+branch+"?"))runAction("stop",branch);
+    if(window.confirm("Stop the frontends for "+branch+"?"))runAction("stop",branch);
   }
   else runAction(t.getAttribute("data-action"));
 });
 document.addEventListener("toggle",function(e){if(e.target.id==="action-output")outputOpen=e.target.open},true);
 function pageHealth(){
   if(failure)return"bad";
-  var worst="ok",backend=data&&data.backend;
-  function see(t){if(t==="bad"||t==="attn")worst="bad";else if(t==="warn"&&worst==="ok")worst="warn"}
-  if(backend){
-    var overall=tone(backend.overall);see(overall===""?"warn":overall);
-    var services=backend.services||{};
-    Object.keys(services).forEach(function(n){var s=services[n];see(tone(s.status||s.probe,!!s.needsAttention))});
-  }
-  ((data&&data.slots)||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){see(appStatus(a).tone)})});
-  return worst;
+  var tones=[],backend=data&&data.backend;
+  if(backend)tones.push(backendTone(backend));
+  ((data&&data.slots)||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
+  var worst=worstTone(tones);
+  return worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
 }
 var reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)"),faviconTimer=null,faviconDim=false;
 function updateFavicon(){
@@ -576,8 +731,18 @@ document.addEventListener("visibilitychange",updateFavicon);
 (function settingsDialog(){
   var dialog=document.getElementById("settings"),trigger=document.getElementById("settings-open");
   if(!dialog||!trigger||!dialog.showModal)return;
-  trigger.addEventListener("click",function(){dialog.showModal();if(window.QA_BRUSH)QA_BRUSH.dialogTitle();tenantInput.focus()});
-  dialog.addEventListener("close",function(){trigger.focus()});
+  trigger.addEventListener("click",function(){dialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));if(window.QA_BRUSH)QA_BRUSH.dialogTitle();tenantInput.focus()});
+  dialog.addEventListener("close",function(){document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));trigger.focus()});
+  var done=dialog.querySelector(".done");
+  function inkDone(){
+    if(!window.QA_BRUSH||done.dataset.inked==="1")return;
+    done.dataset.inked="1";
+    QA_BRUSH.paint(done,Math.max(30,done.getBoundingClientRect().width-28),(Math.random()*4294967296)>>>0,0.7,true,"hooked");
+  }
+  function clearDone(){done.dataset.inked="";var brush=done.querySelector(".brush");if(brush)brush.remove()}
+  done.addEventListener("pointerenter",inkDone);done.addEventListener("focus",inkDone);
+  done.addEventListener("pointerleave",function(){if(document.activeElement!==done)clearDone()});
+  done.addEventListener("blur",clearDone);
   dialog.addEventListener("click",function(e){
     var rect=dialog.getBoundingClientRect();
     if(e.target===dialog&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))dialog.close();
@@ -595,7 +760,9 @@ function poll(){
     .catch(function(e){failure=e.message;render()})
     .then(function(){schedule(isRunning()?2000:5000)});
 }
-setInterval(function(){document.getElementById("updated").textContent=updatedText()},1000);
+// Only text that actually changed is written, so an idle second touches no layout.
+setInterval(function(){if(document.hidden)return;setText(document.getElementById("updated"),updatedText());updateAgo()},1000);
+if(window.ResizeObserver)new ResizeObserver(function(){document.documentElement.style.setProperty("--header-h",document.querySelector("header").offsetHeight+"px")}).observe(document.querySelector("header"));
 if(INITIAL){data=INITIAL;lastOk=INITIAL.generatedAt?new Date(INITIAL.generatedAt):null}
 render();
 if(!INITIAL)poll();
@@ -610,10 +777,10 @@ var QA_BRUSH=(function(){
   }
   function jitter(next,value){return value*(0.85+0.3*next())}
   function fixed(n){return n.toFixed(2)}
-  function svg(width,seed,scale){
+  function svg(width,seed,scale,presetName){
     var config=QA_THEME.current().brushStroke;
     if(!config)return"";
-    var next=random(seed),names=Object.keys(config.presets),preset=config.presets[names[Math.floor(next()*names.length)]];
+    var next=random(seed),names=Object.keys(config.presets),pick=names[Math.floor(next()*names.length)],preset=config.presets[presetName]||config.presets[pick];
     var k=scale||1,weight=jitter(next,preset.weight)*k,dripLength=jitter(next,preset.dripLength)*k,wobble=jitter(next,preset.wobble)*k;
     var taperIn=jitter(next,preset.taperIn),taperOut=jitter(next,preset.taperOut),height=Math.ceil(weight+dripLength+6*k);
     var pressureA=smoothNoise(next,3),pressureB=smoothNoise(next,7),drift=smoothNoise(next,5),slope=Math.tan((next()*3-1.5)*Math.PI/180);
@@ -657,10 +824,10 @@ var QA_BRUSH=(function(){
     }
     return'<svg class="brush" viewBox="0 '+fixed(-3*k)+" "+fixed(width+6*k)+" "+fixed(height+3*k)+'" width="'+fixed(width+6*k)+'" height="'+fixed(height+3*k)+'" aria-hidden="true">'+out.join("")+"</svg>";
   }
-  function paint(host,width,seed,scale,animate){
+  function paint(host,width,seed,scale,animate,presetName){
     var old=host.querySelector(":scope > .brush");
     if(old)old.remove();
-    host.insertAdjacentHTML("beforeend",svg(width,seed,scale));
+    host.insertAdjacentHTML("beforeend",svg(width,seed,scale,presetName));
     var brush=host.querySelector(":scope > .brush");
     if(brush&&animate&&!reducedMotion.matches){brush.classList.add("fresh");brush.addEventListener("animationend",function(){brush.classList.remove("fresh")},{once:true})}
     return brush;
@@ -708,6 +875,7 @@ var QA_BRUSH=(function(){
     var now=clock(),elapsed=Math.max(1,now-pointer.movedAt);
     if(pointer.known&&elapsed<200){pointer.vx=(x-pointer.x)/elapsed;pointer.vy=(y-pointer.y)/elapsed}else{pointer.vx=pointer.vy=0}
     pointer.x=x;pointer.y=y;pointer.movedAt=now;pointer.known=true;
+    scheduleHeader();
   }
   document.addEventListener("pointermove",function(e){if(e.pointerType!=="touch")track(e.clientX,e.clientY)},{passive:true});
   document.addEventListener("pointerdown",function(e){if(e.pointerType==="touch")track(e.clientX,e.clientY)},{passive:true});
@@ -716,20 +884,24 @@ var QA_BRUSH=(function(){
 
   /* ---------- header eye (smooth SVG, follows the cursor) ---------- */
   var header={host:document.getElementById("header-eye"),iris:null,pupil:null,lid:null,cover:null,pupilRadius:4.2,
-    x:0,y:0,vx:0,vy:0,scale:1,blinkStart:-1e9,lastBlink:-1e9,nextBlink:0,microX:0,microY:0,microUntil:0,nextMicro:0,last:0,running:false};
+    x:0,y:0,vx:0,vy:0,scale:1,blinkStart:-1e9,lastBlink:-1e9,nextBlink:0,microX:0,microY:0,microUntil:0,nextMicro:0,last:0,running:false,queued:false,timer:0,rect:null,drawn:{}};
   function mountHeader(){
     var mark=QA_THEME.current().headerMark;
     header.host.innerHTML=mark.eye;
     var settingsButton=document.getElementById("settings-open");
     if(settingsButton)settingsButton.innerHTML=QA_THEME.current().settingsIcon||"";
+
     header.iris=header.host.querySelector("[data-eye-iris]");header.pupil=header.host.querySelector("[data-eye-pupil]");
     header.lid=header.host.querySelector("[data-eye-lid]");header.cover=header.host.querySelector("[data-eye-cover]");
     header.pupilRadius=header.pupil?parseFloat(header.pupil.getAttribute("r")):0;
-    header.x=header.y=header.vx=header.vy=0;header.scale=1;
+    header.x=header.y=header.vx=header.vy=0;header.scale=1;header.rect=null;header.drawn={};
     drawHeader(0);
   }
+  // The eye's box only moves on resize or scroll, so it is measured then instead of on every frame.
+  function dropHeaderRect(){header.rect=null}
+  window.addEventListener("resize",dropHeaderRect);window.addEventListener("scroll",dropHeaderRect,{passive:true});
   function headerAim(now){
-    var mark=QA_THEME.current().headerMark,rect=header.host.getBoundingClientRect();
+    var mark=QA_THEME.current().headerMark,rect=header.rect||(header.rect=header.host.getBoundingClientRect());
     if(!pointer.known||!rect.width)return{x:0,y:0,near:false,distance:1e9,dx:0,dy:0};
     var dx=pointer.x-(rect.left+rect.width/2),dy=pointer.y-(rect.top+rect.height/2),distance=Math.hypot(dx,dy)||1;
     var idle=now-pointer.movedAt,fade=idle<4000?1:Math.max(0,1-(idle-4000)/1800),reach=Math.min(1,distance/220)*fade;
@@ -740,15 +912,34 @@ var QA_BRUSH=(function(){
     if(age<0||age>330)return 0;
     return age<120?age/120:age<180?1:1-(age-180)/150;
   }
+  function setHeaderAttribute(key,element,name,value){
+    if(!element||header.drawn[key]===value)return;
+    header.drawn[key]=value;element.setAttribute(name,value);
+  }
   function drawHeader(blink){
     var lid=QA_THEME.current().headerMark.lid;
-    if(header.iris)header.iris.setAttribute("transform","translate("+(header.x+header.microX).toFixed(2)+" "+(header.y+header.microY).toFixed(2)+")");
-    if(header.pupil)header.pupil.setAttribute("r",(header.pupilRadius*header.scale).toFixed(2));
+    setHeaderAttribute("iris",header.iris,"transform","translate("+(header.x+header.microX).toFixed(2)+" "+(header.y+header.microY).toFixed(2)+")");
+    setHeaderAttribute("pupil",header.pupil,"r",(header.pupilRadius*header.scale).toFixed(2));
     var flip=1+(lid.closed-1)*blink;
-    if(header.lid)header.lid.setAttribute("transform",blink>0?"translate(0 "+lid.pivot+") scale(1 "+flip.toFixed(3)+") translate(0 "+(-lid.pivot)+")":"");
-    if(header.cover)header.cover.setAttribute("height",blink>0?Math.max(0,lid.pivot+(lid.top-lid.pivot)*flip+3).toFixed(2):"0");
+    setHeaderAttribute("lid",header.lid,"transform",blink>0?"translate(0 "+lid.pivot+") scale(1 "+flip.toFixed(3)+") translate(0 "+(-lid.pivot)+")":"");
+    setHeaderAttribute("cover",header.cover,"height",blink>0?Math.max(0,lid.pivot+(lid.top-lid.pivot)*flip+3).toFixed(2):"0");
+  }
+  function scheduleHeader(){
+    if(!header.running||header.queued)return;
+    header.queued=true;clearTimeout(header.timer);requestAnimationFrame(headerTick);
+  }
+  // Still while the spring has settled, no blink or saccade is under way and the cursor is quiet.
+  function headerBusy(now,aim){
+    return Math.abs(aim.x-header.x)>0.005||Math.abs(aim.y-header.y)>0.005||Math.abs(header.vx)>0.01||Math.abs(header.vy)>0.01||
+      Math.abs((aim.near?0.6:1)-header.scale)>0.002||now-header.blinkStart<340||now<header.microUntil||now-pointer.movedAt<300;
+  }
+  function headerSleep(now){
+    var wake=Math.min(header.nextBlink,header.nextMicro),fadeStart=pointer.movedAt+4000;
+    if(pointer.known&&fadeStart>now&&fadeStart-now<60000)wake=Math.min(wake,fadeStart);
+    clearTimeout(header.timer);header.timer=setTimeout(scheduleHeader,Math.max(30,Math.min(wake-now,60000)));
   }
   function headerTick(now){
+    header.queued=false;
     if(!header.running)return;
     var seconds=header.last?Math.min(0.05,(now-header.last)/1000):0;header.last=now;
     var aim=headerAim(now);
@@ -762,17 +953,17 @@ var QA_BRUSH=(function(){
     if(now>header.nextMicro){if(header.nextMicro){header.microX=(Math.random()-0.5)*2.4;header.microY=(Math.random()-0.5)*1.4;header.microUntil=now+140}header.nextMicro=now+2500+Math.random()*3500}
     if(now>header.microUntil){header.microX=header.microY=0}
     drawHeader(blinkAmount(now));
-    requestAnimationFrame(headerTick);
+    if(headerBusy(now,aim))scheduleHeader();else headerSleep(now);
   }
   function updateHeader(){
     var animate=!document.hidden&&!reduced.matches;
-    if(animate&&!header.running){header.running=true;header.last=0;requestAnimationFrame(headerTick)}
-    else if(!animate){header.running=false;header.x=header.y=0;header.scale=1;drawHeader(0)}
+    if(animate&&!header.running){header.running=true;header.last=0;scheduleHeader()}
+    else if(!animate){header.running=false;clearTimeout(header.timer);header.x=header.y=0;header.scale=1;drawHeader(0)}
   }
 
   /* ---------- halftone grid engine (bottom eye) ---------- */
   var canvas=document.getElementById("coin"),box=canvas.parentNode,ctx=canvas.getContext("2d");
-  var W=200,H=230,PITCH=4.5,SIZE=200,RES=512,UNIT=RES/64,SCALE=SIZE/64,CENTER_Y=92,FPS=12;
+  var W=200,H=230,PITCH=4.5,SIZE=200,RES=512,UNIT=RES/64,SCALE=SIZE/64,CENTER_Y=92,FPS=12,LIGHT_FPS=24;
   var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
   var cols=Math.floor(W/PITCH)+1,rows=Math.floor(H/PITCH)+1,count=cols*rows;
   var offsetX=(W-(cols-1)*PITCH)/2,offsetY=(H-(rows-1)*PITCH)/2;
@@ -781,9 +972,9 @@ var QA_BRUSH=(function(){
     intensity:new Float32Array(count),radiusScale:new Float32Array(count),
     alpha:new Float32Array(count),normalX:new Float32Array(count),normalY:new Float32Array(count),normalZ:new Float32Array(count),
     dropout:new Uint8Array(count),inIris:new Uint8Array(count),
-    edgeIn:new Uint8Array(count),edgeOut:new Uint8Array(count),angle:new Float32Array(count),beatDelay:new Float32Array(count),
+    edgeIn:new Uint8Array(count),edgeOut:new Uint8Array(count),angle:new Float32Array(count),
     veinPaths:[],veins:null,
-    source:null,anatomy:null,hover:{inside:false,enteredAt:-1e9,leftAt:-1e9,x:0,y:0},palette:[]};
+    source:null,anatomy:null,hover:{inside:false,enteredAt:-1e9,leftAt:-1e9,lastMoveAt:-1e9,cooldownUntil:0,x:0,y:0},palette:[]};
   for(var cell=0;cell<count;cell++){
     engine.dotX[cell]=offsetX+(cell%cols)*PITCH;engine.dotY[cell]=offsetY+Math.floor(cell/cols)*PITCH;
     engine.hash[cell]=(Math.imul(cell+1,2654435761)>>>24)&255;
@@ -851,7 +1042,7 @@ var QA_BRUSH=(function(){
     classifyEdges();
   }
   function classifyEdges(){
-    var anatomy=engine.anatomy,centerU=anatomy?anatomy.iris[0]:32,centerV=anatomy?anatomy.iris[1]:30,farthest=1,i;
+    var anatomy=engine.anatomy,centerU=anatomy?anatomy.iris[0]:32,centerV=anatomy?anatomy.iris[1]:30,i;
     for(i=0;i<count;i++){
       var col=i%cols,row=(i/cols)|0,lit=engine.alpha[i]>0.3,u=(engine.dotX[i]-W/2)/SCALE+32,v=(engine.dotY[i]-CENTER_Y)/SCALE+32;
       var distance=Math.hypot(u-centerU,v-centerV);
@@ -865,10 +1056,7 @@ var QA_BRUSH=(function(){
       engine.edgeIn[i]=!core&&lit&&darkNeighbour?1:0;
       engine.edgeOut[i]=!core&&!lit&&litNeighbour?1:0;
       engine.angle[i]=Math.atan2(v-centerV,u-centerU);
-      engine.beatDelay[i]=distance;
-      if(lit&&distance>farthest)farthest=distance;
     }
-    for(i=0;i<count;i++)engine.beatDelay[i]=Math.min(1,engine.beatDelay[i]/farthest)*0.22;
     engine.veinPaths=[veinPath(-1,-1),veinPath(-1,1),veinPath(1,-1),veinPath(1,1)];
     engine.veins=schedules(71,4,[6,12],function(random){return{path:Math.floor(random()*4),length:3+Math.floor(random()*4)}});
   }
@@ -892,23 +1080,22 @@ var QA_BRUSH=(function(){
     }
     return path;
   }
-  function beatAt(phase){return 0.18*Math.exp(-Math.pow(phase/0.06,2))+0.09*Math.exp(-Math.pow((phase-0.24)/0.06,2))}
-  // Edge life, heartbeat ripple and veins; runs on the emblem before blood is drawn.
+  // Edge life and veins; runs on the emblem before blood is drawn. Nothing here grows and shrinks on a regular beat.
   engine.living=function(t,edges){
     if(reduced.matches&&isNaN(frozen))return;
-    var step=Math.floor(t*FPS)/FPS,soft=Math.floor(t*24)/24,beatPhase=((soft-1)%3.5+3.5)%3.5;
-    var crawlA=2*Math.PI*step/4.5,crawlB=2*Math.PI*step/6.3,intensity=engine.intensity,radius=engine.radiusScale;
+    var step=Math.floor(t*FPS)/FPS;
+    // The lobes travel around the rim at an uneven, never-repeating pace; the speed stays positive so they only ever drift forward.
+    var crawlA=1.2*step+1.4*Math.sin(step*0.41)+0.9*Math.sin(step*0.157+1.3),crawlB=0.85*step+1.1*Math.sin(step*0.29+0.5)+0.7*Math.sin(step*0.083+2.1),intensity=engine.intensity,radius=engine.radiusScale;
     for(var i=0;i<count;i++){
-      var local=beatAt(beatPhase-engine.beatDelay[i]),value=intensity[i];
+      var value=intensity[i];
       if(edges&&(engine.edgeIn[i]||engine.edgeOut[i])){
         var angle=engine.angle[i],bulge=0.6*Math.sin(5*angle-crawlA)+0.4*Math.sin(3*angle+crawlB+1.7)+(engine.hash[i]/255-0.5)*0.5;
         if(engine.inIris[i])bulge*=0.7;
-        if(engine.edgeOut[i]&&(bulge>0.62||local>0.12))value=Math.max(value,0.55*(1+local));
-        if(engine.edgeIn[i]&&bulge<-0.6&&local<0.05)value*=0.2;
+        if(engine.edgeOut[i]&&bulge>0.62)value=Math.max(value,0.55);
+        if(engine.edgeIn[i]&&bulge<-0.6)value*=0.2;
       }
       if(value>0){
-        value*=1+local*(engine.inIris[i]?1:0.7);
-        radius[i]*=1+local*0.9+Math.max(0,value-0.9)*0.6;
+        radius[i]*=1+Math.max(0,value-0.9)*0.6;
       }
       intensity[i]=value;
     }
@@ -929,22 +1116,39 @@ var QA_BRUSH=(function(){
     var a=engine.alpha[index];
     if(a<0.05||engine.dropout[index])return 0;
     var lambert=Math.max(0,engine.normalX[index]*lightX+engine.normalY[index]*lightY+engine.normalZ[index]*lightZ);
-    return a*(0.1+1.02*Math.pow(lambert,1.5)+0.36*band)*gain*(1+0.03*Math.sin(engine.time*1.9+engine.hash[index]*0.0245));
+    return a*(0.1+1.02*Math.pow(lambert,1.5)+0.36*band)*gain;
   };
+  // Each dot's shade and radius are bucketed before drawing; a frame identical to the last one skips the canvas entirely.
+  var dotShade=new Int8Array(count),dotRadius=new Uint8Array(count),drawnShade=new Int8Array(count),drawnRadius=new Uint8Array(count);
+  var dotOrder=new Uint16Array(count),shadeStart=new Uint16Array(6),forceDraw=true;
   function present(){
-    ctx.clearRect(0,0,W,H);
-    var palette=engine.palette,intensity=engine.intensity;
-    for(var shade=0;shade<palette.length;shade++){
-      ctx.fillStyle=palette[shade];ctx.beginPath();
-      for(var i=0;i<count;i++){
-        var value=intensity[i];
-        if(value<0.08)continue;
-        var scaled=Math.min(6,value*6),level=Math.floor(scaled),col=i%cols,row=(i/cols)|0;
-        if(scaled-level>BAYER[(row&3)*4+(col&3)]/16)level++;
+    var intensity=engine.intensity,radiusScale=engine.radiusScale,changed=forceDraw,i;
+    for(i=0;i<count;i++){
+      var value=intensity[i],shade=-1,quantised=0;
+      if(value>=0.08){
+        var scaled=Math.min(6,value*6),level=Math.floor(scaled);
+        if(scaled-level>BAYER[((i/cols|0)&3)*4+(i%cols&3)]/16)level++;
         level=Math.max(1,Math.min(6,level));
-        if((level>4?4:level-1)!==shade)continue;
-        var radius=Math.min(0.5*PITCH,0.45*PITCH*(0.25+0.75*level/6)*(engine.radiusScale[i]||1));
-        ctx.moveTo(engine.dotX[i]+radius,engine.dotY[i]);ctx.arc(engine.dotX[i],engine.dotY[i],radius,0,6.2832);
+        shade=level>4?4:level-1;
+        quantised=Math.round(Math.min(0.5*PITCH,0.45*PITCH*(0.25+0.75*level/6)*(radiusScale[i]||1))*32);
+      }
+      dotShade[i]=shade;dotRadius[i]=quantised;
+      if(shade!==drawnShade[i]||quantised!==drawnRadius[i])changed=true;
+    }
+    if(!changed)return;
+    forceDraw=false;drawnShade.set(dotShade);drawnRadius.set(dotRadius);
+    var palette=engine.palette,counts=[0,0,0,0,0],shadeIndex;
+    for(i=0;i<count;i++)if(dotShade[i]>=0)counts[dotShade[i]]++;
+    for(shadeIndex=0;shadeIndex<5;shadeIndex++)shadeStart[shadeIndex+1]=shadeStart[shadeIndex]+counts[shadeIndex];
+    var fill=[shadeStart[0],shadeStart[1],shadeStart[2],shadeStart[3],shadeStart[4]];
+    for(i=0;i<count;i++)if(dotShade[i]>=0)dotOrder[fill[dotShade[i]]++]=i;
+    ctx.clearRect(0,0,W,H);
+    for(shadeIndex=0;shadeIndex<palette.length&&shadeIndex<5;shadeIndex++){
+      if(shadeStart[shadeIndex+1]===shadeStart[shadeIndex])continue;
+      ctx.fillStyle=palette[shadeIndex];ctx.beginPath();
+      for(var k=shadeStart[shadeIndex];k<shadeStart[shadeIndex+1];k++){
+        var dot=dotOrder[k],radius=dotRadius[dot]/32;
+        ctx.moveTo(engine.dotX[dot]+radius,engine.dotY[dot]);ctx.arc(engine.dotX[dot],engine.dotY[dot],radius,0,6.2832);
       }
       ctx.fill();
     }
@@ -1098,7 +1302,7 @@ var QA_BRUSH=(function(){
     return best;
   }
   var watcher={
-    id:"watcher",label:"Watcher",
+    id:"watcher",label:"Full animation",
     init:function(){
       this.lids=lidColumns();
       this.blood=makeBlood({swell:[2,5],rest:[1.5,4],trickle:0.3,evaporate:6,depth:0.75,poolRows:1,runs:0,
@@ -1142,7 +1346,7 @@ var QA_BRUSH=(function(){
       }
       var irisX=engine.dotX[0]+engine.colOf(a.iris[0])*PITCH,irisY=engine.dotY[0]+engine.rowOf(a.iris[1])*PITCH;
       var pupilX=irisX+now[0]*PITCH,pupilY=irisY+now[1]*PITCH,lastX=irisX+before[0]*PITCH,lastY=irisY+before[1]*PITCH;
-      var irisRadius=a.iris[2]*SCALE,pupilRadius=a.pupil*SCALE*(1+0.1*Math.sin(2*Math.PI*soft/6))*(now[2]?0.75:1);
+      var irisRadius=a.iris[2]*SCALE,pupilRadius=a.pupil*SCALE*(now[2]?0.75:1);
       engine.time=soft;
       for(var i=0;i<count;i++){
         col=i%cols;var row=(i/cols)|0,source=i,lidOnly=false,value=0,s=shift[col];
@@ -1175,7 +1379,7 @@ var QA_BRUSH=(function(){
     still:0.6
   };
   var bleeding={
-    id:"bleeding",label:"Bleeding",
+    id:"bleeding",label:"Drips only",
     init:function(){this.blood=makeBlood({swell:[0.8,2],rest:[0.2,0.8],trickle:0.45,evaporate:18,depth:0.55,poolRows:3,runs:2,
       splash:{width:3,droplets:[4,5],height:[3,5],side:[3,6],spatter:0.45}},53)},
     frame:function(t){
@@ -1189,7 +1393,7 @@ var QA_BRUSH=(function(){
   };
   var COIN_FRAMES=64;
   var coin={
-    id:"coin",label:"Coin",
+    id:"coin",label:"Coin spin",
     init:function(){this.cache=[];this.index=0;this.nextAt=0},
     build:function(k){
       var source=engine.source,u=k/COIN_FRAMES,c=u<0.5?1-4*u:-3+4*u,width=Math.abs(c),dir=u<0.5?1:-1;
@@ -1255,7 +1459,7 @@ var QA_BRUSH=(function(){
   var MODES={watcher:watcher,coin:coin,bleeding:bleeding,off:off};
 
   /* ---------- engine lifecycle and controls ---------- */
-  var mode=off,ready=false,running=false,onScreen=true,start=clock(),modeSelect=document.getElementById("eye-mode"),themeSelect=document.getElementById("theme-pick");
+  var mode=off,ready=false,running=false,onScreen=true,modalOpen=false,frameTimer=0,lastKey=-1,start=clock(),modeSelect=document.getElementById("eye-mode"),themeSelect=document.getElementById("theme-pick");
   function availableModes(){
     var theme=QA_THEME.current();
     return(theme.eyeModes||["coin","off"]).map(function(entry){return typeof entry==="string"?MODES[entry]:entry})
@@ -1268,28 +1472,36 @@ var QA_BRUSH=(function(){
     if(ready)mode.init(engine);
     if(modeSelect)modeSelect.value=mode.id;
     box.classList.toggle("is-off",mode===off);
-    update();
+    update(true);
   }
-  function renderOnce(t,real){engine.clear();mode.frame(t,real);present()}
-  function tick(now){
+  function renderOnce(t,real){
+    if(real)engine.gazeExpire(real);
+    if(debug)window.__eyeFrames=(window.__eyeFrames||0)+1;
+    engine.clear();mode.frame(t,real);present();
+  }
+  // The art moves in 12fps steps and its light in 24fps steps, so one timer step per 24th of a second is the finest change there is.
+  function tick(){
+    frameTimer=0;
     if(!running)return;
-    var seconds=(now-start)/1000;
-    renderOnce(seconds,seconds);
-    requestAnimationFrame(tick);
+    var elapsed=clock()-start,key=Math.floor(elapsed*LIGHT_FPS/1000);
+    if(key!==lastKey){lastKey=key;renderOnce(elapsed/1000,elapsed/1000)}
+    frameTimer=setTimeout(tick,Math.max(4,(key+1)*1000/LIGHT_FPS-(clock()-start)+1));
   }
-  function update(){
+  function stopLoop(){running=false;clearTimeout(frameTimer);frameTimer=0}
+  // A modal settings dialog freezes the art behind it, since its backdrop blur would be recomputed on every frame.
+  function update(force){
     if(!ready)return;
-    var animate=onScreen&&!document.hidden&&!reduced.matches&&!isFrozen&&!mode.idle;
-    if(animate&&!running){running=true;requestAnimationFrame(tick)}
-    else if(!animate){running=false;renderOnce(isFrozen?frozen:mode.still,0)}
+    var wanted=onScreen&&!document.hidden&&!reduced.matches&&!isFrozen&&!mode.idle,animate=wanted&&!modalOpen;
+    if(animate&&!running){running=true;lastKey=-1;tick()}
+    else if(!animate){stopLoop();if(!(wanted&&modalOpen)||force)renderOnce(isFrozen?frozen:mode.still,0)}
   }
-  function readPalette(){var palette=QA_THEME.current().palette;engine.palette=scheme.matches?palette.dark:palette.light}
+  function readPalette(){var palette=QA_THEME.current().palette;engine.palette=QA_THEME.isDark()?palette.dark:palette.light;forceDraw=true}
   function setupCanvas(){
     var ratio=window.devicePixelRatio||1;
-    canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
+    canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);forceDraw=true;
   }
   function loadTheme(){
-    ready=false;running=false;readPalette();mountHeader();updateHeader();
+    ready=false;stopLoop();readPalette();mountHeader();updateHeader();
     var image=new Image(),wanted=null;
     try{wanted=query.get("eye")||localStorage.getItem("qaDashboardEyeMode")}catch(e){wanted=query.get("eye")}
     image.onload=function(){
@@ -1313,16 +1525,51 @@ var QA_BRUSH=(function(){
   QA_BRUSH.header();QA_BRUSH.decorate(document);
   var titleMark=document.querySelector("header .mark");
   if(titleMark)titleMark.addEventListener("click",QA_BRUSH.header);
+  // The canvas box is measured again only after a scroll, resize or re-render, not on every pointer move.
+  var boxRect=null;
+  function dropBoxRect(){boxRect=null}
+  window.addEventListener("resize",dropBoxRect);window.addEventListener("scroll",dropBoxRect,{passive:true});document.addEventListener("qa-layout",dropBoxRect);
+  // Gaze follows the cursor only while it is inside the eye's box, and always ends: on leaving the box, the window or the tab,
+  // after 2s without movement, or after 3s of continuous hover (followed by a short cooldown). Nothing else in the animation waits on it.
+  var GAZE_IDLE=2,GAZE_MAX=3,GAZE_COOLDOWN=1.5,debug=/^(1|true)$/.test(query.get("debug")||query.get("perf")||"");
+  function gazeLog(what,detail){if(debug)console.log("gaze "+what+" "+JSON.stringify(detail||{})+" t="+((clock()-start)/1000).toFixed(2)+" frames="+(window.__eyeFrames||0))}
+  function gazeRelease(reason,cooldown){
+    var hover=engine.hover,t=(clock()-start)/1000;
+    if(!hover.inside)return;
+    hover.inside=false;hover.leftAt=t;lastKey=-1;
+    if(cooldown)hover.cooldownUntil=t+GAZE_COOLDOWN;
+    gazeLog("release",{reason:reason});
+  }
+  engine.gazeExpire=function(real){
+    var hover=engine.hover;
+    if(!hover.inside)return;
+    if(real-hover.lastMoveAt>GAZE_IDLE)gazeRelease("idle",false);
+    else if(real-hover.enteredAt>GAZE_MAX)gazeRelease("max-hover",true);
+  };
   document.addEventListener("pointermove",function(e){
-    var rect=box.getBoundingClientRect(),inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom,t=(clock()-start)/1000;
-    if(inside&&!engine.hover.inside)engine.hover.enteredAt=t;
-    if(!inside&&engine.hover.inside)engine.hover.leftAt=t;
-    engine.hover.inside=inside;
+    var rect=boxRect||(boxRect=box.getBoundingClientRect()),hover=engine.hover,t=(clock()-start)/1000;
+    var inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
+    if(!inside){gazeRelease("left-box",false);return}
+    hover.lastMoveAt=t;
+    if(!hover.inside&&t>=hover.cooldownUntil){hover.inside=true;hover.enteredAt=t;lastKey=-1;gazeLog("engage")}
   },{passive:true});
-  if(window.IntersectionObserver)new IntersectionObserver(function(entries){onScreen=entries[0].isIntersecting;update()}).observe(canvas);
+  document.addEventListener("pointerout",function(e){if(!e.relatedTarget)gazeRelease("window-out",false)});
+  document.documentElement.addEventListener("pointerleave",function(){gazeRelease("document-leave",false)});
+  document.addEventListener("pointercancel",function(){gazeRelease("cancel",false)});
+  window.addEventListener("blur",function(){gazeRelease("window-blur",false)});
+  document.addEventListener("visibilitychange",function(){if(document.hidden)gazeRelease("hidden",false)});
+  if(window.IntersectionObserver)new IntersectionObserver(function(entries){onScreen=entries[entries.length-1].isIntersecting;update()}).observe(canvas);
+  document.addEventListener("qa-modal",function(e){modalOpen=!!e.detail;update()});
   document.addEventListener("visibilitychange",function(){update();updateHeader()});
   if(reduced.addEventListener)reduced.addEventListener("change",function(){update();updateHeader()});
-  if(scheme.addEventListener)scheme.addEventListener("change",function(){readPalette();if(!running)update()});
+  function schemeChanged(){readPalette();if(!running)update(true)}
+  if(scheme.addEventListener)scheme.addEventListener("change",schemeChanged);
+  document.addEventListener("qa-scheme",schemeChanged);
+  var schemeRadios=document.querySelectorAll('input[name="scheme"]');
+  Array.prototype.forEach.call(schemeRadios,function(radio){
+    radio.checked=radio.value===QA_THEME.schemePreference();
+    radio.addEventListener("change",function(){if(radio.checked)QA_THEME.chooseScheme(radio.value)});
+  });
   loadTheme();
 })();
 </script></body></html>
@@ -1524,7 +1771,7 @@ def make_handler(source, runner, port):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Local QA status dashboard")
+    parser = argparse.ArgumentParser(description="Overseer: local QA status dashboard")
     parser.add_argument("--render-once", action="store_true", help="print the HTML for the current status and exit")
     parser.add_argument("--status-file", help="read status JSON from this file instead of running wt")
     args = parser.parse_args()

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# The shared QA backend without uvicorn --reload: the tree only changes through
+# `wt backend update`, which restarts this unit, so a file watcher is wasted CPU.
+# Mirrors start_backend in the repo's dev-start.sh otherwise.
+set -euo pipefail
+cd "${QA_TREE:-$HOME/cl-strategy-qa}"
+eval "$(python3 scripts/dev/ports.py --env)"
+export LANGGRAPH_SERVER_URL="http://127.0.0.1:${LANGGRAPH_PORT}"
+export AZURE_FUNCTION_APP_API_ENDPOINT="http://127.0.0.1:${FUNCTIONS_PORT}/api"
+[ -x apps/backend/.venv/bin/uvicorn ] || { echo "ERROR: uvicorn not found in apps/backend/.venv" >&2; exit 1; }
+cd apps/backend
+source .venv/bin/activate
+exec python -m uvicorn api.main:create_app --factory --host 0.0.0.0 --port "$BACKEND_PORT"
