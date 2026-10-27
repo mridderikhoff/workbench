@@ -23,7 +23,7 @@ HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Overseer</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Crect%20width=%2764%27%20height=%2764%27%20rx=%2712%27%20fill=%27%230b0505%27/%3E%3Cg%20fill=%27none%27%20stroke=%27%23e0061f%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27M5%2030C13%2017%2022%2011%2033%2011s19%206%2026%2018%27%20stroke-width=%276%27/%3E%3Cpath%20d=%27M6%2032c9%2010%2017%2014%2027%2014%209%200%2015-4%2021-11%27%20stroke-width=%275%27/%3E%3C/g%3E%3Ccircle%20cx=%2732%27%20cy=%2729%27%20r=%2710%27%20fill=%27%23e0061f%27/%3E%3Ccircle%20cx=%2732%27%20cy=%2729%27%20r=%274.2%27%20fill=%27%230b0505%27/%3E%3Cg%20fill=%27%23e0061f%27%3E%3Cpath%20d=%27M17%2040h5v13a2.5%202.5%200%200%201-5%200z%27/%3E%3Cpath%20d=%27M31%2044h4.5v17a2.25%202.25%200%200%201-4.5%200z%27/%3E%3Cpath%20d=%27M45%2041h4v9a2%202%200%200%201-4%200z%27/%3E%3Ccircle%20cx=%2719.5%27%20cy=%2753.5%27%20r=%273%27/%3E%3Ccircle%20cx=%2733.25%27%20cy=%2761%27%20r=%272.6%27/%3E%3Ccircle%20cx=%2747%27%20cy=%2750.5%27%20r=%272.4%27/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:,">
 <style>
 *{box-sizing:border-box}
 /* ===== Desk: every panel is a physical object lying on a real surface. Tiles (--desk-*) are painted once per theme and
@@ -2011,15 +2011,17 @@ function copyText(text,button){
 }
 function runAction(name,branch){
   actionError=null;
+  // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
+  var before=data&&data.actions;
   if(branch&&data){data.actions={action:"stop",target:branch,state:"running",output:[]};render()}
   var request=branch?{url:"/api/slot/stop",body:JSON.stringify({branch:branch})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
-      if(j.actions&&data)data.actions=j.actions;
+      if(data)data.actions=j.actions||before;
       if(!r.ok)actionError=j.error||("HTTP "+r.status);
       render();schedule(1000);
     });
-  }).catch(function(e){actionError=e.message;render()});
+  }).catch(function(e){if(data)data.actions=before;actionError=e.message;render();schedule(1000)});
 }
 var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopOpener=null,stopSubmitting=false;
 function stopAvailable(branch){return!isRunning()&&!!((data&&data.slots)||[]).find(function(slot){return slot.branch===branch&&(slot.apps||[]).length})}
