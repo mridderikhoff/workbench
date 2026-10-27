@@ -7,6 +7,9 @@ scans instantly. Fun never costs legibility, speed or accessibility.
 
 The Overseer dashboard (`bin/qa-dashboard`) is the reference implementation. When in doubt, match it.
 
+Before any visual iteration, also read [docs/STYLISED_UI.md](docs/STYLISED_UI.md): the game-UI playbook
+(the design calls we have made, a toolbox per moment, and the don'ts).
+
 ## The animated character comes first
 
 An expressive, animated character (the halftone eye, or Terminal's halftone CRT with an ASCII face) is the heart of Overseer. The animated character is a focal

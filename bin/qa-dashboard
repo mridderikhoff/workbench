@@ -341,13 +341,21 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .settings select::picker(select){margin:8px 0;padding:6px;border:0;border-radius:var(--picker-radius,5px);color:var(--text);background:var(--picker-face,var(--stock));
 box-shadow:var(--obj-face),var(--obj-edge),0 10px 12px -4px var(--contact),0 26px 40px -14px var(--lift)}
 .settings option{display:flex;align-items:center;gap:10px;min-height:36px;padding:7px 12px 7px 10px;border-radius:4px;font:16px/1.3 var(--serif);color:var(--text);background:transparent;cursor:pointer}
-.settings option::checkmark{order:1;margin-left:auto;content:"";width:12px;height:12px;background:var(--picker-check,var(--accent));clip-path:polygon(14% 50%,0 64%,38% 100%,100% 22%,86% 8%,38% 72%);visibility:hidden}
+.settings option::checkmark{order:1;margin-left:auto;content:"";width:var(--check-size,14px);height:var(--check-size,14px);background:var(--picker-check,var(--accent));-webkit-mask:var(--check-icon) center/contain no-repeat;mask:var(--check-icon) center/contain no-repeat;visibility:hidden}
 .settings option:checked::checkmark{visibility:visible}
 .settings option:checked{font-weight:700}
 .settings option:hover,.settings option:focus-visible{outline:none;background:var(--picker-hl,var(--inset));color:var(--picker-hl-ink,var(--text));box-shadow:var(--picker-hl-shadow,var(--sunk))}
 .settings option:hover::checkmark,.settings option:focus-visible::checkmark{background:var(--picker-hl-check,var(--picker-check,var(--accent)))}
-html[data-button-hover="seep"] .settings option{background:linear-gradient(var(--seep),var(--seep)) 0 100%/0 22% no-repeat;transition:background-size var(--dur) var(--ease-out)}
-html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible,:checked){background-color:transparent;background-size:100% 22%;color:var(--text);box-shadow:none}
+/* seep on the options: a thin wet band floods in from the left along the bottom, with a ragged top and leading edge, and a copy
+   of the label in --seep-ink is clipped to the same ragged line, so the text stays readable where the ink covers it. */
+html[data-button-hover="seep"] .settings select option{background:transparent}
+html[data-button-hover="seep"] .settings option{position:relative;isolation:isolate;overflow:hidden;--seep-band:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 36%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M0 26.6C0.93 26.77 3.88 27.67 5.58 27.6C7.29 27.53 8.53 26.3 10.23 26.2C11.94 26.1 14.11 27.17 15.81 27C17.52 26.83 18.91 25.37 20.46 25.2C22.01 25.03 23.41 25.63 25.11 26C26.82 26.37 28.68 27.33 30.69 27.4C32.7 27.47 35.19 26.73 37.2 26.4C39.22 26.07 40.92 25.33 42.78 25.4C44.64 25.47 46.5 26.4 48.36 26.8C50.22 27.2 52.08 27.9 53.94 27.8C55.8 27.7 57.82 26.67 59.52 26.2C61.23 25.73 62.62 25.03 64.17 25C65.72 24.97 66.96 25.6 68.82 26C70.68 26.4 73.31 27.37 75.33 27.4C77.34 27.43 79.05 26.5 80.91 26.2C82.77 25.9 84.48 25.53 86.49 25.6C88.51 25.67 91.58 26.33 93 26.6C94.42 26.87 94.27 26.77 95 27.2C95.73 27.63 96.77 28.65 97.4 29.2C98.03 29.75 98.67 29.77 98.8 30.5C98.93 31.23 98.17 32.68 98.2 33.6C98.23 34.52 98.87 35.6 99 36L0 36Z%22/%3E%3C/svg%3E");--seep-wet:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 36%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M0 26.6C1 26.77 4.17 27.67 6 27.6C7.83 27.53 9.17 26.3 11 26.2C12.83 26.1 15.17 27.17 17 27C18.83 26.83 20.33 25.37 22 25.2C23.67 25.03 25.17 25.63 27 26C28.83 26.37 30.83 27.33 33 27.4C35.17 27.47 37.83 26.73 40 26.4C42.17 26.07 44 25.33 46 25.4C48 25.47 50 26.4 52 26.8C54 27.2 56 27.9 58 27.8C60 27.7 62.17 26.67 64 26.2C65.83 25.73 67.33 25.03 69 25C70.67 24.97 72 25.6 74 26C76 26.4 78.83 27.37 81 27.4C83.17 27.43 85 26.5 87 26.2C89 25.9 90.83 25.53 93 25.6C95.17 25.67 98.83 26.43 100 26.6L100 36H0Z%22/%3E%3C/svg%3E")}
+html[data-button-hover="seep"] .settings option:nth-child(even){--seep-band:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 36%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M0 26.2C0.78 26.07 2.79 25.3 4.65 25.4C6.51 25.5 9.14 26.43 11.16 26.8C13.18 27.17 14.88 27.7 16.74 27.6C18.6 27.5 20.46 26.63 22.32 26.2C24.18 25.77 26.04 25.03 27.9 25C29.76 24.97 31.47 25.63 33.48 26C35.5 26.37 37.98 27.17 39.99 27.2C42.01 27.23 43.71 26.53 45.57 26.2C47.43 25.87 49.29 25.17 51.15 25.2C53.01 25.23 54.87 26 56.73 26.4C58.59 26.8 60.45 27.57 62.31 27.6C64.17 27.63 66.03 26.97 67.89 26.6C69.75 26.23 71.61 25.43 73.47 25.4C75.33 25.37 77.19 26.07 79.05 26.4C80.91 26.73 82.93 27.43 84.63 27.4C86.34 27.37 87.89 26.47 89.28 26.2C90.67 25.93 92.05 25.77 93 25.8C93.95 25.83 94.27 25.97 95 26.4C95.73 26.83 96.77 27.72 97.4 28.4C98.03 29.08 98.67 29.63 98.8 30.5C98.93 31.37 98.17 32.68 98.2 33.6C98.23 34.52 98.87 35.6 99 36L0 36Z%22/%3E%3C/svg%3E");--seep-wet:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 36%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M0 26.2C0.83 26.07 3 25.3 5 25.4C7 25.5 9.83 26.43 12 26.8C14.17 27.17 16 27.7 18 27.6C20 27.5 22 26.63 24 26.2C26 25.77 28 25.03 30 25C32 24.97 33.83 25.63 36 26C38.17 26.37 40.83 27.17 43 27.2C45.17 27.23 47 26.53 49 26.2C51 25.87 53 25.17 55 25.2C57 25.23 59 26 61 26.4C63 26.8 65 27.57 67 27.6C69 27.63 71 26.97 73 26.6C75 26.23 77 25.43 79 25.4C81 25.37 83 26.07 85 26.4C87 26.73 89.17 27.43 91 27.4C92.83 27.37 94.5 26.47 96 26.2C97.5 25.93 99.33 25.87 100 25.8L100 36H0Z%22/%3E%3C/svg%3E")}
+html[data-button-hover="seep"] .settings option::before{content:"";position:absolute;left:0;bottom:0;z-index:-1;width:calc(100% + 14px);height:100%;background:var(--seep);pointer-events:none;-webkit-mask:var(--seep-band) 0 0/100% 100% no-repeat;mask:var(--seep-band) 0 0/100% 100% no-repeat;transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
+html[data-button-hover="seep"] .settings option::after{content:attr(data-label);position:absolute;inset:0;display:flex;align-items:center;padding:inherit;color:var(--seep-ink);pointer-events:none;-webkit-mask:var(--seep-wet) 0 0/100% 100% no-repeat;mask:var(--seep-wet) 0 0/100% 100% no-repeat;clip-path:inset(0 100% 0 0);transition:clip-path var(--dur-fast) var(--ease)}
+html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible){background:transparent;color:var(--text);box-shadow:none}
+html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible)::before{transform:none;transition:transform var(--dur) var(--ease-out)}
+html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible)::after{clip-path:inset(0 0 0 0);transition:clip-path var(--dur) var(--ease-out)}
 }
 /* Reduced motion: one override zeroes every duration, so effects show their end state without moving. */
 @media (prefers-reduced-motion:reduce){:root{--dur-fast:0s!important;--dur:0s!important}}
@@ -391,7 +399,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
   name          label in the theme picker
   artPitch      shared halftone dot pitch in CSS px for the character and screened props (all themes use 4.5)
   css           {light:{...}, dark:{...}} custom properties merged over BASE (every engine key, with defaults). REQUIRED_KEYS
-                have no useful default. Each theme's deskCss may read extra keys of its own (Horror's --margin-ink, Neon's --led-*).
+                have no useful default. Each theme's deskCss may read extra keys of its own (Horror's --margin-ink, --foil-*, --patch-*
+                and --tooled, Neon's --led-*). --foil-hi, --foil-mid and --foil-lo are contrast-checked against --desk-card.
                 text and UI: --text, --muted, --inset, --border, --rule, --ok, --bad, --warn, --idle, --glyph-ok, --glyph-bad,
                   --accent (links), --hl (problem background), --banner, --banner-text, --shade, --dim (modal backdrop)
                 paired inks: every solid fill has its on-colour, named <fill>-ink (or <fill>-text): --ok-ink, --warn-ink,
@@ -420,7 +429,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
   statusGlyphs  {ok, warn, broken, down, attn, unknown, awake} SVG strings drawn with currentColor, each a distinct shape,
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle; awake (optional) has a .glyph-pupil group that follows
                 the cursor while a ready app pill is hovered
-  actionIcons   {copy, terminal, stop} SVG strings in the theme's own mark language (24-unit box)
+  actionIcons   {copy, terminal, stop, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
+                the selected option in a select list, drawn as a mask in --picker-check (sized by --check-size, default 14px)
   settingsIcon  SVG string for the settings button; chevron (optional) the details toggle arrow (12-unit box)
   wordmarkStroke  optional false: no brush underline under the wordmark (Horror: the eye already drips onto it)
   brushStroke   {colors:{core, edge}, presets:{name:{style?, weight, taperIn, taperOut, wobble, bristles, dryEnd, hook,
@@ -515,6 +525,17 @@ function blobPath(cx,cy,r,bumps,amp,phase){
   for(var i=0;i<48;i++){var a=i/48*Math.PI*2,k=r*(1+amp*Math.sin(a*bumps+phase)+amp*0.45*Math.sin(a*(bumps*2+1)+phase*1.7));points.push((cx+Math.cos(a)*k).toFixed(2)+" "+(cy+Math.sin(a)*k).toFixed(2))}
   return "M"+points.join("L")+"Z";
 }
+// A saddle-stitched edge for border-image (slice 8, about 4px wide): a pressed groove around the shape, a stitch hole at each end
+// of every stitch and an angled waxed-thread stitch per 12-unit edge segment. thread and sheen colour the thread; groove the hollow.
+function stitchBorder(thread, sheen, groove, lip) {
+  var stitch = function (x, y, angle) { return '<g transform="translate(' + x + ' ' + y + ') rotate(' + angle + ')"><rect x="-3.9" y="-1.25" width="7.8" height="2.5" rx="1.25" fill="' + thread + '"/><rect x="-2.9" y="-1" width="5.6" height=".8" rx=".4" fill="' + sheen + '"/></g>' };
+  var holes = function (points) { return points.map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1" fill="' + groove + '"/>' }).join("") };
+  return svgAsset('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">' +
+    '<rect x="4" y="4.7" width="20" height="20" rx="4" fill="none" stroke="' + lip + '" stroke-width=".8"/>' +
+    '<rect x="4" y="4" width="20" height="20" rx="4" fill="none" stroke="' + groove + '" stroke-width="1.5"/>' +
+    holes([[9.5, 4], [18.5, 4], [9.5, 24], [18.5, 24], [4, 9.5], [4, 18.5], [24, 9.5], [24, 18.5]]) +
+    stitch(14, 4, -9) + stitch(14, 24, -9) + stitch(4, 14, 81) + stitch(24, 14, 81) + '</svg>');
+}
 // Every key the engine reads, with a sensible default; a theme's css merges over this. REQUIRED_KEYS have no useful default.
 var REQUIRED_KEYS = ["--text", "--muted", "--inset", "--border", "--ok", "--bad", "--warn", "--accent", "--idle", "--glyph-ok", "--glyph-bad", "--hl",
   "--desk-floor", "--desk-card", "--desk-card2", "--tag", "--tag-ink", "--btn-face", "--btn-ink", "--brush", "--rule-ink", "--focus-outer"];
@@ -564,7 +585,13 @@ var THEMES = {
         "--pool": "rgba(255,214,150,.30)", "--pool-2": "rgba(255,200,130,.0)", "--flicker-1": "rgba(255,170,80,.36)", "--flicker-2": "rgba(255,190,110,.16)",
         "--desk-vignette": "rgba(14,8,3,.62)", "--blotter-corner": "#3a1512", "--blotter-edge": "#1c0807", "--stitch": "rgba(214,170,120,.55)",
         "--margin-ink": "rgba(168,0,26,.42)", "--ruled": "rgba(70,100,150,.20)", "--picker-hl-shadow": "inset 3px 0 0 var(--brush),var(--sunk)", "--key-face": "linear-gradient(180deg,#fdf7e8,#efe2c3)", "--key-hover-face": "linear-gradient(180deg,#fffdf6,#f6ecd2)", "--key-rim": "linear-gradient(180deg,#f2d88e,#c29a45 38%,#7a5718 75%,#4a330c)", "--key-ink": "#23170f", "--key-hover-ink": "#23170f", "--key-wall": "#8a6f45", "--badge-bg": "#e6d6b8", "--badge-ink": "#5e3a00", "--toggle-edge": "#b49d76",
-        "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff", "--accent-ink": "#ffffff", "--focus-outer": "#e8381e", "--stamp-ink": "#5e3a00"},
+        "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff", "--accent-ink": "#ffffff", "--focus-outer": "#e8381e", "--stamp-ink": "#5e3a00",
+        // On pale stock the foil is an antique gold, dark enough to read; the die leaves a shaded rim above and a bright lip below.
+        "--foil-hi": "#6f5216", "--foil-mid": "#5e430f", "--foil-lo": "#3f2a08", "--foil-rim": "rgba(70,42,12,.42)", "--foil-lip": "rgba(255,252,240,.9)",
+        "--tooled": "0 -1px 0 rgba(70,40,15,.24),0 1px 0 rgba(255,253,245,.85)", "--picker-check": "var(--brush)",
+        // Buttons on the cards are patches of natural tan leather, sewn on with cream thread.
+        "--patch": "#b98e5f", "--patch-ink": "#1d1209", "--patch-tint": "rgba(190,146,98,.88)", "--patch-hi": "rgba(255,238,205,.45)", "--patch-edge": "#6a4626", "--patch-press": "0 1px 0 rgba(255,238,205,.4)",
+        "--patch-stitch": stitchBorder("#f3e7cb", "rgba(255,255,255,.6)", "rgba(60,32,12,.55)", "rgba(255,240,210,.35)")},
       dark: {"--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
         "--border": "#3b2320", "--rule": "#6e0a12", "--ok": "#5fd18a", "--bad": "#ff5c68", "--warn": "#e0a948",
         "--idle": "#8a7b6c", "--glyph-ok": "#a39482", "--glyph-bad": "#ff3348", "--accent": "#ff5c68", "--brush": "#e0061f", "--brush-deep": "#7a0310", "--seep": "#9a0414", "--seep-ink": "#f4ead5", "--hl": "#3a1214", "--banner": "#8f0414",
@@ -578,7 +605,12 @@ var THEMES = {
         "--pool": "rgba(255,160,80,.085)", "--pool-2": "rgba(255,140,60,.0)", "--flicker-1": "rgba(255,140,50,.20)", "--flicker-2": "rgba(255,150,70,.075)",
         "--desk-vignette": "rgba(0,0,0,.72)", "--blotter-corner": "#1d0d0b", "--blotter-edge": "#000", "--stitch": "rgba(150,96,70,.45)",
         "--margin-ink": "rgba(224,6,31,.34)", "--ruled": "rgba(150,170,210,.07)", "--picker-hl-shadow": "inset 3px 0 0 var(--brush),var(--sunk)", "--key-face": "linear-gradient(180deg,#3b2d25,#2a201b)", "--key-hover-face": "linear-gradient(180deg,#4a392e,#352820)", "--key-rim": "linear-gradient(180deg,#f2d88e,#c29a45 38%,#7a5718 75%,#4a330c)", "--key-ink": "#f1e6d0", "--key-hover-ink": "#fff6e2", "--key-wall": "#050302", "--badge-bg": "#120b0b", "--badge-ink": "#e8b45a", "--toggle-edge": "#4a3a30",
-        "--ok-ink": "#0b0505", "--warn-ink": "#0b0505", "--bad-ink": "#0b0505", "--accent-ink": "#0b0505", "--focus-outer": "#ff5c68", "--stamp-ink": "#4a2c0c"}
+        "--ok-ink": "#0b0505", "--warn-ink": "#0b0505", "--bad-ink": "#0b0505", "--accent-ink": "#0b0505", "--focus-outer": "#ff5c68", "--stamp-ink": "#4a2c0c",
+        "--foil-hi": "#fbe7a6", "--foil-mid": "#e2bc62", "--foil-lo": "#c4953c", "--foil-rim": "rgba(0,0,0,.92)", "--foil-lip": "rgba(255,226,170,.17)",
+        "--tooled": "0 -1px 0 rgba(0,0,0,.9),0 1px 0 rgba(255,232,200,.17)", "--picker-check": "var(--brush)",
+        // Dark oxblood leather patches, sewn on with waxed tan thread like the seams.
+        "--patch": "#3a2219", "--patch-ink": "#ecdfc6", "--patch-tint": "rgba(60,34,24,.7)", "--patch-hi": "rgba(255,214,170,.13)", "--patch-edge": "#090403", "--patch-press": "0 -1px 0 rgba(0,0,0,.6)",
+        "--patch-stitch": stitchBorder("#9c7d52", "rgba(240,220,175,.45)", "rgba(0,0,0,.7)", "rgba(255,230,200,.08)")}
     },
     fonts: {
       serif: '"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif',
@@ -632,7 +664,9 @@ var THEMES = {
     actionIcons: {
       copy: inkIcon('<rect x="8.5" y="8.5" width="11" height="12" rx="1.5" stroke-width="2"/><path d="M5 15.5V5.6A1.6 1.6 0 0 1 6.6 4h9" stroke-width="1.8"/>'),
       terminal: inkIcon('<rect x="3" y="4.5" width="18" height="15" rx="1.5" stroke-width="2"/><path d="m7 10 3 2.5L7 15M12.5 15.5h4.5" stroke-width="2.1"/>'),
-      stop: inkIcon('<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v5.5m0-3a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.4a6 6 0 0 1-4.6-2.2L4.5 15.6a1.5 1.5 0 0 1 2.3-1.9L8 15" stroke-width="1.9"/>')
+      stop: inkIcon('<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v5.5m0-3a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.4a6 6 0 0 1-4.6-2.2L4.5 15.6a1.5 1.5 0 0 1 2.3-1.9L8 15" stroke-width="1.9"/>'),
+      // A tick written in blood: a heavy, pooled start, a thin tapered flick with a slightly uneven edge, and a bead where the brush lifted.
+      check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd"><path d="M1.70 12.20C1.8 11.72 2.2 11.17 2.6 10.9C3 10.63 3.58 10.53 4.1 10.6C4.62 10.67 5.2 10.95 5.7 11.3C6.2 11.65 6.67 12.22 7.1 12.7C7.53 13.18 7.93 13.78 8.3 14.2C8.67 14.62 8.95 15.3 9.3 15.2C9.65 15.1 9.92 14.27 10.4 13.6C10.88 12.93 11.53 12.02 12.2 11.2C12.87 10.38 13.67 9.47 14.4 8.7C15.13 7.93 15.88 7.23 16.6 6.6C17.32 5.97 18.08 5.37 18.7 4.9C19.32 4.43 19.97 3.9 20.3 3.8C20.63 3.7 20.92 3.92 20.7 4.3C20.48 4.68 19.62 5.42 19 6.1C18.38 6.78 17.65 7.6 17 8.4C16.35 9.2 15.67 10.12 15.1 10.9C14.53 11.68 13.93 12.67 13.6 13.1C13.27 13.53 13.3 13.22 13.1 13.5C12.9 13.78 12.72 14.18 12.4 14.8C12.08 15.42 11.55 16.52 11.2 17.2C10.85 17.88 10.62 18.5 10.3 18.9C9.98 19.3 9.65 19.55 9.3 19.6C8.95 19.65 8.63 19.5 8.2 19.2C7.77 18.9 7.23 18.28 6.7 17.8C6.17 17.32 5.57 16.77 5 16.3C4.43 15.83 3.8 15.42 3.3 15C2.8 14.58 2.27 14.27 2 13.8C1.73 13.33 1.6 12.68 1.7 12.2ZM3.7 12.7C4.9 13 6.3 14 7.7 15.6C6.2 14.4 4.9 13.6 3.7 12.7Z"/><circle cx="20.9" cy="3.7" r="1.1"/><circle cx="22.4" cy="2.3" r=".38"/></svg>'
     },
     settingsIcon: inkIcon('<path d="M3 6h18M3 12h18M3 18h18" stroke-width="2"/><circle cx="15" cy="6" r="2.3" fill="var(--inset)" stroke-width="2"/><circle cx="8" cy="12" r="2.3" fill="var(--inset)" stroke-width="2"/><circle cx="17" cy="18" r="2.3" fill="var(--inset)" stroke-width="2"/>'),
     chevron: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -687,7 +721,35 @@ var THEMES = {
         D + ' .backend .update-btn:hover:not(:disabled),' + D + ' .backend .update-btn:focus-visible{background:none;color:var(--tag-ink);transform:translateY(-2px) rotate(-1.6deg);box-shadow:none}',
         D + ' .backend .update-btn:focus-visible{box-shadow:var(--ring)}',
         D + ' .backend .update-btn:active:not(:disabled){transform:translateY(1px) scale(.97);box-shadow:none}',
-        D + ' .backend .update-btn:disabled{transform:rotate(-1deg);opacity:.6;box-shadow:none}'
+        D + ' .backend .update-btn:disabled{transform:rotate(-1deg);opacity:.6;box-shadow:none}',
+        // Headings and branch names are hot-stamped in gold foil: a static metallic fill (repeated per line), a dark rim where the die
+        // bit into the stock and a faint lip of light below it. text-shadow would paint over a text-clipped fill, so the rim is a
+        // pair of unblurred drop-shadows on these few small elements.
+        D + ' :is(.sessions-title,.slot-card .branch,.settings h2){color:var(--foil-mid);text-shadow:none;-webkit-text-fill-color:transparent;' +
+          'background:linear-gradient(174deg,var(--foil-mid) 0,var(--foil-hi) 24%,var(--foil-mid) 42%,var(--foil-lo) 56%,var(--foil-mid) 68%,var(--foil-hi) 84%,var(--foil-mid) 100%) 0 0/100% 1.2em repeat-y;-webkit-background-clip:text;background-clip:text;' +
+          'filter:drop-shadow(0 -1px 0 var(--foil-rim)) drop-shadow(0 1px 0 var(--foil-lip))}',
+        D + ' .slot-card .branch{background-size:100% 1.25em}',
+        D + ' .sessions-title .sessions-count{-webkit-text-fill-color:var(--muted)}',
+        // Secondary text is blind-tooled: pressed into the stock with no ink, so the top edge falls into shade and the lower edge catches light.
+        D + ' :is(.slot-card .head-line,.slot-card>.muted.small,.backend .rollup .title,#updated,.backend .meta>span,.slot-card .stopping-note){text-shadow:var(--tooled)}',
+        // Small buttons on the cards are leather patches saddle-stitched on, the same stitch as the seams; a press pushes them into the card.
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle){color:var(--patch-ink);border:0;border-radius:7px 6px 7px 6px/6px 7px 6px 7px;text-shadow:var(--patch-press);' +
+          'background:radial-gradient(130% 100% at 34% 12%,var(--patch-hi),transparent 64%),linear-gradient(var(--patch-tint),var(--patch-tint)),var(--desk-blotter-color,var(--patch)) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
+          'box-shadow:inset 0 1px 0 var(--patch-hi),inset 0 -1.5px 0 rgba(0,0,0,.3),0 1px 0 var(--patch-edge),0 2px 0 var(--patch-edge),0 3px 4px -1px var(--contact)}',
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle)::before{content:"";position:absolute;inset:2px;z-index:2;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--patch-stitch) 8 / 4px round}',
+        D + ' .slot-card button.icon{width:32px;height:32px}',
+        D + ' .slot-card button.icon svg{width:18px;height:18px}',
+        D + ' .slot-card .icon.stop svg{width:19px;height:19px}',
+        D + ' #settings-open svg{width:21px;height:21px}',
+        D + ' .backend .toggle{min-height:32px;padding:6px 13px 6px 11px;color:var(--patch-ink)}',
+        D + ' .backend .toggle .chev{color:var(--patch-ink)}',
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):focus-visible{box-shadow:var(--ring),0 3px 4px -1px var(--contact)}',
+        D + ' :is(.slot-card button.icon,.backend .toggle):hover:not(:disabled){transform:translateY(-1px)}',
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"]{transform:translateY(2px);' +
+          'box-shadow:inset 0 2px 4px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.2),0 1px 0 var(--emb-hi)}',
+        D + ' #settings-open:active{transform:translateY(2px) rotate(-8deg)}',
+        D + ' .slot-card button.icon:disabled{opacity:.55}',
+        D + '{--check-size:19px}'
       ].join("\n");
     })(),
     // A worn leather blotter on black velvet, card stock with foxing, smoky fog, and candles screened into the same halftone dots as the eye.
@@ -816,7 +878,9 @@ THEMES.neon = (function () {
     actionIcons: {
       copy: plate('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
       terminal: plate('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
-      stop: plate('<path d="M7 5h3v9H7zM11 2h3v12h-3zM15 3h3v11h-3zM19 6h3v10h-3z"/><path d="M7 13h15v5h-2v3h-3v2H9v-2H7v-2H5v-2H3v-2H2v-5h3v2h2zM10 16v1h8v-1z"/>')
+      stop: plate('<path d="M7 5h3v9H7zM11 2h3v12h-3zM15 3h3v11h-3zM19 6h3v10h-3z"/><path d="M7 13h15v5h-2v3h-3v2H9v-2H7v-2H5v-2H3v-2H2v-5h3v2h2zM10 16v1h8v-1z"/>'),
+      // A chunky pixel tick.
+      check: bitIcon([".......##", "......###", ".....###.", "##..###..", "###.##...", ".#####...", "..###....", "...#....."])
     },
     settingsIcon: plate('<path d="M2 5h20v2H2zM2 11h20v2H2zM2 17h20v2H2z"/><path d="M6 3h4v6H6zM15 9h4v6h-4zM10 15h4v6h-4z" style="fill:var(--inset)"/><path d="M7 4h2v4H7zM16 10h2v4h-2zM11 16h2v4h-2z"/>'),
     chevron: bitIcon(["##....", ".##...", "..##..", ".##...", "##...."], null, 12),
@@ -1160,7 +1224,9 @@ THEMES.terminal = (function () {
     actionIcons: {
       copy: bitIcon(["######....", "#....#....", "#..#######", "#..#.....#", "#..#.....#", "####.....#", "...#.....#", "...#.....#", "...#######", ".........."]),
       terminal: bitIcon(["##########", "##########", "#........#", "#.#......#", "#..#.....#", "#.#..###.#", "#........#", "##########"]),
-      stop: bitIcon(["...####...", "..######..", ".########.", "##########", "#........#", "#........#", "##########", ".########.", "..######..", "...####..."])
+      stop: bitIcon(["...####...", "..######..", ".########.", "##########", "#........#", "#........#", "##########", ".########.", "..######..", "...####..."]),
+      // The code page 437 check mark (the square-root sign), in blocks.
+      check: bitIcon([".......##", "......##.", "......##.", ".....##..", "##...##..", ".##.##...", "..###....", "...#....."])
     },
     settingsIcon: bitIcon(["......##..", "##########", "......##..", "..........", "..##......", "##########", "..##......", "..........", "....##....", "##########", "....##...."]),
     chevron: bitIcon(["#.....", "##....", "###...", "##....", "#....."], null, 12),
@@ -1289,7 +1355,10 @@ var QA_THEME = (function () {
   }
   function deskArtVars(theme) {
     var art = theme.deskArt || {};
-    return ";--desk-mount:" + (art.mount ? svgAsset(art.mount) : "none") + ";--desk-badge:" + (art.badge ? svgAsset(art.badge) : "none") + ";--desk-drip:" + (art.drip ? svgAsset(art.drip) : "none");
+    var check = theme.actionIcons && theme.actionIcons.check;
+    // The selected-option tick is a mask, so a theme's check icon needs the SVG namespace to load as an image.
+    if (check && check.indexOf("xmlns") < 0) check = check.replace("<svg ", "<svg xmlns=\"http://www.w3.org/2000/svg\" ");
+    return ";--check-icon:" + (check ? svgAsset(check) : "none") + ";--desk-mount:" + (art.mount ? svgAsset(art.mount) : "none") + ";--desk-badge:" + (art.badge ? svgAsset(art.badge) : "none") + ";--desk-drip:" + (art.drip ? svgAsset(art.drip) : "none");
   }
   function merged(theme, scheme) { var out = {}, own = theme.css[scheme] || {}; Object.keys(BASE[scheme]).forEach(function (k) { out[k] = BASE[scheme][k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
   function block(vars) { return Object.keys(vars).map(function (key) { return key + ":" + vars[key] }).join(";") }
@@ -1347,7 +1416,7 @@ var QA_THEME = (function () {
 // (a leak), and WCAG contrast failures for text and paired inks in both schemes. A clean run logs one summary line per check.
 (function themeCheck() {
   if (!/^(1|true)$/.test(new URLSearchParams(location.search).get("debug") || "")) return;
-  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown"], actionIcons: ["copy", "terminal", "stop"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
+  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown"], actionIcons: ["copy", "terminal", "stop", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
   var problems = [], seen = {};
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
@@ -1374,7 +1443,9 @@ var QA_THEME = (function () {
   function ratio(fg, bg) { fg = [0, 1, 2].map(function (i) { return fg[i] * fg[3] + bg[i] * (1 - fg[3]) }); var a = lum(fg) + 0.05, b = lum(bg) + 0.05; return a > b ? a / b : b / a }
   var PAIRS = [["--text", "--desk-card"], ["--text", "--inset"], ["--muted", "--desk-card"], ["--muted", "--inset"], ["--accent", "--desk-card"], ["--ok", "--desk-card"], ["--bad", "--desk-card"],
     ["--warn", "--desk-card"], ["--bad", "--hl"], ["--tag-muted", "--tag"], ["--tag-bad", "--tag"], ["--banner-text", "--banner"], ["--glyph-ok", "--desk-card", 3], ["--glyph-bad", "--desk-card", 3],
-    ["--focus-outer", "--desk-card", 3], ["--focus-outer", "--desk-floor", 3], ["--focus-outer", "--focus-inner", 3]];
+    ["--focus-outer", "--desk-card", 3], ["--focus-outer", "--desk-floor", 3], ["--focus-outer", "--focus-inner", 3],
+    // Foil-stamped headings (Horror): every stop of the foil gradient has to read on the stock on its own.
+    ["--foil-hi", "--desk-card"], ["--foil-mid", "--desk-card"], ["--foil-lo", "--desk-card"]];
   // Decorative inks (divider strokes, the index card's margin line) are not text; a few inks sit on a fill with another name.
   var DECOR = {"--rule-ink": 1, "--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag"};
   var failures = [], checked = 0, table = [];
@@ -2955,13 +3026,13 @@ var QA_BRUSH=(function(){
     image.onload=function(){
       try{buildSource(image)}catch(e){return}
       ready=true;setupCanvas();
-      if(modeSelect)modeSelect.innerHTML=availableModes().map(function(entry){return'<option value="'+entry.id+'">'+entry.label+'</option>'}).join("");
+      if(modeSelect)modeSelect.innerHTML=availableModes().map(function(entry){return'<option value="'+entry.id+'" data-label="'+entry.label+'">'+entry.label+'</option>'}).join("");
       chooseMode(mode!==blank?mode.id:wanted||"full");
     };
     image.src="data:image/svg+xml,"+encodeURIComponent(QA_THEME.current().logoSource);
   }
   if(themeSelect){
-    themeSelect.innerHTML=Object.keys(THEMES).map(function(id){return'<option value="'+id+'">'+THEMES[id].name+'</option>'}).join("");
+    themeSelect.innerHTML=Object.keys(THEMES).map(function(id){return'<option value="'+id+'" data-label="'+THEMES[id].name+'">'+THEMES[id].name+'</option>'}).join("");
     themeSelect.value=QA_THEME.id();
     themeSelect.addEventListener("change",function(){QA_THEME.choose(themeSelect.value)});
   }
