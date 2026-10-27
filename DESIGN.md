@@ -14,7 +14,8 @@ part of the experience, not a decorative footer or just another status icon. Giv
 place in each scene and protect its presence as the session list grows.
 
 - A **scene** determines the composition: layout, surfaces, and where the character and sessions
-  live. It can rearrange the interface substantially, as Desk and Book do; it is more than a background.
+  live. Overseer has one scene, **Desk**; retired scenes and future ideas live in
+  [the scene notebook](docs/SCENE_IDEAS.md).
 - A **theme** supplies the visual world: palette, materials, typography, icons, and character.
   Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
 - The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
@@ -27,17 +28,17 @@ place in each scene and protect its presence as the session list grows.
 ## Make the interface belong to its scene
 
 Take inspiration from [Obra Dinn's logbook](https://dukope.com/devlogs/obra-dinn/tig-37/): give the
-interface a coherent place in its world. In Desk, every panel is an object lying on a real desk.
-In Book, entries should look printed on the pages. In Console, the animated character should
-inhabit a display and the controls should belong to its panel. Avoid ordinary floating cards pasted
-over unrelated artwork.
+interface a coherent place in its world. In Desk, every panel is an object lying on a real desk: the
+eye card is taped down, the backend card is an index card or an acrylic plate, pills are tags or
+keycaps. Avoid ordinary floating cards pasted over unrelated artwork.
 
 Use this within reason: this is a developer workspace. Keep information scannable, actions plain,
 and controls familiar. Never add fictional meters, pretend controls, or cumbersome navigation just
 to complete a metaphor. The art is here to bring play and joy to the workday, not to turn routine
 development into a game or a task to optimize. Leave room for the owner's taste and experiments.
 
-Current scene scope is **Desk (the default), Book and Console only**. Other scene ideas live in
+Current scene scope is **Desk only**. Book and Console were tried and retired (the pixel-plate look
+was overboard, and the book spread was too wide); their notes and other scene ideas live in
 [the scene notebook](docs/SCENE_IDEAS.md) until explicitly requested.
 
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
@@ -72,10 +73,15 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   consistent within a scene: don't mix smooth vector icons with pixel glyphs and brush ink at random.
 - **Two-ink printing is welcome**: a theme may overprint a second spot ink slightly off register.
 - **Popups belong to the same world**: same materials, lifted higher with a bigger shadow, fields
-  sunk in, buttons that press down, a plain dim behind them.
+  sunk in, buttons that press down, a plain dim behind them. Select lists open as a popup of the same
+  material (the customizable `appearance: base-select`, with a styled native select as the fallback);
+  keyboard and screen-reader behaviour stays native.
+- **Settings rows line up**: one label column, the same field height and row gap everywhere, groups
+  split by a dashed rule, and Done at the bottom right (full width on a phone, where labels stack above
+  fields).
 - The **halftone character** keeps a fixed dot grid and a limited ramp (4–6 colours from the
-  theme); the pixel-art scenes (Book, Console) keep chunky cells, nearest-neighbour scaling and
-  ordered (Bayer) dithering.
+  theme). Mounts and props use the same dots: Blood's candles are screened into them, and Neon's
+  hazard tape breaks up into halftone dots at its torn ends. Avoid glossy, clip-art objects.
 - **Stepped animation** for the character: anything that moves position runs at about 8–12fps in whole-cell steps.
   Light and brightness may step at about 24fps.
 - Use the classic tricks: squash and stretch (tall while falling, wide on impact), one-frame smears
@@ -99,8 +105,11 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 - **No rhythmic pulsing** of decorative art (heartbeats, breathing, throbbing glows). Irregular,
   non-periodic motion (flicker, crawl, drift) is fine.
 - Status animation is reserved for problems: a broken thing may pulse; a healthy thing is still.
-- Interactive moments should reward attention: an eye that follows the cursor, a pill a thin wet
-  band of blood seeps into on hover, a drip that falls once (with a cooldown), a squish on press.
+- Interactive moments should reward attention: an eye that follows the cursor, a pill hover that fits
+  the theme (Blood: a thin wet band of blood seeps in and one drip falls, with a cooldown; Neon: a
+  stepped yellow charge bar fills behind the label and the label inverts to black), a squish on press.
+  Keyboard focus shows the same effect as hover, the label stays readable mid-animation, and reduced
+  motion shows the end state without moving.
 - Any cursor-reactive behaviour must **release reliably**: on leaving the window, blur, a hidden
   tab or idle. Never get stuck.
 
@@ -137,13 +146,25 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 
 ### 8. Pluggable themes
 - Everything themeable lives in **one registry section** (`THEMES`): colours for dark and light,
-  fonts, favicon variants, header art, logo source art, palettes, status glyphs, settings icon,
-  backgrounds (including the Desk materials and props), desk art and CSS, brushstroke presets and
-  eye modes. The engines (halftone grid, dithering, drips,
-  brushstrokes, desk materials, cursor tracking) stay theme-agnostic.
+  fonts, favicon variants, logo source art, palettes, status glyphs, settings icon, the desk
+  (materials and props), desk art and CSS, brushstroke presets, the pill hover effect (`pillHover`)
+  and eye modes. The engines (halftone grid, drips, brushstrokes, desk materials, pill hovers,
+  cursor tracking) stay theme-agnostic.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
-- Options belong in Settings (theme, appearance, logo animation, background) and persist across
-  visits, applied before first paint so nothing flashes.
+- Options belong in Settings (tenant, theme, appearance, logo animation) and persist across visits,
+  applied before first paint so nothing flashes. Logo animation has exactly three options with
+  generic names: **Full** (the whole animation), **Subtle** (only the slow ambient motion, such as
+  drips) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions
+  map to the nearest option.
+
+### 9. The current themes
+- **Blood**: candlelit horror. Card stock with foxing on a leather blotter over black velvet, a red
+  wax seal, masking tape, halftone candles and smoky fog; brush-ink glyphs and blood-red ink.
+- **Neon**: Cyberpunk 2077. Neon yellow `#fcee0a` is the main ink and electric cyan `#02d7f2` the
+  second, on near-black acrylic and a cutting mat; hot red `#ff003c` is kept for problems so a failure
+  never reads as yellow. No pink, magenta or blue. In light mode yellow fails as text on pale acrylic,
+  so text is near-black, the second ink is a dark teal, and yellow stays for fills: keycap pills, the
+  wordmark glow, hazard tape, the charge hover (black with yellow text there) and the LED readout.
 
 ## Prompt for agents building a dev-tool UI
 

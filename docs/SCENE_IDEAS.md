@@ -1,52 +1,64 @@
 # Overseer scene notebook
 
-Only **Book** and **Console** are in the current implementation scope. Everything in the deferred
-list is an idea for later, not a selectable scene or a promise to build it now.
+**Desk** is the only scene: every panel is an object lying on a textured desk. Book and Console were built, tried and
+retired; their notes are below so either can come back. Everything in the deferred list is an idea for later, not a
+promise to build it.
 
-The [design guide](../DESIGN.md) is authoritative: expressive pixel animation is the heart of the
-app. A scene supplies a composition; a theme supplies its visual world and character. The eye may
-become an avatar, creature, machine, or another expressive subject in a future theme. Preserve the
-deliberate pixels, animation, responsiveness, and personality, rather than requiring an eye.
+The [design guide](../DESIGN.md) is authoritative: expressive animation is the heart of the app. A scene supplies a
+composition; a theme supplies its visual world and character. The eye may become an avatar, creature, machine, or another
+expressive subject in a future theme. Preserve the deliberate marks, animation, responsiveness, and personality, rather
+than requiring an eye.
 
-## The two current scenes
+## Retired: Book
 
-### Book
+**What it was.** An open ledger filling the window: a pixel-art spread of two aged pages with a gutter shadow, stacked page
+edges, deckled borders, foxing, faint ruled lines and one dog-eared corner, painted once on the 4.5px lattice. Backend
+status and the eye sat on the left page, the sessions on the right as ruled entries with no card chrome. Below 1100px it
+became a single page. A sticky header carried the wordmark and engraved acanthus finials.
 
-An open working ledger. Backend status and the animated character occupy the left page; sessions
-read as entries on the right. Content belongs to the paper, with clear margins and quiet ink rules.
-On narrow screens it becomes a single page. Keep the character immediately below Backend.
+**What worked.** Content printed on the paper rather than pasted over it. Healthy entries were quiet, so a failure stood out.
+The dog-ear and foxing gave it a hand-made feel at almost no cost.
 
-Continue refining this scene rather than adding more floating panels over the book. Materials could
-later become an occult ledger, a technical field journal, or a digital notebook under other themes.
+**What didn't.** The spread was as wide as the window, so on a large screen the two columns sat far apart (160px gutter)
+and the eye travelled too far between Backend and sessions. It needed a smaller spread with the content centred. Pixel
+pages next to the smooth halftone eye mixed two mark languages.
 
-### Console
+**How it could come back.** As a layout on the Desk engine, not a separate painter: a bound book lying on the desk, painted
+as a `paper` stock tile, about 1100px wide and centred, with the eye card on the left page and sessions on the right. Keep
+the desk surface, props and tiles; add a gutter shadow and page edges in CSS or one more cached tile. Give it its own
+`data-scene` value and scope its layout rules to it, so Desk stays untouched.
 
-An original video-game-inspired developer control panel. Start with a prominent animated-character
-display beside actual backend information, with sessions in the main work display. Use the portrait
-placement and integrated instrument-panel composition of Star Fox and DOOM as loose references.
-The earlier Game Boy Advance menu reference also informs the portrait-and-data arrangement.
+## Retired: Console
 
-Keep it a developer workspace: no copied game artwork, fake ammo or health counters, pretend A/B
-buttons, crosshairs over text, or game navigation that makes ordinary actions harder. The interface
-should feel built into the scene, while the character remains expressive and easy to see.
+**What it was.** A game-style control panel: a pixel control-room backdrop (window, ribbed bulkheads, a low deck), a
+portrait window for the eye labelled "Overseer", the Backend panel under it and the sessions in a main display. Every
+panel, pill, field and button was a 9-slice pixel plate with four-pixel stair corners, generated per theme from a small
+colour set.
 
-Console replaces the earlier working names Stage and Plain. Those were names for the basic view,
-not additional scenes to retain in the picker.
+**What worked.** The eye had a clear, framed home beside real backend data (the DOOM-face idea) without fake meters. One
+frame sprite made every surface consistent.
+
+**What didn't.** The pixel plates were overboard: every control in the same heavy frame made the page busy, flattened the
+hierarchy and fought the halftone eye. The backdrop added noise behind the work.
+
+**How it could come back.** On the Desk engine as a theme-driven variant rather than a frame on everything: one display
+bezel around the eye card (a deskArt mount or a cached tile), the sessions on an acrylic panel, and plain sunk controls.
+Use the plate look, if at all, for the portrait only. Neon's LED readout and keycap pills already carry most of the
+console feel.
 
 ## Deferred scene ideas
 
 | Scene | Composition and character role | Possible interpretations across themes |
 | --- | --- | --- |
-| Workspace | Sessions laid out beside a companion at a working surface. | Candlelit writing desk; cyberpunk workstation; classic Mac desktop; spacecraft workbench. |
 | Atlas | Sessions are clearly labelled locations, with the character acting as a guide. | Paper chart; city map; desktop overview; star map. Avoid implying network relationships that the data does not establish. |
 | Gallery | Sessions occupy framed exhibits or display bays; the character is a guide between them. | Portrait gallery; surveillance wall; tiled desktop windows; ship display modules. |
 | Watchtower | A clear central health signal with sessions arranged as readable watch stations. | Gothic lookout; city control room; system monitor; orbital station. |
 | Printing room | Sessions are proofs or reports, with failures marked in red ink; the character attends the process. | Letterpress shop; hacker print queue; classic Mac print studio; fabrication control room. |
 
-Candlelight and fog can return as materials or atmosphere within a future scene. They do not need
-to become additional scene choices merely because their artwork exists.
+Candlelight and fog already live in Desk as materials and atmosphere. They do not need to become
+scene choices of their own.
 
-Possible future themes include cyberpunk, classic Mac, and general science fiction. Do not build
+Neon covers cyberpunk. Possible future themes include classic Mac and general science fiction. Do not build
 them yet. The same scene compositions should adapt to those worlds without losing the animated
 character or making the interface harder to use.
 
