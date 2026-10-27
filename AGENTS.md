@@ -1,7 +1,9 @@
 # workbench — Agent Instructions
 
-This repo is the live developer kit: `~/.claude/bin`, `~/.claude/scripts` and `~/.claude/hooks`
-are symlinks into the main checkout at `~/workbench` (see `install.sh`). Whatever is on `main`
+This repo is the live developer kit for both Claude Code and Codex: `~/.claude/bin`,
+`~/.claude/scripts`, `~/.claude/hooks`, `~/.codex/hooks`, `~/.codex/hooks.json` and `~/.codex/bin/wt`
+are symlinks into the main checkout at `~/workbench` (see `install.sh`). A change to shared behaviour
+(worktree-only edits, QA rules) usually needs both the `hooks/` and `codex/hooks/` versions updated. Whatever is on `main`
 there is what every agent session on the machine runs, so a half-finished edit in that checkout
 breaks them all.
 

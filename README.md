@@ -15,6 +15,7 @@ watch it all.
 | `bin/wt-qa-runtime.py` | Reconciles the managed QA runtime after an explicit `wt qa` attach. |
 | `scripts/codex-run`, `scripts/codex-digest` | Launch Codex CLI runs and summarise their progress; see `scripts/README.md`. |
 | `hooks/` | Claude Code PreToolUse hooks: keep edits inside worktrees, block risky file reads, QA guards, Herdr tab names. |
+| `codex/` | The Codex CLI equivalents: `hooks.json`, its hooks (worktree-only edits, sub-agent policy, Herdr tab names) and the Herdr session hook. |
 | `systemd/cl-strategy-qa-dashboard.service` | The user unit that keeps the dashboard running (reference copy). |
 
 ## Install
@@ -23,7 +24,7 @@ watch it all.
 git clone <this repo> ~/workbench
 cd ~/workbench
 ./install.sh --dry-run   # shows what would be linked
-./install.sh             # links bin/, scripts/ and hooks/ into ~/.claude, backing up what was there
+./install.sh             # links bin/, scripts/, hooks/ into ~/.claude and codex/ into ~/.codex, backing up what was there
 ```
 
 After installing, `~/.claude/bin/wt` and friends are symlinks into this repository, so edits here

@@ -29,3 +29,8 @@ link() {
 for file in "$repo"/bin/*; do link "$file" "$HOME/.claude/bin/$(basename "$file")"; done
 for file in "$repo"/scripts/*; do link "$file" "$HOME/.claude/scripts/$(basename "$file")"; done
 for file in "$repo"/hooks/*; do link "$file" "$HOME/.claude/hooks/$(basename "$file")"; done
+# Codex loads its own hook set; ~/.codex/bin/wt is kept as a link so a bare path never runs a stale copy.
+for file in "$repo"/codex/hooks/*; do link "$file" "$HOME/.codex/hooks/$(basename "$file")"; done
+link "$repo/codex/hooks.json" "$HOME/.codex/hooks.json"
+link "$repo/codex/herdr-agent-state.sh" "$HOME/.codex/herdr-agent-state.sh"
+link "$repo/bin/wt" "$HOME/.codex/bin/wt"
