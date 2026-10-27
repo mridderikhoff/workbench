@@ -2365,6 +2365,22 @@ function renderRadio(){
   if(motion||subtle){void plate.offsetWidth;plate.classList.add("arrive");if(motion){plate.classList.add("burst","reveal");document.querySelector(".eye-card").classList.add("radio-hail")}}
   radioRenderedKey=message.key;radioPainted=true;if(data)radioLoaded=true;
 }
+// A mode, visibility, or modal change leaves the currently viewed sentence fully readable.
+// Remove reveal spans as well as classes so a later Full mode cannot restart their CSS animation.
+function settleRadioMotion(){
+  var plate=document.getElementById("radio");if(!plate)return;
+  plate.classList.remove("reveal","burst","arrive");
+  var portrait=document.querySelector(".eye-card");if(portrait)portrait.classList.remove("radio-hail");
+  var line=plate.querySelector(".radio-line");if(line&&line.querySelector("span"))line.textContent=line.dataset.text||"";
+}
+document.addEventListener("qa-modal",function(e){if(e.detail)settleRadioMotion()});
+document.addEventListener("visibilitychange",function(){if(document.hidden)settleRadioMotion()});
+document.getElementById("radio").addEventListener("animationend",function(e){
+  if(e.animationName==="radio-reveal"&&e.target===this.querySelector(".radio-line span:last-child"))settleRadioMotion();
+});
+document.getElementById("radio").addEventListener("animationcancel",function(e){
+  if(e.animationName==="radio-reveal"&&reducedMotion.matches&&e.target.parentElement===this.querySelector(".radio-line"))settleRadioMotion();
+});
 // Keeps each card's element while its markup is unchanged; only cards whose data changed are touched, and the changed ones are returned.
 function reconcileCards(box,cards){
   var existing={},wanted={},changed=[];
@@ -3365,6 +3381,7 @@ var QA_BRUSH=(function(){
     if(ready)mode.init(engine);
     if(modeSelect)modeSelect.value=mode.id;
     if(mode.id)document.documentElement.setAttribute("data-logo-mode",mode.id);
+    settleRadioMotion();
     update(true);
   }
   function renderOnce(t,real){
@@ -3478,7 +3495,7 @@ var QA_BRUSH=(function(){
   if(window.IntersectionObserver)new IntersectionObserver(function(entries){onScreen=entries[entries.length-1].isIntersecting;update()}).observe(canvas);
   document.addEventListener("qa-modal",function(e){modalOpen=!!e.detail;update()});
   document.addEventListener("visibilitychange",function(){update()});
-  if(reduced.addEventListener)reduced.addEventListener("change",function(){update()});
+  if(reduced.addEventListener)reduced.addEventListener("change",function(){settleRadioMotion();update()});
   function schemeChanged(){readPalette();if(!running)update(true)}
   if(scheme.addEventListener)scheme.addEventListener("change",schemeChanged);
   document.addEventListener("qa-scheme",schemeChanged);
