@@ -77,23 +77,22 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .title{font:600 19px/1.25 var(--serif);letter-spacing:.04em;font-variant:small-caps}
 .branch{font:600 21px/1.25 var(--serif);overflow-wrap:anywhere}
 .slot-card{position:relative}
-.backend{position:sticky;top:var(--header-h,58px);z-index:20;display:flex;flex-direction:column;max-height:calc(100vh - var(--header-h,58px) - 12px);padding:7px 13px;box-shadow:inset 0 0 18px var(--shade),0 8px 10px -8px var(--shade)}
+.backend{position:sticky;top:var(--header-h,58px);z-index:20;display:flex;flex-direction:column;max-height:calc(100vh - var(--header-h,58px) - 12px);padding:10px 13px;box-shadow:inset 0 0 18px var(--shade),0 8px 10px -8px var(--shade)}
 .backend-body{min-height:0;overflow:auto;overscroll-behavior:contain}
 .backend .head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-bottom:0}
-/* The rollup is the hero: big glyph and word in the state colour over a faint, ragged wash. */
-.backend .rollup{--hero:var(--text);display:flex;align-items:center;gap:4px 12px;padding:5px 12px 5px 11px;border-radius:3px 16px 5px 20px/6px 10px 4px 12px;box-shadow:inset 3px 0 0 var(--hero);background:linear-gradient(95deg,color-mix(in srgb,var(--hero) 10%,transparent),color-mix(in srgb,var(--hero) 4%,transparent) 70%,transparent)}
+.backend .rollup{--hero:var(--text);display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
 .backend .rollup.tone-warn{--hero:var(--warn)}
 .backend .rollup.tone-down,.backend .rollup.tone-broken,.backend .rollup.tone-attn{--hero:var(--bad)}
-.backend .rollup .title{font:600 12px/1 var(--serif);letter-spacing:.08em;font-variant:small-caps;color:var(--muted)}
-.backend .rollup .state{gap:10px;font:600 22px/1.15 var(--serif);color:var(--hero)}
-.backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
+.backend .rollup .title{font:600 21px/1.25 var(--serif);letter-spacing:0;font-variant:normal;color:var(--text)}
+.backend .rollup .state{gap:8px;padding:4px 11px 4px 9px;border:1px solid var(--border);border-radius:999px;background:var(--inset);font:600 17px/1.2 var(--serif);color:var(--hero)}
+.backend .rollup .state .dot{width:22px;height:22px;color:currentColor}
 .backend .rel{display:inline-flex;align-items:center}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
-.backend .meta{display:inline-flex;align-items:center;gap:6px 10px;margin-left:auto;font-size:12px;color:var(--muted)}
+.backend .meta{display:inline-flex;align-items:center;gap:6px 10px;margin-left:auto;font:12px var(--mono);color:var(--muted)}
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{font-size:12px;color:var(--muted)}
-.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border-color:var(--muted);padding:1px 9px}
+.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border-color:var(--border);padding:1px 9px}
 .backend button.act.quiet.behind::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--warn);vertical-align:1px}
 .backend button.act.quiet.behind:hover:not(:disabled)::before,.backend button.act.quiet.behind:focus-visible::before{background:currentColor}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
@@ -110,7 +109,7 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .page>*+*{margin-top:0}
 .backend{top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px);padding:12px 14px;box-shadow:inset 0 0 18px var(--shade),0 1px 0 var(--shade)}
 .backend .head{flex-direction:column;align-items:stretch;gap:9px}
-.backend .rollup{flex-direction:column;align-items:flex-start;gap:6px;padding:8px 12px 9px 12px}
+.backend .rollup{flex-direction:column;align-items:flex-start;gap:8px}
 .backend .rel,.backend .meta{margin-left:0}
 .backend .head>.rel{align-self:flex-start}
 .backend-details{margin-top:10px;padding-top:8px}
