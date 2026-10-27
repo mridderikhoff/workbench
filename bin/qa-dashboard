@@ -270,7 +270,7 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
-  backgrounds   {id: {label, kind, cell, dark, light, ...}} pixel-art page backgrounds; kind is "candles", "wall", "fog" or "none"; dark and
+  backgrounds   {id: {label, kind, cell, dark, light, ...}} pixel-art page backgrounds; kind is "candles", "book", "fog" or "none"; dark and
                 light hold that kind's palette. defaultBackground names the one used until the user chooses.
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
@@ -353,15 +353,19 @@ var THEMES = {
     defaultBackground: "candlelight",
     backgrounds: {
       candlelight: {label: "Candlelight", kind: "candles", cell: 6,
-        candles: [{x: 0.06, height: 9}, {x: 0.55, height: 6}, {x: 0.94, height: 12}],
-        dark: {glow: ["#1f100d", "#2e170f", "#44200f"], wax: ["#6e6250", "#4a4036"], flame: ["#e8a23a", "#f4d07a", "#c8501e"]},
-        light: {glow: ["#efe0bc", "#ebd1a0", "#e4bf86"], wax: ["#9a8a70", "#7a6a52"], flame: ["#b8431b", "#e0892a", "#8f1e18"]}},
-      stained: {label: "Stained wall", kind: "wall", cell: 6, seed: 7,
-        dark: {brick: ["#1d1514", "#171010", "#120c0c"], mortar: "#0b0707", blood: ["#33070c", "#4f0a12"]},
-        light: {brick: ["#ece1c8", "#e8dcbf", "#e3d5b6"], mortar: "#d6c7a3", blood: ["#d9b4a8", "#cfa093"]}},
+        // x is the candle's centre as a fraction of the width; sink hides that many cells below the bottom edge; flame scales the 3x5 flame sprite.
+        candles: [
+          {x: 0.035, width: 9, height: 30, flame: 3}, {x: 0.085, width: 5, height: 12, flame: 2}, {x: 0.115, width: 5, height: 7, flame: 2, sink: 1},
+          {x: 0.31, width: 5, height: 6, flame: 2, sink: 3}, {x: 0.47, width: 7, height: 10, flame: 2}, {x: 0.64, width: 5, height: 5, flame: 2, sink: 2},
+          {x: 0.87, width: 5, height: 9, flame: 2}, {x: 0.915, width: 5, height: 14, flame: 2}, {x: 0.968, width: 9, height: 34, flame: 3}],
+        dark: {glow: ["#1a100d", "#26160f", "#341c10"], wax: ["#6e6250", "#4a4036"], flame: ["#e8a23a", "#f4d07a", "#c8501e"]},
+        light: {glow: ["#f1e4c4", "#edd8ab", "#e8c994"], wax: ["#9a8a70", "#7a6a52"], flame: ["#d2733a", "#eeb45c", "#b4512e"]}},
+      book: {label: "Book", kind: "book", cell: 6, seed: 19,
+        dark: {paper: ["#2a1e17", "#251a14", "#201610"], gutter: "#120b08", fox: "#3a2a1b", ink: "#281c15", edge: ["#3a2d23", "#1a110c"], desk: "#0b0706", underside: "#3b2c20", shadow: "#140d09"},
+        light: {paper: ["#f1e6c8", "#ebdcb8", "#e3d2a8"], gutter: "#dcc99d", fox: "#e2cb9b", ink: "#ece0c0", edge: ["#e6d6ad", "#c8b182"], desk: "#c9b58b", underside: "#f8f0da", shadow: "#c7b68c"}},
       fog: {label: "Fog", kind: "fog", cell: 8, fps: 6,
-        dark: {tones: ["#1a0a0c", "#260c11", "#341019"]},
-        light: {tones: ["#ebdec2", "#e5d4b0", "#ddc7a0"]}},
+        dark: {tones: ["#1b1718", "#2b2425", "#3a3132"]},
+        light: {tones: ["#eae6e0", "#e2ddd6", "#d9d3cb"]}},
       plain: {label: "Plain", kind: "none"}
     },
     copy: {emptyTitle: "No sessions running"}
@@ -487,33 +491,55 @@ var QA_BG=(function(){
   }
   function stop(){clearTimeout(timer);timer=0;running=null}
 
-  /* ---- candles: dithered glow rings that swap between pre-rendered frames at irregular moments, plus flickering flames ---- */
+  /* ---- candles: many candles of varied size, each with a flickering flame and a wide dithered glow that swaps between pre-rendered frames at
+     irregular moments; a static dithered wash along the bottom joins the glows into one warm ambient light ---- */
   var FLAMES=[[".c.",".a.","aba","aba",".a."],["c..",".a.","aba","aba",".a."],["..c",".a.","aba","aba",".a."],[".c.","aa.","aba","aba",".a."],[".c.",".aa","aba","aba",".a."]];
+  var GLOW_RADII={2:[46,52,58],3:[62,70,78]},GLOW_PEAK=0.85;
   function candles(cfg,palette){
-    var glowColors=palette.glow.map(pack),flameColors={a:pack(palette.flame[0]),b:pack(palette.flame[1]),c:pack(palette.flame[2])},radii=[30,34,39];
-    var glows=radii.map(function(radius){
-      return sprite(radius*2+1,radius*2+1,function(x,y){
-        var dx=x-radius,dy=y-radius,level=Math.floor((1-Math.hypot(dx,dy*1.1)/radius)*3.4+(bayer(x,y)-0.5));
-        return level<=0?0:glowColors[Math.min(2,level-1)];
+    var glowColors=palette.glow.map(pack),flameColors={a:pack(palette.flame[0]),b:pack(palette.flame[1]),c:pack(palette.flame[2])};
+    function glowFrames(radii){
+      return radii.map(function(radius){
+        return sprite(radius*2+1,radius*2+1,function(x,y){
+          var level=Math.floor((1-Math.hypot(x-radius,(y-radius)*1.15)/radius)*GLOW_PEAK*3.4+(bayer(x,y)-0.5));
+          return level<=0?0:glowColors[Math.min(2,level-1)];
+        });
       });
-    });
+    }
+    var glowSets={2:glowFrames(GLOW_RADII[2]),3:glowFrames(GLOW_RADII[3])};
     var flames=FLAMES.map(function(rowsOfFlame){return sprite(3,5,function(x,y){var key=rowsOfFlame[y].charAt(x);return flameColors[key]||0})});
+    var washRows=Math.round(rows/3),wash=sprite(cols,washRows,function(x,y){
+      var level=Math.floor((y/washRows)*1.6+(bayer(x,y)-0.5));
+      return level<=0?0:glowColors[0];
+    });
     var waxLight=pack(palette.wax[0]),waxDark=pack(palette.wax[1]);
     var list=cfg.candles.map(function(spec,index){
-      var body=sprite(5,spec.height,function(x,y){if(y===0&&x%2===0)return waxLight;return x<3?waxLight:waxDark});
-      return{x:Math.round(cols*spec.x)-2,height:spec.height,body:body,glow:1,flame:index%5,glowDue:0,flameDue:0};
+      var width=spec.width,body=sprite(width,spec.height,function(x,y){
+        if(y===0&&x%2===0)return waxLight;
+        if(y>0&&y%7===3&&x===width-2)return waxLight;
+        return x<width-Math.max(2,Math.round(width/3))?waxLight:waxDark;
+      });
+      return{x:Math.round(cols*spec.x-width/2),width:width,height:spec.height,sink:spec.sink||0,scale:spec.flame||2,body:body,glow:1,flame:index%5,glowDue:0,flameDue:0};
     });
     function pick(count,not){var value=Math.floor(Math.random()*count);return value===not?(value+1)%count:value}
     function draw(){
+      ctx.imageSmoothingEnabled=false;
       ctx.clearRect(0,0,cols,rows);
-      list.forEach(function(candle){var radius=radii[candle.glow];ctx.drawImage(glows[candle.glow],candle.x+2-radius,rows-candle.height-4-radius)});
-      list.forEach(function(candle){ctx.drawImage(candle.body,candle.x,rows-candle.height);ctx.drawImage(flames[candle.flame],candle.x+1,rows-candle.height-6)});
+      ctx.drawImage(wash,0,rows-washRows);
+      list.forEach(function(candle){
+        var frames=glowSets[candle.scale]||glowSets[2],radius=GLOW_RADII[candle.scale===3?3:2][candle.glow];
+        ctx.drawImage(frames[candle.glow],candle.x+(candle.width>>1)-radius,rows-candle.height+candle.sink-candle.scale*3-radius);
+      });
+      list.forEach(function(candle){
+        var top=rows-candle.height+candle.sink;
+        ctx.drawImage(candle.body,candle.x,top);
+        ctx.drawImage(flames[candle.flame],candle.x+(candle.width>>1)-((candle.scale*3)>>1),top-candle.scale*5-1,candle.scale*3,candle.scale*5);
+      });
     }
     function step(){
       var now=performance.now(),changed=false;
       list.forEach(function(candle){
-        if(now>=candle.flameDue){candle.flame=pick(FLAMES.length,candle.flame);candle.flameDue=now+60+Math.random()*240;changed=true}
-        if(now>=candle.glowDue){candle.glow=pick(3,candle.glow);candle.glowDue=now+150+Math.random()*900;changed=true}
+        if(now>=candle.flameDue){candle.flame=pick(FLAMES.length,candle.flame);candle.flameDue=now+60+Math.random()*260;changed=true}
+        if(now>=candle.glowDue){candle.glow=pick(3,candle.glow);candle.glowDue=now+200+Math.random()*1100;changed=true}
       });
       if(changed)draw();
       timer=setTimeout(step,100);
@@ -522,51 +548,71 @@ var QA_BG=(function(){
     return reduced.matches?null:step;
   }
 
-  /* ---- stained wall: brick, dithered toward the edges, with blood splats, drips from the top and a smeared eye in one corner ---- */
-  var SIGIL=["....xxxxxxxxxxx....","..xx...........xx..",".x......xxx......x.","x.....xx...xx.....x","x....x..xxx..x....x","x.....xx...xx.....x",".x......xxx......x.","..xx...........xx..","....xxxxxxxxxxx....","........x.x........","........x..........","........x.........."];
-  function wall(cfg,palette){
-    var next=seeded(cfg.seed||7),brick=palette.brick.map(pack),mortar=pack(palette.mortar),blood=palette.blood.map(pack);
-    var brickWidth=10,brickHeight=5,x,y;
+  /* ---- book: an open spread of two aged pages with a gutter shadow, stacked page edges, deckled borders and one dog-eared corner. Drawn once. ---- */
+  function book(cfg,palette){
+    var next=seeded(cfg.seed||19),paper=palette.paper.map(pack),gutter=pack(palette.gutter),fox=pack(palette.fox),ink=pack(palette.ink);
+    var edge=palette.edge.map(pack),desk=pack(palette.desk),underside=pack(palette.underside),shadow=pack(palette.shadow);
+    var x,y,k,margin=6,stack=5,centre=cols>>1,gutterWidth=Math.min(20,cols>>2);
+    function walk(length,limit){var out=[],value=Math.floor(next()*limit);for(var i=0;i<length;i++){if(next()<0.35)value=Math.max(0,Math.min(limit,value+(next()<0.5?-1:1)));out.push(value)}return out}
+    var left=walk(rows,3),right=walk(rows,3),top=walk(cols,3),bottom=walk(cols,3);
+    function onPage(px,py){return px>=margin+stack+left[py]&&px<cols-margin-stack-right[py]&&py>=margin+top[px]&&py<rows-margin-bottom[px]}
+    var fold=Math.min(18,rows>>3),cornerX=cols-margin-stack-2,cornerY=rows-margin-2;
     for(y=0;y<rows;y++)for(x=0;x<cols;x++){
-      var course=Math.floor(y/brickHeight),shifted=x+(course&1)*5,column=Math.floor(shifted/brickWidth);
-      var tone=((Math.imul(column*31+course*17+3,2654435761)>>>24)%3);
-      var nx=(x/cols-0.5)*2,ny=(y/rows-0.5)*2,edge=Math.max(0,Math.min(1,(Math.hypot(nx*0.9,ny)-0.5)/0.9));
-      var shade=Math.floor(edge*2.4+bayer(x,y)-0.2),color;
-      if(y%brickHeight===0||shifted%brickWidth===0)color=mortar;
-      else{
-        var level=(y%brickHeight===1?tone-1:tone)+Math.max(0,shade);
-        color=level>=3?mortar:brick[Math.max(0,level)];
+      var color=desk;
+      if(onPage(x,y)){
+        var toEdge=Math.min(x-(margin+stack),cols-margin-stack-x,y-margin,rows-margin-y),toGutter=Math.abs(x-centre)/gutterWidth;
+        var level=0;
+        if(toGutter<1)level=Math.floor((1-toGutter)*3.4+bayer(x,y)-0.5);
+        if(level>=3)color=gutter;
+        else{
+          var tone=Math.max(0,level);
+          if(toEdge<14&&bayer(x,y)*14>toEdge)tone=Math.max(tone,1);
+          if(toEdge<5&&bayer(x+2,y+1)*5>toEdge)tone=2;
+          if(tone===0&&next()<0.04)tone=1;
+          color=paper[Math.min(2,tone)];
+        }
+      }else{
+        for(k=1;k<=stack;k++){
+          var strip=(x===margin+stack-k+left[Math.min(rows-1,y)]&&y>margin+k&&y<rows-margin-k)||(x===cols-margin-stack+k-1-right[Math.min(rows-1,y)]&&y>margin+k&&y<rows-margin-k);
+          if(strip){color=edge[k&1];break}
+        }
       }
       pixels[y*cols+x]=color;
     }
-    function dot(px,py,color){if(px>=0&&py>=0&&px<cols&&py<rows)pixels[py*cols+px]=color}
-    function splat(cx,cy,radius){
-      var spokes=7+Math.floor(next()*4),k,i,j;
-      for(j=-radius*2;j<=radius*2;j++)for(i=-radius*2;i<=radius*2;i++){
-        var distance=Math.hypot(i,j),ragged=radius*(0.8+0.5*((Math.imul(i*7919+j*104729,2654435761)>>>24)/255));
-        if(distance<ragged)dot(cx+i,cy+j,distance<ragged*0.45?blood[1]:blood[0]);
-      }
-      for(k=0;k<spokes;k++){
-        var angle=next()*6.2832,length=radius*(1.5+next()*1.3);
-        for(var step=radius*0.8;step<length;step+=0.7)dot(cx+Math.round(Math.cos(angle)*step),cy+Math.round(Math.sin(angle)*step),blood[0]);
-        dot(cx+Math.round(Math.cos(angle)*(length+1.5)),cy+Math.round(Math.sin(angle)*(length+1.5)),blood[1]);
+    function put(px,py,value){if(px>=0&&py>=0&&px<cols&&py<rows)pixels[py*cols+px]=value}
+    for(k=0;k<46;k++){
+      var side=next()<0.5?-1:1,spotX=Math.round(centre+side*(gutterWidth+next()*(cols/2-gutterWidth-margin-stack-4))),spotY=Math.round(margin+4+next()*(rows-2*margin-8)),radius=1.5+next()*3.5;
+      for(var j=-6;j<=6;j++)for(var i=-6;i<=6;i++){
+        var fall=1-Math.hypot(i,j)/radius;
+        if(fall>0&&onPage(spotX+i,spotY+j)&&fall>bayer(spotX+i,spotY+j)*0.9)put(spotX+i,spotY+j,fox);
       }
     }
-    var edgeSpots=[[0.07,0.55],[0.93,0.3],[0.12,0.9],[0.88,0.78],[0.04,0.2],[0.97,0.62]];
-    edgeSpots.forEach(function(spot,index){splat(Math.round(cols*(spot[0]+(next()-0.5)*0.03)),Math.round(rows*spot[1]),index%2?7:11)});
-    for(var d=0;d<7;d++){
-      var dripSide=d%2?0.72+0.26*((d>>1)/3):0.02+0.26*((d>>1)/3),dripX=Math.round(cols*(dripSide+(next()-0.5)*0.03)),dripLength=Math.round(rows*(0.18+next()*0.5)),thick=next()<0.3?2:1;
-      for(y=0;y<dripLength;y++)for(var t=0;t<thick;t++)dot(dripX+t,y,y<dripLength*0.6?blood[0]:blood[1]);
-      for(y=0;y<4;y++)for(x=-3;x<=3+thick;x++)if(bayer(x+dripX,y)*4>y)dot(dripX+x,y,blood[0]);
-      dot(dripX-1,dripLength,blood[1]);dot(dripX,dripLength,blood[1]);dot(dripX+thick,dripLength,blood[1]);dot(dripX,dripLength+1,blood[1]);dot(dripX+1,dripLength+1,blood[1]);
+    for(y=margin+12;y<rows-margin-10;y+=5){
+      for(x=margin+stack+10;x<cols-margin-stack-10;x++){
+        if(Math.abs(x-centre)<gutterWidth*0.5||!onPage(x,y))continue;
+        put(x,y,ink);
+      }
+      var cursor=margin+stack+12;
+      while(cursor<cols-margin-stack-12){
+        var run=2+Math.floor(next()*6);
+        if(Math.abs(cursor-centre)>gutterWidth*0.6&&next()<0.6)for(var d=0;d<run;d++)put(cursor+d,y-1,ink);
+        cursor+=run+1+Math.floor(next()*3);
+      }
     }
-    var sigilX=cols-SIGIL[0].length*2-8,sigilY=rows-SIGIL.length*2-6;
-    SIGIL.forEach(function(line,row){for(var column=0;column<line.length;column++)if(line.charAt(column)==="x"){for(var oy=0;oy<2;oy++)for(var ox=0;ox<2;ox++)dot(sigilX+column*2+ox,sigilY+row*2+oy,blood[0])}});
+    // dog-ear: the corner beyond the fold line is gone, and its mirror image folds over as a lighter, shaded underside with a small cast shadow
+    for(y=cornerY-fold-4;y<=cornerY;y++)for(x=cornerX-fold-4;x<=cornerX;x++){
+      var across=(cornerX-x)+(cornerY-y);
+      if(across<fold)put(x,y,desk);
+      else if(x>=cornerX-fold&&y>=cornerY-fold&&across<fold*2){
+        var gradient=Math.floor((across-fold)/fold*2.4+bayer(x,y));
+        put(x,y,gradient>=2?paper[1]:underside);
+      }else if(across<fold*2+3&&across>=fold&&bayer(x,y)>0.35)put(x,y,shadow);
+    }
     ctx.putImageData(image,0,0);
     return null;
   }
 
-  /* ---- fog: oxblood bands from value noise, ordered-dithered at their edges, drifting in steps ---- */
+  /* ---- fog: smoky grey-red bands from value noise, ordered-dithered at their edges, drifting in steps ---- */
   function fog(cfg,palette){
     var tones=palette.tones.map(pack),next=seeded(41),lattice=new Float32Array(4096),i;
     for(i=0;i<4096;i++)lattice[i]=next();
@@ -593,7 +639,7 @@ var QA_BG=(function(){
     return function step(){draw((performance.now()-begun)/1000);timer=setTimeout(step,1000/(cfg.fps||6))};
   }
 
-  var KINDS={candles:candles,wall:wall,fog:fog};
+  var KINDS={candles:candles,book:book,fog:fog};
   function start(){
     stop();
     var cfg=config(),make=KINDS[cfg.kind];

@@ -6,6 +6,11 @@ legibility, speed or accessibility.
 
 The Overseer dashboard (`bin/qa-dashboard`) is the reference implementation. When in doubt, match it.
 
+**Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
+fine as stylised accents tied to the art (drips from the eye, brushstroke underlines, a single tear
+on a status glyph). Splatter, blood-soaked surfaces and large stained backgrounds cross the line, and
+so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old paper.
+
 ## The rules
 
 ### 1. Theme the visuals, never the words
