@@ -94,7 +94,7 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .dot.warn{animation:flicker 3.7s infinite}
 .dot.broken{animation:pulse 2.6s ease-in-out infinite}
 @keyframes flicker{0%,100%{opacity:1}8%{opacity:.78}12%{opacity:1}37%{opacity:.9}41%{opacity:.68}45%{opacity:.97}71%{opacity:.86}74%{opacity:1}}
-@keyframes pulse{0%,100%{opacity:1;filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}50%{opacity:.7;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--glyph-bad) 70%,transparent))}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.62}}
 }
 .head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-bottom:6px}
 .title{font:600 19px/1.25 var(--serif);letter-spacing:.04em;font-variant:small-caps}
@@ -211,7 +211,7 @@ a.app-pill:hover .seep-text,a.app-pill:focus-visible .seep-text{clip-path:inset(
 .charge-fill::after{content:"";position:absolute;top:0;bottom:0;right:0;width:3px;background:var(--charge-edge)}
 .charge-text{--fx-ink:var(--charge-ink);transform:translateX(101%);transition:transform .16s steps(4,end)}
 a.app-pill:hover .charge-fill,a.app-pill:hover .charge-text,a.app-pill:focus-visible .charge-fill,a.app-pill:focus-visible .charge-text{transform:none;transition-duration:.24s;transition-timing-function:steps(6,end)}
-@media (prefers-reduced-motion:reduce){.seep-fill,.seep-text,.charge-fill,.charge-text,a.app-pill:hover .seep-fill,a.app-pill:hover .seep-text,a.app-pill:hover .charge-fill,a.app-pill:hover .charge-text{transition:none}.pill-drip,.pill-splat{display:none}}
+@media (prefers-reduced-motion:reduce){.seep-fill,.seep-text,.charge-fill,.charge-text,a.app-pill:is(:hover,:focus-visible) :is(.seep-fill,.seep-text,.charge-fill,.charge-text){transition:none}.pill-drip,.pill-splat{display:none}}
 a.app-pill:hover .dot.broken{animation-duration:1s}
 a.app-pill:hover .fx-text .dot.broken svg{transform:scale(1.15)}
 button{font:inherit;font-size:14px;color:var(--text);background:var(--inset);border:1px solid var(--border);border-radius:0;padding:2px 10px;box-shadow:none;cursor:pointer;transition:border-color .15s,background-color .15s}
