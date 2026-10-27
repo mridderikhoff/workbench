@@ -422,6 +422,7 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 the cursor while a ready app pill is hovered
   actionIcons   {copy, terminal, stop} SVG strings in the theme's own mark language (24-unit box)
   settingsIcon  SVG string for the settings button; chevron (optional) the details toggle arrow (12-unit box)
+  wordmarkStroke  optional false: no brush underline under the wordmark (Horror: the eye already drips onto it)
   brushStroke   {colors:{core, edge}, presets:{name:{style?, weight, taperIn, taperOut, wobble, bristles, dryEnd, hook,
                 drips:[min,max], dripLength, spatter:[min,max]}}} for the wordmark and branch underlines; style "blocks" draws a
                 seeded row of pixel blocks instead of a brush (keys: block, gap, drop, light)
@@ -546,6 +547,8 @@ var THEMES = {
   // brush-ink marks and blood seeping into anything you hover.
   horror: {
     name: "Horror",
+    // The eye's drips already hang over the wordmark, so a blood underline would double up.
+    wordmarkStroke: false,
     artPitch: 4.5,
     css: {
       light: {"--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
@@ -2223,8 +2226,10 @@ var QA_BRUSH=(function(){
     return brush;
   }
   function wordmark(){
-    var mark=document.querySelector(".mark");
-    if(!mark||!QA_THEME.current().brushStroke)return;
+    var mark=document.querySelector(".mark"),theme=QA_THEME.current();
+    if(!mark)return;
+    // A theme whose character already drips over the wordmark can skip the underline (wordmarkStroke: false).
+    if(!theme.brushStroke||theme.wordmarkStroke===false){mark.classList.remove("has-brush");Array.prototype.forEach.call(mark.querySelectorAll(".brush"),function(b){b.remove()});return}
     mark.classList.add("has-brush");
     paint(mark,mark.getBoundingClientRect().width||110,(Math.random()*4294967296)>>>0,1,true);
   }
