@@ -22,6 +22,21 @@ place in each scene and protect its presence as the session list grows.
 - Character animation can remain alive when services are healthy. Keep status signals clear and
   distinct from the character's personality; neither should depend only on colour or motion.
 
+## Make the interface belong to its scene
+
+Take inspiration from [Obra Dinn's logbook](https://dukope.com/devlogs/obra-dinn/tig-37/): give the
+interface a coherent place in its world. In Book, entries should look printed on the pages. In
+Console, the animated character should inhabit a display and the controls should belong to its
+panel. Avoid ordinary floating cards pasted over unrelated artwork.
+
+Use this within reason: this is a developer workspace. Keep information scannable, actions plain,
+and controls familiar. Never add fictional meters, pretend controls, or cumbersome navigation just
+to complete a metaphor. The art is here to bring play and joy to the workday, not to turn routine
+development into a game or a task to optimize. Leave room for the owner's taste and experiments.
+
+Current scene scope is **Book and Console only**. Other scene ideas live in
+[the scene notebook](docs/SCENE_IDEAS.md) until explicitly requested.
+
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
 fine as stylised accents tied to the art (drips from the eye, brushstroke underlines, a single tear
 on a status glyph). Splatter, blood-soaked surfaces and large stained backgrounds cross the line, and
