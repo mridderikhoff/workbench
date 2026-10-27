@@ -17,7 +17,7 @@ part of the experience, not a decorative footer or just another status icon. Giv
 place in each scene and protect its presence as the session list grows.
 
 - A **scene** determines the composition: layout, surfaces, and where the character and sessions
-  live. Overseer has one scene, **Desk**; retired scenes and future ideas live in
+  live. Overseer has two scenes, **Desk** and **Radio**; retired scenes and future ideas live in
   [the scene notebook](docs/SCENE_IDEAS.md).
 - A **theme** supplies the visual world: palette, materials, typography, icons, and character.
   Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
@@ -41,9 +41,9 @@ and controls familiar. Never add fictional meters, pretend controls, or cumberso
 to complete a metaphor. The art is here to bring play and joy to the workday, not to turn routine
 development into a game or a task to optimize. Leave room for the owner's taste and experiments.
 
-Current scene scope is **Desk only**. Book and Console were tried and retired (the pixel-plate look
-was overboard, and the book spread was too wide); their notes and other scene ideas live in
-[the scene notebook](docs/SCENE_IDEAS.md) until explicitly requested.
+Radio places the same character portrait beside a plain, one-sentence status line. The backend card sits alongside on wide screens, and the session cards remain below with their existing controls. Each theme gives the message plate its own material; Horror connects it to the portrait with a brass speaking tube.
+
+Book and Console were tried and retired (the pixel-plate look was overboard, and the book spread was too wide); their notes and other scene ideas live in [the scene notebook](docs/SCENE_IDEAS.md).
 
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
 fine as stylised accents tied to the art (drips from the eye, brushstroke underlines, a single tear
@@ -173,7 +173,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   borders and hover fills from the text colour (`color-mix`) rather than hand-picking. On `?debug=1`
   a startup check logs any key, icon or art a theme is missing, and any icon it shares with another.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
-- Options belong in Settings (tenant, theme, character, appearance, logo animation) and persist across visits,
+- Options belong in Settings (tenant, theme, character, layout, appearance, logo animation) and persist across visits,
   applied before first paint so nothing flashes. Logo animation has exactly three options with
   generic names: **Full** (the whole animation), **Subtle** (only the slow ambient motion, such as
   drips) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions

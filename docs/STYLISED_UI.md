@@ -55,6 +55,7 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 | Confirm / cancel | Hit-stop then thump or stamp; spring back on cancel | Visual only |
 | Dialog opens | It arrives like an object: dealt like a card, slid out, or the CRT warms up | Same materials as the cards |
 | Status change | Squash and overshoot on ready; one jitter on failure; the character glances at it | Animate only what changed |
+| Message arrives | Radio gives one short hail, static burst, and text reveal | Under 900ms; none on load |
 | Error | Theme-specific mark: a blood splat sprite, a hazard-tape wipe, an inverse-video block | Loud but brief, then still |
 | Idle | One rare, irregular ambient event | Paused when hidden or behind a modal |
 

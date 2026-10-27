@@ -75,6 +75,46 @@ html.modal-open :is(#desk,.page) *::before,html.modal-open :is(#desk,.page) *::a
 .page>*{min-width:0}
 .page::before{content:"";position:absolute;inset:26px 16px 46px;z-index:-2;pointer-events:none;border-radius:var(--blotter-radius,6px);background:var(--desk-blotter-color,transparent) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px) repeat}
 .side{display:flex;flex-direction:column;gap:34px;min-width:0;grid-column:1;grid-row:1}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+html:not([data-scene="radio"]) #radio{display:none}
+/* Radio uses the same portrait and cards, with a material-specific message plate between them. */
+html[data-scene="radio"] .page{max-width:1320px;grid-template-columns:300px minmax(0,1fr) 300px;grid-template-areas:"portrait radio backend" "main main main";gap:40px}
+html[data-scene="radio"] .side{display:contents}
+html[data-scene="radio"] .eye-card{grid-area:portrait}
+html[data-scene="radio"] #backend{grid-area:backend}
+html[data-scene="radio"] main{grid-area:main;min-width:0}
+.radio{position:relative;isolation:isolate;align-self:center;grid-area:radio;min-width:0;min-height:225px;padding:28px 25px 18px;color:var(--radio-plate-ink);background:var(--radio-plate);border:2px solid var(--radio-edge,var(--edge-line));border-radius:var(--obj-radius);box-shadow:var(--obj-face),var(--obj-edge),var(--obj-shadow)}
+.radio-obj{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:visible}
+.radio-obj>i{position:absolute;display:block}
+.radio-obj .plate{inset:0;pointer-events:none;background:var(--radio-grain,none);opacity:.15}
+.radio-obj .tube{display:none;right:calc(100% - 4px);top:43%;width:63px;height:60px;background:var(--radio-tube,none) center/100% 100% no-repeat}
+.radio-obj .fit{width:20px;height:12px;background:var(--radio-fitting,var(--radio-edge));box-shadow:inset 0 2px var(--edge-hi),0 2px var(--edge-lo2)}
+.radio-obj .fit.a{top:8px;left:8px}.radio-obj .fit.b{right:8px;bottom:8px;transform:rotate(180deg)}
+.radio-obj .static{inset:3px;opacity:0;background:var(--radio-static,none) center/96px repeat;pointer-events:none}
+.radio-tag{display:inline-flex;align-items:center;gap:8px;min-height:26px;margin:0 0 20px;padding:3px 10px;background:var(--radio-tag);color:var(--radio-tag-ink);font:700 13px/1.2 var(--mono);box-shadow:var(--sunk)}
+.radio-tag .dot{width:18px;height:18px;flex:none}.radio-tag .dot svg{width:100%;height:100%}
+.radio-line{min-height:4.35em;margin:0 0 20px;font:600 17px/1.45 var(--body);max-width:60ch;overflow-wrap:anywhere}
+.radio.problem .radio-line{color:var(--radio-alert);font-weight:700}
+.radio.problem .radio-tag{color:var(--radio-problem-tag-ink);font-weight:700}
+.radio.problem .radio-tag .dot{color:var(--radio-problem-tag-glyph)}
+.radio-foot{display:flex;align-items:center;gap:12px;min-height:32px;font:13px/1.3 var(--mono);color:var(--radio-plate-ink)}
+.radio-meter{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.radio-meter[hidden],.radio-count[hidden],.radio-nav[hidden]{display:none}
+.radio-meter i{display:inline-block;width:8px;height:11px;border:1px solid currentColor}.radio-meter i.ready{background:currentColor}.radio-meter-label{margin-left:5px}
+.radio-count{margin-left:auto;white-space:nowrap}.radio-nav{display:inline-flex;gap:5px;margin-left:auto}
+.radio-count:not([hidden])+.radio-nav{margin-left:0}
+html[data-scene="radio"] .radio-nav button.icon{width:30px;height:30px;color:var(--radio-plate-ink);border:1px solid currentColor;border-radius:3px;background:transparent;box-shadow:var(--sunk)}
+html[data-scene="radio"] .radio-nav button.icon svg{width:16px;height:16px}.radio-nav .prev svg{transform:rotate(180deg)}
+html[data-scene="radio"] .radio-nav button.icon:focus-visible{outline:none;box-shadow:var(--ring),var(--sunk)}
+@media (min-width:1100px){html[data-scene="radio"] .slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 36px}html[data-scene="radio"] .slots>:nth-child(2) .divider{display:none}}
+@media (max-width:1099px){html[data-scene="radio"] .page{grid-template-columns:300px minmax(0,1fr);grid-template-areas:"portrait radio" "backend backend" "main main"}}
+@media (max-width:899px){html[data-scene="radio"] .page{grid-template-columns:minmax(200px,40%) minmax(0,1fr);padding:34px 16px 80px;gap:30px}html[data-scene="radio"] main{grid-column:auto;grid-row:auto;padding:22px 18px 20px}}
+@media (max-width:559px){html[data-scene="radio"] .page{grid-template-columns:minmax(0,1fr);grid-template-areas:"portrait" "radio" "backend" "main";gap:30px}html[data-scene="radio"] .radio{margin-top:-18px;width:100%}html[data-scene="radio"] .eye-card{justify-self:center;width:min(330px,calc(100% - 12px))}}
+@keyframes radio-hail{0%{scale:1.03 .97}50%{scale:.99 1.01}100%{scale:1}}
+@keyframes radio-burst{0%,100%{opacity:0}25%{opacity:.8}65%{opacity:.4}}
+@keyframes radio-arrive{from{opacity:.6;translate:0 4px}to{opacity:1;translate:0 0}}
+@keyframes radio-reveal{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:no-preference){html[data-logo-mode="full"] .eye-card.radio-hail{animation:radio-hail .25s steps(3,end) 1}html[data-logo-mode="full"] .radio.burst .static{animation:radio-burst .125s steps(3,end) 1}html[data-logo-mode="full"] .radio.arrive,html[data-logo-mode="subtle"] .radio.arrive{animation:radio-arrive var(--dur) var(--ease-out) 1}html[data-logo-mode="full"] .radio.reveal .radio-line span{animation:radio-reveal var(--reveal-duration,.16s) ease-out both;animation-delay:var(--delay,0ms)}}
+html.modal-open .radio-line span{animation:none!important;opacity:1!important}
 main,.backend,.settings,.desk-obj .paper{background:var(--stock);border:0;border-radius:var(--obj-radius);box-shadow:var(--obj-face),var(--obj-edge),var(--obj-shadow)}
 /* A second sheet peeks out under each object; it sits in the page's stacking context, behind the card and above the blotter. */
 main::before,.backend::after,.desk-obj .sheet{content:"";position:absolute;inset:9px -7px -9px 7px;z-index:-1;pointer-events:none;transform:rotate(.8deg);border-radius:var(--obj-radius);
@@ -421,7 +461,7 @@ var QA_PERF=(function(){
   return stats;
 })();
 /* ===== THEMES =====================================================================
-Overseer has one layout, Desk: every panel is an object lying on a textured desk. A theme supplies its whole visual world.
+Overseer has two layouts, Desk and Radio. A theme supplies its whole visual world.
 Themes: Terminal (the default when nothing is stored), Horror and Neon. A stored pick always wins; the old id "blood" maps
 to "horror". How to add a theme: add one entry to THEMES below. Its css merges over BASE, so it lists only what differs.
 On ?debug=1 a startup check logs any required key, icon or art a theme is missing, any icon it shares with another theme,
@@ -511,6 +551,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 (a wax seal, a sticky note), drip hangs off the Sessions card's bottom edge
   deskCss       optional CSS string for this theme's flourishes (lighting, blotter, tag shapes, dialog mounts); scope
                 every rule to html[data-theme="<id>"]
+  radio         {reveal:"char"|"word", css: scoped Radio material rules, vars?: palette overrides, tube?: SVG}; BASE supplies --radio-plate,
+                --radio-plate-ink, --radio-alert, --radio-tag, --radio-tag-ink, and paired --radio-problem-tag-ink/glyph.
   copy          optional text overrides: {emptyTitle}
 Minimal skeleton:
   THEMES.owl = {
@@ -583,6 +625,9 @@ var BASE = (function () {
     "--key-ink": "var(--text)", "--key-hover-ink": "var(--key-ink)", "--key-wall": "var(--edge-lo2)", "--badge-bg": "var(--inset)", "--badge-ink": "var(--text)", "--toggle-edge": "var(--border)",
     "--picker-face": "var(--stock)", "--picker-radius": "5px", "--picker-hl": "var(--inset)", "--picker-hl-ink": "var(--text)", "--picker-hl-shadow": "var(--sunk)",
     "--picker-check": "var(--accent)", "--picker-hl-check": "var(--picker-check)",
+    "--radio-plate": "var(--desk-card)", "--radio-plate-ink": "var(--text)", "--radio-alert": "var(--bad)",
+    "--radio-tag": "var(--tag)", "--radio-tag-ink": "var(--tag-ink)", "--radio-glyph-bad": "var(--glyph-bad)",
+    "--radio-problem-tag-ink": "var(--radio-tag-ink)", "--radio-problem-tag-glyph": "var(--radio-problem-tag-ink)",
     "--focus-inner": "var(--desk-card)", "--dur-fast": ".12s", "--dur": ".24s", "--ease": "cubic-bezier(.4,0,.2,1)", "--ease-out": "cubic-bezier(.2,.7,.3,1)",
     "--hover-fill": "color-mix(in srgb,var(--text) 8%,transparent)", "--line-soft": "color-mix(in srgb,var(--text) 22%,transparent)"};
   function scheme(own) { var out = {}; Object.keys(shared).forEach(function (k) { out[k] = shared[k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
@@ -598,6 +643,7 @@ var THEMES = {
   // brush-ink marks and blood seeping into anything you hover.
   horror: {
     name: "Horror",
+    radio: {reveal:"word",vars:{"--radio-tag":"var(--desk-card)","--radio-tag-ink":"var(--text)","--radio-problem-tag-ink":"var(--text)","--radio-problem-tag-glyph":"var(--text)"},tube:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60"><path fill="#513619" d="M0 21h27v-3h8v-4h8v-4h8V6h13v48H51v-4h-8v-4h-8v-4h-8v-3H0z"/><path fill="#9d7339" d="M3 24h27v-3h8v-4h8v-4h8v-4h8v42h-8v-4h-8v-4h-8v-4h-8v-3H3z"/><path fill="#d4aa62" d="M6 25h26v-3h8v-4h8v-4h8v-4h5v5h-7v4h-8v4h-8v4H6z"/><path fill="#2b1a0d" d="M55 13h6v34h-6z"/><path fill="#69451f" d="M56 16h2v28h-2z"/><path fill="#e2bb75" d="M61 9h3v42h-3z"/></svg>',css:'html[data-theme="horror"][data-scene="radio"] .radio{--radio-edge:var(--border);--radio-fitting:#9d7339;background:var(--stock)}html[data-theme="horror"][data-scene="radio"] .radio-tag{border:2px solid var(--tag-edge);border-image:var(--stitch-seam) 8 stretch;border-radius:3px}html[data-theme="horror"][data-scene="radio"] .radio-obj .tube{display:block}@media(max-width:559px){html[data-theme="horror"][data-scene="radio"] .radio-obj .tube{display:none}}'},
     // The eye's drips already hang over the wordmark, so a blood underline would double up.
     wordmarkStroke: false,
     artPitch: 4.5,
@@ -846,6 +892,7 @@ THEMES.neon = (function () {
   })();
   return {
     name: "Neon",
+    radio: {reveal:"char",vars:{"--radio-tag":"var(--desk-card)","--radio-tag-ink":"var(--text)","--radio-problem-tag-ink":"var(--text)","--radio-problem-tag-glyph":"var(--text)"},css:'html[data-theme="neon"][data-scene="radio"] .radio{--radio-edge:var(--accent);border-width:3px;border-radius:10px;background:var(--stock)}html[data-theme="neon"][data-scene="radio"] .radio-tag{border:1px solid var(--accent);letter-spacing:.08em;text-transform:uppercase}html[data-theme="neon"][data-scene="radio"] .radio-meter i{border-radius:0;box-shadow:2px 2px 0 var(--edge-lo2)}'},
     artPitch: 4.5,
     css: {
       light: {"--inset": "#e8e6ee", "--text": "#0d0b10", "--muted": "#47434f", "--border": "#c6c2cf", "--rule": "#006a85", "--ok": "#006a85", "--bad": "#c4102c", "--warn": "#8a4b00",
@@ -1021,6 +1068,7 @@ THEMES.terminal = (function () {
   }
   return {
     name: "Terminal",
+    radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
     artPitch: 4.5,
     css: {
       light: {"--inset": "#cfc7b0", "--text": "#1d1a14", "--muted": "#4a4334", "--border": "#b3a98f", "--rule": "#8f856c", "--ok": "#175c2c", "--bad": "#a3160c", "--warn": "#774400",
@@ -1474,8 +1522,15 @@ var QA_THEME = (function () {
     return /^(dark|light)$/.test(value) ? value : "system";
   }
   var schemePreference = pickScheme();
-  // Desk is the only layout now; forget the scene and background picks of older visits.
-  try { localStorage.removeItem("qaDashboardScene"); localStorage.removeItem("qaDashboardBackground") } catch (e) {}
+  // The layout is chosen before body parsing, including a temporary query override.
+  function pickScene(){
+    var id=query.get("scene");
+    try{localStorage.removeItem("qaDashboardBackground")}catch(e){}
+    if(id==="desk"||id==="radio")return id;
+    try{id=localStorage.getItem("qaDashboardScene");if(id&&id!=="desk"&&id!=="radio")localStorage.removeItem("qaDashboardScene")}catch(e){id=null}
+    return id==="radio"?"radio":"desk";
+  }
+  document.documentElement.setAttribute("data-scene",pickScene());
   // A stored pick always wins over the default; renamed themes carry over (Blood is now Horror).
   function pick() {
     var name = query.get("theme");
@@ -1516,9 +1571,9 @@ var QA_THEME = (function () {
     var check = theme.actionIcons && theme.actionIcons.check;
     // The selected-option tick is a mask, so a theme's check icon needs the SVG namespace to load as an image.
     if (check && check.indexOf("xmlns") < 0) check = check.replace("<svg ", "<svg xmlns=\"http://www.w3.org/2000/svg\" ");
-    return ";--check-icon:" + (check ? svgAsset(check) : "none") + ";--desk-mount:" + (art.mount ? svgAsset(art.mount) : "none") + ";--desk-badge:" + (art.badge ? svgAsset(art.badge) : "none") + ";--desk-drip:" + (art.drip ? svgAsset(art.drip) : "none");
+    return ";--check-icon:" + (check ? svgAsset(check) : "none") + ";--desk-mount:" + (art.mount ? svgAsset(art.mount) : "none") + ";--desk-badge:" + (art.badge ? svgAsset(art.badge) : "none") + ";--desk-drip:" + (art.drip ? svgAsset(art.drip) : "none") + ";--radio-tube:" + (theme.radio&&theme.radio.tube ? svgAsset(theme.radio.tube) : "none");
   }
-  function merged(theme, scheme) { var out = {}, own = theme.css[scheme] || {}; Object.keys(BASE[scheme]).forEach(function (k) { out[k] = BASE[scheme][k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
+  function merged(theme, scheme) { var out = {}, own = theme.css[scheme] || {}; Object.keys(BASE[scheme]).forEach(function (k) { out[k] = BASE[scheme][k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); Object.keys(theme.radio&&theme.radio.vars||{}).forEach(function(k){out[k]=theme.radio.vars[k]}); return out }
   function block(vars) { return Object.keys(vars).map(function (key) { return key + ":" + vars[key] }).join(";") }
   function apply(name) {
     var theme = THEMES[name] || THEMES[DEFAULT], fonts = theme.fonts, root = document.documentElement;
@@ -1529,7 +1584,7 @@ var QA_THEME = (function () {
     var dark = block(merged(theme, "dark"));
     style.textContent = ":root{" + block(merged(theme, "light")) + deskArtVars(theme) + ";--serif:" + fonts.serif + ";--mono:" + fonts.mono + ";--body:" + fonts.body + "}" +
       "@media (prefers-color-scheme:dark){:root:not([data-scheme=\"light\"]){" + dark + "}}" +
-      ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}\n" + (theme.deskCss || "");
+      ":root[data-scheme=\"dark\"]{color-scheme:dark;" + dark + "}:root[data-scheme=\"light\"]{color-scheme:light}\n" + (theme.deskCss || "") + "\n" + (theme.radio&&theme.radio.css||"");
     root.setAttribute("data-scheme", schemePreference);
     root.setAttribute("data-theme", active.id);
     root.setAttribute("data-pill-hover", theme.pillHover || "seep");
@@ -1543,6 +1598,8 @@ var QA_THEME = (function () {
   apply(pick());
   return {
     current: function () { return active.theme },
+    sceneId: function () { return document.documentElement.getAttribute("data-scene")||"desk" },
+    chooseScene: function (id) { if(id!=="desk"&&id!=="radio")return;try{localStorage.setItem("qaDashboardScene",id)}catch(e){}document.documentElement.setAttribute("data-scene",id);document.dispatchEvent(new CustomEvent("qa-scene")) },
     id: function () { return active.id },
     character: function () { return CHARACTERS[characterId()] },
     characterId: characterId,
@@ -1591,7 +1648,7 @@ var QA_THEME = (function () {
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
     ["light", "dark"].forEach(function (scheme) { REQUIRED_KEYS.forEach(function (key) { if (!(theme.css[scheme] || {})[key]) problems.push(id + " " + scheme + " is missing " + key) }) });
-    ["name", "fonts", "favicon", "palette", "desk", "settingsIcon", "brushStroke"].forEach(function (key) { if (!theme[key]) problems.push(id + " is missing " + key) });
+    ["name", "fonts", "favicon", "palette", "desk", "radio", "settingsIcon", "brushStroke"].forEach(function (key) { if (!theme[key]) problems.push(id + " is missing " + key) });
     if (!CHARACTERS[theme.character]) problems.push(id + " names an unknown default character " + JSON.stringify(theme.character));
     // Every character renders in every theme, so the theme needs each named ramp any character draws with.
     Object.keys(CHARACTERS).forEach(function (cid) { (CHARACTERS[cid].inks || []).forEach(function (ink) { ["light", "dark"].forEach(function (scheme) {
@@ -1633,9 +1690,12 @@ var QA_THEME = (function () {
     // Lit keycap legends (the press hover): on the caps and keys they light up on.
     ["--legend-lit", "--tag"], ["--legend-lit", "--btn-face"], ["--legend-lit", "--key-face"], ["--legend-lit-bad", "--tag"],
     // Text on the CRT screen (Terminal's wordmark).
-    ["--screen-ink", "--screen"]];
+    ["--screen-ink", "--screen"], ["--radio-alert", "--radio-plate"],
+    // Problem tag text and mark use their own on-colours; the sentence uses the plate's red ink.
+    ["--radio-problem-tag-ink", "--radio-tag"], ["--radio-problem-tag-glyph", "--radio-tag", 3],
+    ["--radio-glyph-bad", "--radio-plate", 3], ["--glyph-ok", "--radio-plate", 3]];
   // Decorative inks (divider strokes, the index card's margin line) are not text; a few inks sit on a fill with another name.
-  var DECOR = {"--rule-ink": 1, "--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag"};
+  var DECOR = {"--rule-ink": 1, "--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag", "--radio-problem-tag-ink": "--radio-tag"};
   var failures = [], checked = 0, table = [];
   Object.keys(THEMES).forEach(function (id) { ["light", "dark"].forEach(function (scheme) {
     var map = QA_THEME.merged(THEMES[id], scheme), pairs = PAIRS.slice();
@@ -1978,6 +2038,7 @@ var QA_DESK=(function(){
 <div class="page"><div class="side"><div class="eye-card"><div class="desk-obj" aria-hidden="true"><i class="sheet"></i><i class="shadow"></i><i class="paper"></i><i class="fold"></i><i class="mount"></i><i class="badge"></i></div><div class="stage"><canvas id="eye" width="200" height="230" aria-hidden="true"></canvas>
 <h1 class="masthead-title"><span class="mark">Overseer</span></h1><span class="stage-fx" aria-hidden="true"><i class="fx-scan"></i><i class="fx-band"></i><i class="fx-flicker"></i><i class="fx-glass"></i><i class="fx-on"></i></span></div>
 <div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div>
+<section id="radio" class="radio" aria-label="Radio" tabindex="-1"><div class="radio-obj" aria-hidden="true"><i class="plate"></i><i class="tube"></i><i class="fit a"></i><i class="fit b"></i><i class="static"></i></div><p class="radio-tag"><span class="radio-glyph"></span><span class="radio-subject">Status</span></p><p class="radio-line" aria-hidden="true"></p><p class="radio-said sr-only" role="status" aria-atomic="true"></p><div class="radio-foot"><span class="radio-meter" role="img" hidden></span><span class="radio-count" hidden></span><span class="radio-nav" hidden><button type="button" class="icon prev" data-radio="prev" aria-label="Previous message" title="Previous message"></button><button type="button" class="icon next" data-radio="next" aria-label="Next message" title="Next message"></button></span></div></section>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
 <main><h2 class="sessions-title">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
@@ -1986,6 +2047,7 @@ var QA_DESK=(function(){
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
 <div class="settings-row"><label for="character-pick">Character</label><select id="character-pick" title="Default follows the theme"></select></div>
+<div class="settings-row"><label for="scene-pick">Layout</label><select id="scene-pick"><option value="desk">Desk</option><option value="radio">Radio</option></select></div>
 <div class="settings-row"><span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div></div>
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
@@ -2235,6 +2297,74 @@ function updatedText(){
 }
 function setHtml(element,html){if(element.__html===html)return false;element.__html=html;element.innerHTML=html;return true}
 function setClass(element,cls){if(element.className!==cls)element.className=cls}
+function radioMessages(snapshot,fetchFailure,requestFailure){
+  var out=[],backend=snapshot&&snapshot.backend,services=backend&&backend.services||{},names=Object.keys(services),slots=sortedSlots(snapshot&&snapshot.slots||[]),action=snapshot&&snapshot.actions;
+  function add(key,tone,subject,text){out.push({key:key,tone:tone,subject:subject,text:text})}
+  function listed(items){return items.slice(0,3).join(", ")+(items.length>3?", and "+(items.length-3)+" more":"")}
+  function serviceNames(want){return names.filter(function(name){return serviceTone(services[name])===want})}
+  if(!snapshot&&!fetchFailure)add("loading","unknown","Status","Loading status…");
+  if(fetchFailure)add("failure","down","Status","Status unavailable: "+fetchFailure+"."+(snapshot?" Showing the last data.":""));
+  if(requestFailure)add("request","down","Backend","Request failed: "+requestFailure+".");
+  if(backend){
+    if(backendTone(backend)==="down"&&names.length){var down=serviceNames("down");add("backend:down","down","Backend","Backend is down."+(down.length?" Not running: "+listed(down)+".":""))}
+    ["attn","broken"].forEach(function(t){var group=serviceNames(t);if(group.length)add("backend:"+t,t,"Backend",t==="attn"?"Backend needs attention: "+listed(group)+".":"Backend services running but not ready: "+listed(group)+".")});
+  }
+  if(action&&action.state!=="running"&&action.state!=="ok")add("action:failed:"+action.action+":"+(action.target||""),"down",action.target?"Session":"Backend",(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
+  slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
+  if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"warn",action.target?"Session":"Backend",(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
+  if(backend){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
+  if(backend&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1];add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. Update is on the Backend card.":"Backend: "+backend.relation+".")}
+  if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
+  else if(backend&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
+    if(!out.some(function(message){return message.key.indexOf("backend:")===0}))add("backend:unknown","unknown","Backend",names.length?"Backend readiness is unknown.":"No backend service data.");
+  }
+  var unknownApps=slots.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
+  if(unknownApps)add("apps:unknown","unknown","Session","Some app readiness is unknown.");
+  if(!out.length&&snapshot&&backend&&names.length&&backendHealthy(backend))add(slots.length?"ok":"ok:empty","ok","Status",slots.length?"Backend is ready. "+slots.length+" session"+(slots.length===1?"":"s")+" running, all apps ready.":"Backend is ready. No sessions running.");
+  return out;
+}
+function radioSelection(messages,view,oldKeys){
+  var index=messages.findIndex(function(message){return message.key===view.key});if(index<0)index=0;
+  var urgent={down:1,broken:1,attn:1};
+  var incoming=messages.findIndex(function(message,i){return i<index&&urgent[message.tone]&&oldKeys.indexOf(message.key)<0});
+  return {key:messages[incoming>=0?incoming:index].key,index:incoming>=0?incoming:index};
+}
+window.QA_RADIO={messages:radioMessages,select:radioSelection};
+var radioView={key:null,index:0},radioRenderedKey=null,radioKeys=[],radioPainted=false,radioLoaded=false,radioIconTheme="",radioTiles={};
+function radioStatic(){
+  var key=QA_THEME.id()+":"+(QA_THEME.isDark()?"dark":"light");if(radioTiles[key])return radioTiles[key];
+  var canvas=document.createElement("canvas");canvas.width=canvas.height=96;var ctx=canvas.getContext("2d"),image=ctx.createImageData(96,96),seed=hashText(key),horror=QA_THEME.id()==="horror";
+  for(var i=0;i<image.data.length;i+=4){seed=Math.imul(seed^seed>>>13,1274126177)>>>0;var on=seed%9===0;image.data[i]=horror?179:QA_THEME.id()==="neon"?255:51;image.data[i+1]=horror?138:QA_THEME.id()==="neon"?62:255;image.data[i+2]=horror?82:QA_THEME.id()==="neon"?165:102;image.data[i+3]=on?40+seed%70:0}
+  ctx.putImageData(image,0,0);return radioTiles[key]='url("'+canvas.toDataURL()+'")';
+}
+function renderRadio(){
+  if(QA_THEME.sceneId()!=="radio")return;
+  var plate=document.getElementById("radio"),messages=radioMessages(data,failure,actionError);if(!messages.length)return;
+  var prior=radioRenderedKey,selection=radioSelection(messages,radioView,radioKeys),message=messages[selection.index],line=plate.querySelector(".radio-line"),said=plate.querySelector(".radio-said"),keyChanged=message.key!==prior,textChanged=line.dataset.text!==message.text;
+  radioView=selection;radioKeys=messages.map(function(item){return item.key});
+  plate.style.setProperty("--radio-static",radioStatic());
+  var motion=radioPainted&&radioLoaded&&keyChanged&&!document.hidden&&!document.querySelector("dialog[open]")&&document.documentElement.getAttribute("data-logo-mode")==="full"&&!reducedMotion.matches;
+  var subtle=radioPainted&&radioLoaded&&keyChanged&&!document.hidden&&!document.querySelector("dialog[open]")&&document.documentElement.getAttribute("data-logo-mode")==="subtle"&&!reducedMotion.matches;
+  plate.classList.remove("burst","arrive","reveal");document.querySelector(".eye-card").classList.remove("radio-hail");
+  if(keyChanged||textChanged){
+    line.dataset.text=message.text;line.textContent="";
+    if(motion){var mode=QA_THEME.current().radio.reveal,parts=mode==="word"?message.text.match(/\S+\s*/g)||[]:Array.from(message.text),max=Math.max(1,parts.length);parts.forEach(function(part,i){var span=document.createElement("span");span.textContent=part;span.style.setProperty("--delay",Math.min(i*(mode==="word"?70:18),740*i/max)+"ms");span.style.setProperty("--reveal-duration",mode==="word"?"160ms":"130ms");line.appendChild(span)})}
+    else line.textContent=message.text;
+    setText(said,message.text);
+  }
+  plate.classList.toggle("problem",message.tone==="down"||message.tone==="broken"||message.tone==="attn");
+  setHtml(plate.querySelector(".radio-glyph"),dot(message.tone));setText(plate.querySelector(".radio-subject"),message.subject);
+  var meter=plate.querySelector(".radio-meter"),services=data&&data.backend&&data.backend.services||{},names=Object.keys(services),ready=names.filter(function(name){return serviceTone(services[name])==="ok"}).length;
+  meter.hidden=!names.length;if(names.length){meter.setAttribute("aria-label",ready+" of "+names.length+" services ready");setHtml(meter,names.map(function(name){return'<i class="'+(serviceTone(services[name])==="ok"?"ready":"")+'"></i>'}).join("")+'<span class="radio-meter-label">Services '+ready+'/'+names.length+'</span>')}
+  var count=plate.querySelector(".radio-count"),nav=plate.querySelector(".radio-nav"),hide=messages.length<=1;
+  if(hide&&nav.contains(document.activeElement))plate.focus();count.hidden=hide;nav.hidden=hide;if(!hide)setText(count,(selection.index+1)+" of "+messages.length);
+  if(keyChanged||!radioPainted||radioIconTheme!==QA_THEME.id()){plate.querySelectorAll(".radio-nav button").forEach(function(button){button.innerHTML=QA_THEME.icon("chevron")});buttonFx(nav);radioIconTheme=QA_THEME.id()}
+  if(motion||subtle){void plate.offsetWidth;plate.classList.add("arrive");if(motion){plate.classList.add("burst","reveal");document.querySelector(".eye-card").classList.add("radio-hail")}}
+  radioRenderedKey=message.key;radioPainted=true;if(data)radioLoaded=true;
+}
 // Keeps each card's element while its markup is unchanged; only cards whose data changed are touched, and the changed ones are returned.
 function reconcileCards(box,cards){
   var existing={},wanted={},changed=[];
@@ -2289,6 +2419,7 @@ function render(){
   setText(document.getElementById("updated"),updatedText());
   if(failure){b.style.display="block";setText(b,banner)}
   else if(b.style.display!=="none")b.style.display="none";
+  renderRadio();
 }
 function setText(element,text){if(element.textContent!==text)element.textContent=text}
 function copyText(text,button){
@@ -2347,9 +2478,13 @@ stopDialog.addEventListener("close",function(){
   stopOpener=null;
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop]");
+  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-radio]");
   if(!t||t.disabled)return;
-  if(t.hasAttribute("data-toggle")){
+  if(t.hasAttribute("data-radio")){
+    var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
+    if(messages.length>1){var index=messages.findIndex(function(message){return message.key===radioView.key});radioView={key:messages[(index+step+messages.length)%messages.length].key,index:(index+step+messages.length)%messages.length};renderRadio()}
+  }
+  else if(t.hasAttribute("data-toggle")){
     var healthy=!data||!data.backend||backendHealthy(data.backend);
     detailsChoice={healthy:healthy,open:!detailsOpen(healthy)};
     try{sessionStorage.setItem("qaDashboardBackendDetails",JSON.stringify(detailsChoice))}catch(e){}
@@ -3306,6 +3441,9 @@ var QA_BRUSH=(function(){
   }
   characterOptions();
   if(characterSelect)characterSelect.addEventListener("change",function(){QA_THEME.chooseCharacter(characterSelect.value)});
+  var sceneSelect=document.getElementById("scene-pick");
+  if(sceneSelect){sceneSelect.value=QA_THEME.sceneId();sceneSelect.addEventListener("change",function(){QA_THEME.chooseScene(sceneSelect.value)})}
+  document.addEventListener("qa-scene",function(){radioPainted=false;render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document)});
   document.addEventListener("qa-character",function(){mode=blank;loadTheme()});
   if(modeSelect)modeSelect.addEventListener("change",function(){
     try{localStorage.setItem("qaDashboardEyeMode",modeSelect.value)}catch(e){}
