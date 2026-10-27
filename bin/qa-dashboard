@@ -24,6 +24,11 @@ HTML = r"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Overseer</title>
 <link rel="icon" href="data:,">
+<script>
+function syncPageVisibility(){document.documentElement.setAttribute("data-page-hidden",String(document.hidden))}
+syncPageVisibility();
+document.addEventListener("visibilitychange",syncPageVisibility);
+</script>
 <style>
 *{box-sizing:border-box}
 /* ===== Desk: every panel is a physical object lying on a real surface. Tiles (--desk-*) are painted once per theme and
@@ -55,7 +60,11 @@ background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff7d6 0 22%,#ffd36a 38%,
 .desk-prop .light:nth-child(2n){animation-duration:1.7s;animation-direction:reverse}
 .desk-prop .light:nth-child(3n){animation-duration:3.1s}
 }
-html.modal-open #desk *,html.modal-open .desk-obj *,html.modal-open .stage-fx *{animation-play-state:paused!important}
+/* Pause decorative CSS frames off-screen and behind either dialog, including status marks and generated layers. */
+html[data-page-hidden="true"] *,html[data-page-hidden="true"] *::before,html[data-page-hidden="true"] *::after,
+html.modal-open :is(#desk,.page),html.modal-open :is(#desk,.page) *,
+html.modal-open :is(#desk,.page)::before,html.modal-open :is(#desk,.page)::after,
+html.modal-open :is(#desk,.page) *::before,html.modal-open :is(#desk,.page) *::after{animation-play-state:paused!important}
 @keyframes desk-drift{from{transform:translateX(-1024px)}to{transform:translateX(0)}}
 @keyframes desk-drift-b{from{transform:translateX(0)}to{transform:translateX(-1536px)}}
 @keyframes desk-flicker{0%{opacity:.86}6%{opacity:.7}8%{opacity:.93}19%{opacity:.8}22%{opacity:.97}37%{opacity:.73}40%{opacity:.9}55%{opacity:.82}57%{opacity:1}71%{opacity:.76}74%{opacity:.88}88%{opacity:.7}91%{opacity:.95}100%{opacity:.86}}
@@ -255,7 +264,7 @@ button{font:inherit;font-size:14px;color:var(--text);background:var(--inset);bor
 button:hover:not(:disabled){border-color:var(--accent)}
 button:disabled{cursor:progress;color:var(--muted)}
 button.act{position:relative;display:inline-flex;align-items:center;justify-content:center;font-weight:600;border-color:var(--accent);color:var(--accent);background:transparent}
-button.icon{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;padding:0;color:var(--muted);background-color:transparent;border:0;border-bottom:1px solid transparent;border-radius:4px}
+button.icon{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;padding:0;color:var(--muted);background-color:transparent;border:0;border-radius:4px}
 button.icon svg{width:20px;height:20px}
 button.icon:hover{box-shadow:var(--sunk)}
 button.icon:focus-visible{box-shadow:var(--ring),var(--sunk)}
@@ -3261,7 +3270,7 @@ var QA_BRUSH=(function(){
     canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);forceDraw=true;
   }
   function loadTheme(){
-    ready=false;stopLoop();layout(QA_THEME.character());readPalette();
+    ready=false;stopLoop();ctx.clearRect(0,0,canvas.width,canvas.height);layout(QA_THEME.character());readPalette();
     var settingsButton=document.getElementById("settings-open");
     if(settingsButton){settingsButton.innerHTML=QA_THEME.icon("settings");buttonFx(settingsButton.parentNode)}
     var image=new Image(),wanted=query.get("eye"),stored=null;
