@@ -280,6 +280,7 @@ var QA_PERF=(function(){
 /* ===== THEMES =====================================================================
 How to add a theme: add one entry to THEMES below; nothing outside this section needs to change.
   name          label in the theme picker
+  artPitch      shared eye and page-background pixel pitch in CSS px (Blood uses 4.5)
   css           {light:{...}, dark:{...}} custom properties; provide every key that "blood" provides
                 (--grain is the noise opacity and --grain-blend is "multiply" or "screen"; both are baked into a tile)
   fonts         {serif, mono, body} font stacks
@@ -301,7 +302,7 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
   favicons      {ok, warn, bad, badDim, down} SVG strings: ok calm open eye, warn half-open, bad crying
                 (alternates with badDim), down closed eye with a tear
   statusGlyphs.awake  optional open-eye glyph with a .glyph-pupil, shown when a ready app pill is hovered
-  backgrounds   {id: {label, kind, cell, dark, light, ...}} pixel-art page backgrounds; kind is "candles", "book", "fog" or "none"; dark and
+  backgrounds   {id: {label, kind, dark, light, ...}} pixel-art page backgrounds; kind is "candles", "book", "fog" or "none"; dark and
                 light hold that kind's palette. defaultBackground names the one used until the user chooses.
   eyeModes      ids from the shared modes ("watcher", "coin", "bleeding", "off"), or custom renderer objects
                 {id, label, init(engine), frame(engine, t), dispose(engine)}; "coin" and "off" need only logoSource
@@ -309,6 +310,7 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
 Minimal skeleton:
   THEMES.cthulhu = {
     name: "Cthulhu",
+    artPitch: 4.5,
     css: {light: {...}, dark: {...}},
     fonts: THEMES.blood.fonts,
     favicon: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>...</svg>",
@@ -322,6 +324,7 @@ Minimal skeleton:
 var THEMES = {
   blood: {
     name: "Blood",
+    artPitch: 4.5,
     css: {
       light: {"--bg": "#efe5d0", "--card": "#f9f2e2", "--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
         "--border": "#cdb994", "--rule": "#a8001a", "--ok": "#1f7a45", "--bad": "#a8001a", "--warn": "#704500",
@@ -383,18 +386,18 @@ var THEMES = {
     eyeModes: ["watcher", "coin", "bleeding", "off"],
     defaultBackground: "candlelight",
     backgrounds: {
-      candlelight: {label: "Candlelight", kind: "candles", cell: 6,
-        // x is the candle's centre as a fraction of the width; sink hides that many cells below the bottom edge; flame scales the 3x5 flame sprite.
+      candlelight: {label: "Candlelight", kind: "candles",
+        // Geometry is in CSS pixels; x is the candle's centre as a fraction of the width.
         candles: [
-          {x: 0.035, width: 9, height: 30, flame: 3}, {x: 0.085, width: 5, height: 12, flame: 2}, {x: 0.115, width: 5, height: 7, flame: 2, sink: 1},
-          {x: 0.31, width: 5, height: 6, flame: 2, sink: 3}, {x: 0.47, width: 7, height: 10, flame: 2}, {x: 0.64, width: 5, height: 5, flame: 2, sink: 2},
-          {x: 0.87, width: 5, height: 9, flame: 2}, {x: 0.915, width: 5, height: 14, flame: 2}, {x: 0.968, width: 9, height: 34, flame: 3}],
+          {x: 0.035, width: 54, height: 180, flame: 3}, {x: 0.085, width: 30, height: 72, flame: 2}, {x: 0.115, width: 30, height: 42, flame: 2, sink: 6},
+          {x: 0.31, width: 30, height: 36, flame: 2, sink: 18}, {x: 0.47, width: 42, height: 60, flame: 2}, {x: 0.64, width: 30, height: 30, flame: 2, sink: 12},
+          {x: 0.87, width: 30, height: 54, flame: 2}, {x: 0.915, width: 30, height: 84, flame: 2}, {x: 0.968, width: 54, height: 204, flame: 3}],
         dark: {glow: ["#1a100d", "#26160f", "#341c10"], wax: ["#6e6250", "#4a4036"], flame: ["#e8a23a", "#f4d07a", "#c8501e"]},
         light: {glow: ["#f1e4c4", "#edd8ab", "#e8c994"], wax: ["#9a8a70", "#7a6a52"], flame: ["#d2733a", "#eeb45c", "#b4512e"]}},
-      book: {label: "Book", kind: "book", cell: 6, seed: 19,
+      book: {label: "Book", kind: "book", seed: 19,
         dark: {paper: ["#2a1e17", "#251a14", "#201610"], gutter: "#120b08", fox: "#3a2a1b", ink: "#281c15", edge: ["#3a2d23", "#1a110c"], desk: "#0b0706", underside: "#3b2c20", shadow: "#140d09"},
         light: {paper: ["#f1e6c8", "#ebdcb8", "#e3d2a8"], gutter: "#dcc99d", fox: "#e2cb9b", ink: "#ece0c0", edge: ["#e6d6ad", "#c8b182"], desk: "#c9b58b", underside: "#f8f0da", shadow: "#c7b68c"}},
-      fog: {label: "Fog", kind: "fog", cell: 8, fps: 6,
+      fog: {label: "Fog", kind: "fog", fps: 6,
         dark: {tones: ["#1b1718", "#2b2425", "#3a3132"]},
         light: {tones: ["#eae6e0", "#e2ddd6", "#d9d3cb"]}},
       plain: {label: "Plain", kind: "none"}
@@ -504,7 +507,7 @@ var QA_BG=(function(){
   var canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"),reduced=window.matchMedia("(prefers-reduced-motion: reduce)");
   canvas.id="bg-canvas";canvas.setAttribute("aria-hidden","true");document.body.insertBefore(canvas,document.body.firstChild);
   var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
-  var timer=0,cols=0,rows=0,cell=6,image=null,pixels=null,running=null,resizeTimer=0;
+  var timer=0,cols=0,rows=0,cell=QA_THEME.current().artPitch,image=null,pixels=null,running=null,resizeTimer=0;
   function bayer(x,y){return(BAYER[(y&3)*4+(x&3)]+0.5)/16}
   function pack(hex){var n=parseInt(hex.slice(1),16);return(255<<24|(n&255)<<16|(n>>8&255)<<8|n>>16)>>>0}
   function seeded(seed){return function(){seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -518,7 +521,7 @@ var QA_BG=(function(){
   function resize(){
     var bookPage=config().kind==="book";
     var viewWidth=document.documentElement.clientWidth||innerWidth;
-    cell=bookPage&&viewWidth<1100?3:config().cell||6;cols=Math.ceil(viewWidth/cell);
+    cell=QA_THEME.current().artPitch;cols=Math.ceil(viewWidth/cell);
     if(bookPage)canvas.style.height="0px";
     rows=Math.ceil((bookPage?Math.max(innerHeight,document.body.scrollHeight):innerHeight)/cell);
     canvas.width=cols;canvas.height=rows;canvas.style.width=viewWidth+"px";canvas.style.height=rows*cell+"px";
@@ -528,8 +531,8 @@ var QA_BG=(function(){
 
   /* ---- candles: many candles of varied size, each with a flickering flame and a wide dithered glow that swaps between pre-rendered frames at
      irregular moments; a static dithered wash along the bottom joins the glows into one warm ambient light ---- */
-  var FLAMES=[[".c.",".a.","aba","aba",".a."],["c..",".a.","aba","aba",".a."],["..c",".a.","aba","aba",".a."],[".c.","aa.","aba","aba",".a."],[".c.",".aa","aba","aba",".a."]];
-  var GLOW_RADII={2:[46,52,58],3:[62,70,78]},GLOW_PEAK=0.85;
+  var FLAME_SIZES={2:[8,13],3:[12,20]},FLAME_FRAMES=5;
+  var GLOW_RADII={2:[61,69,77],3:[83,93,104]},GLOW_PEAK=0.85;
   function candles(cfg,palette){
     var glowColors=palette.glow.map(pack),flameColors={a:pack(palette.flame[0]),b:pack(palette.flame[1]),c:pack(palette.flame[2])};
     function glowFrames(radii){
@@ -541,19 +544,32 @@ var QA_BG=(function(){
       });
     }
     var glowSets={2:glowFrames(GLOW_RADII[2]),3:glowFrames(GLOW_RADII[3])};
-    var flames=FLAMES.map(function(rowsOfFlame){return sprite(3,5,function(x,y){var key=rowsOfFlame[y].charAt(x);return flameColors[key]||0})});
+    // Each flame frame is drawn directly on the shared lattice, with a held, stepped lean and a small bright core.
+    var flames={};
+    Object.keys(FLAME_SIZES).forEach(function(size){
+      var width=FLAME_SIZES[size][0],height=FLAME_SIZES[size][1];
+      flames[size]=Array.from({length:FLAME_FRAMES},function(_,frame){return sprite(width,height,function(x,y){
+        var progress=(y+1)/height,lean=Math.round(Math.sin(frame*1.35+y*0.52)*(1-progress)*1.5);
+        var centre=(width-1)/2+lean,radius=Math.max(1,Math.round(width*(0.08+0.42*Math.sin(progress*Math.PI*0.9))));
+        var distance=Math.abs(x-centre);
+        if(distance>radius)return 0;
+        if(progress<0.16)return flameColors.c;
+        return distance<Math.max(1,radius*0.4)&&progress>0.23?flameColors.b:flameColors.a;
+      })});
+    });
     var washRows=Math.round(rows/3),wash=sprite(cols,washRows,function(x,y){
       var level=Math.floor((y/washRows)*1.6+(bayer(x,y)-0.5));
       return level<=0?0:glowColors[0];
     });
     var waxLight=pack(palette.wax[0]),waxDark=pack(palette.wax[1]);
     var list=cfg.candles.map(function(spec,index){
-      var width=spec.width,body=sprite(width,spec.height,function(x,y){
+      var width=Math.max(1,Math.round(spec.width/cell)),height=Math.max(1,Math.round(spec.height/cell));
+      var body=sprite(width,height,function(x,y){
         if(y===0&&x%2===0)return waxLight;
-        if(y>0&&y%7===3&&x===width-2)return waxLight;
+        if(y>0&&y%Math.round(42/cell)===3&&x===width-2)return waxLight;
         return x<width-Math.max(2,Math.round(width/3))?waxLight:waxDark;
       });
-      return{x:Math.round(cols*spec.x-width/2),width:width,height:spec.height,sink:spec.sink||0,scale:spec.flame||2,body:body,glow:1,flame:index%5,glowDue:0,flameDue:0};
+      return{x:Math.round(cols*spec.x-width/2),width:width,height:height,sink:Math.round((spec.sink||0)/cell),scale:spec.flame||2,body:body,glow:1,flame:index%FLAME_FRAMES,glowDue:0,flameDue:0};
     });
     function pick(count,not){var value=Math.floor(Math.random()*count);return value===not?(value+1)%count:value}
     function draw(){
@@ -562,18 +578,20 @@ var QA_BG=(function(){
       ctx.drawImage(wash,0,rows-washRows);
       list.forEach(function(candle){
         var frames=glowSets[candle.scale]||glowSets[2],radius=GLOW_RADII[candle.scale===3?3:2][candle.glow];
-        ctx.drawImage(frames[candle.glow],candle.x+(candle.width>>1)-radius,rows-candle.height+candle.sink-candle.scale*3-radius);
+        var flame=flames[candle.scale][candle.flame];
+        ctx.drawImage(frames[candle.glow],candle.x+(candle.width>>1)-radius,rows-candle.height+candle.sink-Math.round(flame.height*0.6)-radius);
       });
       list.forEach(function(candle){
         var top=rows-candle.height+candle.sink;
         ctx.drawImage(candle.body,candle.x,top);
-        ctx.drawImage(flames[candle.flame],candle.x+(candle.width>>1)-((candle.scale*3)>>1),top-candle.scale*5-1,candle.scale*3,candle.scale*5);
+        var flame=flames[candle.scale][candle.flame];
+        ctx.drawImage(flame,candle.x+(candle.width>>1)-(flame.width>>1),top-flame.height-1);
       });
     }
     function step(){
       var now=performance.now(),changed=false;
       list.forEach(function(candle){
-        if(now>=candle.flameDue){candle.flame=pick(FLAMES.length,candle.flame);candle.flameDue=now+60+Math.random()*260;changed=true}
+        if(now>=candle.flameDue){candle.flame=pick(FLAME_FRAMES,candle.flame);candle.flameDue=now+60+Math.random()*260;changed=true}
         if(now>=candle.glowDue){candle.glow=pick(3,candle.glow);candle.glowDue=now+200+Math.random()*1100;changed=true}
       });
       if(changed)draw();
@@ -587,11 +605,13 @@ var QA_BG=(function(){
   function book(cfg,palette){
     var next=seeded(cfg.seed||19),paper=palette.paper.map(pack),gutter=pack(palette.gutter),fox=pack(palette.fox),ink=pack(palette.ink);
     var edge=palette.edge.map(pack),desk=pack(palette.desk),underside=pack(palette.underside),shadow=pack(palette.shadow);
-    var x,y,k,margin=6,stack=5,singlePage=(document.documentElement.clientWidth||innerWidth)<1100,centre=singlePage?margin+stack:cols>>1,gutterWidth=singlePage?6:Math.min(13,cols>>2);
+    var x,y,k,singlePage=window.matchMedia("(max-width:1099px)").matches;
+    var margin=singlePage?4:7,stack=singlePage?3:8,centre=singlePage?margin+stack:cols>>1,gutterWidth=singlePage?4:Math.min(17,cols>>2);
+    var edgeSoft=singlePage?9:19,edgeDark=singlePage?3:7,inkStep=singlePage?3:7,lineInset=singlePage?7:13;
     function walk(length,limit){var out=[],value=Math.floor(next()*limit);for(var i=0;i<length;i++){if(next()<0.35)value=Math.max(0,Math.min(limit,value+(next()<0.5?-1:1)));out.push(value)}return out}
-    var left=walk(rows,3),right=walk(rows,3),top=walk(cols,3),bottom=walk(cols,3);
+    var edgeJitter=singlePage?2:4,left=walk(rows,edgeJitter),right=walk(rows,edgeJitter),top=walk(cols,edgeJitter),bottom=walk(cols,edgeJitter);
     function onPage(px,py){return px>=margin+stack+left[py]&&px<cols-margin-stack-right[py]&&py>=margin+top[px]&&py<rows-margin-bottom[px]}
-    var fold=Math.min(18,rows>>3),cornerX=cols-margin-stack-2,cornerY=rows-margin-2;
+    var fold=Math.min(singlePage?12:24,rows>>3),cornerX=cols-margin-stack-2,cornerY=rows-margin-2;
     for(y=0;y<rows;y++)for(x=0;x<cols;x++){
       var color=desk;
       if(onPage(x,y)){
@@ -601,8 +621,8 @@ var QA_BG=(function(){
         if(level>=3)color=gutter;
         else{
           var tone=Math.max(0,level);
-          if(toEdge<14&&bayer(x,y)*14>toEdge)tone=Math.max(tone,1);
-          if(toEdge<5&&bayer(x+2,y+1)*5>toEdge)tone=2;
+          if(toEdge<edgeSoft&&bayer(x,y)*edgeSoft>toEdge)tone=Math.max(tone,1);
+          if(toEdge<edgeDark&&bayer(x+2,y+1)*edgeDark>toEdge)tone=2;
           if(tone===0&&next()<0.04)tone=1;
           color=paper[Math.min(2,tone)];
         }
@@ -618,20 +638,21 @@ var QA_BG=(function(){
     for(k=0;k<46;k++){
       var side=next()<0.5?-1:1,spread=Math.max(0,cols/2-gutterWidth-margin-stack-4);
       var spotX=singlePage?Math.round(margin+stack+5+next()*Math.max(0,cols-2*(margin+stack+5))):Math.round(centre+side*(gutterWidth+next()*spread));
-      var spotY=Math.round(margin+4+next()*Math.max(0,rows-2*margin-8)),radius=1.5+next()*3.5;
-      for(var j=-6;j<=6;j++)for(var i=-6;i<=6;i++){
+      var spotY=Math.round(margin+4+next()*Math.max(0,rows-2*margin-8)),radius=(1.5+next()*3.5)*(singlePage?0.67:1.33);
+      var reach=singlePage?5:9;
+      for(var j=-reach;j<=reach;j++)for(var i=-reach;i<=reach;i++){
         var fall=1-Math.hypot(i,j)/radius;
         if(fall>0&&onPage(spotX+i,spotY+j)&&fall>bayer(spotX+i,spotY+j)*0.9)put(spotX+i,spotY+j,fox);
       }
     }
-    for(y=margin+12;y<rows-margin-10;y+=5){
-      for(x=margin+stack+10;x<cols-margin-stack-10;x++){
+    for(y=margin+lineInset;y<rows-margin-lineInset;y+=inkStep){
+      for(x=margin+stack+lineInset;x<cols-margin-stack-lineInset;x++){
         if((!singlePage&&Math.abs(x-centre)<gutterWidth*0.5)||!onPage(x,y))continue;
         put(x,y,ink);
       }
-      var cursor=margin+stack+12;
-      while(cursor<cols-margin-stack-12){
-        var run=2+Math.floor(next()*6);
+      var cursor=margin+stack+lineInset;
+      while(cursor<cols-margin-stack-lineInset){
+        var run=singlePage?1+Math.floor(next()*5):3+Math.floor(next()*8);
         if((singlePage||Math.abs(cursor-centre)>gutterWidth*0.6)&&next()<0.6)for(var d=0;d<run;d++)put(cursor+d,y-1,ink);
         cursor+=run+1+Math.floor(next()*3);
       }
@@ -663,7 +684,7 @@ var QA_BG=(function(){
       for(var y=0;y<rows;y++){
         var lift=0.8+0.2*y/rows;
         for(var x=0;x<cols;x++){
-          var n=(0.6*noise(x*0.06+t*0.05,y*0.085)+0.4*noise(x*0.13-t*0.07+31,y*0.17+t*0.02))*lift;
+          var n=(0.6*noise(x*cell*0.0075+t*0.05,y*cell*0.010625)+0.4*noise(x*cell*0.01625-t*0.07+31,y*cell*0.02125+t*0.02))*lift;
           var level=Math.floor((n-0.3)*5+(bayer(x,y)-0.5));
           pixels[y*cols+x]=level<=0?0:tones[Math.min(2,level-1)];
         }
@@ -1291,7 +1312,7 @@ var QA_BRUSH=(function(){
 
   /* ---------- halftone grid engine (bottom eye) ---------- */
   var canvas=document.getElementById("coin"),box=canvas.parentNode,ctx=canvas.getContext("2d");
-  var W=200,H=230,PITCH=4.5,SIZE=200,RES=512,UNIT=RES/64,SCALE=SIZE/64,CENTER_Y=92,FPS=12,LIGHT_FPS=24;
+  var W=200,H=230,PITCH=QA_THEME.current().artPitch,SIZE=200,RES=512,UNIT=RES/64,SCALE=SIZE/64,CENTER_Y=92,FPS=12,LIGHT_FPS=24;
   var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
   var cols=Math.floor(W/PITCH)+1,rows=Math.floor(H/PITCH)+1,count=cols*rows;
   var offsetX=(W-(cols-1)*PITCH)/2,offsetY=(H-(rows-1)*PITCH)/2;
