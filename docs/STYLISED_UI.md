@@ -73,6 +73,10 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 
 ## Character and material extension
 
+A character can own the wordmark underline with `stage.wordmarkFloor`. The shared layout measures
+the wordmark on layout changes and leaves room beneath it for the animated floor, replacing the
+theme's brushstroke. Keep the art's size and centre independent of that extra canvas space.
+
 A character renderer owns its face geometry, status expressions, and motion schedule. It draws into
 the shared halftone grid. A theme selects reusable effects in `characterEffects`, keyed by character
 id. `CHARACTER_EFFECTS` holds small `init(engine, state)` and `frame(engine, state, time)` modules.

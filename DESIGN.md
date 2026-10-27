@@ -43,6 +43,14 @@ development into a game or a task to optimize. Leave room for the owner's taste 
 
 Radio places the same character portrait beside a plain, one-sentence status line. The backend card sits alongside on wide screens, and the session cards remain below with their existing controls. Each theme gives the message plate its own material; Horror connects it to the portrait with a brass speaking tube.
 
+The Eye owns its wordmark underline: drops land and splash on the animation's floor beneath
+“Overseer”, replacing the separate brushstroke. This belongs to the character, across themes.
+
+After a machine restart, a quiet inline panel offers **Resume sessions** and **Start fresh** for
+saved sessions that are fully stopped. It previews the branches and apps, preserves keyboard
+selection through polling, and uses the existing action output for progress. It never starts
+anything on load. See [session recovery](docs/SESSION_RECOVERY.md) for the state and safety contract.
+
 Book and Console were tried and retired (the pixel-plate look was overboard, and the book spread was too wide); their notes and other scene ideas live in [the scene notebook](docs/SCENE_IDEAS.md).
 
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is

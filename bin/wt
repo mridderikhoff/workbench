@@ -940,6 +940,26 @@ serve_start_locked() {
   state_dir=$(serve_state_dir)
   branch="$1"; shift
   path=$(path_for_branch "$branch") || { echo "serve      no worktree on $branch" >&2; return 1; }
+  if [ -n "$pin" ]; then
+    [ "$pin" != "$offset" ] || { echo "serve      slot $pin is the QA tree slot" >&2; return 1; }
+    file="$state_dir/slot-$pin"
+    serve_state_load "$file" || { echo "serve      slot $pin record changed or missing" >&2; return 1; }
+    [ "$SERVE_BRANCH" = "$branch" ] || { echo "serve      slot $pin branch changed" >&2; return 1; }
+    [ "$path" = "$SERVE_PATH" ] || { echo "serve      slot $pin worktree path changed" >&2; return 1; }
+    for slot in {2..9}; do
+      [ "$slot" = "$pin" ] && continue
+      file="$state_dir/slot-$slot"
+      if ! serve_state_load "$file"; then
+        [ ! -f "$file" ] || { echo "serve      slot $slot record unreadable" >&2; return 1; }
+        continue
+      fi
+      if [ "$SERVE_BRANCH" = "$branch" ]; then
+        echo "serve      $branch also saved in slot $slot" >&2; return 1
+      fi
+    done
+    serve_state_load "$state_dir/slot-$pin" || { echo "serve      slot $pin record changed or missing" >&2; return 1; }
+    free="$pin" existing=1
+  fi
   if [ ! -d "$path/apps/ui/node_modules" ]; then
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
       echo "dry-run    install frontend dependencies in $path/apps/ui"
@@ -955,24 +975,7 @@ serve_start_locked() {
     case "$seen" in *" $app "*) echo "serve      duplicate app: $app" >&2; return 1 ;; esac
     seen="$seen$app "; chosen+=("$app")
   done
-  if [ -n "$pin" ]; then
-    file="$state_dir/slot-$pin"
-    serve_state_load "$file" && [ "$SERVE_BRANCH" = "$branch" ] || return 1
-    [ "$path" = "$SERVE_PATH" ] || return 1
-    for slot in {2..9}; do
-      [ "$slot" = "$pin" ] && continue
-      file="$state_dir/slot-$slot"
-      if ! serve_state_load "$file"; then
-        [ ! -f "$file" ] || return 1
-        continue
-      fi
-      if [ "$SERVE_BRANCH" = "$branch" ]; then
-        echo "serve      $branch also saved in slot $slot" >&2; return 1
-      fi
-    done
-    serve_state_load "$state_dir/slot-$pin" || return 1
-    free="$pin" existing=1
-  else
+  if [ -z "$pin" ]; then
     for slot in {2..9}; do
       file="$state_dir/slot-$slot"
       serve_state_load "$file" || continue
@@ -1068,12 +1071,12 @@ serve_start_locked() {
 
 recover_token_check() {
   local token slot
-  [ $# -gt 0 ] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+  [ $# -gt 0 ] || { echo 'usage: ~/.claude/bin/wt recover resume|forget <slot:16hex>…' >&2; return 2; }
   REC_TOKENS=()
   for token in "$@"; do
-    [[ "$token" =~ ^[2-9]:[0-9a-f]{16}$ ]] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+    [[ "$token" =~ ^[2-9]:[0-9a-f]{16}$ ]] || { echo 'usage: ~/.claude/bin/wt recover resume|forget <slot:16hex>…' >&2; return 2; }
     slot=${token%%:*}
-    [ -z "${REC_TOKENS[$slot]:-}" ] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+    [ -z "${REC_TOKENS[$slot]:-}" ] || { echo 'usage: ~/.claude/bin/wt recover resume|forget <slot:16hex>…' >&2; return 2; }
     REC_TOKENS[$slot]="$token"
   done
 }
@@ -1140,7 +1143,7 @@ cmd_recover() {
   local -a tokens=()
   case "$action" in
     ''|--json)
-      [ $# -le 1 ] || { echo 'usage: wt recover [--json]' >&2; return 2; }
+      [ $# -le 1 ] || { echo 'usage: ~/.claude/bin/wt recover [--json]' >&2; return 2; }
       if [ "$action" = --json ]; then
         WT_RECOVERY_SCAN="$(recover_scan)" WT_RECOVERY_BOOT_ID="$(wt_boot_id)" WT_RECOVERY_BOOT_TIME="$(wt_boot_time)" WT_RECOVERY_STATE_DIR="$(serve_state_dir)" python3 - <<'PY_RECOVER'
 import datetime, json, os, pathlib
@@ -1167,6 +1170,8 @@ PY_RECOVER
           serve_state_load "$(serve_state_dir)/slot-$slot" || continue
           if [ "$rc" = 1 ]; then reason=resumable; fi
           echo "saved      slot $slot $SERVE_BRANCH ($SERVE_APPS) $fp $reason"
+          [ "$rc" != 1 ] || echo "resume     ~/.claude/bin/wt recover resume $slot:$fp"
+          echo "forget     ~/.claude/bin/wt recover forget $slot:$fp"
         done <<<"$result"
       fi
       ;;
@@ -1184,7 +1189,7 @@ PY_RECOVER
       for token in "${tokens[@]}"; do
         slot=${token%%:*}; fp=${token#*:}
         if [ "$backend_rc" != 0 ]; then
-          if recover_classify "$slot" && [ "$REC_FP" = "$fp" ]; then
+          if recover_classify "$slot" && [ "$REC_OK" = 1 ] && [ "$REC_FP" = "$fp" ]; then
             case " $SERVE_APPS " in *' ri '*|*' strategy '*) result_lines+="result     slot $slot $SERVE_BRANCH failed: backend ensure failed (exit $backend_rc)"$'\n'; ((failed+=1)); continue ;; esac
           fi
         fi
@@ -1199,7 +1204,7 @@ PY_RECOVER
       echo "recover    $resumed resumed, $failed failed, $skipped skipped"
       [ "$failed" = 0 ] && [ "$skipped" = 0 ]
       ;;
-    *) echo 'usage: wt recover [--json]|resume|forget <slot:16hex>…' >&2; return 2 ;;
+    *) echo 'usage: ~/.claude/bin/wt recover [--json]|resume|forget <slot:16hex>…' >&2; return 2 ;;
   esac
 }
 cmd_serve() {
@@ -1656,7 +1661,7 @@ for slot in D["slots"]:
   print("app        {} {} {} HTTP {}".format(app["app"],app["url"],app["unitState"],"ready" if app["httpReady"] else "not ready"))
  if slot.get("recovery"):
   reason=slot["recovery"].get("reason")
-  print("recover    slot {} saved before the restart; resume or start fresh in Overseer{}".format(slot["slot"]," ("+reason+")" if reason else ""))'
+  print("recover    slot {} saved before the restart; preview: ~/.claude/bin/wt recover{}".format(slot["slot"]," ("+reason+")" if reason else ""))'
     return
   fi
   qa=$(qa_tree) || qa=
@@ -2066,9 +2071,11 @@ wt qa [branch]                        point QA tree at a commit (no branch: stat
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; register named sign-in URLs
 wt serve --stop <branch>              stop its frontend units
-wt recover [--json]                   list stopped sessions saved before this restart
-wt recover resume <slot:fp>…          restart selected saved sessions
-wt recover forget <slot:fp>…          forget stopped saved sessions; keep worktrees
+~/.claude/bin/wt recover [--json]     list stopped sessions saved before this restart
+~/.claude/bin/wt recover resume <slot:fp>…
+                                      restart selected saved sessions
+~/.claude/bin/wt recover forget <slot:fp>…
+                                      forget stopped saved sessions; keep worktrees
 wt logs <branch> [app] [-n N] [-f]    frontend journals (default: 80 lines)
 wt backend [status|ensure|heal|logs|update [--reset|--force]|tab]
                                       shared QA backend controls

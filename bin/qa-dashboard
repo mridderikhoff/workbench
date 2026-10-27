@@ -5,6 +5,7 @@ import collections
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -18,6 +19,8 @@ TIMEOUT_SECONDS = 15
 ACTION_TIMEOUT_SECONDS = 15 * 60
 ACTION_TAIL_LINES = 40
 BACKEND_ACTIONS = ("update", "heal", "ensure")
+RECOVERY_ACTIONS = ("resume", "forget")
+RECOVERY_FINGERPRINT = re.compile(r"[0-9a-f]{16}")
 
 HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -167,10 +170,12 @@ html[data-deckle="1"] .desk-obj .fold{display:block}
 .stage{display:contents}
 .stage-fx{display:none}
 .eye-card canvas{position:relative;display:block;width:var(--stage-w,200px);height:var(--stage-h,230px);margin:0 auto calc(var(--stage-overlap,22px) * -1);flex:none}
-.masthead-title{position:relative;margin:0;font:inherit}
+.masthead-title{position:relative;margin:0 0 var(--stage-room,0px);font:inherit}
 .mark{position:relative;display:inline-block;padding:0 4px 14px;font:700 31px/1.1 var(--serif);letter-spacing:var(--word-spacing,.07em);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);cursor:pointer}
 .mark::before{content:"";position:absolute;left:-26px;right:-26px;bottom:-16px;height:56px;z-index:-1;pointer-events:none;background:var(--desk-glow,none) center/100% 100% no-repeat}
 .mark .brush{left:0;top:calc(100% - 13px)}
+/* A character that owns the floor under the wordmark (html[data-wordmark-floor]) is the only underline: no theme glow tube either. */
+html[data-wordmark-floor] .mark::before{display:none}
 .masthead-tools{display:flex;flex-wrap:nowrap;gap:6px 14px;justify-content:space-between;align-items:center;width:100%;margin-top:12px;padding:9px 0 0;border-top:1px dashed var(--edge-lo2)}
 #updated{font-size:13px;color:var(--muted)}
 #settings-open{flex:none;width:34px;height:34px;border-radius:5px;color:var(--muted);background:var(--inset);box-shadow:var(--sunk)}
@@ -391,11 +396,28 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .settings .segmented input:focus-visible{box-shadow:none}
 .settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:4px;padding-top:18px;border-top:1px dashed var(--edge-lo2)}
 .settings .done,.confirm-actions button{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:96px;border:0;border-radius:5px;padding:10px 22px 9px;font:700 15px/1 var(--serif);letter-spacing:.08em;font-variant:var(--head-variant);text-transform:var(--head-case);background:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge),0 6px 7px -2px var(--contact);overflow:visible;transition:transform var(--dur-fast) var(--ease-out)}
-.confirm-actions #stop-cancel{background:var(--inset);color:var(--text);box-shadow:inset 0 1px 0 var(--edge-hi),0 4px 0 var(--edge-lo2),0 6px 7px -2px var(--contact)}
+.confirm-actions :is(#stop-cancel,#fresh-cancel){background:var(--inset);color:var(--text);box-shadow:inset 0 1px 0 var(--edge-hi),0 4px 0 var(--edge-lo2),0 6px 7px -2px var(--contact)}
 .confirm-actions .danger{background:var(--danger,var(--seep));color:var(--danger-ink,var(--seep-ink));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 0 var(--brush-deep),0 6px 7px -2px var(--contact)}
 .settings .done:hover:not(:disabled),.confirm-actions button:hover:not(:disabled){transform:translateY(-1px)}
 .settings .done:active,.confirm-actions button:active{transform:translateY(4px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge),0 1px 2px var(--contact)}
 .settings .done:focus-visible,.confirm-actions button:focus-visible{box-shadow:var(--ring),inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge)}
+.recovery{margin:14px 0 22px;padding:16px 18px 14px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk)}
+.recovery[hidden]{display:none}
+.recovery h2{margin:0 0 4px;font:700 20px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss)}
+.recovery p{margin:0}
+.recovery-list{min-width:0;margin:12px 0 0;padding:0;border:0}
+.recovery-list legend{padding:0;margin-bottom:6px;font-weight:600;font-size:14px;color:var(--muted)}
+.recovery-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px dashed var(--edge-lo2)}
+.recovery-row:first-child{border-top:0}
+.recovery-row label,.recovery-row .recovery-plain{display:grid;gap:2px;min-width:0;flex:1}
+.recovery-row input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
+.recovery-row .recovery-pad{flex:none;width:20px}
+.recovery-row .branch{font-weight:600;overflow-wrap:anywhere}
+.recovery-row .small{color:var(--muted)}
+.recovery-row .why{font-size:14px;color:var(--warn)}
+.recovery-actions{justify-content:flex-start;margin-top:10px}
+.recovery-actions button:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}
+.recovery-status{margin-top:10px;display:flex;align-items:center;gap:6px;font-family:var(--sans,inherit)}
 .confirm-dialog{max-width:440px}
 .confirm-dialog form{display:grid;gap:16px}
 .confirm-dialog h2{font-size:24px}
@@ -440,6 +462,8 @@ html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible)::after
 .page::before{inset:12px 4px 24px}
 .side{position:static;align-items:stretch}
 main{grid-column:1;grid-row:2;padding:22px 18px 20px}
+/* Stacked, the Sessions paper keeps its offset but not its tilt: a tilted tall sheet swings its far corner past the page edge and scrolls sideways. */
+main::before{transform:none}
 .eye-card{align-self:center;width:min(330px,calc(100% - 12px))}
 .slot-card .card-drip{left:-12px}
 }
@@ -1267,7 +1291,7 @@ THEMES.terminal = (function () {
         T + ' .slot-card .tools{gap:8px}',
         T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
         T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
-        T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
+        T + ' .confirm-actions :is(#stop-cancel,#fresh-cancel){background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
         T + ' .settings .segmented label{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em}',
@@ -1305,6 +1329,12 @@ Characters: Eye (the halftone eye) and Blip (the default ASCII face).
   name        label in the Overseer picker
   stage       {width, height}: the canvas in CSS px; pitch: the halftone dot pitch in px; overlap: px the wordmark tucks under
               the canvas; size and centerY map logoSource's 64-unit box onto the canvas (size px wide, unit 32 at y = centerY)
+              wordmarkFloor: true makes the character own the line under the wordmark (html[data-wordmark-floor]): the theme's brush underline
+              and its glow tube (.mark::before) are skipped in every theme, so the character's line is the only one, and
+              the character's own floor (Eye: the pool its drips land in) is laid under the text instead, as wide as the wordmark
+              (measured once per theme, font, scene or resize, never per frame). Then height reaches below the text, overlap is
+              how far the wordmark tucks under the canvas, and room is a first guess for the space the canvas hangs below the
+              wordmark (--stage-room, refined by the measurement). Blip leaves it out.
   logoSource  optional SVG string, 64x64 viewBox, transparent background; the halftone grid samples its opaque pixels (alpha[])
               and lights them with shade(). A character drawn entirely by its renderer (Blip) leaves it out.
   anatomy     optional {iris:[x, y, r], pupil:r, tips:[[x, tipY, topY], ...]} in logo units; needed by the built-in eye modes
@@ -1337,7 +1367,8 @@ var CHARACTERS = {
   // Eye: the halftone eye. It follows the cursor, blinks, and drips onto the wordmark.
   eye: {
     name: "Eye",
-    stage: {width: 200, height: 230, pitch: 4.5, size: 200, centerY: 92, overlap: 22},
+    // Keep the wordmark where it was (canvas bottom 230 - 22); the floor sits in its underline padding, below the text.
+    stage: {width: 200, height: 253, pitch: 4.5, size: 200, centerY: 92, overlap: 45, wordmarkFloor: true, room: 0},
     logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/><circle cx='32' cy='29' r='7.1' stroke-width='5.8'/></g><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
     anatomy: {iris: [32, 29, 10], pupil: 4.2, tips: [[20.4, 56.9, 44], [32.4, 63.6, 47], [47.7, 53.3, 42]]},
     modes: ["full", "subtle", "static"]
@@ -1587,9 +1618,11 @@ var QA_THEME = (function () {
   function applyCharacter() {
     var id = characterId(), stage = CHARACTERS[id].stage || {}, root = document.documentElement;
     root.setAttribute("data-character", id);
+    if (stage.wordmarkFloor) root.setAttribute("data-wordmark-floor", ""); else root.removeAttribute("data-wordmark-floor");
     root.style.setProperty("--stage-w", (stage.width || 200) + "px");
     root.style.setProperty("--stage-h", (stage.height || 230) + "px");
     root.style.setProperty("--stage-overlap", (stage.overlap || 0) + "px");
+    root.style.setProperty("--stage-room", (stage.wordmarkFloor ? stage.room || 0 : 0) + "px");
   }
   // The Logo animation pick is read here too, so CSS-driven character effects (the CRT's band and flicker) start right.
   (function () {
@@ -2074,7 +2107,10 @@ var QA_DESK=(function(){
 <div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div>
 <section id="radio" class="radio" aria-label="Radio" tabindex="-1"><div class="radio-obj" aria-hidden="true"><i class="plate"></i><i class="tube"></i><i class="fit a"></i><i class="fit b"></i><i class="static"></i></div><p class="radio-tag"><span class="radio-glyph"></span><span class="radio-subject">Status</span></p><p class="radio-line" aria-hidden="true"></p><p class="radio-said sr-only" role="status" aria-atomic="true"></p><div class="radio-foot"><span class="radio-meter" role="img" hidden></span><span class="radio-count" hidden></span><span class="radio-nav" hidden><button type="button" class="icon prev" data-radio="prev" aria-label="Previous message" title="Previous message"></button><button type="button" class="icon next" data-radio="next" aria-label="Next message" title="Next message"></button></span></div></section>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
-<main><h2 class="sessions-title">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
+<main><section id="recovery" class="recovery" aria-labelledby="recovery-title" hidden><h2 id="recovery-title">Saved sessions are stopped</h2><p class="recovery-note">These sessions were saved before the last restart and are not running now.</p>
+<fieldset class="recovery-list"><legend>Resume these</legend><div id="recovery-rows"></div></fieldset>
+<div class="confirm-actions recovery-actions"><button type="button" id="recovery-resume" disabled>Resume sessions</button><button type="button" id="recovery-fresh">Start fresh</button></div><p id="recovery-status" class="recovery-status small" hidden></p></section>
+<h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
@@ -2089,6 +2125,10 @@ var QA_DESK=(function(){
 <dialog id="stop-confirm" class="settings confirm-dialog" aria-labelledby="stop-title" aria-describedby="stop-message"><form method="dialog">
 <h2 id="stop-title">Stop frontends</h2><p id="stop-message"></p>
 <div class="confirm-actions"><button type="button" id="stop-cancel">Cancel</button><button type="submit" class="danger">Stop</button></div>
+</form></dialog>
+<dialog id="fresh-confirm" class="settings confirm-dialog" aria-labelledby="fresh-title" aria-describedby="fresh-message"><form method="dialog">
+<h2 id="fresh-title">Start fresh</h2><p id="fresh-message"></p>
+<div class="confirm-actions"><button type="button" id="fresh-cancel">Cancel</button><button type="submit" class="danger">Start fresh</button></div>
 </form></dialog>
 <script>
 "use strict";
@@ -2137,7 +2177,8 @@ function clock(iso){return iso?new Date(iso).toLocaleTimeString():""}
 function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop"};
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",resume:"Resume sessions",forget:"Start fresh"};
+function actionSubject(a){return a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
   var label=busy?labels[1]:(idle||labels[0]);
@@ -2150,16 +2191,19 @@ function updateButton(relation){
   return'<button type="button" class="update-btn" data-action="update" title="'+esc(title)+'" aria-label="'+esc(busy?"Updating the backend to develop":"Update to develop, "+badge)+'"'+(isRunning()?" disabled":"")+'>'+
     '<span class="update-label">'+(busy?"Updating&hellip;":"Update")+'</span><span class="behind-badge">'+esc(badge)+'</span></button>';
 }
+function actionLine(a){
+  var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:"");
+  if(a.state==="running")return{text:verb+" running since "+clock(a.startedAt),tone:"warn"};
+  if(a.state==="ok")return{text:verb+" finished at "+clock(a.endedAt),tone:"ok"};
+  return{text:verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt),tone:"down"};
+}
 function renderActionResult(){
   var a=currentAction();
   if(!a&&!actionError)return"";
   var h='<div class="action-result" aria-live="polite">';
   if(a){
-    var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:""),text,t;
-    if(a.state==="running"){text=verb+" running since "+clock(a.startedAt);t="warn"}
-    else if(a.state==="ok"){text=verb+" finished at "+clock(a.endedAt);t="ok"}
-    else{text=verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt);t="down"}
-    h+='<span>'+dot(t)+esc(text)+'</span>';
+    var line=actionLine(a);
+    h+='<span>'+dot(line.tone)+esc(line.text)+'</span>';
     if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary>show output</summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
@@ -2172,7 +2216,7 @@ function backendHealthy(b){
 function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===healthy?!!detailsChoice.open:!healthy}
 // Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
 function renderBackend(b){
-  if(!b)return'<div class="muted">No backend data.</div>';
+  if(!b)return'<div class="muted">No backend data.</div>'+renderActionResult();
   var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
   var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
@@ -2304,7 +2348,7 @@ function renderSlot(s){
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno" style="--stamp-tilt:'+stampTilt(s)+'deg">slot '+esc(s.slot)+'</span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
-      ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
+      ((s.apps||[]).length&&!s.recovery?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
@@ -2343,19 +2387,21 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
     if(backendTone(backend)==="down"&&names.length){var down=serviceNames("down");add("backend:down","down","Backend","Backend is down."+(down.length?" Not running: "+listed(down)+".":""))}
     ["attn","broken"].forEach(function(t){var group=serviceNames(t);if(group.length)add("backend:"+t,t,"Backend",t==="attn"?"Backend needs attention: "+listed(group)+".":"Backend services running but not ready: "+listed(group)+".")});
   }
-  if(action&&action.state!=="running"&&action.state!=="ok")add("action:failed:"+action.action+":"+(action.target||""),"down",action.target?"Session":"Backend",(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
-  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
+  if(action&&action.state!=="running"&&action.state!=="ok")add("action:failed:"+action.action+":"+(action.target||""),"down",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
+  var saved=slots.filter(function(slot){return slot.recovery}),live=slots.filter(function(slot){return!slot.recovery});
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
-  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
-  if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"warn",action.target?"Session":"Backend",(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
+  if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"warn",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
+  if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Start fresh.");
   if(backend){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
-  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
   if(backend&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1];add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. Update is on the Backend card.":"Backend: "+backend.relation+".")}
   if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
   else if(backend&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
     if(!out.some(function(message){return message.key.indexOf("backend:")===0}))add("backend:unknown","unknown","Backend",names.length?"Backend readiness is unknown.":"No backend service data.");
   }
-  var unknownApps=slots.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
+  var unknownApps=live.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
   if(unknownApps)add("apps:unknown","unknown","Session","Some app readiness is unknown.");
   if(!out.length&&snapshot&&backend&&names.length&&backendHealthy(backend))add(slots.length?"ok":"ok:empty","ok","Status",slots.length?"Backend is ready. "+slots.length+" session"+(slots.length===1?"":"s")+" running, all apps ready.":"Backend is ready. No sessions running.");
   return out;
@@ -2452,6 +2498,7 @@ function render(){
   var cards=slots.length?sortedSlots(slots).map(renderSlot):
     [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
   var changedCards=reconcileCards(slotsBox,cards);
+  renderRecovery();
   if(backendChanged)buttonFx(backendBox);
   changedCards.forEach(buttonFx);
   settleUnderPointer();
@@ -2486,7 +2533,7 @@ function copyText(text,button){
   area.remove();done(ok);
 }
 function runAction(name,branch){
-  actionError=null;
+  actionError=null;recoveryRequest=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
   if(branch&&data){data.actions={action:"stop",target:branch,state:"running",output:[]};render()}
@@ -2526,6 +2573,111 @@ stopDialog.addEventListener("close",function(){
   if(!opener)opener=document.getElementById("settings-open");
   if(opener)opener.focus();
   stopOpener=null;
+});
+var recoveryRequest=false;
+// Saved sessions from before the restart. wt decides which slots qualify (slots[].recovery); the page only lists them.
+var recoveryBox=document.getElementById("recovery"),recoveryRows=document.getElementById("recovery-rows"),recoveryPicks={};
+var freshDialog=document.getElementById("fresh-confirm"),freshPairs=[],freshOpener=null,freshSubmitting=false;
+function recoveryCandidates(){return((data&&data.slots)||[]).filter(function(s){return s.recovery&&s.recovery.fingerprint}).sort(function(a,b){return a.slot-b.slot})}
+function recoveryPairs(list){return list.map(function(s){return{slot:s.slot,fingerprint:s.recovery.fingerprint}})}
+function samePairs(a,b){return a.length===b.length&&a.every(function(pair,i){return pair.slot===b[i].slot&&pair.fingerprint===b[i].fingerprint})}
+function recoveryRow(s){
+  var apps=(s.apps||[]).map(function(a){return APP_NAMES[a.app]||a.app}).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
+    body='<span class="branch">'+esc(s.branch||"(no branch)")+'</span><span class="small">'+esc(apps)+'</span>'+(leaf?'<span class="small" title="'+esc(s.worktree)+'">'+esc(leaf)+'</span>':"");
+  if(!s.recovery.resumable)return'<div class="recovery-row"><span class="recovery-pad"></span><div class="recovery-plain">'+body+'<span class="why">'+dot("warn")+" Can&rsquo;t resume: "+esc(s.recovery.reason||"not available")+'. Start fresh forgets it.</span></div></div>';
+  var pick=recoveryPicks[s.slot];
+  return'<div class="recovery-row"><input type="checkbox" id="recovery-pick-'+s.slot+'" data-slot="'+s.slot+'"'+(pick&&!pick.checked?"":" checked")+'><label for="recovery-pick-'+s.slot+'">'+body+'</label></div>';
+}
+function recoveryFocusKey(){
+  var el=document.activeElement;
+  if(!el||el===document.body||!recoveryBox.contains(el))return null;
+  return el.id==="recovery-resume"||el.id==="recovery-fresh"?el.id:el.dataset&&el.dataset.slot?"pick:"+el.dataset.slot:"other";
+}
+function recoveryFocusTarget(key){
+  var wanted=key&&key.indexOf("pick:")===0?document.getElementById("recovery-pick-"+key.slice(5)):key&&key.indexOf("recovery-")===0?document.getElementById(key):null;
+  if(wanted&&!wanted.disabled&&!recoveryBox.hidden)return wanted;
+  var first=!recoveryBox.hidden&&recoveryRows.querySelector("input:not(:disabled)");
+  if(first)return first;
+  var fresh=document.getElementById("recovery-fresh");
+  if(!recoveryBox.hidden&&!fresh.disabled)return fresh;
+  return document.getElementById("sessions-title");
+}
+function renderRecovery(){
+  var list=recoveryCandidates(),focusKey=recoveryFocusKey();
+  // A pick lasts while its record's fingerprint is unchanged; a changed or new record starts checked again.
+  var kept={};
+  list.forEach(function(s){var old=recoveryPicks[s.slot];kept[s.slot]=old&&old.fingerprint===s.recovery.fingerprint?old:{fingerprint:s.recovery.fingerprint,checked:true}});
+  recoveryPicks=kept;
+  recoveryBox.hidden=!list.length;
+  // The rows are rebuilt only when what they show changes, so polling never costs a checkbox its keyboard focus.
+  var rowsHtml=list.map(recoveryRow).join("");
+  if(recoveryRows.__html!==rowsHtml){recoveryRows.__html=rowsHtml;recoveryRows.innerHTML=rowsHtml}
+  updateRecoveryButtons(list);
+  if(freshDialog.open&&!samePairs(freshPairs,recoveryPairs(list))){actionError="Saved sessions changed. Check the list and try again.";recoveryRequest=true;freshDialog.close()}
+  var status=document.getElementById("recovery-status"),a=currentAction(),line="",tone="";
+  if(a&&(a.action==="resume"||a.action==="forget")){var l=actionLine(a);line=l.text+". Details are on the Backend card.";tone=l.tone}
+  if(recoveryRequest&&actionError){line=actionError;tone="down"}
+  status.hidden=!line;setHtml(status,line?dot(tone)+esc(line):"");
+  if(focusKey){
+    var cur=document.activeElement;
+    if(!cur||!recoveryBox.contains(cur)||cur.disabled||recoveryBox.hidden){var target=recoveryFocusTarget(focusKey);if(target)target.focus()}
+  }
+}
+function checkedRecovery(list){return list.filter(function(s){return s.recovery.resumable&&recoveryPicks[s.slot]&&recoveryPicks[s.slot].checked})}
+function updateRecoveryButtons(list){
+  var resume=document.getElementById("recovery-resume"),fresh=document.getElementById("recovery-fresh"),n=checkedRecovery(list).length;
+  resume.disabled=isRunning()||!n;fresh.disabled=isRunning()||!list.length;
+  resume.setAttribute("aria-label",n?"Resume "+n+" session"+(n===1?"":"s"):"Resume sessions");
+}
+function runRecovery(action,pairs){
+  actionError=null;recoveryRequest=true;
+  var before=data&&data.actions;
+  if(data){data.actions={action:action,target:null,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
+  fetch("/api/recovery/"+action,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:JSON.stringify({slots:pairs}),cache:"no-store"}).then(function(r){
+    return r.json().then(function(j){
+      if(data)data.actions=j.actions||before;
+      if(!r.ok)actionError=j.error||("HTTP "+r.status);
+      render();schedule(r.ok?1000:0);
+    });
+  }).catch(function(e){if(data)data.actions=before;actionError=e.message;render();schedule(1000)});
+}
+recoveryRows.addEventListener("change",function(e){
+  var box=e.target;if(!box.dataset||!box.dataset.slot)return;
+  var pick=recoveryPicks[box.dataset.slot];if(pick)pick.checked=box.checked;
+  updateRecoveryButtons(recoveryCandidates());
+});
+document.getElementById("recovery-resume").addEventListener("click",function(){
+  if(isRunning())return;
+  var pairs=recoveryPairs(checkedRecovery(recoveryCandidates()));
+  if(pairs.length)runRecovery("resume",pairs);
+});
+document.getElementById("recovery-fresh").addEventListener("click",function(e){
+  var list=recoveryCandidates();
+  if(!freshDialog.showModal||freshDialog.open||isRunning()||!list.length)return;
+  freshPairs=recoveryPairs(list);freshOpener=e.currentTarget;freshSubmitting=false;
+  document.getElementById("fresh-message").textContent="Forget "+list.length+" saved session"+(list.length===1?"":"s")+"? Their branches and worktrees stay. Running sessions are not affected.";
+  freshDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
+  document.getElementById("fresh-cancel").focus();
+});
+freshDialog.querySelector("form").addEventListener("submit",function(e){
+  e.preventDefault();
+  if(freshSubmitting||!freshDialog.open)return;
+  var pairs=freshPairs;
+  freshSubmitting=true;freshDialog.close();
+  // Only the list the user confirmed may be forgotten: if any record changed since, nothing is sent.
+  if(!isRunning()&&samePairs(pairs,recoveryPairs(recoveryCandidates())))runRecovery("forget",pairs);
+  else{actionError="Saved sessions changed. Check the list and try again.";recoveryRequest=true;render()}
+});
+document.getElementById("fresh-cancel").addEventListener("click",function(){freshDialog.close()});
+freshDialog.addEventListener("click",function(e){
+  var rect=freshDialog.getBoundingClientRect();
+  if(e.target===freshDialog&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))freshDialog.close();
+});
+freshDialog.addEventListener("close",function(){
+  document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
+  var opener=freshOpener;freshOpener=null;
+  if(!opener||!opener.isConnected||opener.disabled||recoveryBox.hidden)opener=recoveryFocusTarget("");
+  if(opener)opener.focus();
 });
 document.addEventListener("click",function(e){
   var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-radio]");
@@ -2719,8 +2871,9 @@ var QA_BRUSH=(function(){
   function wordmark(){
     var mark=document.querySelector(".mark"),theme=QA_THEME.current();
     if(!mark)return;
-    // A theme whose character already drips over the wordmark can skip the underline (wordmarkStroke: false).
-    if(!theme.brushStroke||theme.wordmarkStroke===false){mark.classList.remove("has-brush");Array.prototype.forEach.call(mark.querySelectorAll(".brush"),function(b){b.remove()});return}
+    // A theme whose character already drips over the wordmark can skip the underline (wordmarkStroke: false); a character that
+    // owns the floor under the wordmark (stage.wordmarkFloor) always does, so there is never a second line.
+    if(!theme.brushStroke||theme.wordmarkStroke===false||(QA_THEME.character().stage||{}).wordmarkFloor){mark.classList.remove("has-brush");Array.prototype.forEach.call(mark.querySelectorAll(".brush"),function(b){b.remove()});return}
     mark.classList.add("has-brush");
     paint(mark,mark.getBoundingClientRect().width||110,(Math.random()*4294967296)>>>0,1,true);
   }
@@ -2877,12 +3030,29 @@ var QA_BRUSH=(function(){
   var cols=0,rows=0,count=0,offsetX=0,offsetY=0;
   var engine={veinPaths:[],veins:null,source:null,anatomy:null,track:{active:false,lastMoveAt:-1e9},inks:[[]],fps:FPS,status:window.QA_ROLLUP||"unknown"};
   var dotShade,dotRadius,drawnShade,drawnRadius,drawnBack,dotOrder,shadeStart=new Uint16Array(41),bucketCounts=new Uint16Array(40),forceDraw=true;
+  // Floor under the wordmark (stage.wordmarkFloor): the pool spans the wordmark's own width, and the canvas hangs below the text
+  // by --stage-room so nothing clips (the CRT screen clips at its edge). Measured on load, theme, character, scene, resize and
+  // when fonts arrive; a change redraws the still frame once. Nothing here runs per frame.
+  var floorKey="";
+  function fitFloor(){
+    var stage=QA_THEME.character().stage||{},title=document.querySelector(".masthead-title"),mark=document.querySelector(".mark");
+    if(!stage.wordmarkFloor||!title||!mark){engine.floor=null;return}
+    var c=canvas.getBoundingClientRect(),m=mark.getBoundingClientRect();
+    if(!c.width||!m.width||!cols)return;
+    var c0=Math.max(1,Math.ceil((m.left-c.left-offsetX)/PITCH)),c1=Math.min(cols-2,Math.floor((m.right-c.left-offsetX)/PITCH));
+    if(c1<=c0)return;
+    var room=Math.max(0,Math.round((stage.overlap||0)-title.getBoundingClientRect().height-(parseFloat(getComputedStyle(title).marginTop)||0))),key=c0+","+c1+","+room;
+    if(key===floorKey)return;
+    floorKey=key;engine.floor={c0:c0,c1:c1};
+    document.documentElement.style.setProperty("--stage-room",room+"px");
+    forceDraw=true;if(ready&&!running)update(true);
+  }
   function layout(character){
     var stage=character.stage||{};
     W=stage.width||200;H=stage.height||230;PITCH=stage.pitch||4.5;SIZE=stage.size||W;CENTER_Y=stage.centerY!=null?stage.centerY:H/2;SCALE=SIZE/64;
     cols=Math.floor(W/PITCH)+1;rows=Math.floor(H/PITCH)+1;count=cols*rows;
     offsetX=(W-(cols-1)*PITCH)/2;offsetY=(H-(rows-1)*PITCH)/2;
-    engine.cols=cols;engine.rows=rows;engine.count=count;engine.pitch=PITCH;engine.poolRow=rows-3;
+    engine.cols=cols;engine.rows=rows;engine.count=count;engine.pitch=PITCH;engine.poolRow=rows-3;engine.floor=null;floorKey="";
     ["dotX","dotY","intensity","radiusScale","alpha","normalX","normalY","normalZ","angle"].forEach(function(name){engine[name]=new Float32Array(count)});
     ["hash","ink","back","dropout","inIris","edgeIn","edgeOut"].forEach(function(name){engine[name]=new Uint8Array(count)});
     for(var cell=0;cell<count;cell++){
@@ -3227,13 +3397,15 @@ var QA_BRUSH=(function(){
   // Impact squash, a crown of droplets, a double ripple, a brief bulge and the odd spatter onto the lower lid.
   function splash(blood,cycle,age,seed){
     var config=blood.config.splash,col=cycle.col,pool=engine.poolRow;
+    // With a wordmark floor, ripples and droplets stay over the floor's span.
+    function put(c,r,v){var f=engine.floor;if(!f||(c>=f.c0&&c<=f.c1))engine.put(c,r,v)}
     if(age>2.6)return;
     if(age<1/FPS){engine.stamp(col,pool-1,config.width,0,0.98);return}
-    if(age<0.4){var rise=0.85*(1-age/0.4);engine.put(col,pool-1,rise);engine.put(col-1,pool-1,rise*0.7);engine.put(col+1,pool-1,rise*0.7)}
+    if(age<0.4){var rise=0.85*(1-age/0.4);put(col,pool-1,rise);put(col-1,pool-1,rise*0.7);put(col+1,pool-1,rise*0.7)}
     if(age<0.7){
       var reach=1+Math.floor(age*FPS/2),strength=0.8*(1-age/0.7);
-      engine.put(col-reach,pool,strength+0.25);engine.put(col+reach,pool,strength+0.25);
-      if(reach>3){engine.put(col-reach+3,pool,strength);engine.put(col+reach-3,pool,strength)}
+      put(col-reach,pool,strength+0.25);put(col+reach,pool,strength+0.25);
+      if(reach>3){put(col-reach+3,pool,strength);put(col+reach-3,pool,strength)}
     }
     var droplets=config.droplets[0]+Math.floor(chance(seed,1)*(config.droplets[1]-config.droplets[0]+1));
     for(var k=0;k<droplets;k++){
@@ -3244,18 +3416,20 @@ var QA_BRUSH=(function(){
         var target=Math.max(blood.span[0],Math.min(blood.span[1],col+side)),lidRow=blood.lids.lowerBottom[target];
         if(lidRow<0)continue;
         var hop=0.55;
-        if(age<hop){var q=age/hop;engine.put(Math.round(col+(target-col)*q),Math.round(pool-1-(pool-1-lidRow)*Math.sin(q*Math.PI/2)-2*q*(1-q)),0.85)}
-        else if(age<2.6){var run=Math.floor((age-hop)*FPS/3);engine.put(target,lidRow+1+run,0.8*(1-(age-hop)/2.05)+0.15)}
+        if(age<hop){var q=age/hop;put(Math.round(col+(target-col)*q),Math.round(pool-1-(pool-1-lidRow)*Math.sin(q*Math.PI/2)-2*q*(1-q)),0.85)}
+        else if(age<2.6){var run=Math.floor((age-hop)*FPS/3);put(target,lidRow+1+run,0.8*(1-(age-hop)/2.05)+0.15)}
         continue;
       }
       if(p>=1)continue;
-      engine.put(Math.round(col+side*p),Math.round(pool-1-4*height*p*(1-p)),0.85*(1-0.4*p));
+      put(Math.round(col+side*p),Math.round(pool-1-4*height*p*(1-p)),0.85*(1-0.4*p));
     }
   }
   function bloodFrame(blood,t){
     var timeline=Math.floor(t*FPS)/FPS%HORIZON,config=blood.config,pool=blood.pool;
     pool.fill(0);
-    for(var c=blood.span[0];c<=blood.span[1];c++)pool[c]=0.14;
+    var floor=engine.floor,lo=floor?floor.c0:blood.span[0],hi=floor?floor.c1:blood.span[1];
+    // The eye's own pool is only a faint trace; as the wordmark's underline the floor is a visible, unbroken line.
+    for(var c=lo;c<=hi;c++)pool[c]=floor?0.8:0.14;
     blood.emitters.forEach(function(emitter,index){
       var j=findAt(emitter.starts,timeline);
       if(j<0)return;
@@ -3269,7 +3443,7 @@ var QA_BRUSH=(function(){
         splash(blood,cycle,age,m*7+index);
       }
     });
-    for(c=0;c<cols;c++){
+    for(c=floor?lo:0;c<=(floor?hi:cols-1);c++){
       var level=Math.tanh(pool[c]);
       engine.put(c,engine.poolRow,level);
       for(var depth=1;depth<config.poolRows;depth++)engine.put(c,engine.poolRow-depth,(level-0.55*depth)*1.6);
@@ -3458,7 +3632,7 @@ var QA_BRUSH=(function(){
     canvas.width=Math.round(W*ratio);canvas.height=Math.round(H*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);forceDraw=true;
   }
   function loadTheme(){
-    ready=false;stopLoop();ctx.clearRect(0,0,canvas.width,canvas.height);layout(QA_THEME.character());readPalette();
+    ready=false;stopLoop();ctx.clearRect(0,0,canvas.width,canvas.height);layout(QA_THEME.character());fitFloor();readPalette();
     var settingsButton=document.getElementById("settings-open");
     if(settingsButton){settingsButton.innerHTML=QA_THEME.icon("settings");buttonFx(settingsButton.parentNode)}
     var image=new Image(),wanted=query.get("eye"),stored=null;
@@ -3495,8 +3669,11 @@ var QA_BRUSH=(function(){
   if(characterSelect)characterSelect.addEventListener("change",function(){QA_THEME.chooseCharacter(characterSelect.value)});
   var sceneSelect=document.getElementById("scene-pick");
   if(sceneSelect){sceneSelect.value=QA_THEME.sceneId();sceneSelect.addEventListener("change",function(){QA_THEME.chooseScene(sceneSelect.value)})}
-  document.addEventListener("qa-scene",function(){radioPainted=false;render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document)});
-  document.addEventListener("qa-character",function(){mode=blank;loadTheme()});
+  document.addEventListener("qa-scene",function(){radioPainted=false;render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document);fitFloor()});
+  var fitTimer=0;
+  window.addEventListener("resize",function(){cancelAnimationFrame(fitTimer);fitTimer=requestAnimationFrame(fitFloor)});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitFloor);
+  document.addEventListener("qa-character",function(){mode=blank;loadTheme();QA_BRUSH.wordmark()});
   if(modeSelect)modeSelect.addEventListener("change",function(){
     try{localStorage.setItem("qaDashboardEyeMode",modeSelect.value)}catch(e){}
     chooseMode(modeSelect.value);
@@ -3592,7 +3769,7 @@ def now_iso():
 
 
 class ActionRunner:
-    """Runs one `wt backend <action>` at a time and remembers the latest run."""
+    """Runs one wt action at a time and remembers the latest run."""
 
     def __init__(self, wt=WT, timeout=ACTION_TIMEOUT_SECONDS, on_finish=None):
         self.wt = wt
@@ -3694,6 +3871,55 @@ def handle_slot_stop(runner, body, headers, port, known_branches):
     return 202, {"actions": runner.snapshot()}
 
 
+def recovery_tokens(body):
+    """Validates a recovery selection; returns {slot: fingerprint}, or None when it is malformed."""
+    entries = body.get("slots") if isinstance(body, dict) else None
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 8:
+        return None
+    picks = {}
+    for entry in entries:
+        slot = entry.get("slot") if isinstance(entry, dict) else None
+        fingerprint = entry.get("fingerprint") if isinstance(entry, dict) else None
+        if type(slot) is not int or not 2 <= slot <= 9 or slot in picks:
+            return None
+        if not isinstance(fingerprint, str) or not RECOVERY_FINGERPRINT.fullmatch(fingerprint):
+            return None
+        picks[slot] = fingerprint
+    return picks
+
+
+def handle_recovery(runner, action, body, headers, port, status):
+    """Resumes or forgets saved sessions from before the restart. The browser only names slots and the
+    fingerprints it was shown; wt re-checks everything under its own lock and reads branch, path and apps itself."""
+    if not same_origin(headers, port):
+        return 403, {"error": "forbidden"}
+    if action not in RECOVERY_ACTIONS:
+        return 404, {"error": "not found"}
+    picks = recovery_tokens(body)
+    if picks is None:
+        return 400, {"error": "invalid selection"}
+    offered = {}
+    for slot in (status.get("slots") or []) if isinstance(status, dict) else []:
+        recovery = slot.get("recovery") if isinstance(slot, dict) else None
+        if isinstance(recovery, dict) and type(slot.get("slot")) is int:
+            offered[slot["slot"]] = recovery
+    for slot, fingerprint in picks.items():
+        recovery = offered.get(slot)
+        if not recovery or recovery.get("fingerprint") != fingerprint or (action == "resume" and recovery.get("resumable") is not True):
+            return 409, {"error": "sessions changed; refresh and choose again", "actions": runner.snapshot()}
+    tokens = [f"{slot}:{picks[slot]}" for slot in sorted(picks)]
+    if not runner.start(action, ["recover", action] + tokens, target=None):
+        return 409, {"error": "another action is still running", "actions": runner.snapshot()}
+    return 202, {"actions": runner.snapshot()}
+
+
+def cached_status(source):
+    try:
+        return source.get()
+    except Exception:  # an unreadable status offers nothing to act on
+        return None
+
+
 def slot_branches(source):
     try:
         return {slot.get("branch") for slot in source.get().get("slots") or [] if slot.get("branch")}
@@ -3727,14 +3953,26 @@ def make_handler(source, runner, port):
                 self.send(404, json.dumps({"error": "not found"}), "application/json")
 
         def do_POST(self):
-            raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 65536))
             path = self.path.split("?", 1)[0]
+            recovery_route = path in ("/api/recovery/resume", "/api/recovery/forget")
+            if recovery_route and not same_origin(self.headers, port):
+                # Refuse before reading the body or touching status; the connection closes so the unread body cannot linger.
+                self.close_connection = True
+                self.send(403, json.dumps({"error": "forbidden"}), "application/json")
+                return
+            raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 65536))
             if path == "/api/slot/stop":
                 try:
                     body = json.loads(raw or b"{}")
                 except ValueError:
                     body = None
                 code, body = handle_slot_stop(runner, body, self.headers, port, slot_branches(source))
+            elif recovery_route:
+                try:
+                    body = json.loads(raw or b"{}")
+                except ValueError:
+                    body = None
+                code, body = handle_recovery(runner, path.rsplit("/", 1)[1], body, self.headers, port, cached_status(source))
             elif path.startswith("/api/backend/"):
                 code, body = handle_action(runner, path.rsplit("/", 1)[1], self.headers, port)
             else:
