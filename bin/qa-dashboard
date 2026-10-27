@@ -48,6 +48,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(
 .page{max-width:1000px;margin:0 auto;padding:16px}
 .page>*+*{margin-top:14px}
 .page>*{min-width:0}
+.book-left{display:contents}
 main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .slots{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .slots>*,main>*{min-width:0}
@@ -56,16 +57,19 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 /* Inner hairline and opposing engraved folio corners share the plate's ink. */
 .card::before{content:"";position:absolute;top:8px;left:8px;width:32px;height:32px;pointer-events:none;z-index:1;background:var(--muted);-webkit-mask:var(--folio-art) center/contain no-repeat;mask:var(--folio-art) center/contain no-repeat}
 .card.err::before{background:var(--bad)}
-.backend .head,.slot-card .head{padding-left:29px}
+.slot-card .head{padding-left:29px}
 #bg-canvas{display:none;position:fixed;left:0;top:0;z-index:-2;pointer-events:none;image-rendering:pixelated}
 html:not([data-bg-kind="none"]) #bg-canvas{display:block}
 html[data-bg-kind="book"] #bg-canvas{position:absolute}
 html[data-bg-kind="book"] .page{max-width:none;padding:28px 96px 80px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 160px;align-items:start}
 html[data-bg-kind="book"] .page>*{grid-column:auto;grid-row:auto;min-width:0;margin-top:0}
-html[data-bg-kind="book"] .page>.backend{width:auto;justify-self:stretch;top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px)}
+html[data-bg-kind="book"] .book-left{display:flex;grid-column:1;grid-row:1;flex-direction:column;gap:18px;min-width:0}
+html[data-bg-kind="book"] .page>main{grid-column:2;grid-row:1}
+html[data-bg-kind="book"] .book-left>.backend{width:auto;align-self:stretch;top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px)}
+html[data-bg-kind="book"] .book-left>.coin{flex:none;align-self:stretch}
 html[data-bg-kind="book"] .card{background:linear-gradient(var(--border),var(--border)) left bottom/100% 1px no-repeat;border:0;box-shadow:none}
 html[data-bg-kind="book"] .card::before{top:auto;left:auto;right:0;bottom:-4px;width:18px;height:18px;transform:rotate(180deg);opacity:.65}
-html[data-bg-kind="book"] .backend .head,html[data-bg-kind="book"] .slot-card .head{padding-left:0}
+html[data-bg-kind="book"] .slot-card .head,html[data-bg-kind="book"] .backend .rollup .title{padding-left:0}
 html[data-bg-kind="book"] .backend{box-shadow:none}
 html[data-bg-kind="book"] .app-pill,html[data-bg-kind="book"] .chip,html[data-bg-kind="book"] .pill,html[data-bg-kind="book"] .backend .rollup .state{background:transparent}
 html[data-bg-kind="book"] .hint{padding-inline:0}
@@ -102,20 +106,20 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 .slot-card{position:relative}
 .backend{position:sticky;top:var(--header-h,58px);z-index:20;display:flex;flex-direction:column;max-height:calc(100vh - var(--header-h,58px) - 12px);padding:10px 13px}
 .backend-body{min-height:0;overflow:auto;overscroll-behavior:contain}
-.backend .head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-bottom:0}
-.backend .rollup{--hero:var(--text);display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.backend .head{display:flex;flex-direction:column;align-items:stretch;gap:7px;margin-bottom:0}
+.backend .rollup{--hero:var(--text);display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .backend .rollup.tone-warn{--hero:var(--warn)}
 .backend .rollup.tone-down,.backend .rollup.tone-broken,.backend .rollup.tone-attn{--hero:var(--bad)}
-.backend .rollup .title{font:600 21px/1.25 var(--serif);letter-spacing:0;font-variant:normal;color:var(--text)}
-.backend .rollup .state{gap:8px;padding:5px 12px 5px 7px;border-left:3px solid currentColor;background:var(--inset);font:600 18px/1.2 var(--serif);color:var(--hero)}
+.backend .rollup .title{padding-left:29px;font:600 21px/1.25 var(--serif);letter-spacing:0;font-variant:normal;color:var(--text)}
+.backend .rollup .state{gap:8px;padding:0;background:transparent;font:600 18px/1.2 var(--serif);color:var(--hero)}
 .backend .rollup .state .dot{width:22px;height:22px;color:currentColor}
 .backend .rel{display:inline-flex;align-items:center}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
-.backend .meta{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-left:auto;font:12px var(--mono);color:var(--muted)}
+.backend .meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px 12px;width:100%;margin-top:2px;padding-top:7px;border-top:1px solid var(--border);font:12px var(--mono);color:var(--muted)}
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
-.backend .pill.rel{font-size:12px;color:var(--muted)}
-.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border-color:var(--border);padding:1px 9px}
+.backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
+.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 .backend button.act.quiet.behind::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;background:var(--warn);vertical-align:1px}
 .backend button.act.quiet.behind:hover:not(:disabled)::before,.backend button.act.quiet.behind:focus-visible::before{background:currentColor}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
@@ -128,17 +132,14 @@ body::after{background:radial-gradient(ellipse at 50% 40%,transparent 55%,var(--
 @media (min-width:1280px){
 .page{max-width:none;display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1000px) minmax(0,1fr);column-gap:20px;align-items:start}
 .page>*{grid-column:2}
-.page>.backend{grid-column:1;grid-row:1;justify-self:end;width:280px}
+.page>.book-left>.backend{grid-column:1;grid-row:1;justify-self:end;width:280px}
 .page>*+*{margin-top:0}
 .backend{top:calc(var(--header-h,58px) + 14px);max-height:calc(100vh - var(--header-h,58px) - 28px);padding:12px 14px}
-.backend .head{flex-direction:column;align-items:stretch;gap:9px}
-.backend .rollup{flex-direction:column;align-items:flex-start;gap:8px}
-.backend .rel,.backend .meta{margin-left:0}
 .backend .head>.rel{align-self:flex-start}
 .backend-details{margin-top:10px;padding-top:8px}
 }
 .slot-card .head{padding-right:5em;align-items:center;padding-bottom:9px;border-bottom:1px solid var(--border)}
-.slotno{position:absolute;top:13px;right:19px;padding-left:9px;border-left:1px solid var(--rule);font:12px var(--mono);color:var(--muted);font-variant:small-caps}
+.slotno{position:absolute;top:13px;right:19px;font:13px/1.2 var(--mono);color:var(--muted)}
 .tools{display:inline-flex;flex-wrap:wrap;gap:6px}
 .muted{color:var(--muted)}.small{font-size:13px;font-family:var(--mono);overflow-wrap:anywhere}
 code{font-family:var(--mono);font-size:13.5px}
@@ -158,8 +159,6 @@ button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(-
 .apps{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .app-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px 5px 11px;border:1px solid var(--border);background:var(--inset);color:var(--text);text-decoration:none;font-size:15px;transition:border-color .15s,background-color .15s}
 a.app-pill{position:relative;isolation:isolate}
-a.app-pill::after{content:"";position:absolute;left:10px;right:10px;bottom:2px;height:1px;background:var(--border);pointer-events:none;z-index:2}
-a.app-pill:hover::after,a.app-pill:focus-visible::after{background:var(--accent)}
 a.app-pill:hover,a.app-pill:focus-visible{border-color:var(--seep)}
 .seep{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:1}
 .seep-fill{position:absolute;bottom:0;left:0;height:30%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform .2s ease-in}
@@ -285,7 +284,7 @@ How to add a theme: add one entry to THEMES below; nothing outside this section 
   fonts         {serif, mono, body} font stacks
   favicon       SVG string for the tab icon
   headerMark    {eye, travel, lid, underlineCss}
-                  eye: SVG string with hooks data-eye-iris (moved), data-eye-pupil (circle, resized),
+                  eye: SVG string with hooks data-eye-iris (moved), data-eye-pupil (circle or stepped path, resized),
                        data-eye-lid (upper lid, flipped about lid.pivot to blink), data-eye-cover (rect hiding the iris)
                   travel: [rx, ry] pupil travel in viewBox units; lid: {pivot, top, closed} in viewBox units
                   underlineCss: CSS rules for .mark::after (the title underline art)
@@ -359,9 +358,9 @@ var THEMES = {
       down: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='#0b0505'/><g fill='none' stroke='#e0061f' stroke-linecap='round'><path d='M6 22c9 11 17 15 27 15 9 0 15-4 21-12' stroke-width='6'/><path d='M15 31l-4 6M51 29l4 6' stroke-width='4.5'/></g><path d='M33 40c3 5 7 9 7 14a7 7 0 0 1-14 0c0-5 4-9 7-14z' fill='#e0061f'/></svg>"
     },
     headerMark: {
-      eye: '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="header-eye-opening"><path d="M5 30C13 17 22 11 33 11S52 17 59 29L54 35C48 42 42 46 33 46C23 46 15 42 6 32Z"/></clipPath></defs><g clip-path="url(#header-eye-opening)"><g data-eye-iris><circle cx="32" cy="29" r="10" fill="#e0061f"/><circle data-eye-pupil cx="32" cy="29" r="4.2" fill="#0b0505"/></g><rect data-eye-cover x="0" y="0" width="64" height="0" fill="#0b0505"/></g><g fill="none" stroke="#e0061f" stroke-linecap="round" stroke-linejoin="round"><path data-eye-lid d="M5 30C13 17 22 11 33 11s19 6 26 18" stroke-width="6"/><path d="M6 32c9 10 17 14 27 14 9 0 15-4 21-11" stroke-width="5"/></g><g fill="#e0061f"><path d="M17 40h5v13a2.5 2.5 0 0 1-5 0z"/><path d="M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z"/><path d="M45 41h4v9a2 2 0 0 1-4 0z"/><circle cx="19.5" cy="53.5" r="3"/><circle cx="33.25" cy="61" r="2.6"/><circle cx="47" cy="50.5" r="2.4"/></g></svg>',
+      eye: '<svg viewBox="0 0 64 64" aria-hidden="true" shape-rendering="crispEdges"><defs><clipPath id="header-eye-opening"><path d="M4 28h4v-4h4v-4h8v-4h8v-4h8v4h8v4h8v4h4v4h4v8h-4v4h-4v4h-8v4h-8v4h-8v-4h-8v-4h-8v-4H8v-4H4z"/></clipPath></defs><g clip-path="url(#header-eye-opening)"><g data-eye-iris><path fill="#e0061f" d="M28 20h8v4h4v12h-4v4h-8v-4h-4V24h4z"/><path data-eye-pupil fill="#0b0505" d="M28 28h8v8h-8z"/></g><rect data-eye-cover x="0" y="0" width="64" height="0" fill="var(--card)"/></g><g data-eye-lid fill="#e0061f"><rect x="4" y="28" width="8" height="8"/><rect x="8" y="24" width="8" height="8"/><rect x="12" y="20" width="8" height="8"/><rect x="20" y="16" width="8" height="8"/><rect x="28" y="12" width="8" height="8"/><rect x="36" y="16" width="8" height="8"/><rect x="44" y="20" width="8" height="8"/><rect x="52" y="24" width="8" height="8"/><rect x="56" y="28" width="4" height="8"/></g><g fill="#e0061f"><rect x="4" y="32" width="8" height="4"/><rect x="8" y="36" width="8" height="4"/><rect x="12" y="40" width="8" height="4"/><rect x="20" y="44" width="8" height="4"/><rect x="28" y="48" width="8" height="4"/><rect x="36" y="44" width="8" height="4"/><rect x="44" y="40" width="8" height="4"/><rect x="52" y="36" width="8" height="4"/><rect x="56" y="32" width="4" height="4"/><path d="M20 44h4v12h-4zM32 48h4v12h-4zM44 44h4v8h-4z"/></g></svg>',
       travel: [8, 4.5],
-      lid: {pivot: 31, top: 11, closed: -0.6},
+      lid: {pivot: 32, top: 12, closed: -0.6},
       underlineCss: '.mark::after{content:"";position:absolute;left:0;right:-4px;bottom:0;height:9px;pointer-events:none;\nbackground:linear-gradient(var(--blood),var(--blood)) 0 0/100% 3px no-repeat,\nradial-gradient(circle,var(--blood) 1.6px,transparent 2px) 13px 3px/4px 6px no-repeat,\nlinear-gradient(var(--blood),var(--blood)) 14px 2px/2px 5px no-repeat,\nradial-gradient(circle,var(--blood) 1.3px,transparent 1.8px) 57px 1px/3px 5px no-repeat;\nborder-radius:2px 40% 2px 60%/2px 3px 1px 3px}'
     },
     logoSource: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='#e0061f' stroke-linecap='round' stroke-linejoin='round'><path d='M5 30C13 17 22 11 33 11s19 6 26 18' stroke-width='6'/><path d='M6 32c9 10 17 14 27 14 9 0 15-4 21-11' stroke-width='5'/><circle cx='32' cy='29' r='7.1' stroke-width='5.8'/></g><g fill='#e0061f'><path d='M17 40h5v13a2.5 2.5 0 0 1-5 0z'/><path d='M31 44h4.5v17a2.25 2.25 0 0 1-4.5 0z'/><path d='M45 41h4v9a2 2 0 0 1-4 0z'/><circle cx='19.5' cy='53.5' r='3'/><circle cx='33.25' cy='61' r='2.6'/><circle cx='47' cy='50.5' r='2.4'/></g></svg>",
@@ -382,7 +381,7 @@ var THEMES = {
     actionIcons: {
       copy: plateIcon('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
       terminal: plateIcon('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
-      stop: plateIcon('<path d="M3 11h2l2 2V5h3v6h1V3h3v8h1V5h3v7h1V8h3v8l-4 6H8l-5-7z"/>')
+      stop: plateIcon('<path d="M7 5h3v9H7zM11 2h3v12h-3zM15 3h3v11h-3zM19 6h3v10h-3z"/><path d="M7 13h15v5h-2v3h-3v2H9v-2H7v-2H5v-2H3v-2H2v-5h3v2h2zM10 16v1h8v-1z"/>')
     },
     settingsIcon: plateIcon('<path d="M2 5h20v2H2zM2 11h20v2H2zM2 17h20v2H2z"/><path d="M6 3h4v6H6zM15 9h4v6h-4zM10 15h4v6h-4z" style="fill:var(--card)"/><path d="M7 4h2v4H7zM16 10h2v4h-2zM11 16h2v4h-2z"/>'),
     brushStroke: {
@@ -413,7 +412,7 @@ var THEMES = {
       fog: {label: "Fog", kind: "fog", fps: 6,
         dark: {tones: ["#1b1718", "#2b2425", "#3a3132"]},
         light: {tones: ["#eae6e0", "#e2ddd6", "#d9d3cb"]}},
-      plain: {label: "Plain", kind: "none"}
+      plain: {label: "Stage", kind: "none"}
     },
     copy: {emptyTitle: "No sessions running"}
   }
@@ -736,14 +735,14 @@ var QA_BG=(function(){
 <header><h1><span id="header-eye" class="eye"></span><span class="mark">Overseer</span></h1>
 <div class="header-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></header>
 <div id="banner" role="alert"></div>
-<div class="page"><section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section>
+<div class="page"><div class="book-left"><section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
 <main><div id="slots" class="slots"></div><div class="coin" aria-hidden="true"><canvas id="coin" width="200" height="230"></canvas></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off">
 <label for="eye-mode">Logo animation</label><select id="eye-mode"></select>
 <label for="theme-pick">Theme</label><select id="theme-pick"></select>
-<label for="bg-pick">Background</label><select id="bg-pick"></select>
+<label for="bg-pick">Scene</label><select id="bg-pick"></select>
 <span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
@@ -754,6 +753,18 @@ var QA_BG=(function(){
 <script>
 "use strict";
 var INITIAL=/*INITIAL*/null/*END*/;
+// Keep one canvas and one eye engine. Book pages place the eye under Backend; other backgrounds keep it after the sessions.
+(function placeEye(){
+  var coin=document.querySelector(".coin"),left=document.querySelector(".book-left"),main=document.querySelector(".page>main"),hint=document.getElementById("hint");
+  function sync(){
+    var book=document.documentElement.getAttribute("data-bg-kind")==="book";
+    if(book&&coin.parentNode!==left)left.appendChild(coin);
+    else if(!book&&coin.parentNode!==main)main.insertBefore(coin,hint);
+    else return;
+    document.dispatchEvent(new Event("qa-layout"));
+  }
+  sync();document.addEventListener("qa-bg",sync);document.addEventListener("qa-theme",sync);
+})();
 var APP_NAMES={ri:"RI","ds-demo":"ds-demo",strategy:"Strategy"};
 var tenantInput=document.getElementById("tenant");
 try{tenantInput.value=localStorage.getItem("qaDashboardTenant")||"mridderikhoff"}catch(e){}
@@ -1239,7 +1250,7 @@ var QA_BRUSH=(function(){
   var fakePointer=query.get("pointer");
   if(fakePointer){var parts=fakePointer.split(",");pointer.x=+parts[0];pointer.y=+parts[1];pointer.known=true;pointer.movedAt=1e15}
 
-  /* ---------- header eye (smooth SVG, follows the cursor) ---------- */
+  /* ---------- header eye (stepped SVG, follows the cursor) ---------- */
   var header={host:document.getElementById("header-eye"),iris:null,pupil:null,lid:null,cover:null,pupilRadius:4.2,
     x:0,y:0,vx:0,vy:0,scale:1,blinkStart:-1e9,lastBlink:-1e9,nextBlink:0,microX:0,microY:0,microUntil:0,nextMicro:0,last:0,running:false,queued:false,timer:0,rect:null,drawn:{}};
   function mountHeader(){
@@ -1250,7 +1261,7 @@ var QA_BRUSH=(function(){
 
     header.iris=header.host.querySelector("[data-eye-iris]");header.pupil=header.host.querySelector("[data-eye-pupil]");
     header.lid=header.host.querySelector("[data-eye-lid]");header.cover=header.host.querySelector("[data-eye-cover]");
-    header.pupilRadius=header.pupil?parseFloat(header.pupil.getAttribute("r")):0;
+    header.pupilRadius=header.pupil?(parseFloat(header.pupil.getAttribute("r"))||4.2):0;
     header.x=header.y=header.vx=header.vy=0;header.scale=1;header.rect=null;header.drawn={};
     drawHeader(0);
   }
@@ -1276,7 +1287,10 @@ var QA_BRUSH=(function(){
   function drawHeader(blink){
     var lid=QA_THEME.current().headerMark.lid;
     setHeaderAttribute("iris",header.iris,"transform","translate("+(header.x+header.microX).toFixed(2)+" "+(header.y+header.microY).toFixed(2)+")");
-    setHeaderAttribute("pupil",header.pupil,"r",(header.pupilRadius*header.scale).toFixed(2));
+    if(header.pupil){
+      if(header.pupil.tagName.toLowerCase()==="circle")setHeaderAttribute("pupil",header.pupil,"r",(header.pupilRadius*header.scale).toFixed(2));
+      else setHeaderAttribute("pupil",header.pupil,"transform","translate(32 32) scale("+header.scale.toFixed(3)+") translate(-32 -32)");
+    }
     var flip=1+(lid.closed-1)*blink;
     setHeaderAttribute("lid",header.lid,"transform",blink>0?"translate(0 "+lid.pivot+") scale(1 "+flip.toFixed(3)+") translate(0 "+(-lid.pivot)+")":"");
     setHeaderAttribute("cover",header.cover,"height",blink>0?Math.max(0,lid.pivot+(lid.top-lid.pivot)*flip+3).toFixed(2):"0");

@@ -6,6 +6,22 @@ legibility, speed or accessibility.
 
 The Overseer dashboard (`bin/qa-dashboard`) is the reference implementation. When in doubt, match it.
 
+## The animated character comes first
+
+Expressive pixel art and animation are the heart of Overseer. The animated character is a focal
+part of the experience, not a decorative footer or just another status icon. Give it a deliberate
+place in each scene and protect its presence as the session list grows.
+
+- A **scene** determines the composition: layout, surfaces, and where the character and sessions
+  live. It can rearrange the interface substantially, as Book does; it is more than a background.
+- A **theme** supplies the visual world: palette, materials, typography, icons, and character.
+  Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
+- The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
+  the pleasure of deliberate pixels, expressive animation, and responsive interaction rather than
+  copying the eye's anatomy into every theme.
+- Character animation can remain alive when services are healthy. Keep status signals clear and
+  distinct from the character's personality; neither should depend only on colour or motion.
+
 **Keep it SFW.** It's a work tool on a work screen. Pulpy and spooky is good; gore is not. Blood is
 fine as stylised accents tied to the art (drips from the eye, brushstroke underlines, a single tear
 on a status glyph). Splatter, blood-soaked surfaces and large stained backgrounds cross the line, and
