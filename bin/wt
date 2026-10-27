@@ -587,13 +587,19 @@ serve_port() {
 }
 
 port_listening() {
+  if [ "${WT_STUB_PORTS+x}" ]; then
+    case " ${WT_STUB_PORTS} " in *" $1 "*) return 0 ;; esac
+    return 1
+  fi
   timeout 1 bash -c "exec 3<>/dev/tcp/127.0.0.1/$1" >/dev/null 2>&1
 }
 
 serve_state_load() {
   local file="$1" key value
-  SERVE_BRANCH= SERVE_PATH= SERVE_TAB= SERVE_APPS= SERVE_UNITS= SERVE_KC=
+  SERVE_BRANCH= SERVE_PATH= SERVE_TAB= SERVE_APPS= SERVE_UNITS= SERVE_KC= SERVE_BOOT=
   [ -f "$file" ] || return 1
+  [ -r "$file" ] || return 1
+  cat -- "$file" >/dev/null 2>&1 || return 1
   while IFS='=' read -r key value; do
     case "$key" in
       branch) SERVE_BRANCH="$value" ;;
@@ -602,8 +608,105 @@ serve_state_load() {
       apps) SERVE_APPS="$value" ;;
       units) SERVE_UNITS="$value" ;;
       kc) SERVE_KC="$value" ;;
+      boot) SERVE_BOOT="$value" ;;
     esac
-  done <"$file"
+  done <"$file" || return 1
+}
+
+wt_boot_id() { if [ -n "${WT_BOOT_ID:-}" ]; then echo "$WT_BOOT_ID"; else cat /proc/sys/kernel/random/boot_id 2>/dev/null; fi; }
+wt_boot_time() { if [ -n "${WT_BOOT_TIME:-}" ]; then echo "$WT_BOOT_TIME"; else awk '/^btime /{print $2}' /proc/stat 2>/dev/null; fi; }
+serve_fingerprint() { sha256sum -- "$1" 2>/dev/null | cut -c1-16; }
+
+# Check every unit file for this slot, plus every canonical and saved unit.
+# A loaded unit can survive removal of its file, so files alone are insufficient.
+recover_unit_guard() {
+  local slot="$1" dir file unit app out load active line rc seen=' '
+  local -a units=()
+  dir=$(serve_unit_dir)
+  for file in "$dir"/cl-strategy-serve-"$slot"-*.service; do
+    [ -e "$file" ] || [ -L "$file" ] || continue
+    units+=("${file##*/}")
+  done
+  for app in strategy ri ds-demo $SERVE_APPS $SERVE_UNITS; do
+    [[ "$app" =~ ^[a-z0-9][a-z0-9-]{0,31}$ ]] || continue
+    units+=("$(serve_unit "$slot" "$app")")
+  done
+  for unit in "${units[@]}"; do
+    case "$seen" in *" $unit "*) continue ;; esac
+    seen="$seen$unit "
+    out=$(systemctl --user show --property=LoadState --property=ActiveState -- "$unit" 2>/dev/null); rc=$?
+    [ "$rc" = 0 ] || return 1
+    load= active=
+    while IFS= read -r line; do
+      case "$line" in LoadState=*) load=${line#*=} ;; ActiveState=*) active=${line#*=} ;; esac
+    done <<<"$out"
+    case "$load" in loaded|not-found) ;; *) return 1 ;; esac
+    case "$active" in inactive|failed) ;; *) return 1 ;; esac
+  done
+}
+
+# Populates REC_*; only a previously saved, independently stopped slot qualifies.
+recover_classify() {
+  local slot="$1" file="$(serve_state_dir)/slot-$1" boot boot_time mtime app other found offset qa other_file other_branch
+  local -a apps=()
+  REC_FP= REC_CAND=0 REC_OK=0 REC_REASON=
+  serve_state_load "$file" || return 1
+  [ -n "$SERVE_UNITS" ] && [ -z "$SERVE_TAB" ] || return 1
+  boot=$(wt_boot_id); [ -n "$boot" ] || return 1
+  if [ -n "$SERVE_BOOT" ]; then
+    [ "$SERVE_BOOT" != "$boot" ] || return 1
+  else
+    boot_time=$(wt_boot_time); mtime=$(stat -c %Y -- "$file" 2>/dev/null) || return 1
+    [[ "$boot_time" =~ ^[0-9]+$ ]] && [ "$mtime" -lt "$boot_time" ] || return 1
+  fi
+  recover_unit_guard "$slot" && ! serve_slot_live "$slot" || return 1
+  REC_FP=$(serve_fingerprint "$file")
+  [[ "$REC_FP" =~ ^[0-9a-f]{16}$ ]] || { REC_FP=; return 1; }
+  REC_CAND=1 REC_OK=1
+  read -r -a apps <<<"$SERVE_APPS"
+  if [ ${#apps[@]} -eq 0 ]; then REC_REASON='invalid saved apps';
+  else
+    local seen=' '
+    for app in "${apps[@]}"; do
+      case "$app" in ds-demo|ri|strategy) ;; *) REC_REASON='invalid saved apps'; break ;; esac
+      case "$seen" in *" $app "*) REC_REASON='invalid saved apps'; break ;; esac
+      seen="$seen$app "
+    done
+  fi
+  if [ -z "$REC_REASON" ] && [ ! -d "$SERVE_PATH" ]; then REC_REASON='worktree missing'; fi
+  if [ -z "$REC_REASON" ]; then
+    found=$(path_for_branch "$SERVE_BRANCH" 2>/dev/null) || found=
+    [ "$found" = "$SERVE_PATH" ] || REC_REASON='branch no longer checked out there'
+  fi
+  if [ -z "$REC_REASON" ]; then
+    for other in {2..9}; do
+      [ "$other" = "$slot" ] && continue
+      # A duplicate record must be readable before we may resume either slot.
+      other_file="$(serve_state_dir)/slot-$other"
+      if [ -f "$other_file" ] && ! cat -- "$other_file" >/dev/null 2>&1; then
+        REC_REASON='slot record unreadable'; break
+      fi
+      other_branch=$(sed -n 's/^branch=//p' "$other_file" 2>/dev/null | head -n 1)
+      if [ "$other_branch" = "$SERVE_BRANCH" ]; then REC_REASON="branch also saved in slot $other"; break; fi
+    done
+  fi
+  if [ -z "$REC_REASON" ] && [ "$slot" -ge 6 ]; then
+    for app in "${apps[@]}"; do case "$app" in ri|strategy) REC_REASON='slot cannot serve RI or Strategy' ;; esac; done
+  fi
+  if [ -z "$REC_REASON" ]; then
+    qa=$(qa_tree 2>/dev/null) && offset=$(qa_offset "$qa" 2>/dev/null) || offset=
+    [ "$offset" != "$slot" ] || REC_REASON='slot is used by the QA tree'
+  fi
+  [ -z "$REC_REASON" ] || REC_OK=0
+  return 0
+}
+
+recover_scan() {
+  local slot
+  for slot in {2..9}; do
+    recover_classify "$slot" || continue
+    printf '%s\t%s\t%s\t%s\n' "$slot" "$REC_FP" "$REC_OK" "$REC_REASON"
+  done
 }
 
 serve_slot_live() {
@@ -673,6 +776,7 @@ serve_unit() { echo "cl-strategy-serve-$1-$2.service"; }
 serve_unit_dir() { echo "${QA_UNIT_DIR:-$HOME/.config/systemd/user}"; }
 serve_unit_state() { systemctl --user is-active "$(serve_unit "$1" "$2")" 2>/dev/null || echo unknown; }
 serve_http_ready() {
+  [ "${WT_STUB_PORTS+x}" ] && { port_listening "$1"; return; }
   python3 - "$1" <<'PY_HTTP'
 import sys, urllib.request
 try:
@@ -798,8 +902,7 @@ serve_print_slot() {
   echo "logs       wt logs $SERVE_BRANCH [app]"
 }
 cmd_serve_locked() {
-  local qa offset slot file branch path app port free= occupied state_dir existing=0 needs_reload=0 needs_ri=0 host kc=
-  local chosen=() merged=() candidates=() changed_apps=() kc_addresses=() seen=' '
+  local qa offset slot file branch state_dir
   qa=$(qa_tree) || { echo 'no QA tree found' >&2; return 1; }
   offset=$(qa_offset "$qa") || return 1
   state_dir=$(serve_state_dir)
@@ -826,6 +929,15 @@ cmd_serve_locked() {
     done
     return 0
   fi
+  serve_start_locked "" "$offset" "$@"
+}
+
+# Start one saved slot without pruning unrelated records or orphan units.
+serve_start_locked() {
+  local pin="$1" offset="$2" slot file branch path app port free= occupied state_dir existing=0 needs_reload=0 needs_ri=0 host kc=
+  local chosen=() merged=() candidates=() changed_apps=() kc_addresses=() seen=' '
+  shift 2
+  state_dir=$(serve_state_dir)
   branch="$1"; shift
   path=$(path_for_branch "$branch") || { echo "serve      no worktree on $branch" >&2; return 1; }
   if [ ! -d "$path/apps/ui/node_modules" ]; then
@@ -843,11 +955,30 @@ cmd_serve_locked() {
     case "$seen" in *" $app "*) echo "serve      duplicate app: $app" >&2; return 1 ;; esac
     seen="$seen$app "; chosen+=("$app")
   done
-  for slot in {2..9}; do
-    file="$state_dir/slot-$slot"
-    serve_state_load "$file" || continue
-    if [ "$SERVE_BRANCH" = "$branch" ]; then free="$slot"; existing=1; break; fi
-  done
+  if [ -n "$pin" ]; then
+    file="$state_dir/slot-$pin"
+    serve_state_load "$file" && [ "$SERVE_BRANCH" = "$branch" ] || return 1
+    [ "$path" = "$SERVE_PATH" ] || return 1
+    for slot in {2..9}; do
+      [ "$slot" = "$pin" ] && continue
+      file="$state_dir/slot-$slot"
+      if ! serve_state_load "$file"; then
+        [ ! -f "$file" ] || return 1
+        continue
+      fi
+      if [ "$SERVE_BRANCH" = "$branch" ]; then
+        echo "serve      $branch also saved in slot $slot" >&2; return 1
+      fi
+    done
+    serve_state_load "$state_dir/slot-$pin" || return 1
+    free="$pin" existing=1
+  else
+    for slot in {2..9}; do
+      file="$state_dir/slot-$slot"
+      serve_state_load "$file" || continue
+      if [ "$SERVE_BRANCH" = "$branch" ]; then free="$slot"; existing=1; break; fi
+    done
+  fi
   if [ "$existing" = 1 ] && [ "$free" -ge 6 ] && [ "$needs_ri" = 1 ]; then
     echo "serve      slot $free cannot serve ri or strategy; stop it (wt serve --stop $branch) and re-serve with all apps" >&2
     return 1
@@ -918,7 +1049,7 @@ cmd_serve_locked() {
   done
   # Publish the slot before registration. A concurrent sync takes the serve
   # lock and therefore sees either this completed state or the previous one.
-  printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" >"$state_dir/slot-$free"
+  printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=\nboot=%s\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" "$(wt_boot_id)" >"$state_dir/slot-$free"
   if [ ${#kc_addresses[@]} -gt 0 ]; then
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
       echo "dry-run    kc-redirects add ${kc_addresses[*]}"
@@ -929,10 +1060,147 @@ cmd_serve_locked() {
     fi
   fi
   if [ -n "$kc" ]; then
-    printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=%s\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" "$kc" >"$state_dir/slot-$free"
+    printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=%s\nboot=%s\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" "$kc" "$(wt_boot_id)" >"$state_dir/slot-$free"
   fi
   serve_state_load "$state_dir/slot-$free"
   serve_print_slot "$free"
+}
+
+recover_token_check() {
+  local token slot
+  [ $# -gt 0 ] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+  REC_TOKENS=()
+  for token in "$@"; do
+    [[ "$token" =~ ^[2-9]:[0-9a-f]{16}$ ]] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+    slot=${token%%:*}
+    [ -z "${REC_TOKENS[$slot]:-}" ] || { echo 'usage: wt recover resume|forget <slot:16hex>…' >&2; return 2; }
+    REC_TOKENS[$slot]="$token"
+  done
+}
+
+recover_check_token() {
+  local slot="$1" fp="$2" mode="$3"
+  REC_RESULT= REC_BRANCH=
+  if ! recover_classify "$slot"; then
+    if [ -f "$(serve_state_dir)/slot-$slot" ] && [ "$(serve_fingerprint "$(serve_state_dir)/slot-$slot")" != "$fp" ]; then
+      REC_RESULT='changed since preview'
+    elif [ -f "$(serve_state_dir)/slot-$slot" ]; then
+      REC_RESULT='running now'
+    else
+      REC_RESULT='not from before the restart'
+    fi
+    return 1
+  fi
+  REC_BRANCH="$SERVE_BRANCH"
+  if [ "$REC_FP" != "$fp" ]; then REC_RESULT='changed since preview'; return 1; fi
+  if [ "$mode" = resume ] && [ "$REC_OK" != 1 ]; then REC_RESULT="$REC_REASON"; return 1; fi
+}
+
+recover_precheck() {
+  local token slot fp app
+  REC_PRECHECK= REC_NEEDS_BACKEND=0
+  for token in "$@"; do
+    slot=${token%%:*}; fp=${token#*:}
+    recover_check_token "$slot" "$fp" resume || continue
+    REC_PRECHECK="$REC_PRECHECK $slot"
+    for app in $SERVE_APPS; do case "$app" in ri|strategy) REC_NEEDS_BACKEND=1 ;; esac; done
+  done
+  printf '%s|%s\n' "$REC_PRECHECK" "$REC_NEEDS_BACKEND"
+}
+
+recover_resume_slot_locked() {
+  local slot="$1" fp="$2" qa offset branch
+  local -a apps=()
+  recover_check_token "$slot" "$fp" resume || { echo "skipped: $REC_RESULT"; return 5; }
+  branch="$SERVE_BRANCH"
+  read -r -a apps <<<"$SERVE_APPS"
+  qa=$(qa_tree) && offset=$(qa_offset "$qa") || { echo 'failed: QA offset unavailable'; return 1; }
+  serve_start_locked "$slot" "$offset" "$branch" "${apps[@]}"
+}
+
+recover_forget_locked() {
+  local slot token fp branch forgotten=0 kept=0 result
+  for token in "$@"; do
+    slot=${token%%:*}; fp=${token#*:}
+    if recover_check_token "$slot" "$fp" forget; then
+      branch="$SERVE_BRANCH"
+      if serve_remove_slot "$slot"; then result=forgotten; ((forgotten+=1));
+      else result='kept: removal failed'; ((kept+=1)); fi
+    else
+      branch="${REC_BRANCH:-?}"; result="kept: $REC_RESULT"; ((kept+=1))
+    fi
+    echo "result     slot $slot $branch $result"
+  done
+  echo "recover    $forgotten forgotten, $kept kept"
+  [ "$kept" = 0 ]
+}
+
+cmd_recover() {
+  local action="${1:-}" slot token fp branch result rc resumed=0 failed=0 skipped=0 pre backend_rc=0 result_lines=
+  local -a tokens=()
+  case "$action" in
+    ''|--json)
+      [ $# -le 1 ] || { echo 'usage: wt recover [--json]' >&2; return 2; }
+      if [ "$action" = --json ]; then
+        WT_RECOVERY_SCAN="$(recover_scan)" WT_RECOVERY_BOOT_ID="$(wt_boot_id)" WT_RECOVERY_BOOT_TIME="$(wt_boot_time)" WT_RECOVERY_STATE_DIR="$(serve_state_dir)" python3 - <<'PY_RECOVER'
+import datetime, json, os, pathlib
+def iso(value):
+    try: return datetime.datetime.fromtimestamp(int(value), datetime.timezone.utc).isoformat()
+    except (ValueError, OverflowError): return None
+root = pathlib.Path(os.environ['WT_RECOVERY_STATE_DIR'])
+sessions = []
+for row in os.environ['WT_RECOVERY_SCAN'].splitlines():
+    slot, fp, ok, reason = row.split('\t', 3)
+    fields = {}
+    try:
+        for line in (root / f'slot-{slot}').read_text().splitlines():
+            if '=' in line:
+                key, value = line.split('=', 1); fields[key] = value
+    except (OSError, UnicodeError): continue
+    sessions.append(dict(slot=int(slot), branch=fields.get('branch',''), worktree=fields.get('path',''), apps=fields.get('apps','').split(), fingerprint=fp, resumable=ok=='1', reason=reason or None))
+print(json.dumps({'boot': {'id': os.environ['WT_RECOVERY_BOOT_ID'] or None, 'startedAt': iso(os.environ['WT_RECOVERY_BOOT_TIME'])}, 'sessions': sessions}))
+PY_RECOVER
+      else
+        result=$(recover_scan)
+        if [ -z "$result" ]; then echo 'saved      no stopped sessions from before the restart'; return; fi
+        while IFS=$'\t' read -r slot fp rc reason; do
+          serve_state_load "$(serve_state_dir)/slot-$slot" || continue
+          if [ "$rc" = 1 ]; then reason=resumable; fi
+          echo "saved      slot $slot $SERVE_BRANCH ($SERVE_APPS) $fp $reason"
+        done <<<"$result"
+      fi
+      ;;
+    resume|forget)
+      shift
+      local -a REC_TOKENS=()
+      recover_token_check "$@" || return $?
+      for slot in {2..9}; do [ -z "${REC_TOKENS[$slot]:-}" ] || tokens+=("${REC_TOKENS[$slot]}"); done
+      if [ "$action" = forget ]; then serve_with_lock recover_forget_locked "${tokens[@]}"; return $?; fi
+      pre=$(serve_with_lock recover_precheck "${tokens[@]}") || return 1
+      if [ "${pre##*|}" = 1 ]; then
+        cmd_backend ensure; backend_rc=$?
+        [ "$backend_rc" != 3 ] || { echo 'backend    starting — re-run: ~/.claude/bin/wt backend ensure'; backend_rc=0; }
+      fi
+      for token in "${tokens[@]}"; do
+        slot=${token%%:*}; fp=${token#*:}
+        if [ "$backend_rc" != 0 ]; then
+          if recover_classify "$slot" && [ "$REC_FP" = "$fp" ]; then
+            case " $SERVE_APPS " in *' ri '*|*' strategy '*) result_lines+="result     slot $slot $SERVE_BRANCH failed: backend ensure failed (exit $backend_rc)"$'\n'; ((failed+=1)); continue ;; esac
+          fi
+        fi
+        result=$(serve_with_lock recover_resume_slot_locked "$slot" "$fp"); rc=$?
+        branch=?
+        if serve_state_load "$(serve_state_dir)/slot-$slot"; then branch="$SERVE_BRANCH"; fi
+        if [ "$rc" = 0 ]; then echo "$result"; result_lines+="result     slot $slot $branch resumed"$'\n'; ((resumed+=1))
+        elif [ "$rc" = 5 ]; then result_lines+="result     slot $slot $branch $result"$'\n'; ((skipped+=1))
+        else echo "$result"; result_lines+="result     slot $slot $branch failed (exit $rc)"$'\n'; ((failed+=1)); fi
+      done
+      printf '%s' "$result_lines"
+      echo "recover    $resumed resumed, $failed failed, $skipped skipped"
+      [ "$failed" = 0 ] && [ "$skipped" = 0 ]
+      ;;
+    *) echo 'usage: wt recover [--json]|resume|forget <slot:16hex>…' >&2; return 2 ;;
+  esac
 }
 cmd_serve() {
   local app needs_backend=0 ensure_pending=0 result
@@ -1367,8 +1635,8 @@ cmd_backend() {
   esac
 }
 
-# JSON keys: generatedAt, backend{tree,sha,relation,dirty,overall,services,urls},
-# slots[]{slot,branch,worktree,apps[]{app,port,url,unitState,httpReady},error?}.
+# JSON keys: generatedAt, boot{id,startedAt}, backend{tree,sha,relation,dirty,overall,services,urls},
+# slots[]{slot,branch,worktree,apps[]{app,port,url,unitState,httpReady},error?,recovery?}.
 cmd_status() {
   local json=0 qa offset sha relation dirt health slot file app port url state ready
   [ "${1:-}" = --json ] && json=1
@@ -1385,7 +1653,10 @@ for slot in D["slots"]:
  print("worktree   {}".format(slot["worktree"]))
  if slot.get("error"): print("error      {}".format(slot["error"]))
  for app in slot["apps"]:
-  print("app        {} {} {} HTTP {}".format(app["app"],app["url"],app["unitState"],"ready" if app["httpReady"] else "not ready"))'
+  print("app        {} {} {} HTTP {}".format(app["app"],app["url"],app["unitState"],"ready" if app["httpReady"] else "not ready"))
+ if slot.get("recovery"):
+  reason=slot["recovery"].get("reason")
+  print("recover    slot {} saved before the restart; resume or start fresh in Overseer{}".format(slot["slot"]," ("+reason+")" if reason else ""))'
     return
   fi
   qa=$(qa_tree) || qa=
@@ -1395,7 +1666,7 @@ for slot in D["slots"]:
   dirt=$(dirty_count "$qa")
   health=$("$(qa_stack_bin)" health --json 2>/dev/null || true)
   [ -n "$health" ] || health='{"overall":"down","services":{}}'
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" python3 - <<'PY_JSON'
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" python3 - <<'PY_JSON'
 import concurrent.futures, datetime, json, os, pathlib, re, subprocess, urllib.request
 
 def health_data():
@@ -1502,6 +1773,9 @@ def build_state(slot, app):
     return {'state': 'building' if lines else 'unknown'}
 
 def check(app):
+    if 'WT_STUB_PORTS' in os.environ:
+        app['httpReady'] = str(app['port']) in os.environ['WT_STUB_PORTS'].split()
+        return
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{app['port']}/", timeout=2) as response:
             app['httpReady'] = response.status < 500
@@ -1525,10 +1799,19 @@ backend = {'tree': os.environ['WT_STATUS_QA'], 'sha': os.environ['WT_STATUS_SHA'
 state_dir = pathlib.Path(os.environ['WT_STATUS_STATE_DIR'])
 slots = [slot_data(slot, file) for slot in range(2, 10)
          if (file := state_dir / f'slot-{slot}').is_file()]
+for row in os.environ['WT_STATUS_RECOVERY'].splitlines():
+    slot, fp, ok, reason = row.split('\t', 3)
+    for item in slots:
+        if item['slot'] == int(slot):
+            item['recovery'] = {'fingerprint': fp, 'resumable': ok == '1', 'reason': reason or None}
+            break
 apps = [app for slot in slots for app in slot['apps']]
 with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(apps))) as pool:
     list(pool.map(check, apps))
+try: boot_started = datetime.datetime.fromtimestamp(int(os.environ['WT_STATUS_BOOT_TIME']), datetime.timezone.utc).isoformat()
+except (ValueError, OverflowError): boot_started = None
 print(json.dumps({'generatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'boot': {'id': os.environ['WT_STATUS_BOOT_ID'] or None, 'startedAt': boot_started},
                   'backend': backend, 'slots': slots}))
 PY_JSON
 }
@@ -1762,6 +2045,7 @@ case "${1:-}" in
   ship) shift; cmd_ship "$@" ;;
   qa) shift; cmd_qa "$@" ;;
   serve) shift; cmd_serve "$@" ;;
+  recover) shift; cmd_recover "$@" ;;
   logs) shift; cmd_logs "$@" ;;
   backend) shift; cmd_backend "$@" ;;
   status) shift; cmd_status "$@" ;;
@@ -1782,6 +2066,9 @@ wt qa [branch]                        point QA tree at a commit (no branch: stat
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; register named sign-in URLs
 wt serve --stop <branch>              stop its frontend units
+wt recover [--json]                   list stopped sessions saved before this restart
+wt recover resume <slot:fp>…          restart selected saved sessions
+wt recover forget <slot:fp>…          forget stopped saved sessions; keep worktrees
 wt logs <branch> [app] [-n N] [-f]    frontend journals (default: 80 lines)
 wt backend [status|ensure|heal|logs|update [--reset|--force]|tab]
                                       shared QA backend controls
