@@ -80,9 +80,9 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .card-drip::before{content:"";position:absolute;left:0;top:0;width:3px;height:58%;background:var(--drip,var(--blood));border-radius:2px 0 3px 2px/2px 0 6px 2px;pointer-events:none}
 .card-drip::after{content:"";position:absolute;left:-1.5px;top:calc(58% - 4px);width:6px;height:8px;background:var(--drip,var(--blood));border-radius:50% 50% 50% 50%/40% 40% 60% 60%;pointer-events:none}
 .slot-card .card-drip{position:absolute;left:-20px;top:26px;width:6px;height:calc(100% - 44px)}
-.divider{display:block;height:18px;margin:-16px -10px 6px;pointer-events:none;overflow:visible}
+.divider{position:relative;display:block;height:24px;margin:-14px -10px 12px;pointer-events:none;overflow:visible}
 .slots>:first-child .divider{display:none}
-.divider .brush{position:static;display:block;width:100%;height:auto;max-height:22px;overflow:visible}
+.divider .brush{position:absolute;left:0;display:block;width:100%;overflow:visible}
 .brush{position:absolute;left:-2px;top:calc(100% - 10px);pointer-events:none;overflow:visible}
 .mark .brush{cursor:pointer}
 .branch .brush{top:calc(100% - 4px);clip-path:inset(0 100% 0 0);opacity:0;transition:clip-path .28s ease-out,opacity .12s}
@@ -146,8 +146,27 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
 .backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
 .backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
-.backend button.act.quiet.behind::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;background:var(--warn);vertical-align:1px}
-.backend button.act.quiet.behind:hover:not(:disabled)::before,.backend button.act.quiet.behind:focus-visible::before{background:currentColor}
+/* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
+   Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
+.backend .update-btn{display:inline-flex;align-items:center;gap:9px;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
+font:700 14px/1 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--key-ink);
+background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--key-wall),0 5px 6px -2px var(--contact);transition:transform .08s ease-out}
+.backend .update-btn .behind-badge{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px 4px;border-radius:3px;font:600 12px/1 var(--mono);letter-spacing:.02em;text-transform:none;color:var(--badge-ink);background:var(--badge-bg);box-shadow:var(--sunk)}
+.backend .update-btn:hover:not(:disabled),.backend .update-btn:focus-visible{border-color:transparent;color:var(--key-hover-ink);background:var(--key-hover-face) padding-box,var(--key-rim) border-box;transform:translateY(-1px);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--key-wall),0 7px 8px -2px var(--contact)}
+.backend .update-btn:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--well),0 0 0 var(--key-wall),0 1px 2px var(--contact)}
+.backend .update-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.backend .update-btn:disabled{cursor:progress;transform:translateY(2px);opacity:.62;box-shadow:inset 0 1px 0 var(--btn-hi),0 1px 0 var(--key-wall)}
+/* Show/Hide details: a small toggle key; expanded, it stays pressed in and its chevron points down. */
+.backend .toggle{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 10px 4px 7px;border:1px solid var(--toggle-edge,var(--border));border-radius:4px;background:transparent;color:var(--muted);font:600 13px/1 var(--serif);font-variant:var(--head-variant);letter-spacing:.03em;box-shadow:0 1px 0 var(--emb-hi);transition:transform .08s ease-out}
+.backend .toggle .chev{width:12px;height:12px;flex:none;transition:transform .18s ease-out}
+.backend .toggle[aria-expanded="true"]{background:var(--inset);box-shadow:var(--sunk);color:var(--text)}
+.backend .toggle[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.backend .toggle:hover:not(:disabled),.backend .toggle:focus-visible{color:var(--text);border-color:var(--accent);background:var(--inset)}
+.backend .toggle:active{transform:translateY(1px)}
+@media (prefers-reduced-motion:no-preference){.backend .toggle.turned[aria-expanded="true"] .chev{animation:chev-open .2s ease-out}.backend .toggle.turned[aria-expanded="false"] .chev{animation:chev-close .2s ease-out}}
+@keyframes chev-open{from{transform:none}to{transform:rotate(90deg)}}
+@keyframes chev-close{from{transform:rotate(90deg)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.backend .update-btn,.backend .toggle,.backend .toggle .chev{transition:none}}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px dashed var(--edge-lo2)}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
 .backend .action-result{margin:6px 0 0}
@@ -339,9 +358,11 @@ How to add a theme: add one entry to THEMES below.
                   --seep and --seep-ink (button hover fill and the seep pill hover), --danger and --danger-ink (optional; the
                   Stop button, default --seep), and with pillHover "charge": --charge, --charge-ink, --charge-edge, --charge-scan
                 materials: --desk-floor, --desk-card, --desk-card2, --edge-hi, --edge-line, --edge-lo, --edge-lo2, --age, --contact,
-                  --lift, --emb-hi, --emb-lo, --well, --stamp-ok, --rule-ink, --rule-ink-deep, --btn-face, --btn-ink, --btn-hi,
+                  --lift, --emb-hi, --emb-lo, --well, --stamp-ok, --rule-ink, --rule-ink-deep, --rule-sheen (optional), --btn-face, --btn-ink, --btn-hi,
                   --btn-edge, --head-case, --head-variant, --head-spacing, the lighting keys --pool* and --flicker-*, and the
                   tag keys --tag, --tag-edge, --tag-ink, --tag-muted, --tag-ok, --tag-warn, --tag-bad, --tag-off, --tag-off-ink, --tag-off-bad
+                update key and details toggle: --key-face, --key-hover-face, --key-rim (border gradient), --key-ink,
+                  --key-hover-ink, --key-wall, --badge-bg, --badge-ink, --toggle-edge
                 select popups (optional): --picker-face, --picker-radius, --picker-hl, --picker-hl-ink, --picker-hl-shadow,
                   --picker-check, --picker-hl-check
   fonts         {serif, mono, body} font stacks
@@ -360,7 +381,17 @@ How to add a theme: add one entry to THEMES below.
                 brush language. inkIcons does the same for {copy, terminal, stop, settings}. Omit both to keep the pixel set.
   brushStroke   {colors:{core, edge}, presets:{name:{weight, taperIn, taperOut, wobble, bristles, dryEnd, hook,
                 drips:[min,max], dripLength, spatter:[min,max]}}} for the wordmark and branch underlines
-  brushStroke.rule   optional preset (with optional colors) for the seeded dividers between sessions
+  brushStroke.rule   optional seeded divider between sessions. Either a preset like the ones above (with optional colors),
+                or a divider with a style, drawn once per branch at the card's width:
+                  common: {style: "drybrush"|"marker", height, baseline (px, SVG box height and stroke centre), weight, wobble,
+                    bow, slope (px), shorten (max fraction trimmed off the end), drips: [min,max], dripLength, dripWidth,
+                    spatter: [min,max], opacity, colors: {core, edge, pool, sheen}, overprint: {color, dx, dy, opacity}}
+                  drybrush: taperIn, taperOut, flick: [chance, lift px], bristles, streaks (share of bristles in the edge ink),
+                    ragged, dryStart (where the brush starts running dry, 0-1), splay (how far bristles fan out at the end), pools,
+                    hairs (bristles flying past the end)
+                  marker: nib (chisel angle in degrees), body and lap (ink opacity of the stroke and the overlap), dry (streaks of
+                    colors.gap showing through), overspray
+                    (dot count), spread (px)
   brushStroke.overprint   optional {color, dx, dy, opacity}: every stroke is also printed in a second, offset ink
   halftoneOverprint  optional {dx, dy, scale, alpha, dark: {color, blend}, light: {color, blend}}: a second ink pass of the
                 halftone eye, offset by (dx, dy) px for misregistration; blend is a canvas composite mode
@@ -430,26 +461,26 @@ var THEMES = {
         "--banner-text": "#fff", "--shade": "rgba(80,50,20,.10)", "--desk-floor": "#3a2c21", "--desk-card": "#f1e6cc", "--desk-card2": "#e2d3b1", "--edge-hi": "rgba(255,255,255,.75)", "--edge-line": "rgba(120,86,40,.2)",
         "--edge-lo": "#cdb68b", "--edge-lo2": "#9c8460", "--age": "rgba(150,100,40,.30)", "--contact": "rgba(28,14,4,.6)", "--lift": "rgba(28,14,4,.6)",
         "--emb-hi": "rgba(255,255,255,.8)", "--emb-lo": "rgba(80,50,20,.16)", "--well": "rgba(80,50,20,.32)", "--stamp-ok": "#3b2a1d",
-        "--rule-ink": "#7e231c", "--rule-ink-deep": "#4e100c", "--tag": "#e3cc98", "--tag-off": "#d9cdb3", "--tag-off-bad": "#a3001a", "--tag-edge": "#8a7048",
+        "--rule-ink": "#933328", "--rule-ink-deep": "#64170f", "--rule-sheen": "#c0604f", "--tag": "#e3cc98", "--tag-off": "#d9cdb3", "--tag-off-bad": "#a3001a", "--tag-edge": "#8a7048",
         "--tag-ink": "#1f140b", "--tag-muted": "#4a3520", "--tag-off-ink": "#4a3a2a", "--tag-ok": "#5a4630", "--tag-warn": "#704500", "--tag-bad": "#920018",
         "--btn-face": "#2b1b10", "--btn-ink": "#f8efda", "--btn-hi": "rgba(255,255,255,.16)", "--btn-edge": "#0e0603",
         "--head-case": "none", "--head-variant": "small-caps", "--head-spacing": ".05em", "--dim": "rgba(28,16,6,.55)",
         "--pool": "rgba(255,214,150,.30)", "--pool-2": "rgba(255,200,130,.0)", "--flicker-1": "rgba(255,170,80,.36)", "--flicker-2": "rgba(255,190,110,.16)",
         "--desk-vignette": "rgba(14,8,3,.62)", "--blotter-corner": "#3a1512", "--blotter-edge": "#1c0807", "--stitch": "rgba(214,170,120,.55)",
-        "--margin-ink": "rgba(168,0,26,.42)", "--ruled": "rgba(70,100,150,.20)", "--picker-hl-shadow": "inset 3px 0 0 var(--blood),var(--sunk)"},
+        "--margin-ink": "rgba(168,0,26,.42)", "--ruled": "rgba(70,100,150,.20)", "--picker-hl-shadow": "inset 3px 0 0 var(--blood),var(--sunk)", "--key-face": "linear-gradient(180deg,#fdf7e8,#efe2c3)", "--key-hover-face": "linear-gradient(180deg,#fffdf6,#f6ecd2)", "--key-rim": "linear-gradient(180deg,#f2d88e,#c29a45 38%,#7a5718 75%,#4a330c)", "--key-ink": "#23170f", "--key-hover-ink": "#23170f", "--key-wall": "#8a6f45", "--badge-bg": "#e6d6b8", "--badge-ink": "#5e3a00", "--toggle-edge": "#b49d76"},
       dark: {"--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
         "--border": "#3b2320", "--rule": "#6e0a12", "--ok": "#5fd18a", "--bad": "#ff5c68", "--warn": "#e0a948",
         "--idle": "#8a7b6c", "--glyph-ok": "#a39482", "--glyph-bad": "#ff3348", "--accent": "#ff5c68", "--blood": "#e0061f", "--blood-deep": "#7a0310", "--seep": "#9a0414", "--seep-ink": "#f4ead5", "--hl": "#3a1214", "--banner": "#8f0414",
         "--banner-text": "#f4ead5", "--shade": "rgba(0,0,0,.55)", "--desk-floor": "#070403", "--desk-card": "#1e1613", "--desk-card2": "#17100d", "--edge-hi": "rgba(255,232,200,.08)", "--edge-line": "rgba(0,0,0,.4)",
         "--edge-lo": "#0c0806", "--edge-lo2": "#050302", "--age": "rgba(0,0,0,.6)", "--contact": "rgba(0,0,0,.85)", "--lift": "rgba(0,0,0,.9)",
         "--emb-hi": "rgba(255,236,210,.07)", "--emb-lo": "rgba(0,0,0,.75)", "--well": "rgba(0,0,0,.65)", "--stamp-ok": "#cdbda2",
-        "--rule-ink": "#9a221b", "--rule-ink-deep": "#5e100d", "--tag": "#cfb98c", "--tag-off": "#4a3f31", "--tag-off-bad": "#ff6b6b", "--tag-edge": "#3a2c1c",
+        "--rule-ink": "#9a221b", "--rule-ink-deep": "#5e100d", "--rule-sheen": "#c9493a", "--tag": "#cfb98c", "--tag-off": "#4a3f31", "--tag-off-bad": "#ff6b6b", "--tag-edge": "#3a2c1c",
         "--tag-ink": "#1d1209", "--tag-muted": "#47331d", "--tag-off-ink": "#f1e6d0", "--tag-ok": "#5a4630", "--tag-warn": "#5e3900", "--tag-bad": "#780014",
         "--btn-face": "#e6d8bd", "--btn-ink": "#1a100c", "--btn-hi": "rgba(255,255,255,.55)", "--btn-edge": "#7d6b54",
         "--head-case": "none", "--head-variant": "small-caps", "--head-spacing": ".05em", "--dim": "rgba(4,1,1,.68)",
         "--pool": "rgba(255,160,80,.085)", "--pool-2": "rgba(255,140,60,.0)", "--flicker-1": "rgba(255,140,50,.20)", "--flicker-2": "rgba(255,150,70,.075)",
         "--desk-vignette": "rgba(0,0,0,.72)", "--blotter-corner": "#1d0d0b", "--blotter-edge": "#000", "--stitch": "rgba(150,96,70,.45)",
-        "--margin-ink": "rgba(224,6,31,.34)", "--ruled": "rgba(150,170,210,.07)", "--picker-hl-shadow": "inset 3px 0 0 var(--blood),var(--sunk)"}
+        "--margin-ink": "rgba(224,6,31,.34)", "--ruled": "rgba(150,170,210,.07)", "--picker-hl-shadow": "inset 3px 0 0 var(--blood),var(--sunk)", "--key-face": "linear-gradient(180deg,#3b2d25,#2a201b)", "--key-hover-face": "linear-gradient(180deg,#4a392e,#352820)", "--key-rim": "linear-gradient(180deg,#f2d88e,#c29a45 38%,#7a5718 75%,#4a330c)", "--key-ink": "#f1e6d0", "--key-hover-ink": "#fff6e2", "--key-wall": "#050302", "--badge-bg": "#120b0b", "--badge-ink": "#e8b45a", "--toggle-edge": "#4a3a30"}
     },
     fonts: {
       serif: '"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif',
@@ -495,9 +526,12 @@ var THEMES = {
         dripping: {weight: 4, taperIn: 0.09, taperOut: 0.24, wobble: 0.7, bristles: 2, dryEnd: 2, hook: 0.15, drips: [2, 3], dripLength: 12, spatter: [0, 2]},
         thin: {weight: 2.6, taperIn: 0.14, taperOut: 0.3, wobble: 0.6, bristles: 2, dryEnd: 3, hook: 0.25, drips: [0, 1], dripLength: 5, spatter: [0, 2]}
       },
-      // Dried-ink dividers between sessions: long, thin, dry at the end, with the odd fleck of spatter.
-      rule: {weight: 4.2, taperIn: 0.05, taperOut: 0.3, wobble: 2.4, bristles: 3, dryEnd: 2, hook: 0, drips: [0, 1], dripLength: 5, spatter: [2, 4],
-        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink-deep)"}}
+      // Dividers between sessions: one heavy dry-brush swipe in dried ink. It lands and pools, streaks into bristle lines as it
+      // runs dry, and usually lifts off in a flick; about half drip once.
+      rule: {style: "drybrush", height: 56, baseline: 23, weight: 15, taperIn: 0.03, taperOut: 0.1, wobble: 3.4, bow: 3, slope: 4,
+        flick: [0.8, 13], bristles: 22, streaks: 0.4, ragged: 0.14, dryStart: 0.36, splay: 0.5, pools: 2, hairs: 3,
+        drips: [0, 1], dripLength: 14, dripWidth: 1.9, spatter: [3, 7], opacity: 0.9,
+        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink-deep)", pool: "var(--rule-ink-deep)", sheen: "var(--rule-sheen)"}}
     },
     pillHover: "seep",
     eyeModes: ["full", "subtle", "static"],
@@ -548,7 +582,14 @@ var THEMES = {
         D + ' .settings::before{top:-10px;left:-26px;right:auto;transform:rotate(-31deg)}',
         // Lifted towards the candle, the popup catches more of its light.
         D + ' .settings{background:radial-gradient(120% 90% at 30% 0,var(--flicker-1) 0,transparent 60%),var(--stock)}',
-        D + ' .settings::after{top:-10px;right:-26px;left:auto;bottom:auto;transform:rotate(29deg)}'
+        D + ' .settings::after{top:-10px;right:-26px;left:auto;bottom:auto;transform:rotate(29deg)}',
+        // Slot numbers are rubber-stamped onto the card stock: a seeded tilt, an inked frame and worn grit in the ink.
+        D + ' .slot-card .head{padding-right:5.6em}',
+        D + ' .slotno{top:27px;padding:4px 8px 3px;border:1.5px solid currentColor;border-radius:5px;background:none;box-shadow:none;color:var(--stamp-ok);' +
+          'font:700 14px/1.05 var(--serif);font-variant:small-caps;letter-spacing:.1em;transform:rotate(var(--stamp-tilt,-3deg));' +
+          '-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7))}',
+        // The update key has brass edges; the details toggle is set in the same small caps as the headings.
+        D + ' .backend .update-btn{font-size:15px}'
       ].join("\n");
     })(),
     // A worn leather blotter on black velvet, card stock with foxing, smoky fog, and candles screened into the same halftone dots as the eye.
@@ -610,7 +651,7 @@ THEMES.neon = (function () {
         "--desk-floor": "#8f8f88", "--desk-card": "#f4f4ee", "--desk-card2": "#e2e2d9", "--edge-hi": "rgba(255,255,255,.95)", "--edge-line": "rgba(40,40,20,.14)",
         "--edge-lo": "#c6c6bb", "--edge-lo2": "#9b9b8f", "--age": "rgba(120,110,40,.06)", "--contact": "rgba(20,20,10,.45)", "--lift": "rgba(20,20,10,.42)",
         "--emb-hi": "rgba(255,255,255,.95)", "--emb-lo": "rgba(30,30,10,.12)", "--well": "rgba(30,30,10,.26)", "--stamp-ok": "#0b0b0d",
-        "--rule-ink": "#0b0b0d", "--rule-ink-deep": "#fcee0a", "--tag": "#fcee0a", "--tag-off": "#dddcd2", "--tag-off-bad": "#b0002a", "--tag-edge": "#7a7100",
+        "--rule-ink": "#00606c", "--rule-ink-deep": "#e6d800", "--tag": "#fcee0a", "--tag-off": "#dddcd2", "--tag-off-bad": "#b0002a", "--tag-edge": "#7a7100",
         "--tag-ink": "#0b0b0d", "--tag-muted": "#4a4400", "--tag-off-ink": "#3a3a33", "--tag-ok": "#005f6b", "--tag-warn": "#8a4b00", "--tag-bad": "#b0002a",
         "--btn-face": "#0b0b0d", "--btn-ink": "#fcee0a", "--btn-hi": "rgba(255,255,255,.18)", "--btn-edge": "#000",
         "--head-case": "uppercase", "--head-variant": "normal", "--head-spacing": ".12em",
@@ -618,7 +659,7 @@ THEMES.neon = (function () {
         "--desk-vignette": "rgba(30,30,20,.34)", "--blotter-edge": "#77776c", "--stitch": "rgba(0,0,0,.38)",
         "--scan": "rgba(30,30,10,.035)", "--screw": "#b8b8ac", "--screw-hi": "#ffffff", "--screw-lo": "#6e6e62", "--cap-hi": "#fff8a0",
         "--led-ok": "#fcee0a", "--led-ok-glow": "rgba(252,238,10,.45)", "--led-bad": "#ff3355", "--led-bad-glow": "rgba(255,51,85,.55)", "--led-warn": "#ff9a3c", "--led-bg": "#0b0b0d",
-        "--picker-radius": "8px", "--picker-hl": "#0b0b0d", "--picker-hl-ink": "#fcee0a", "--picker-hl-shadow": "none", "--picker-check": "#006b78", "--picker-hl-check": "#fcee0a"},
+        "--picker-radius": "8px", "--picker-hl": "#0b0b0d", "--picker-hl-ink": "#fcee0a", "--picker-hl-shadow": "none", "--picker-check": "#006b78", "--picker-hl-check": "#fcee0a", "--key-face": "linear-gradient(180deg,#ffffff,#e8e8e0 55%)", "--key-hover-face": "linear-gradient(#0b0b0d,#0b0b0d)", "--key-rim": "linear-gradient(180deg,#d4d4c8,#8f8f83)", "--key-ink": "#0b0b0d", "--key-hover-ink": "#fcee0a", "--key-wall": "#7c7c70", "--badge-bg": "#0b0b0d", "--badge-ink": "#ff9a3c", "--toggle-edge": "#9b9b8f"},
       dark: {"--inset": "#0a0a0d", "--text": "#fcee0a", "--muted": "#bdb47a", "--border": "#2a2a22", "--rule": "#02d7f2", "--ok": "#02d7f2", "--bad": "#ff5470", "--warn": "#ff9a3c",
         "--idle": "#8f8a6a", "--glyph-ok": "#a39c66", "--glyph-bad": "#ff1f4f", "--accent": "#02d7f2", "--ink2": "#02d7f2", "--overprint": "#02d7f2",
         "--blood": "#fcee0a", "--blood-deep": "#7a001c", "--drip": "#ff003c", "--seep": "#fcee0a", "--seep-ink": "#0a0a0c", "--danger": "#ff003c", "--danger-ink": "#0a0a0c",
@@ -635,7 +676,7 @@ THEMES.neon = (function () {
         "--desk-vignette": "rgba(0,0,0,.72)", "--blotter-edge": "#000", "--stitch": "rgba(252,238,10,.42)",
         "--scan": "rgba(255,255,255,.022)", "--screw": "#45453c", "--screw-hi": "#cfcab0", "--screw-lo": "#08080a", "--cap-hi": "#26262e",
         "--led-ok": "#fcee0a", "--led-ok-glow": "rgba(252,238,10,.5)", "--led-bad": "#ff003c", "--led-bad-glow": "rgba(255,0,60,.6)", "--led-warn": "#ff9a3c", "--led-bg": "#060607",
-        "--picker-radius": "8px", "--picker-hl": "#fcee0a", "--picker-hl-ink": "#0a0a0c", "--picker-hl-shadow": "none", "--picker-check": "#02d7f2", "--picker-hl-check": "#0a0a0c"}
+        "--picker-radius": "8px", "--picker-hl": "#fcee0a", "--picker-hl-ink": "#0a0a0c", "--picker-hl-shadow": "none", "--picker-check": "#02d7f2", "--picker-hl-check": "#0a0a0c", "--key-face": "linear-gradient(180deg,#2a2a33,#1a1a20 55%)", "--key-hover-face": "linear-gradient(#fcee0a,#fcee0a)", "--key-rim": "linear-gradient(180deg,rgba(252,238,10,.45),rgba(252,238,10,.12))", "--key-ink": "#fcee0a", "--key-hover-ink": "#0a0a0c", "--key-wall": "#000", "--badge-bg": "#060607", "--badge-ink": "#ff9a3c", "--toggle-edge": "rgba(2,215,242,.45)"}
     },
     fonts: {
       serif: '"JetBrains Mono","Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace',
@@ -666,8 +707,11 @@ THEMES.neon = (function () {
         tag: {weight: 4, taperIn: 0.03, taperOut: 0.12, wobble: 0.7, bristles: 0, dryEnd: 1, hook: 0.6, drips: [0, 1], dripLength: 6, spatter: [1, 3]},
         fine: {weight: 2.6, taperIn: 0.02, taperOut: 0.05, wobble: 0.3, bristles: 0, dryEnd: 0, hook: 0.2, drips: [0, 0], dripLength: 0, spatter: [0, 1]}
       },
-      rule: {weight: 2.2, taperIn: 0.01, taperOut: 0.03, wobble: 1.4, bristles: 0, dryEnd: 0, hook: 0, drips: [0, 0], dripLength: 0, spatter: [3, 6],
-        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink)"}, overprint: {color: "var(--rule-ink-deep)", dx: 2, dy: 1.6, opacity: 0.55}}
+      // Dividers: a chisel-nib marker swipe with hard angled ends and a lap mark, spray overspray and the odd run, doubled in
+      // the second ink off register.
+      rule: {style: "marker", height: 44, baseline: 18, weight: 6.5, nib: 38, wobble: 1.6, bow: 2, slope: 2.5, shorten: 0.12,
+        body: 0.82, lap: 0.5, dry: 3, overspray: 150, spread: 7, drips: [0, 1], dripLength: 12, dripWidth: 1.1, spatter: [2, 5], opacity: 0.9,
+        colors: {core: "var(--rule-ink)", edge: "var(--rule-ink)", gap: "var(--desk-card)"}, overprint: {color: "var(--rule-ink-deep)", dx: 3, dy: 2.4, opacity: 0.5}}
     },
     pillHover: "charge",
     eyeModes: blood.eyeModes,
@@ -707,7 +751,17 @@ THEMES.neon = (function () {
       N + ' .app-pill.off::after{inset:0 0 -1px}',
       N + ' a.app-pill.off:hover,' + N + ' a.app-pill.off:focus-visible{transform:translateY(2px)}',
       N + ' a.app-pill:hover,' + N + ' a.app-pill:focus-visible{transform:translateY(2px)}',
-      N + ' .slotno{font-weight:600;letter-spacing:.06em}',
+      // Slot numbers are printed labels on the acrylic: a second-ink outline with a cut corner, a registration bar and a hatch.
+      N + ' .slot-card .head{padding-right:6.6em}',
+      N + ' .slotno{top:27px;padding:4px 10px 3px 10px;border:1px solid color-mix(in srgb,var(--ink2) 65%,transparent);border-left:3px solid var(--ink2);border-radius:0;box-shadow:none;color:var(--ink2);' +
+        'background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--ink2) 13%,transparent) 0 1.5px,transparent 1.5px 5px);font:700 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;' +
+        'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}',
+      // The update key and the details toggle are keycaps in the plate's mono type.
+      N + ' .backend .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
+      N + ' .backend .update-btn{font-size:13px;border-radius:5px}',
+      N + ' .backend .toggle{font-size:11.5px}',
+      N + ' .backend .toggle .chev{color:var(--ink2)}',
+      N + ' .backend .update-btn .behind-badge{background:' + scan + ',var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 55%,transparent);box-shadow:inset 0 1px 3px #000}',
       // The chosen Appearance segment is lit like a charged key.
       N + ' .settings .segmented label:has(input:checked){background:var(--charge);color:var(--charge-ink);box-shadow:0 2px 0 var(--btn-edge),0 3px 4px var(--contact)}',
       // The open select list is the same dark acrylic, edged with a hairline of the second ink.
@@ -1178,6 +1232,13 @@ function actionButton(name,idle,extra){
   var label=busy?labels[1]:(idle||labels[0]);
   return'<button type="button" class="act'+(extra?" "+extra:"")+'" data-action="'+name+'"'+(isRunning()?" disabled":"")+'>'+label+'</button>';
 }
+// Updating the backend is a real button: "Update" plus a badge with how far behind develop it is. Behind is not an error.
+function updateButton(relation){
+  var a=currentAction(),busy=isRunning()&&a.action==="update",count=(/behind\D*(\d+)/i.exec(relation)||[])[1];
+  var badge=count?count+" behind":relation,title="Update the backend to develop ("+relation+")";
+  return'<button type="button" class="update-btn" data-action="update" title="'+esc(title)+'" aria-label="'+esc(busy?"Updating the backend to develop":"Update to develop, "+badge)+'"'+(isRunning()?" disabled":"")+'>'+
+    '<span class="update-label">'+(busy?"Updating&hellip;":"Update")+'</span><span class="behind-badge">'+esc(badge)+'</span></button>';
+}
 function renderActionResult(){
   var a=currentAction();
   if(!a&&!actionError)return"";
@@ -1205,10 +1266,12 @@ function renderBackend(b){
   var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
     '<span class="state">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span></div>'+
-    '<div class="rel">'+(behind?actionButton("update",esc(b.relation.charAt(0).toUpperCase()+b.relation.slice(1))+" &middot; update","quiet behind"):'<span class="pill rel">'+esc(b.relation||"?")+'</span>')+'</div>'+
+    '<div class="rel">'+(behind?updateButton(b.relation):'<span class="pill rel">'+esc(b.relation||"?")+'</span>')+'</div>'+
     (actions?'<div class="acts">'+actions+'</div>':"")+
     '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span>'+
-    '<button type="button" class="link toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+(open?"hide":"show")+' details</button></div></div>'+renderActionResult();
+    '<button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+
+    '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+    '<span>'+(open?"Hide":"Show")+' details</span></button></div></div>'+renderActionResult();
   if(open){
     var svcs=b.services||{};
     h+='<div id="backend-details" class="backend-details">'+(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
@@ -1274,9 +1337,11 @@ function appPill(a){
   return'<span class="app-pill off tone-'+status.tone+'" title="'+esc(name)+' has no link">'+inner+'</span>';
 }
 function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
+// The slot number is stamped by hand: a seeded tilt per slot and branch, so it never re-rolls on refresh.
+function stampTilt(s){var h=hashText("stamp:"+s.slot+":"+(s.branch||"")),m=1.5+(h%1000)/1000*3.5;return((h>>>10)&1?m:-m).toFixed(1)}
 function renderSlot(s){
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"");
-  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno">slot '+esc(s.slot)+'</span>'+
+  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno" style="--stamp-tilt:'+stampTilt(s)+'deg">slot '+esc(s.slot)+'</span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
       ((s.apps||[]).length?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
@@ -1414,7 +1479,7 @@ document.addEventListener("click",function(e){
     var healthy=!data||!data.backend||backendHealthy(data.backend);
     detailsChoice={healthy:healthy,open:!detailsOpen(healthy)};
     try{sessionStorage.setItem("qaDashboardBackendDetails",JSON.stringify(detailsChoice))}catch(e){}
-    render();var again=document.querySelector("[data-toggle]");if(again)again.focus();
+    render();var again=document.querySelector("[data-toggle]");if(again){again.classList.add("turned");again.focus()}
   }
   else if(t.hasAttribute("data-copy"))copyText(t.getAttribute("data-copy"),t);
   else if(t.hasAttribute("data-stop")){
@@ -1582,18 +1647,106 @@ var QA_BRUSH=(function(){
     mark.classList.add("has-brush");
     paint(mark,mark.getBoundingClientRect().width||110,(Math.random()*4294967296)>>>0,1,true);
   }
-  // Hand-inked dividers between sessions (shown in Desk), seeded per branch so they stay put across refreshes.
+  // Section dividers, drawn once per branch at the card's real width (so a stroke keeps its weight on a phone).
+  // "drybrush": a loaded brush lands and pools, splits into bristle streaks as it runs dry, and lifts off in a flick, with the
+  // odd drip and a few specks. "marker": a chisel nib or spray can: hard angled ends, even width, lap marks where it went over
+  // itself, overspray dots and the occasional run. Either may be printed again in a second ink, off register.
+  function clamp(v){return v<0?0:v>1?1:v}
+  function divider(width,seed,rule){
+    var next=random(seed),c=rule.colors,H=rule.height,base=rule.baseline,out=[],N=140,marker=rule.style==="marker";
+    var W=width,weight=jitter(next,rule.weight),start=3+next()*W*0.03,end=W-4-next()*W*(rule.shorten||0.06);
+    var bow=(next()-0.5)*2*rule.bow,slope=(next()-0.5)*2*rule.slope,wobble=jitter(next,rule.wobble);
+    var drift=smoothNoise(next,6),pressA=smoothNoise(next,4),pressB=smoothNoise(next,13);
+    var lift=rule.flick&&next()<rule.flick[0]?rule.flick[1]*(0.65+0.6*next()):0,land=0.04+next()*0.05;
+    var nib=marker?Math.tan((rule.nib||0)*Math.PI/180):0,cx=[],cy=[],cw=[];
+    for(var i=0;i<=N;i++){
+      var u=i/N,x=start+(end-start)*u,t=clamp((u-0.88)/0.12);
+      var y=base+slope*(u-0.5)+bow*(4*u*(1-u)-0.5)+wobble*(drift(u)-0.5)-lift*Math.pow(t,1.7);
+      var w=marker?weight*(0.93+0.1*pressB(u)):weight*(0.55+0.65*pressA(u)+0.3*(pressB(u)-0.5))*Math.pow(clamp(u/rule.taperIn),0.55)*Math.pow(clamp((1-u)/rule.taperOut),0.9)*(1+0.35*Math.exp(-Math.pow((u-land)/0.05,2)));
+      cx.push(x);cy.push(y);cw.push(Math.max(0.15,w));
+    }
+    function fill(color,opacity){return'style="fill:'+color+'"'+(opacity!=null&&opacity<1?' fill-opacity="'+fixed(opacity)+'"':"")}
+    // A ribbon that follows the stroke between u0 and u1: off is its centre as a fraction of the stroke width, frac its width.
+    var splay=rule.splay||0;
+    function ribbon(i0,i1,off,frac,color,opacity,taper){
+      var top=[],bottom=[];
+      for(var i=i0;i<=i1;i++){
+        var k=taper?Math.min(1,(i-i0+1)/3,(i1-i+1)/3):1,half=cw[i]*frac*k/2,y=cy[i]+off*cw[i]*(1+splay*clamp((i/N-0.6)/0.4)),dx=nib*cw[i]*frac/2;
+        top.push(fixed(cx[i]+dx)+" "+fixed(y-half));bottom.unshift(fixed(cx[i]-dx)+" "+fixed(y+half));
+      }
+      if(top.length>1)out.push('<path '+fill(color,opacity)+' d="M'+top.join("L")+"L"+bottom.join("L")+'Z"/>');
+    }
+    function speck(x,y,r,color,opacity){out.push('<circle '+fill(color,opacity)+' cx="'+fixed(x)+'" cy="'+fixed(Math.max(r,Math.min(H-r,y)))+'" r="'+fixed(r)+'"/>')}
+    function gauss(){return(next()+next()+next()-1.5)/1.5}
+    if(marker){
+      // Laid down twice where the nib went back over itself, so the overlap reads denser; a blot where the nib rested.
+      ribbon(0,N,0,1,c.core,rule.body);
+      var lapA=Math.floor(N*(0.05+next()*0.2)),lapB=Math.min(N,lapA+Math.floor(N*(0.2+next()*0.3)));
+      ribbon(lapA,lapB,(next()-0.5)*0.12,0.96,c.core,rule.lap);
+      out.push('<path '+fill(c.core,rule.body)+' d="'+blobPath(cx[0]+cw[0]*0.15,cy[0],cw[0]*0.62,5,0.07,next()*6)+'"/>');
+      // The felt runs dry towards the end: thin streaks of the card show through.
+      for(var q=0;q<(rule.dry||0);q++)ribbon(Math.floor(N*(0.5+next()*0.3)),N-1,(next()-0.5)*0.6,0.09+next()*0.09,c.gap,0.75,true);
+      for(var o=0;o<rule.overspray;o++){
+        var at=Math.min(N,Math.floor(Math.pow(next(),next()<0.5?0.6:1.6)*N)),side=next()<0.62?1:-1,spread=cw[at]/2+Math.abs(gauss())*rule.spread;
+        speck(cx[at]+gauss()*6,cy[at]+side*spread,0.3+next()*0.6,c.core,0.35+next()*0.5);
+      }
+    }else{
+      // Bristles: overlapping ribbons that each run out of ink on their own, the outer ones first, so the tail breaks into streaks.
+      for(var b=0;b<rule.bristles;b++){
+        var off=((b+0.5)/rule.bristles-0.5)*(1+0.06*(next()-0.5)),frac=(1.4+next()*0.8)/rule.bristles,ink=next()<rule.streaks?c.edge:c.core;
+        var gaps=smoothNoise(next,34+Math.floor(next()*30)),from=Math.floor(next()*N*0.03),to=N-Math.floor(next()*N*rule.ragged),outer=Math.pow(Math.abs(off)*2,3),run=-1;
+        for(var j=from;j<=to+1;j++){
+          var dry=clamp((j/N-rule.dryStart)/(1-rule.dryStart)),inked=j<=to&&gaps(j/N)>dry*(0.5+0.4*outer)+outer*0.32+(dry>0?0.08:0);
+          if(inked&&run<0)run=j;
+          if(!inked&&run>=0){if(j-run>1)ribbon(run,j-1,off,frac*(1-0.5*clamp(((run+j)/2/N-rule.dryStart)/(1-rule.dryStart))),ink,1,true);run=-1}
+        }
+      }
+      // Ink pools where the brush landed and gathers along the edges of the loaded part.
+      var loaded=Math.floor(N*rule.dryStart),li=Math.floor(N*land);
+      out.push('<path '+fill(c.core)+' d="'+blobPath(cx[li]-cw[li]*0.25,cy[li],cw[li]*0.5,4,0.08,next()*6)+'"/>');
+      ribbon(Math.floor(N*land*0.4),Math.floor(N*(land+0.07)),0.04,0.62,c.pool,0.8,true);
+      ribbon(2,loaded,-0.4,0.16,c.pool,0.7,true);ribbon(4,Math.floor(loaded*0.8),0.41,0.14,c.pool,0.6,true);
+      for(var p=0;p<rule.pools;p++){var p0=Math.floor(N*(0.1+next()*0.4));ribbon(p0,p0+Math.floor(N*(0.04+next()*0.07)),(next()-0.5)*0.4,0.25+next()*0.25,c.pool,0.75,true)}
+      if(c.sheen)for(var s=0;s<2;s++){var s0=Math.floor(N*(0.06+next()*0.25));ribbon(s0,s0+Math.floor(N*(0.12+next()*0.2)),-0.18+next()*0.2,0.06,c.sheen,0.5,true)}
+      // A few bristles fly past the end of the flick as thin tapered hairs.
+      for(var h=0;h<rule.hairs;h++){
+        var hi=Math.floor(N*(0.9+next()*0.06)),ho=(next()-0.5)*0.7,hx=end+2+next()*9,hy=cy[N]+ho*cw[hi]*0.5-next()*3,hw=0.35+next()*0.4,mx=(cx[hi]+hx)/2,my=(cy[hi]+ho*cw[hi]+hy)/2;
+        out.push('<path '+fill(c.core,0.85)+' d="M'+fixed(cx[hi])+" "+fixed(cy[hi]+ho*cw[hi]-hw)+"Q"+fixed(mx)+" "+fixed(my-hw)+" "+fixed(hx)+" "+fixed(hy)+"Q"+fixed(mx)+" "+fixed(my+hw)+" "+fixed(cx[hi])+" "+fixed(cy[hi]+ho*cw[hi]+hw)+'Z"/>');
+      }
+    }
+    // A drip runs down from the underside: a shoulder where it leaves the stroke, a thin neck and a bead.
+    var drips=rule.drips[0]+Math.floor(next()*(rule.drips[1]-rule.drips[0]+1));
+    for(var d=0;d<drips;d++){
+      var di=Math.floor(N*(0.16+next()*0.5)),dx=cx[di],y0=cy[di]+cw[di]*0.38,len=Math.min(H-y0-3,rule.dripLength*(0.55+0.6*next())),neck=rule.dripWidth*(0.8+0.4*next());
+      out.push('<path '+fill(c.core)+' d="M'+fixed(dx-neck*2.4)+" "+fixed(y0-1)+"Q"+fixed(dx-neck*0.55)+" "+fixed(y0+1.5)+" "+fixed(dx-neck*0.5)+" "+fixed(y0+len)+"L"+fixed(dx+neck*0.5)+" "+fixed(y0+len)+"Q"+fixed(dx+neck*0.6)+" "+fixed(y0+1.5)+" "+fixed(dx+neck*2.2)+" "+fixed(y0-1)+'Z"/>');
+      speck(dx,y0+len,neck*0.95,c.core);
+    }
+    // Specks thrown off the end of the stroke, and the odd one near where it landed.
+    var specks=rule.spatter[0]+Math.floor(next()*(rule.spatter[1]-rule.spatter[0]+1));
+    for(var m=0;m<specks;m++){
+      var late=next()<0.7,sx=late?end-12+next()*30:start+next()*W*0.25,sy=(late?cy[N]-lift*0.3:base)+gauss()*(weight*0.9+5);
+      speck(sx,sy,0.5+Math.pow(next(),2)*1.4,next()<0.6?c.core:c.edge);
+    }
+    var ink=out.join(""),op=rule.overprint;
+    if(op){var copy=ink;[c.core,c.edge,c.pool,c.sheen].forEach(function(color){if(color)copy=copy.split(color).join(op.color)});ink='<g transform="translate('+fixed(op.dx)+" "+fixed(op.dy)+')" opacity="'+op.opacity+'">'+copy+"</g>"+ink}
+    return'<svg class="brush" viewBox="0 0 '+fixed(W)+" "+H+'" preserveAspectRatio="none" style="top:'+(12-base)+'px;height:'+H+'px" aria-hidden="true"><g opacity="'+(rule.opacity==null?1:rule.opacity)+'">'+ink+"</g></svg>";
+  }
+  // Hand-inked dividers between sessions, seeded per branch so they stay put across refreshes.
   function rules(root){
     var config=QA_THEME.current().brushStroke;
     if(!config||!config.rule)return;
     var cards=root.classList&&root.classList.contains("slot-card")?[root]:root.querySelectorAll(".slot-card");
     Array.prototype.forEach.call(cards,function(card){
       var branch=card.querySelector(".branch"),name=(branch?branch.textContent:"")+"|"+QA_THEME.id(),old=card.querySelector(":scope > .divider");
-      if(old&&old.dataset.ruleFor===name)return;
+      var width=Math.round(((card.getBoundingClientRect().width||700)+20)/40)*40,key=name+"|"+width;
+      if(old&&old.dataset.ruleFor===key)return;
       if(old)old.remove();
-      card.insertAdjacentHTML("afterbegin",'<div class="divider" aria-hidden="true" data-rule-for="'+esc(name)+'">'+svg(720,hashText("rule:"+name),1,config.rule)+'</div>');
+      var seed=hashText("rule:"+name),art=config.rule.style?divider(width,seed,config.rule):svg(720,seed,1,config.rule);
+      card.insertAdjacentHTML("afterbegin",'<div class="divider" aria-hidden="true" data-rule-for="'+esc(key)+'">'+art+'</div>');
     });
   }
+  var resizeTimer=0;
+  window.addEventListener("resize",function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(QA_THEME.current().brushStroke)rules(document)},250)});
   function decorate(root){
     if(!QA_THEME.current().brushStroke)return;
     rules(root||document);
