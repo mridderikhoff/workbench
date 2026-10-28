@@ -59,7 +59,8 @@ class PlatformTests(unittest.TestCase):
 
     def test_timer_is_interval_agent(self):
         self.unit("cl-strategy-qa-watchdog.service")
-        (self.units / "cl-strategy-qa-watchdog.timer").write_text("[Timer]\nUnit=cl-strategy-qa-watchdog.service\n")
+        (self.units / "cl-strategy-qa-watchdog.timer").write_text(
+            "[Timer]\nOnBootSec=2min\nOnUnitInactiveSec=2min\nUnit=cl-strategy-qa-watchdog.service\n")
         data = plistlib.loads(platform.install("cl-strategy-qa-watchdog.timer").read_bytes())
         self.assertEqual(data["StartInterval"], 120)
         self.assertFalse(data["RunAtLoad"])
@@ -116,6 +117,16 @@ class PlatformTests(unittest.TestCase):
             result = platform.foreign_listeners(self.tmp.name, "app", 0)
         self.assertIn("? (functions; listener owner unknown)", result)
         self.assertIn("42 (langgraph; listener)", result)
+
+    def test_unreadable_live_own_process_fails_closed(self):
+        listed = subprocess.CompletedProcess([], 0, "42 501\n", "")
+        with mock.patch.object(platform, "is_macos", return_value=True), \
+             mock.patch.object(platform, "run", return_value=listed), \
+             mock.patch.object(platform, "process_info", return_value=None), \
+             mock.patch.object(platform.os, "getuid", return_value=501), \
+             mock.patch.object(platform.os, "kill", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "cannot inspect live process"):
+                platform.processes()
 
     def test_restart_rebootstraps_current_plist(self):
         unit = self.unit()

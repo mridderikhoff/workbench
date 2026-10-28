@@ -16,6 +16,7 @@ import pathlib
 import plistlib
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -42,7 +43,11 @@ def unit_dir() -> pathlib.Path:
 
 
 def agent_dir() -> pathlib.Path:
-    return pathlib.Path(os.environ.get("OVERSEER_LAUNCH_AGENT_DIR", pathlib.Path.home() / "Library/LaunchAgents"))
+    return pathlib.Path(os.environ.get("OVERSEER_LAUNCH_AGENT_DIR", state_dir() / "launchd/plists"))
+
+
+def enabled_dir() -> pathlib.Path:
+    return pathlib.Path(os.environ.get("OVERSEER_ENABLED_AGENT_DIR", pathlib.Path.home() / "Library/LaunchAgents"))
 
 
 def domain() -> str:
@@ -59,6 +64,10 @@ def label(unit: str) -> str:
 
 def plist_path(unit: str) -> pathlib.Path:
     return agent_dir() / (label(unit) + ".plist")
+
+
+def enabled_path(unit: str) -> pathlib.Path:
+    return enabled_dir() / (label(unit) + ".plist")
 
 
 def meta_path(unit: str) -> pathlib.Path:
@@ -151,6 +160,25 @@ def _service_for_timer(unit: str) -> str:
     return vals[-1] if vals else unit[:-6] + ".service"
 
 
+def _timer_interval(unit: str) -> int:
+    """Map the generated watchdog's monotonic timer to launchd StartInterval."""
+    timer = _sections(unit_dir() / unit).get("Timer", [])
+    values = _values(timer, "OnUnitInactiveSec") or _values(timer, "OnUnitActiveSec") or _values(timer, "OnBootSec")
+    if not values:
+        raise ValueError(f"timer has no interval: {unit}")
+    value = values[-1].strip().lower()
+    match = re.fullmatch(r"(\d+)\s*(s|sec|second|seconds|m|min|minute|minutes|h|hour|hours)?", value)
+    if not match:
+        raise ValueError(f"unsupported timer interval: {value}")
+    multiplier = {None: 1, "s": 1, "sec": 1, "second": 1, "seconds": 1,
+                  "m": 60, "min": 60, "minute": 60, "minutes": 60,
+                  "h": 3600, "hour": 3600, "hours": 3600}[match.group(2)]
+    interval = int(match.group(1)) * multiplier
+    if interval <= 0:
+        raise ValueError(f"invalid timer interval: {value}")
+    return interval
+
+
 def install(unit: str) -> pathlib.Path:
     label(unit)
     definition = _definition(_service_for_timer(unit))
@@ -168,7 +196,7 @@ def install(unit: str) -> pathlib.Path:
                             "WorkingDirectory": definition["cwd"] or str(pathlib.Path.home()),
                             "EnvironmentVariables": definition["env"]}
     if unit.endswith(".timer"):
-        data["StartInterval"] = definition["interval"]
+        data["StartInterval"] = _timer_interval(unit)
     elif definition["restart"] in ("on-failure", "always"):
         data["KeepAlive"] = {"SuccessfulExit": definition["restart"] == "always"}
         data["ThrottleInterval"] = 5
@@ -177,7 +205,17 @@ def install(unit: str) -> pathlib.Path:
     temp = path.with_name(path.name + f".{os.getpid()}.tmp")
     temp.write_bytes(plistlib.dumps(data))
     os.replace(temp, path)
+    persistent = enabled_path(unit)
+    if persistent.exists():
+        _copy_plist(path, persistent)
     return path
+
+
+def _copy_plist(source: pathlib.Path, destination: pathlib.Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp = destination.with_name(destination.name + f".{os.getpid()}.tmp")
+    shutil.copyfile(source, temp)
+    os.replace(temp, destination)
 
 
 def _launchctl(*args: str, timeout: float = 10) -> subprocess.CompletedProcess:
@@ -255,7 +293,7 @@ def service_snapshot(unit: str) -> dict[str, str]:
     result = "success" if state["exit"] in (None, 0) else "exit-code"
     return {"LoadState": "loaded" if source.exists() else "not-found", "ActiveState": active,
             "SubState": "running" if running else "exited" if completed_oneshot and active == "active" else "dead",
-            "UnitFileState": "enabled" if plist.exists() else "disabled", "Type": definition["type"],
+            "UnitFileState": "enabled" if enabled_path(unit).exists() else "disabled", "Type": definition["type"],
             "Result": result, "MainPID": str(pid if trusted else 0), "WorkingDirectory": definition["cwd"],
             "Job": "pending" if pending else "", "InvocationID": meta.get("invocation", "") if trusted else "",
             "ExecMainStartTimestampMonotonic": mono, "InactiveEnterTimestampMonotonic": inactive,
@@ -291,6 +329,9 @@ def control(action: str, unit: str) -> None:
         return
     if action in ("enable", "start", "restart"):
         path = install(unit)
+        if action == "enable":
+            _copy_plist(path, enabled_path(unit))
+            path = enabled_path(unit)
         current = _launch_state(unit)
         if current["loaded"] is None:
             raise RuntimeError("cannot inspect launchd job before mutation")
@@ -316,6 +357,8 @@ def control(action: str, unit: str) -> None:
         if current["loaded"] is None:
             raise RuntimeError("cannot inspect launchd job before mutation")
         if not current["loaded"]:
+            if action == "disable":
+                enabled_path(unit).unlink(missing_ok=True)
             return
         result = _launchctl("bootout", domain() + "/" + label(unit), timeout=20)
     else:
@@ -326,6 +369,8 @@ def control(action: str, unit: str) -> None:
             previous.pop("request_action", None)
             _atomic_json(meta_path(unit), previous)
         raise RuntimeError((result.stderr or result.stdout).strip() or f"launchctl {action} failed")
+    if action == "disable":
+        enabled_path(unit).unlink(missing_ok=True)
 
 
 def _runner(unit: str) -> int:
@@ -452,10 +497,27 @@ def process_info(pid: int) -> dict | None:
 
 def processes() -> list[dict]:
     if is_macos():
-        result = run(["ps", "-axo", "pid="], timeout=5)
+        result = run(["ps", "-axo", "pid=,uid="], timeout=5)
         if result.returncode:
-            return []
-        pids = [int(x) for x in result.stdout.split() if x.isdigit()]
+            raise RuntimeError("cannot list processes")
+        rows = [line.split() for line in result.stdout.splitlines()]
+        if any(len(row) != 2 or not all(value.isdigit() for value in row) for row in rows):
+            raise RuntimeError("cannot parse process list")
+        found: list[dict] = []
+        for raw_pid, raw_uid in rows:
+            pid, uid = int(raw_pid), int(raw_uid)
+            info = process_info(pid)
+            if info:
+                found.append(info)
+            elif uid == os.getuid():
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    continue
+                except PermissionError:
+                    pass
+                raise RuntimeError(f"cannot inspect live process {pid}")
+        return found
     else:
         pids = [int(x.name) for x in pathlib.Path("/proc").iterdir() if x.name.isdigit()]
     return [info for pid in pids if (info := process_info(pid))]
