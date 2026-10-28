@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import plistlib
+import signal
 import subprocess
 import tempfile
 import unittest
@@ -32,14 +33,14 @@ class PlatformTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
 
-    def unit(self, name="cl-strategy-qa-backend.service", *, remain=False, envfile=""):
+    def unit(self, name="cl-strategy-qa-backend.service", *, remain=False, envfile="", raw_file=False):
         work = pathlib.Path(self.tmp.name) / "QA tree with spaces"
         work.mkdir(exist_ok=True)
         body = ("[Service]\nType=" + ("oneshot" if remain else "simple") + "\n" +
                 "WorkingDirectory=" + str(work) + "\n" +
                 "ExecStart=/usr/bin/env bash -lc 'echo hello world'\n" +
                 "Environment=PATH=/opt/homebrew/bin:/usr/bin\n" +
-                ("EnvironmentFile=-'" + envfile + "'\n" if envfile else "") +
+                ("EnvironmentFile=-" + (envfile if raw_file else "'" + envfile + "'") + "\n" if envfile else "") +
                 ("RemainAfterExit=yes\n" if remain else "Restart=on-failure\n"))
         (self.units / name).write_text(body)
         return name
@@ -47,7 +48,7 @@ class PlatformTests(unittest.TestCase):
     def test_install_plist_keeps_arguments_cwd_and_environment(self):
         envfile = pathlib.Path(self.tmp.name) / "runtime env"
         envfile.write_text("CUSTOM='two words'\nPATH='/custom tools/bin:/usr/bin'\n")
-        unit = self.unit(envfile=str(envfile))
+        unit = self.unit(envfile=str(envfile), raw_file=True)
         data = plistlib.loads(platform.install(unit).read_bytes())
         self.assertEqual(data["Label"], "com.overseer." + unit)
         self.assertEqual(data["WorkingDirectory"], str(pathlib.Path(self.tmp.name) / "QA tree with spaces"))
@@ -66,6 +67,10 @@ class PlatformTests(unittest.TestCase):
         self.assertEqual(data["StartInterval"], 120)
         self.assertFalse(data["RunAtLoad"])
         self.assertNotIn("KeepAlive", data)
+        state = {"loaded": True, "state": "waiting", "pid": 0, "exit": 0}
+        with mock.patch.object(platform, "_launch_state", return_value=state), \
+             mock.patch.object(platform, "boot_identity", return_value=("boot", 10)):
+            self.assertEqual(platform.service_snapshot("cl-strategy-qa-watchdog.timer")["ActiveState"], "active")
 
     def test_unknown_runner_birth_cannot_become_active(self):
         unit = self.unit()
@@ -94,6 +99,25 @@ class PlatformTests(unittest.TestCase):
         self.assertEqual(snap["ActiveState"], "activating")
         self.assertEqual(snap["Job"], "pending")
 
+    def test_stop_clears_pending_even_when_job_unloaded(self):
+        unit = self.unit()
+        platform._atomic_json(platform.meta_path(unit), {"request_action": "start", "request_boot": "boot",
+                                                         "requested_epoch": 1000})
+        with mock.patch.object(platform, "_launch_state", return_value={"loaded": False, "state": "inactive", "pid": 0, "exit": None}):
+            platform.control("stop", unit)
+        self.assertNotIn("request_action", platform._metadata(unit))
+
+    def test_multiword_launchd_states_are_honest(self):
+        unit = self.unit()
+        platform.install(unit)
+        with mock.patch.object(platform, "_launchctl", return_value=subprocess.CompletedProcess([], 0, "state = not running\nlast exit code = 7\n", "")), \
+             mock.patch.object(platform, "boot_identity", return_value=("boot", 10)):
+            self.assertEqual(platform.service_snapshot(unit)["ActiveState"], "failed")
+        with mock.patch.object(platform, "_launchctl", return_value=subprocess.CompletedProcess([], 0, "state = spawn scheduled\n", "")), \
+             mock.patch.object(platform, "boot_identity", return_value=("boot", 10)):
+            snap = platform.service_snapshot(unit)
+        self.assertEqual((snap["ActiveState"], snap["Job"]), ("activating", "pending"))
+
     def test_oneshot_completion_and_dead_server_are_distinct(self):
         unit = self.unit("cl-strategy-qa-keycloak.service", remain=True)
         platform.install(unit)
@@ -120,14 +144,44 @@ class PlatformTests(unittest.TestCase):
         self.assertIn("42 (langgraph; listener)", result)
 
     def test_unreadable_live_own_process_fails_closed(self):
-        listed = subprocess.CompletedProcess([], 0, "42 501\n", "")
+        listed = subprocess.CompletedProcess([], 0, "42 501 S\n", "")
         with mock.patch.object(platform, "is_macos", return_value=True), \
              mock.patch.object(platform, "run", return_value=listed), \
-             mock.patch.object(platform, "process_info", return_value=None), \
+             mock.patch.object(platform, "_cwd_map", return_value={}), \
+             mock.patch.object(platform, "_darwin_proc_info", return_value=None), \
              mock.patch.object(platform.os, "getuid", return_value=501), \
              mock.patch.object(platform.os, "kill", return_value=None):
             with self.assertRaisesRegex(RuntimeError, "cannot inspect live process"):
                 platform.processes()
+
+    def test_zombie_does_not_block_process_scan(self):
+        listed = subprocess.CompletedProcess([], 0, "42 501 Z+\n43 501 X\n", "")
+        with mock.patch.object(platform, "is_macos", return_value=True), \
+             mock.patch.object(platform, "run", return_value=listed), \
+             mock.patch.object(platform, "_cwd_map", return_value={}) as cwd:
+            self.assertEqual(platform.processes(), [])
+        cwd.assert_called_once_with([])
+
+    def test_numeric_boot_fallback_ignores_human_date(self):
+        outputs = [subprocess.CompletedProcess([], 0, "{ sec = 100, usec = 42 } Wed\n", ""),
+                   subprocess.CompletedProcess([], 1, "", "unknown oid")]
+        with mock.patch.object(platform, "is_macos", return_value=True), mock.patch.object(platform, "run", side_effect=outputs):
+            first = platform.boot_identity()
+        outputs[0] = subprocess.CompletedProcess([], 0, "{ sec = 100, usec = 42 } Thu\n", "")
+        with mock.patch.object(platform, "is_macos", return_value=True), mock.patch.object(platform, "run", side_effect=outputs):
+            second = platform.boot_identity()
+        self.assertEqual(first, second)
+
+    def test_termination_escalates_ignoring_child_group(self):
+        child = mock.Mock(pid=77)
+        child.poll.return_value = None
+        child.wait.side_effect = [subprocess.TimeoutExpired(["child"], 5), -9]
+        with mock.patch.object(platform.os, "killpg") as kill:
+            platform._terminate_child(child, signal.SIGTERM)
+        self.assertEqual(kill.call_args_list[0].args, (77, signal.SIGTERM))
+        self.assertEqual(kill.call_args_list[1].args, (77, signal.SIGKILL))
+        self.assertEqual(child.wait.call_args_list[0].kwargs["timeout"], 5)
+        self.assertEqual(child.wait.call_args_list[1].kwargs["timeout"], 2)
 
     def test_restart_rebootstraps_current_plist(self):
         unit = self.unit()

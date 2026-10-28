@@ -9,6 +9,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.util
 import datetime as dt
+import functools
 import hashlib
 import json
 import os
@@ -29,7 +30,20 @@ def is_macos() -> bool:
     return sys.platform == "darwin"
 
 
+def _check_deadline() -> float | None:
+    deadline = os.environ.get("WT_ENSURE_DEADLINE", "")
+    if deadline.isdigit():
+        remaining = int(deadline) - time.time()
+        if remaining <= 0:
+            raise RuntimeError("runtime inspection deadline expired")
+        return remaining
+    return None
+
+
 def run(args: list[str], *, timeout: float = 5, **kwargs: Any) -> subprocess.CompletedProcess:
+    remaining = _check_deadline()
+    if remaining is not None:
+        timeout = min(timeout, remaining)
     return subprocess.run(args, timeout=timeout, capture_output=True, text=True, **kwargs)
 
 
@@ -134,10 +148,10 @@ def _definition(unit: str) -> dict:
     # regardless of their text order. A colleague's runtime.env must win.
     for file_spec in _values(service, "EnvironmentFile"):
         optional = file_spec.startswith("-")
-        parsed_path = shlex.split(file_spec[1:] if optional else file_spec)
-        if len(parsed_path) != 1:
-            raise ValueError(f"invalid EnvironmentFile in {unit}")
-        file = pathlib.Path(parsed_path[0])
+        raw_path = file_spec[1:] if optional else file_spec
+        # systemd treats EnvironmentFile's complete value as the path. Older
+        # generated definitions quoted it, so accept that form as well.
+        file = pathlib.Path(shlex.split(raw_path)[0] if raw_path.startswith(('"', "'")) else raw_path)
         if not file.exists() and optional:
             continue
         for line in file.read_text(encoding="utf-8").splitlines():
@@ -232,10 +246,10 @@ def _launch_state(unit: str) -> dict:
         return {"loaded": False if absent else None, "state": "inactive" if absent else "unknown",
                 "pid": 0, "exit": None, "raw": message}
     body = result.stdout
-    match = re.search(r"(?m)^\s*state\s*=\s*(\S+)", body)
+    match = re.search(r"(?m)^\s*state\s*=\s*([^\r\n]+)", body)
     pid = re.search(r"(?m)^\s*pid\s*=\s*(\d+)", body)
     last = re.search(r"(?m)^\s*last exit code\s*=\s*(-?\d+)", body)
-    return {"loaded": True, "state": match.group(1) if match else "unknown",
+    return {"loaded": True, "state": match.group(1).strip().lower() if match else "unknown",
             "pid": int(pid.group(1)) if pid else 0,
             "exit": int(last.group(1)) if last else None, "raw": body}
 
@@ -268,7 +282,8 @@ def service_snapshot(unit: str) -> dict[str, str]:
     current_boot = boot_identity()[0]
     same_boot = bool(current_boot) and meta.get("boot_id") == current_boot
     completed_oneshot = bool(definition.get("remain"))
-    pending = (bool(current_boot) and meta.get("request_boot") == current_boot and
+    interval_timer = unit.endswith(".timer")
+    pending = (bool(state["loaded"]) and bool(current_boot) and meta.get("request_boot") == current_boot and
                time.time() - float(meta.get("requested_epoch", 0)) < 180 and
                not trusted and meta.get("request_action") in ("start", "restart"))
     if state["loaded"] is None:
@@ -277,14 +292,18 @@ def service_snapshot(unit: str) -> dict[str, str]:
         active = "unknown"
     elif running:
         active = "active"
-    elif pending:
+    elif pending or state["state"] in ("spawn scheduled", "spawned", "activating"):
         active = "activating"
     elif not state["loaded"]:
         active = "inactive"
+    elif interval_timer:
+        active = "active"
     elif completed_oneshot and same_boot and not pid and meta.get("exit_code") == 0 and state["exit"] == 0:
         active = "active"
-    elif state["state"] == "waiting" and state["exit"] not in (None, 0):
+    elif state["state"] in ("waiting", "not running") and state["exit"] not in (None, 0):
         active = "failed"
+    elif state["state"] not in ("waiting", "not running", "inactive"):
+        active = "unknown"
     else:
         active = "inactive"
     started = meta.get("started_epoch") if trusted or (state["loaded"] and not pid and meta.get("exit_epoch")) else None
@@ -294,10 +313,10 @@ def service_snapshot(unit: str) -> dict[str, str]:
     inactive = str(meta.get("exited_monotonic_us", 0)) if same_boot and exited else "0"
     result = "success" if state["exit"] in (None, 0) else "exit-code"
     return {"LoadState": "loaded" if source.exists() else "not-found", "ActiveState": active,
-            "SubState": "running" if running else "exited" if completed_oneshot and active == "active" else "dead",
+            "SubState": "running" if running else "waiting" if interval_timer and active == "active" else "exited" if completed_oneshot and active == "active" else "dead",
             "UnitFileState": "enabled" if enabled_path(unit).exists() else "disabled", "Type": definition["type"],
             "Result": result, "MainPID": str(pid if trusted else 0), "WorkingDirectory": definition["cwd"],
-            "Job": "pending" if pending else "", "InvocationID": meta.get("invocation", "") if trusted else "",
+            "Job": "pending" if active == "activating" else "", "InvocationID": meta.get("invocation", "") if trusted else "",
             "ExecMainStartTimestampMonotonic": mono, "InactiveEnterTimestampMonotonic": inactive,
             "ExecMainStartTimestamp": _iso(started), "ExecMainExitTimestamp": _iso(exited),
             "ActiveEnterTimestamp": _iso(started if running else None),
@@ -316,6 +335,15 @@ def _units_for_target(unit: str) -> list[str]:
             else:
                 result.append(item)
     return result
+
+
+def _clear_request(unit: str) -> None:
+    previous = _metadata(unit)
+    if "request_action" in previous:
+        previous.pop("request_action", None)
+        previous.pop("request_boot", None)
+        previous.pop("requested_epoch", None)
+        _atomic_json(meta_path(unit), previous)
 
 
 def control(action: str, unit: str) -> None:
@@ -359,6 +387,7 @@ def control(action: str, unit: str) -> None:
         if current["loaded"] is None:
             raise RuntimeError("cannot inspect launchd job before mutation")
         if not current["loaded"]:
+            _clear_request(unit)
             if action == "disable":
                 enabled_path(unit).unlink(missing_ok=True)
             return
@@ -373,6 +402,8 @@ def control(action: str, unit: str) -> None:
         raise RuntimeError((result.stderr or result.stdout).strip() or f"launchctl {action} failed")
     if action == "disable":
         enabled_path(unit).unlink(missing_ok=True)
+    if action in ("stop", "disable"):
+        _clear_request(unit)
 
 
 def _runner(unit: str) -> int:
@@ -385,36 +416,66 @@ def _runner(unit: str) -> int:
     boot = boot_identity()[0]
     if not boot:
         raise RuntimeError("cannot read boot identity for managed runner")
-    process = subprocess.Popen(spec["argv"], cwd=cwd, env=env, start_new_session=True)
-    runner_pid = os.getpid()
-    runner_birth = _birth(runner_pid)
-    if not runner_birth:
-        os.killpg(process.pid, signal.SIGKILL)
-        raise RuntimeError("cannot verify runner birth")
-    data = {"invocation": invocation, "runner_pid": runner_pid, "runner_birth": runner_birth,
-            "child_pid": process.pid, "child_birth": _birth(process.pid), "boot_id": boot,
-            "started_epoch": time.time(), "started_monotonic_us": time.monotonic_ns() // 1000,
-            "restart_count": int(previous.get("restart_count", 0)) + 1}
-    _atomic_json(meta_path(unit), data)
+    blocked = {signal.SIGTERM, signal.SIGINT}
+    old_mask = signal.pthread_sigmask(signal.SIG_BLOCK, blocked)
+    process = None
     def terminate(signum: int, _frame: Any) -> None:
-        try:
-            os.killpg(process.pid, signum)
-        except ProcessLookupError:
-            pass
-    signal.signal(signal.SIGTERM, terminate)
-    signal.signal(signal.SIGINT, terminate)
+        if process is not None:
+            _terminate_child(process, signum)
+    try:
+        process = subprocess.Popen(spec["argv"], cwd=cwd, env=env, start_new_session=True)
+        runner_pid = os.getpid()
+        runner_birth = _birth(runner_pid)
+        if not runner_birth:
+            raise RuntimeError("cannot verify runner birth")
+        data = {"invocation": invocation, "runner_pid": runner_pid, "runner_birth": runner_birth,
+                "child_pid": process.pid, "child_birth": _birth(process.pid), "boot_id": boot,
+                "started_epoch": time.time(), "started_monotonic_us": time.monotonic_ns() // 1000,
+                "restart_count": int(previous.get("restart_count", 0)) + 1}
+        _atomic_json(meta_path(unit), data)
+        signal.signal(signal.SIGTERM, terminate)
+        signal.signal(signal.SIGINT, terminate)
+    except BaseException:
+        if process is not None and process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=2)
+        raise
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
     for post in spec["post"]:
         try:
             subprocess.run(shlex.split(post.lstrip("-")), cwd=cwd, env=env, timeout=120, check=True)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             if not post.startswith("-"):
                 terminate(signal.SIGTERM, None)
-                process.wait()
                 raise
     code = process.wait()
     data.update(exit_epoch=time.time(), exited_monotonic_us=time.monotonic_ns() // 1000, exit_code=code)
     _atomic_json(meta_path(unit), data)
     return code
+
+
+def _terminate_child(process: subprocess.Popen, signum: int) -> None:
+    # The direct child remains unreaped while signaling, so its PID/PGID
+    # cannot be reused. Never signal a group after the leader was reaped.
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signum)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=2)
 
 
 def boot_identity() -> tuple[str, int]:
@@ -430,10 +491,41 @@ def boot_identity() -> tuple[str, int]:
     if result.returncode or not match:
         return "", 0
     epoch = int(match.group(1))
-    return hashlib.sha256(result.stdout.strip().encode()).hexdigest()[:32], epoch
+    session = run(["sysctl", "-n", "kern.bootsessionuuid"], timeout=2)
+    uuid_text = session.stdout.strip().lower()
+    if session.returncode == 0 and re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", uuid_text):
+        return uuid_text, epoch
+    numeric = f"{match.group(1)}:{match.group(2)}"
+    return hashlib.sha256(numeric.encode()).hexdigest()[:32], epoch
 
 
-def _darwin_proc_info(pid: int) -> dict | None:
+def _cwd_map(pids: list[int]) -> dict[int, str]:
+    if not pids:
+        return {}
+    result: dict[int, str] = {}
+    # lsof accepts comma-separated PIDs. A scan uses one bounded call rather
+    # than starting a child process for each process on the machine.
+    for start in range(0, len(pids), 500):
+        batch = pids[start:start + 500]
+        rows = run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", ",".join(map(str, batch))], timeout=5)
+        if rows.returncode not in (0, 1):
+            raise RuntimeError("cannot inspect process working directories")
+        current = None
+        for line in rows.stdout.splitlines():
+            if line.startswith("p") and line[1:].isdigit():
+                current = int(line[1:])
+            elif line.startswith("n") and current is not None:
+                result[current] = line[1:]
+    return result
+
+
+@functools.lru_cache(maxsize=1)
+def _darwin_libs() -> tuple[Any, Any]:
+    return (ctypes.CDLL(ctypes.util.find_library("proc") or "/usr/lib/libproc.dylib"),
+            ctypes.CDLL(ctypes.util.find_library("c") or "/usr/lib/libSystem.B.dylib"))
+
+
+def _darwin_proc_info(pid: int, cwd_map: dict[int, str] | None = None) -> dict | None:
     # PROC_PIDTBSDINFO gives birth/parent/UID without parsing ps output.
     class Timeval(ctypes.Structure):
         _fields_ = [("sec", ctypes.c_int64), ("usec", ctypes.c_int64)]
@@ -445,13 +537,12 @@ def _darwin_proc_info(pid: int) -> dict | None:
                     ("comm", ctypes.c_char * 16), ("name", ctypes.c_char * 32), ("nfiles", ctypes.c_uint32),
                     ("pgid", ctypes.c_uint32), ("pjobc", ctypes.c_uint32), ("e_tdev", ctypes.c_uint32),
                     ("e_tpgid", ctypes.c_uint32), ("nice", ctypes.c_int32), ("start", Timeval)]
-    lib = ctypes.CDLL(ctypes.util.find_library("proc") or "/usr/lib/libproc.dylib")
+    lib, libc = _darwin_libs()
     info = BSDInfo()
     size = lib.proc_pidinfo(pid, 3, 0, ctypes.byref(info), ctypes.sizeof(info))
     if size != ctypes.sizeof(info) or info.pid != pid:
         return None
     # KERN_PROCARGS2: exact NUL-separated argv. A denied sysctl is unknown.
-    libc = ctypes.CDLL(ctypes.util.find_library("c") or "/usr/lib/libSystem.B.dylib")
     mib = (ctypes.c_int * 3)(1, 49, pid)
     length = ctypes.c_size_t(0)
     if libc.sysctl(mib, 3, None, ctypes.byref(length), None, 0) != 0 or not length.value:
@@ -469,8 +560,7 @@ def _darwin_proc_info(pid: int) -> dict | None:
     argv = [part.decode(errors="replace") for part in rest.split(b"\0")[:argc]]
     if len(argv) != argc or not argv[0]:
         return None
-    cwd_result = run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", str(pid)], timeout=2)
-    cwd = next((line[1:] for line in cwd_result.stdout.splitlines() if line.startswith("n")), None) if cwd_result.returncode == 0 else None
+    cwd = (cwd_map if cwd_map is not None else _cwd_map([pid])).get(pid)
     return {"pid": pid, "ppid": int(info.ppid), "uid": int(info.uid), "argv": argv,
             "cwd": cwd, "start_time": f"{info.start.sec}.{info.start.usec:06d}", "executable": exe.decode(errors="replace")}
 
@@ -499,17 +589,25 @@ def process_info(pid: int) -> dict | None:
 
 def processes() -> list[dict]:
     if is_macos():
-        result = run(["ps", "-axo", "pid=,uid="], timeout=5)
+        result = run(["ps", "-axo", "pid=,uid=,stat="], timeout=5)
         if result.returncode:
             raise RuntimeError("cannot list processes")
         rows = [line.split() for line in result.stdout.splitlines()]
-        if any(len(row) != 2 or not all(value.isdigit() for value in row) for row in rows):
+        if any(len(row) != 3 or not all(value.isdigit() for value in row[:2]) for row in rows):
             raise RuntimeError("cannot parse process list")
+        live_rows = [(int(pid), int(uid)) for pid, uid, stat in rows if not stat.startswith(("Z", "X"))]
+        cwd_by_pid = _cwd_map([pid for pid, _ in live_rows])
         found: list[dict] = []
-        for raw_pid, raw_uid in rows:
-            pid, uid = int(raw_pid), int(raw_uid)
-            info = process_info(pid)
+        for pid, uid in live_rows:
+            _check_deadline()
+            info = _darwin_proc_info(pid, cwd_by_pid)
             if info:
+                if uid == os.getuid() and not info.get("cwd"):
+                    try:
+                        os.kill(pid, 0)
+                    except ProcessLookupError:
+                        continue
+                    raise RuntimeError(f"cannot inspect working directory of live process {pid}")
                 found.append(info)
             elif uid == os.getuid():
                 try:
@@ -542,19 +640,23 @@ def listening_processes(ports: list[int] | tuple[int, ...]) -> dict[int, list[in
     return answer
 
 
-def unit_for_pid(pid: int) -> str | None:
-    target = process_info(pid)
+def unit_for_pid(pid: int, _cache: dict | None = None, _proc: dict[int, dict] | None = None) -> str | None:
+    cache = _cache if _cache is not None else {}
+    proc = _proc if _proc is not None else {}
+    target = proc.get(pid) or process_info(pid)
     if not target:
         return None
     for source in unit_dir().glob("cl-strategy-*.service"):
+        _check_deadline()
         unit = source.name
-        try:
+        if unit not in cache:
             state = _launch_state(unit)
-        except (OSError, ValueError):
-            continue
-        meta = _metadata(unit)
-        root = state["pid"]
-        if not root or root != meta.get("runner_pid") or _birth(root) != meta.get("runner_birth"):
+            meta = _metadata(unit)
+            root = state["pid"]
+            birth = (proc.get(root) or process_info(root)) if root else None
+            cache[unit] = (root, meta, birth)
+        root, meta, birth = cache[unit]
+        if not root or root != meta.get("runner_pid") or not birth or birth["start_time"] != meta.get("runner_birth"):
             continue
         current = target
         seen: set[int] = set()
@@ -564,7 +666,7 @@ def unit_for_pid(pid: int) -> str | None:
             if current["uid"] != target["uid"] or current["start_time"] < meta["runner_birth"]:
                 break
             seen.add(current["pid"])
-            current = process_info(current["ppid"])
+            current = proc.get(current["ppid"]) or process_info(current["ppid"])
     return None
 
 
@@ -584,6 +686,9 @@ def foreign_listeners(qa: str, stack: str, offset: int, mode: str = "normal", pr
         except (OSError, ValueError, KeyError, TypeError):
             ports["ds-demo"] = 5175
     owners = listening_processes([ports[name] for name in names])
+    snapshot = processes()
+    proc = {item["pid"]: item for item in snapshot}
+    unit_cache: dict = {}
     found: set[tuple[str, str, str]] = set()
     for name in names:
         pids = owners[ports[name]]
@@ -591,10 +696,10 @@ def foreign_listeners(qa: str, stack: str, offset: int, mode: str = "normal", pr
             found.add((name, "?", "listener owner unknown"))
             continue
         for pid in pids:
-            if unit_for_pid(pid) != prefix + name + ".service":
+            if unit_for_pid(pid, unit_cache, proc) != prefix + name + ".service":
                 found.add((name, str(pid), "listener"))
     # A launcher rooted in the QA tree is foreign even before its port opens.
-    for info in processes():
+    for info in snapshot:
         args = info["argv"]
         if info["cwd"] != tree or not any(os.path.basename(x) == "dev-start.sh" for x in args):
             continue
@@ -605,12 +710,12 @@ def foreign_listeners(qa: str, stack: str, offset: int, mode: str = "normal", pr
         reason = "dev-start:all" if default else "dev-start:shared" if shared else "dev-start"
         for name in names:
             selected = name in requested or (default and name in ("functions", "backend", "frontend-ri"))
-            if selected and unit_for_pid(info["pid"]) != prefix + name + ".service" and (mode == "adopt" or reason == "dev-start"):
+            if selected and unit_for_pid(info["pid"], unit_cache, proc) != prefix + name + ".service" and (mode == "adopt" or reason == "dev-start"):
                 found.add((name, str(info["pid"]), reason))
     if "ds-demo" in names:
-        for info in processes():
+        for info in snapshot:
             if info["cwd"] == os.path.join(tree, "apps/ui") and any("ds-demo" in arg for arg in info["argv"]):
-                if unit_for_pid(info["pid"]) != prefix + "ds-demo.service":
+                if unit_for_pid(info["pid"], unit_cache, proc) != prefix + "ds-demo.service":
                     found.add(("ds-demo", str(info["pid"]), "serve"))
     return "\n".join(f"{pid} ({name}; {reason})" for name, pid, reason in sorted(found))
 
