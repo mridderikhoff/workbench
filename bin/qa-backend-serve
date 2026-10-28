@@ -3,7 +3,7 @@
 # `wt backend update`, which restarts this unit, so a file watcher is wasted CPU.
 # Mirrors start_backend in the repo's dev-start.sh otherwise.
 set -euo pipefail
-cd "${QA_TREE:-$HOME/cl-strategy-qa}"
+cd "${QA_TREE:-$PWD}"
 eval "$(python3 scripts/dev/ports.py --env)"
 export LANGGRAPH_SERVER_URL="http://127.0.0.1:${LANGGRAPH_PORT}"
 export AZURE_FUNCTION_APP_API_ENDPOINT="http://127.0.0.1:${FUNCTIONS_PORT}/api"

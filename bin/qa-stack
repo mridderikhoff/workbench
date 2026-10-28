@@ -5,7 +5,7 @@ set -euo pipefail
 QA_TREE="${QA_TREE:-$HOME/cl-strategy-qa}"
 UNIT_DIR="${QA_UNIT_DIR:-$HOME/.config/systemd/user}"
 STATE_DIR="${WT_STATE_DIR:-$HOME/.cl-strategy-local}"
-PREFIX="cl-strategy-qa-"
+PREFIX="${QA_UNIT_PREFIX:-cl-strategy-qa-}"
 BACKEND_SERVICES=(azurite keycloak functions langgraph backend)
 APP_SERVICES=("${BACKEND_SERVICES[@]}")
 DS_SERVICES=(ds-demo)
@@ -387,7 +387,7 @@ PY
 }
 # Read the existing offset claim without asking ports.py to allocate a new one.
 qa_offset() {
-  python3 - "$QA_TREE" "$HOME/.cl-strategy-local/offsets.json" 9>&- <<'PY'
+  python3 - "$QA_TREE" "${WT_PORT_REGISTRY:-$HOME/.cl-strategy-local/offsets.json}" 9>&- <<'PY'
 import json, os, pathlib, sys
 qa = pathlib.Path(sys.argv[1])
 file = qa / '.port-offset'
@@ -409,30 +409,49 @@ PY
 probe_results() {
   local offset
   offset=$(qa_offset) || return 1
-  python3 - "$offset" "$@" 9>&- <<'PY'
+  python3 - "$offset" "${QA_STACK_STUB_DIR:-}" "$@" 9>&- <<'PY'
 from concurrent.futures import ThreadPoolExecutor
-import socket, sys, urllib.request
+import pathlib, socket, sys, urllib.request, urllib.error
 offset = int(sys.argv[1])
-names = sys.argv[2:]
+stub = pathlib.Path(sys.argv[2]) if sys.argv[2] else None
+names = sys.argv[3:]
 def ready(name):
+    if stub:
+        try:
+            for line in (stub / 'probes').read_text().splitlines():
+                parts = line.split('\t', 2)
+                if parts[0] == name and len(parts) == 3:
+                    return parts[1], parts[2]
+        except OSError:
+            pass
+        return 'failed', 'connection refused'
     try:
         if name in ('keycloak', 'azurite'):
             with socket.create_connection(('127.0.0.1', 8080 if name == 'keycloak' else 10000), 2):
                 pass
+            return 'ready', 'connected'
         else:
             port, path = {'functions': (7071, '/api/health'), 'langgraph': (2024, '/ok'), 'backend': (8000, '/health')}[name]
             with urllib.request.urlopen(f'http://127.0.0.1:{port + 10 * offset}{path}', timeout=2) as response:
-                if response.status != 200:
-                    raise OSError(f'HTTP {response.status}')
-        return 'ready'
-    except (OSError, ValueError):
-        return 'failed'
+                return ('ready' if response.status == 200 else 'failed'), f'HTTP {response.status}'
+    except urllib.error.HTTPError as error:
+        return 'failed', f'HTTP {error.code}'
+    except (socket.timeout, TimeoutError):
+        return 'failed', 'timed out'
+    except ConnectionRefusedError:
+        return 'failed', 'connection refused'
+    except urllib.error.URLError as error:
+        if isinstance(error.reason, ConnectionRefusedError): return 'failed', 'connection refused'
+        if isinstance(error.reason, (socket.timeout, TimeoutError)): return 'failed', 'timed out'
+        return 'failed', f'error: {type(error.reason).__name__}'
+    except (OSError, ValueError) as error:
+        return 'failed', f'error: {type(error).__name__}'
 with ThreadPoolExecutor(max_workers=len(names)) as pool:
     for name, result in zip(names, pool.map(ready, names)):
-        print(f'{name}\t{result}')
+        print(f'{name}\t{result[0]}\t{result[1]}')
 PY
 }
-probe() { [ "$(probe_results "$1")" = "$1"$'\t'ready ]; }
+probe() { [[ "$(probe_results "$1")" == "$1"$'\t'ready$'\t'* ]]; }
 shared_external_ready() {
   case "$1" in azurite|keycloak) ;; *) return 1 ;; esac
   local state
@@ -503,7 +522,7 @@ health_lines() {
   local service state count result breaker probes
   local -A probe_state=()
   probes=$(probe_results "${BACKEND_SERVICES[@]}") || return 1
-  while IFS=$'\t' read -r service result; do probe_state["$service"]="$result"; done <<< "$probes"
+  while IFS=$'\t' read -r service result _; do probe_state["$service"]="$result"; done <<< "$probes"
   for service in "${BACKEND_SERVICES[@]}"; do
     state=$(read_systemctl --user is-active "$(unit "$service")" 2>/dev/null || true)
     [ -n "$state" ] || state=unknown
@@ -515,26 +534,131 @@ health_lines() {
     printf '%s\t%s\t%s\t%s\t%s\n' "$service" "$state" "$result" "$count" "$breaker"
   done
 }
-health() {
-  local format="${1:-text}" lines
-  lines=$(health_lines)
-  if [ "$format" = json ]; then
-    python3 - "$lines" 9>&- <<'PY'
-import datetime, json, sys
-services = {}
-for line in sys.argv[1].splitlines():
-    name, state, probe, restarts, breaker = line.split('\t')
-    shared_external = name in ('azurite', 'keycloak') and probe == 'ready' and state != 'active'
-    status = 'ready (shared, external)' if shared_external else probe
-    services[name] = {'unitState': state, 'probe': probe, 'status': status,
-                      'sharedExternal': shared_external, 'restartCount': int(restarts),
-                      'needsAttention': breaker == 'true'}
-ready = sum(x['probe'] == 'ready' for x in services.values())
-overall = 'healthy' if ready == len(services) else ('degraded' if ready else 'down')
-print(json.dumps({'overall': overall, 'services': services}))
+health_json() {
+  local offset probes error
+  if ! offset=$(qa_offset 2>&1); then
+    QA_HEALTH_ERROR="$offset" python3 - <<'PY'
+import json, os
+print(json.dumps({'overall':'unknown','checkError':os.environ['QA_HEALTH_ERROR'][:200], 'services':{}}))
+PY
+    return 1
+  fi
+  probes=$(probe_results "${BACKEND_SERVICES[@]}") || probes=''
+  QA_HEALTH_OFFSET="$offset" QA_HEALTH_PROBES="$probes" QA_HEALTH_TREE="$QA_TREE" QA_HEALTH_PREFIX="$PREFIX" QA_HEALTH_STATE="$HEAL_STATE" QA_HEALTH_STUB="${QA_STACK_STUB_DIR:-}" python3 - <<'PY'
+import concurrent.futures, datetime, json, os, pathlib, signal, subprocess, sys, time
+names = ('azurite','keycloak','functions','langgraph','backend')
+offset = int(os.environ['QA_HEALTH_OFFSET']); tree = os.path.realpath(os.environ['QA_HEALTH_TREE'])
+prefix = os.environ['QA_HEALTH_PREFIX']; stub = os.environ['QA_HEALTH_STUB']
+probes = {}
+for line in os.environ['QA_HEALTH_PROBES'].splitlines():
+    parts = line.split('\t', 2)
+    if len(parts) == 3: probes[parts[0]] = parts[1:]
+try: breaker = json.loads(pathlib.Path(os.environ['QA_HEALTH_STATE']).read_text())
+except (OSError, ValueError): breaker = {}
+properties = ('LoadState','ActiveState','SubState','UnitFileState','Type','Result','MainPID','NRestarts',
+              'ExecMainCode','ExecMainStatus','ExecMainStartTimestamp','ExecMainExitTimestamp',
+              'ActiveEnterTimestamp','InactiveEnterTimestamp','WorkingDirectory')
+def stamp(value):
+    try:
+        n = int(value.lstrip('@'))
+        return datetime.datetime.fromtimestamp(n, datetime.timezone.utc).isoformat() if n else None
+    except (ValueError, OverflowError): return None
+def integer(value):
+    try: return int(value)
+    except (ValueError, TypeError): return None
+def cwd(pid):
+    path = pathlib.Path(stub, 'proc', str(pid), 'cwd') if stub else pathlib.Path('/proc', str(pid), 'cwd')
+    try: return os.path.realpath(path) if path.is_symlink() else os.readlink(path)
+    except OSError: return None
+def port(value, role, primary=False, shared=False, probed=True):
+    return {'port':value,'role':role,'primary':primary,'shared':shared,'probed':probed}
+def entry(name):
+    unit = prefix + name + '.service'
+    try:
+        result = subprocess.run(['systemctl','--user','show',unit,'--timestamp=unix','-p',','.join(properties)],
+                                text=True,capture_output=True,timeout=5)
+        values = dict(line.split('=',1) for line in result.stdout.splitlines() if '=' in line) if result.returncode == 0 else {}
+    except (OSError, subprocess.TimeoutExpired): values = {}
+    valid = all(key in values for key in properties) and values.get('ActiveState') in (
+        'active','inactive','failed','activating','deactivating','reloading','refreshing') and integer(values.get('MainPID')) is not None
+    state = values.get('ActiveState','unknown') if valid else 'unknown'
+    sub = values.get('SubState','unknown') if valid else 'unknown'
+    pid = integer(values.get('MainPID')) if valid else None
+    probe, detail = probes.get(name, ('failed','error: ProbeUnavailable'))
+    shared = name in ('azurite','keycloak')
+    external = shared and probe == 'ready' and state not in ('active','activating','reloading','deactivating','refreshing')
+    process = {'pid':None,'pidKind':'unknown' if not valid else 'none','cwd':None,'cwdInTree':None,
+               'container':{'name':'keycloak-local','runtime':'podman','verified':False} if name == 'keycloak' else None}
+    owner = 'unknown' if not valid or values.get('LoadState') != 'loaded' else 'none'
+    if owner != 'unknown':
+        if state in ('activating','reloading','deactivating','refreshing'):
+            owner = 'transitioning'
+            if pid and pid > 0: process['pid'],process['pidKind'] = pid,'main'
+        elif name == 'keycloak' and state == 'active' and sub == 'exited' and values.get('Result') == 'success':
+            owner,process['pidKind'] = 'container','oneshot'
+        elif name == 'azurite' and state == 'active' and sub == 'exited' and pid == 0:
+            owner,process['pidKind'] = ('external' if probe == 'ready' else 'unknown'),'exited'
+        elif state == 'active' and pid and pid > 0:
+            owner,process['pid'],process['pidKind'] = 'systemd',pid,'main'
+        elif state == 'active': owner = 'unknown'
+        elif probe == 'ready': owner = 'external'
+    if process['pid']:
+        process['cwd'] = cwd(process['pid'])
+        process['cwdInTree'] = (process['cwd'] == tree or process['cwd'].startswith(tree + '/')) if process['cwd'] else None
+    wd = values.get('WorkingDirectory') or None
+    tree_matches = os.path.realpath(wd) == tree if wd else None
+    p = {'azurite':[port(10000,'blob',True,True),port(10001,'queue',False,True,False),port(10002,'table',False,True,False)],
+         'keycloak':[port(8080,'http',True,True)],
+         'functions':[port(7071+10*offset,'http',True)],
+         'langgraph':[port(2024+10*offset,'http',True)],
+         'backend':[port(8000+10*offset,'http',True)]}[name]
+    path = {'functions':'/api/health','langgraph':'/ok','backend':'/health'}.get(name,'')
+    target = f'tcp://127.0.0.1:{p[0]["port"]}' if shared else f'http://127.0.0.1:{p[0]["port"]}{path}'
+    urls = [f'http://localhost:{p[0]["port"]}{path}']
+    if name == 'backend': urls += [f'http://localhost:{p[0]["port"]}/readyz',f'http://localhost:{p[0]["port"]}/jwks']
+    if name == 'keycloak': urls.append('http://localhost:8080/realms/master/.well-known/openid-configuration')
+    reason = ('shared with other checkouts; start only, when down' if name == 'azurite' else
+              'shared container; re-running its launcher does not restart the container; start only, when down' if name == 'keycloak' else None)
+    base = '~/.claude/bin/wt backend '
+    commands = {'logs':base+f'logs {name} -n 80','start':base+f'start {name}',
+                'restart':None if shared else base+f'restart {name}','restartReason':reason,
+                'ready':f'~/.claude/bin/qa-stack wait-probe {name} {420 if name == "keycloak" else 180}',
+                'runtimeLogs':'podman logs --tail 80 keycloak-local' if name == 'keycloak' else None,
+                'runtimeInspect':"podman inspect --format '{{.Id}} {{.State.Status}} {{.State.Pid}}' keycloak-local" if name == 'keycloak' else None}
+    code = integer(values.get('ExecMainCode')); status = integer(values.get('ExecMainStatus'))
+    try: sig = signal.Signals(status).name if code in (2,3) and status else None
+    except ValueError: sig = None
+    last = {'result':values.get('Result') or None,'startedAt':stamp(values.get('ExecMainStartTimestamp','')),
+            'activeSince':stamp(values.get('ActiveEnterTimestamp','')),
+            'exitedAt':stamp(values.get('ExecMainExitTimestamp','')),
+            'inactiveSince':stamp(values.get('InactiveEnterTimestamp','')),
+            'exitCode':status if code == 1 else None,'signal':sig}
+    count = integer(values.get('NRestarts')) or 0
+    attention = len([t for t in breaker.get(name,[]) if isinstance(t,(int,float)) and time.time()-t < 1800]) >= 3
+    return {'unitState':state,'probe':probe,'status':'ready (shared, external)' if external else probe,
+            'sharedExternal':external,'restartCount':count,'needsAttention':attention,
+            'unit':unit,'supervisor':'systemd-user','unitLoad':values.get('LoadState','unknown') if valid else 'unknown',
+            'subState':sub,'unitFile':values.get('UnitFileState') if valid else None,
+            'type':values.get('Type') if valid else None,'workingDirectory':wd if valid else None,
+            'treeMatches':tree_matches if valid else None,'owner':owner,'process':process,'ports':p,
+            'probeTarget':target,'probeDetail':detail,'healthUrls':urls,'lastRun':last,'dependsOn':
+            {'functions':['azurite'],'langgraph':['functions'],'backend':['langgraph','keycloak']}.get(name,[]),
+            'logsSource':'systemd-launcher' if name == 'keycloak' or (name == 'azurite' and pid == 0) else 'systemd-journal',
+            'commands':commands}
+with concurrent.futures.ThreadPoolExecutor(max_workers=len(names)) as pool:
+    services = dict(zip(names, pool.map(entry, names)))
+ready = sum(s['probe'] == 'ready' for s in services.values())
+overall = 'healthy' if ready == len(services) else 'degraded' if ready else 'down'
+print(json.dumps({'overall':overall,'services':services,'checkError':None,'tree':tree}))
 sys.exit(0 if overall == 'healthy' else 1)
 PY
+}
+health() {
+  local format="${1:-text}" lines
+  if [ "$format" = json ]; then
+    health_json
   else
+    lines=$(health_lines) || return 1
     local name state result count breaker ready=0 total=0 display
     while IFS=$'\t' read -r name state result count breaker; do
       total=$((total+1))
@@ -594,6 +718,276 @@ wait_adopt_ports() {
   done
   echo "app ports still listening: $listeners" >&2
   return 1
+}
+service_remaining() { echo $((WT_ENSURE_DEADLINE-$(date +%s))); }
+service_mutation() {
+  local remaining
+  if dry; then run_mutation "$@"; return; fi
+  remaining=$(service_remaining)
+  [ "$remaining" -gt 0 ] || { echo "deadline reached before $ACTION_REQUESTED request" >&2; return 124; }
+  # Only targeted controls use this bound; the legacy mutation path stays unchanged.
+  ( exec 9>&-; timeout --kill-after=1 "$remaining" "$@" ) || {
+    local result=$?
+    [ "$result" -ne 124 ] && [ "$result" -ne 137 ] || echo "$ACTION_REQUESTED request timed out; outcome unknown" >&2
+    return "$result"
+  }
+}
+service_refuse() {
+  local code="$1"; shift
+  printf 'REFUSED %s: %s\n' "$SERVICE" "$*" >&2
+  [ "${ACTION_REQUESTED:-0}" = 0 ] || echo "already requested: $ACTION_REQUESTED for $SERVICE; refresh wt status --json before another action" >&2
+  return "$code"
+}
+service_show() {
+  local output key value remaining cap=5
+  [ "$(service_remaining)" -gt 0 ] || return 4
+  remaining=$(service_remaining); [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  output=$(timeout --kill-after=1 "$cap" systemctl --user show "$(unit "$SERVICE")" --timestamp=unix -p LoadState,ActiveState,SubState,UnitFileState,Type,Result,MainPID,WorkingDirectory 2>/dev/null) || {
+    [ "$(service_remaining)" -gt 0 ] || return 4
+    return 6
+  }
+  S_LOAD= S_ACTIVE= S_SUB= S_FILE= S_TYPE= S_RESULT= S_PID= S_WD=
+  while IFS='=' read -r key value; do
+    case "$key" in
+      LoadState) S_LOAD="$value" ;; ActiveState) S_ACTIVE="$value" ;; SubState) S_SUB="$value" ;;
+      UnitFileState) S_FILE="$value" ;; Type) S_TYPE="$value" ;; Result) S_RESULT="$value" ;;
+      MainPID) S_PID="$value" ;; WorkingDirectory) S_WD="$value" ;;
+    esac
+  done <<< "$output"
+  [[ "$S_PID" =~ ^[0-9]+$ ]] && [ -n "$S_SUB" ] && [ -n "$S_FILE" ] && [ -n "$S_TYPE" ] && [ -n "$S_RESULT" ] && [ -n "$S_WD" ] || return 6
+  case "$S_ACTIVE" in active|inactive|failed|activating|deactivating|reloading|refreshing) ;; *) return 6 ;; esac
+  [ "$S_LOAD" = loaded ] || { echo "unit $(unit "$SERVICE") load state $S_LOAD; run qa-stack install if not installed" >&2; return 6; }
+  case "$S_FILE" in masked|masked-runtime) echo "unit $(unit "$SERVICE") is $S_FILE" >&2; return 6 ;; esac
+}
+service_tree_check() {
+  local tree expected actual
+  tree=$(realpath -e "$QA_TREE" 2>/dev/null) || return 6
+  [ -f "$tree/.wt-qa-runtime" ] && [ -x "$tree/dev-start.sh" ] || return 6
+  expected=$(realpath -e "${WT_QA_TREE_EXPECTED:-$QA_TREE}" 2>/dev/null) || return 6
+  actual=$(realpath -e "$S_WD" 2>/dev/null) || return 6
+  [ "$tree" = "$expected" ] && [ "$tree" = "$actual" ] || {
+    echo "QA tree mismatch: QA_TREE=$tree WT_QA_TREE=$expected unit WorkingDirectory=$actual" >&2; return 6;
+  }
+  SERVICE_TREE="$tree"
+}
+service_identity() {
+  local path actual attempt
+  [ "$S_PID" -gt 0 ] || return 6
+  path="${QA_STACK_STUB_DIR:+$QA_STACK_STUB_DIR/proc/}$S_PID/cwd"
+  [ -n "${QA_STACK_STUB_DIR:-}" ] || path="/proc/$S_PID/cwd"
+  for attempt in 1 2; do
+    actual=$(readlink -f "$path" 2>/dev/null) || actual=
+    [ -n "$actual" ] && break
+    [ "$attempt" = 2 ] || sleep 1
+  done
+  [ -n "$actual" ] || { echo "cannot read cwd of PID $S_PID" >&2; return 6; }
+  case "$actual" in "$SERVICE_TREE"|"$SERVICE_TREE"/*) ;; *) echo "process $S_PID runs from $actual, not $SERVICE_TREE" >&2; return 6 ;; esac
+}
+service_scan() {
+  local offset result remaining cap=10 foreign_detail= unknown_detail=
+  offset=$(qa_offset) || return 6
+  if [ -n "${QA_STACK_STUB_DIR:-}" ] && [ -e "$QA_STACK_STUB_DIR/listeners.fail" ]; then return 6; fi
+  if [ -n "${QA_STACK_STUB_DIR:-}" ] && [ -f "$QA_STACK_STUB_DIR/listeners.$SERVICE" ]; then
+    result=$(cat "$QA_STACK_STUB_DIR/listeners.$SERVICE")
+  else
+    remaining=$(service_remaining); [ "$remaining" -gt 0 ] || return 6
+    [ "$remaining" -ge "$cap" ] || cap="$remaining"
+    result=$(timeout --kill-after=1 "$cap" python3 - "$SERVICE" "$offset" "$PREFIX" "${QA_STACK_STUB_DIR:+$QA_STACK_STUB_DIR/proc}" "${QA_STACK_PROC_NET_DIR:-/proc/net}" "$SERVICE_TREE" <<'PY'
+import os, pathlib, sys
+name, offset, prefix, proc, net, tree = sys.argv[1:]
+proc = pathlib.Path(proc or '/proc'); net = pathlib.Path(net)
+port = {'azurite':10000,'functions':7071+10*int(offset),'langgraph':2024+10*int(offset),'backend':8000+10*int(offset)}[name]
+inodes = set()
+for table in ('tcp','tcp6'):
+    try: rows = (net / table).read_text().splitlines()
+    except FileNotFoundError:
+        if table == 'tcp6': continue
+        sys.exit(1)
+    except OSError: sys.exit(1)
+    if not rows or 'local_address' not in rows[0]: sys.exit(1)
+    for row in rows[1:]:
+        fields = row.split()
+        try:
+            if fields[3] == '0A' and int(fields[1].rsplit(':',1)[1],16) == port: inodes.add(fields[9])
+        except (IndexError,ValueError): sys.exit(1)
+seen = set(); findings = set()
+for item in proc.iterdir():
+    if not item.name.isdigit(): continue
+    pid = item.name
+    try: args = (item / 'cmdline').read_bytes().decode(errors='replace').split('\0')
+    except OSError: args = []
+    if any(os.path.basename(arg) == 'dev-start.sh' for arg in args):
+        try: cwd = os.path.realpath(item / 'cwd')
+        except OSError: cwd = ''
+        try: launcher_group = (item / 'cgroup').read_text(errors='replace')
+        except OSError: launcher_group = ''
+        script = next(i for i,arg in enumerate(args) if os.path.basename(arg) == 'dev-start.sh')
+        requested = args[script+1:]
+        default = not requested or '--log' in requested
+        shared = bool({'azurite','keycloak'} & set(requested))
+        selected = name in requested or (default and name in ('functions','backend'))
+        reason = 'dev-start:all' if default else 'dev-start:shared' if shared else 'dev-start'
+        if cwd == tree and selected and prefix+name+'.service' not in launcher_group:
+            findings.add(('foreign',pid,reason))
+    try: fds = list((item / 'fd').iterdir())
+    except (PermissionError,FileNotFoundError,NotADirectoryError): continue
+    for fd in fds:
+        try: link = os.readlink(fd)
+        except OSError: continue
+        if not link.startswith('socket:[') or link[8:-1] not in inodes: continue
+        seen.add(link[8:-1])
+        try: cgroup = (item / 'cgroup').read_text(errors='replace')
+        except OSError: cgroup = ''
+        kind = 'owned' if prefix+name+'.service' in cgroup else 'foreign'
+        findings.add((kind,pid,'listener'))
+for inode in inodes-seen: findings.add(('unknown','?',f'listener owner unknown: {inode}'))
+for row in sorted(findings): print('\t'.join(row))
+PY
+    ) || return 6
+  fi
+  SCAN_OWNED=0 SCAN_FOREIGN=0
+  while IFS=$'\t' read -r kind pid reason; do
+    [ -n "$kind" ] || continue
+    case "$kind" in
+      owned) SCAN_OWNED=1 ;;
+      foreign) SCAN_FOREIGN=1; foreign_detail+=" PID $pid ($reason)" ;;
+      unknown) unknown_detail+=" $reason" ;;
+      *) return 6 ;;
+    esac
+  done <<< "$result"
+  [ -z "$unknown_detail" ] || { echo "listener owner unknown:$unknown_detail" >&2; return 6; }
+  if [ "$SCAN_FOREIGN" = 1 ] && { [ "$SERVICE" != azurite ] || [ "${S_PROBE:-}" != ready ]; }; then
+    echo "foreign$foreign_detail; ask user to run qa-stack adopt" >&2; return 2
+  fi
+}
+service_probe() {
+  local line
+  # probe_results has a fixed two-second socket/HTTP timeout; a final probe may
+  # therefore finish up to two seconds beyond the integer-second deadline.
+  line=$(probe_results "$SERVICE") || return 6
+  IFS=$'\t' read -r _ S_PROBE S_DETAIL <<< "$line"
+}
+service_dependencies() {
+  local dep line state detail missing=()
+  for dep in $(case "$SERVICE" in functions) echo azurite ;; langgraph) echo functions ;; backend) echo langgraph keycloak ;; esac); do
+    line=$(probe_results "$dep") || return 6
+    IFS=$'\t' read -r _ state detail <<< "$line"
+    [ "$state" = ready ] || missing+=("$dep ($state, $detail)")
+  done
+  [ ${#missing[@]} -eq 0 ] || { echo "missing dependencies: ${missing[*]}; start each first" >&2; return 5; }
+}
+service_failure() {
+  local remaining cap=3
+  echo "$SERVICE failed or not answering ($S_DETAIL); logs: ~/.claude/bin/wt backend logs $SERVICE -n 80" >&2
+  remaining=$(service_remaining)
+  [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  if ! dry && [ "$cap" -gt 0 ]; then
+    ( exec 9>&-; timeout --kill-after=1 "$cap" journalctl --user -u "$(unit "$SERVICE")" -n 40 --no-pager ) >&2 || true
+  fi
+  service_refuse 1 'refresh status before another action'
+}
+service_control() {
+  SERVICE="$2"; ACTION_REQUESTED=0
+  local action="$1" old tries rc remaining pending_wait=0
+  case "$SERVICE" in azurite|keycloak|functions|langgraph|backend) ;; *) usage; return 2 ;; esac
+  if [ "$action" = service-restart ]; then
+    case "$SERVICE" in
+      azurite) service_refuse 5 'shared with other checkouts; start only, when down'; return $? ;;
+      keycloak) service_refuse 5 'shared container; launcher restart does not restart container'; return $? ;;
+    esac
+  fi
+  [ -z "${QA_STACK_STUB_DIR:-}" ] || [[ "$QA_STACK_STUB_DIR" = /* ]] || return 2
+  [ -z "${QA_STACK_PROC_NET_DIR:-}" ] || [[ "$QA_STACK_PROC_NET_DIR" = /* ]] || return 2
+  if ! [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    [[ "${WT_ENSURE_TIMEOUT:-150}" =~ ^[1-9][0-9]*$ ]] || return 2
+    WT_ENSURE_DEADLINE=$(($(date +%s)+${WT_ENSURE_TIMEOUT:-150}))
+  fi
+  if dry; then echo 'dry-run    would take qa-heal.lock'
+  else acquire_lock || return 4; fi
+  for ((tries=0; tries<2; tries++)); do
+    service_show || { rc=$?; service_refuse "$rc" "cannot inspect unit $(unit "$SERVICE")"; return "$rc"; }
+    service_tree_check || { service_refuse 6 'QA tree or unit WorkingDirectory cannot be verified'; return 6; }
+    if [ "$S_ACTIVE" = deactivating ]; then service_refuse 3 'stopping in progress'; return 3; fi
+    if [ "$action" = service-start ] && { [ "$S_ACTIVE" = activating ] || [ "$S_ACTIVE" = reloading ] || [ "$S_ACTIVE" = refreshing ]; }; then
+      echo "$SERVICE already starting; waiting"
+      pending_wait=1
+      break
+    fi
+    service_probe || { service_refuse 6 'probe unavailable'; return 6; }
+    if [ "$SERVICE" = keycloak ]; then
+      if [ "$S_ACTIVE" = active ]; then
+        if [ "$S_SUB" = exited ] && [ "$S_RESULT" = success ] && [ "$S_PROBE" = ready ]; then echo "$SERVICE already ready"; return 0; fi
+        service_refuse 5 "shared service active but not answering ($S_DETAIL)"; return 5
+      fi
+      if [ "$S_PROBE" = ready ]; then echo "$SERVICE ready (shared, external)"; return 0; fi
+    elif [ "$SERVICE" = azurite ]; then
+      if [ "$S_ACTIVE" = active ] && [ "$S_PROBE" = failed ]; then service_refuse 5 "shared service active but not answering ($S_DETAIL)"; return 5; fi
+      if [ "$S_ACTIVE" = active ] && [ "$S_SUB" = exited ] && [ "$S_PROBE" = ready ]; then echo "$SERVICE ready (shared, external)"; return 0; fi
+      if [ "$S_ACTIVE" != active ] && [ "$S_PROBE" = ready ]; then echo "$SERVICE ready (shared, external)"; return 0; fi
+    fi
+    if [ "$S_ACTIVE" = active ] || { [ "$action" = service-restart ] && [ "$S_PID" -gt 0 ]; }; then
+      service_identity || { service_refuse 6 'process identity cannot be verified'; return 6; }
+    fi
+    [ "$SERVICE" = keycloak ] || { service_scan || { rc=$?; service_refuse "$rc" 'listener ownership cannot be verified'; return "$rc"; }; }
+    if [ "$S_ACTIVE" != active ] && [ "${SCAN_OWNED:-0}" = 1 ]; then service_refuse 6 'listener claims inactive unit'; return 6; fi
+    if [ "$action" = service-start ] && [ "$S_PROBE" = ready ]; then
+      if [ "$SERVICE" = azurite ] && [ "$S_ACTIVE" = active ] && [ "${SCAN_FOREIGN:-0}" = 1 ]; then echo "$SERVICE ready (shared, external)"; return 0; fi
+      if [ "$S_ACTIVE" = active ] && [ "$S_SUB" = running ] && [ "${SCAN_OWNED:-0}" = 1 ]; then echo "$SERVICE already ready"; return 0; fi
+      if [ "${SCAN_OWNED:-0}" = 0 ] && [ "$SERVICE" != keycloak ]; then
+        service_probe || { service_refuse 6 'probe unavailable on recheck'; return 6; }
+        service_scan || { rc=$?; service_refuse "$rc" 'listener ownership changed'; return "$rc"; }
+      fi
+      service_refuse 6 'probe ready but no owned listener'; return 6
+    fi
+    if [ "$action" = service-start ] && [ "$S_ACTIVE" = active ]; then
+      if startup_pending "$SERVICE" "$S_ACTIVE"; then echo "$SERVICE already starting; waiting"; pending_wait=1; break; fi
+      service_failure; return 1
+    fi
+    service_dependencies || { rc=$?; service_refuse "$rc" 'dependencies unavailable'; return "$rc"; }
+    old="$S_ACTIVE/$S_SUB/$S_PID"
+    service_show || { service_refuse 6 'unit changed before action'; return 6; }
+    service_tree_check || { service_refuse 6 'QA tree or unit WorkingDirectory changed before action'; return 6; }
+    [ "$old" = "$S_ACTIVE/$S_SUB/$S_PID" ] && break
+  done
+  [ "$tries" -lt 2 ] || { service_refuse 6 'unit state changing'; return 6; }
+  if [ "$pending_wait" = 1 ]; then :
+    elif [ "$(service_remaining)" -lt 5 ]; then service_refuse 4 'time budget exhausted before action'; return 4
+    else
+      if [ "$S_ACTIVE" = failed ]; then
+        ACTION_REQUESTED=reset-failed
+        service_mutation systemctl --user reset-failed "$(unit "$SERVICE")" || { service_failure; return 1; }
+      fi
+      [ "$(service_remaining)" -gt 0 ] || { service_refuse 4 'time budget exhausted after reset-failed'; return 4; }
+      record_start "$SERVICE"
+      [ "$(service_remaining)" -gt 0 ] || { service_refuse 4 'time budget exhausted after startup stamp'; return 4; }
+      if [ "$action" = service-start ]; then action=start; else action=restart; fi
+      ACTION_REQUESTED="$action"
+      service_mutation systemctl --user "$action" --no-block "$(unit "$SERVICE")" || { service_failure; return 1; }
+      [ -f "$INTENT" ] || echo "note: backend intent absent; watchdog will not keep $SERVICE up; use wt backend ensure for full stack"
+  fi
+  if dry; then echo "dry-run would wait up to $(service_remaining)s for $SERVICE to settle"; return 0; fi
+  while [ "$(service_remaining)" -gt 0 ]; do
+    service_show || { service_refuse 6 'unit inspection failed while waiting'; return 6; }
+    service_probe || { service_refuse 6 'probe failed while waiting'; return 6; }
+    if [ "$S_ACTIVE" = failed ] || { [ "$ACTION_REQUESTED" != 0 ] && [ "$S_ACTIVE" = inactive ]; }; then service_failure; return 1; fi
+    if [ "$S_ACTIVE" = active ] && [ "$S_PROBE" = ready ]; then
+      if [ "$SERVICE" = keycloak ]; then
+        if [ "$S_SUB" = exited ] && [ "$S_RESULT" = success ]; then echo "$SERVICE ready"; return 0; fi
+      elif [ "$SERVICE" = azurite ] && [ "$S_SUB" = exited ] && [ "$S_PID" = 0 ]; then echo "$SERVICE ready (shared, external)"; return 0
+      elif [ "$S_SUB" = running ]; then
+        service_identity || { service_refuse 6 'process identity changed'; return 6; }
+        service_scan || { rc=$?; service_refuse "$rc" 'listener ownership changed'; return "$rc"; }
+        if [ "$SCAN_OWNED" = 1 ]; then echo "$SERVICE ready"; return 0; fi
+      fi
+    fi
+    remaining=$(service_remaining); [ "$remaining" -gt 2 ] || break
+    sleep 2
+  done
+  if [ "$S_ACTIVE" = activating ] || [ "$S_ACTIVE" = reloading ] || [ "$S_ACTIVE" = deactivating ] || [ "$S_ACTIVE" = refreshing ] || startup_pending "$SERVICE" "$S_ACTIVE"; then
+    echo "re-run: ~/.claude/bin/wt backend start $SERVICE" >&2
+    service_refuse 3 'still starting or stopping'; return 3
+  fi
+  service_failure; return 1
 }
 verify_adopt_root() {
   python3 - "$QA_TREE" "$1" 9>&- <<'PY'
@@ -727,7 +1121,7 @@ heal() {
   if [ "$quiet" = false ]; then health || true; fi
   [ "$failed_any" -eq 0 ]
 }
-usage() { echo 'usage: qa-stack [up|down|restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe] [service] [seconds] [--stack ds-demo|app|all] [--json|--quiet|--force|--yes|--no-block|-n N|-f] (heal syncs named callbacks)' >&2; }
+usage() { echo 'usage: qa-stack [up|down|restart|service-start|service-restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe] [service] [seconds] [--stack ds-demo|app|all] [--json|--quiet|--force|--yes|--no-block|-n N|-f] (heal syncs named callbacks)' >&2; }
 command="${1:-status}"; [ $# -eq 0 ] || shift
 stack=app; service=""; wait_limit=""; json=false; quiet=false; force=false; yes=false; follow=false; lines=80
 while [ $# -gt 0 ]; do
@@ -750,8 +1144,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$stack" in ds-demo|app|all) ;; *) usage; exit 2 ;; esac
-case "$command" in up|down|restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe) ;; *) usage; exit 2 ;; esac
-case "$command" in restart|logs|wait-probe) ;; *) [ -z "$service" ] || { usage; exit 2; } ;; esac
+case "$command" in up|down|restart|service-start|service-restart|status|health|heal|foreign|adopt|logs|install|dashboard|wait-probe) ;; *) usage; exit 2 ;; esac
+case "$command" in restart|logs|wait-probe|service-start|service-restart) ;; *) [ -z "$service" ] || { usage; exit 2; } ;; esac
+[ "$command" != service-start ] && [ "$command" != service-restart ] || [ -n "$service" ] || { usage; exit 2; }
 [ -z "$service" ] || resolve "$service" "$stack" >/dev/null
 [[ "$lines" =~ ^[0-9]+$ ]] || { usage; exit 2; }
 if [ "$command" = wait-probe ]; then
@@ -760,6 +1155,7 @@ if [ "$command" = wait-probe ]; then
   [[ "$wait_limit" =~ ^[0-9]+$ ]] && [ "$wait_limit" -gt 0 ] || { usage; exit 2; }
 fi
 case "$command" in
+  service-start|service-restart) service_control "$command" "$service" ;;
   install) install_units ;;
   dashboard)
     echo "http://localhost:${QA_DASHBOARD_PORT:-5100}"

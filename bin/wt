@@ -456,7 +456,7 @@ qa_offset() {
   local qa="$1" offset
   if ! offset=$(cd "$qa" && python3 scripts/dev/ports.py --offset 2>/dev/null); then
     # Status still works when the port registry is readable but mounted read-only.
-    offset=$(python3 - "$qa" "$HOME/.cl-strategy-local/offsets.json" <<'PY'
+    offset=$(python3 - "$qa" "${WT_PORT_REGISTRY:-$HOME/.cl-strategy-local/offsets.json}" <<'PY'
 import json, os, pathlib, sys
 qa = pathlib.Path(sys.argv[1])
 file = qa / '.port-offset'
@@ -470,6 +470,20 @@ PY
   fi
   [[ "$offset" =~ ^[0-9]$ ]] || { echo "invalid QA port offset: $offset" >&2; return 1; }
   echo "$offset"
+}
+qa_offset_readonly() {
+  python3 - "$1" "${WT_PORT_REGISTRY:-$HOME/.cl-strategy-local/offsets.json}" <<'PY'
+import json, os, pathlib, sys
+qa = pathlib.Path(sys.argv[1]); file = qa / '.port-offset'
+try:
+    if file.exists(): value, source = int(file.read_text().strip()), 'file'
+    else:
+        value = json.loads(pathlib.Path(sys.argv[2]).read_text())['claims'][os.path.realpath(qa)]['offset']
+        source = 'registry'
+    if type(value) is not int or not 0 <= value <= 9: raise ValueError('offset outside 0..9')
+    print(value, source)
+except (OSError, KeyError, TypeError, ValueError): sys.exit(1)
+PY
 }
 
 qa_backend() {
@@ -1630,20 +1644,30 @@ backend_update() {
 cmd_backend() {
   local sub="${1:-status}"; [ $# -eq 0 ] || shift
   case "$sub" in
+    start|restart)
+      [ $# -eq 1 ] || { echo 'usage: wt backend start|restart <service>' >&2; return 2; }
+      case "$1" in azurite|keycloak|functions|langgraph|backend) ;; *) echo 'unknown backend service' >&2; return 2 ;; esac
+      local limit expected
+      limit="${WT_ENSURE_TIMEOUT:-150}"
+      [[ "$limit" =~ ^[1-9][0-9]*$ ]] || { echo 'WT_ENSURE_TIMEOUT must be positive seconds' >&2; return 2; }
+      expected=$(qa_tree) || { echo 'cannot find QA tree' >&2; return 6; }
+      export WT_QA_TREE_EXPECTED="$expected" WT_ENSURE_DEADLINE="$(($(date +%s)+limit))"
+      [ "${WT_DRY_RUN:-0}" != 1 ] || export QA_STACK_DRY_RUN=1
+      exec "$(qa_stack_bin)" "service-$sub" "$1" ;;
     status) backend_status ;;
     ensure) backend_ensure ;;
     heal) "$(qa_stack_bin)" heal "$@" ;;
     logs) "$(qa_stack_bin)" logs "$@" ;;
     update) backend_update "$@" ;;
     tab) serve_with_lock cmd_backend_locked ;;
-    *) echo 'usage: wt backend [status|ensure|heal|logs|update|tab]' >&2; return 2 ;;
+    *) echo 'usage: wt backend [status|ensure|heal|logs|update|tab|start <svc>|restart <svc>]' >&2; return 2 ;;
   esac
 }
 
-# JSON keys: generatedAt, boot{id,startedAt}, backend{tree,sha,relation,dirty,overall,services,urls},
+# JSON keys: schemaVersion, generatedAt, boot{id,startedAt}, backend{tree,sha,relation,dirty,overall,services,urls,offset,offsetSource,taskSlots,stackTree,treeAligned,checkError},
 # slots[]{slot,branch,worktree,apps[]{app,port,url,unitState,httpReady},error?,recovery?}.
 cmd_status() {
-  local json=0 qa offset sha relation dirt health slot file app port url state ready
+  local json=0 qa offset offset_source offset_pair sha relation dirt health health_error health_code slot file app port url state ready
   [ "${1:-}" = --json ] && json=1
   if [ "$json" = 0 ]; then
     cmd_status --json | python3 -c 'import json,sys
@@ -1665,13 +1689,26 @@ for slot in D["slots"]:
     return
   fi
   qa=$(qa_tree) || qa=
-  offset=$(qa_offset "$qa" 2>/dev/null || echo 1)
+  offset_source=default
+  if offset_pair=$(qa_offset_readonly "$qa" 2>/dev/null); then
+    read -r offset offset_source <<< "$offset_pair"
+  else offset=1; fi
   sha=$(git -C "$qa" rev-parse --short HEAD 2>/dev/null || echo unknown)
   relation=$(backend_relation "$qa")
   dirt=$(dirty_count "$qa")
-  health=$("$(qa_stack_bin)" health --json 2>/dev/null || true)
-  [ -n "$health" ] || health='{"overall":"down","services":{}}'
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" python3 - <<'PY_JSON'
+  health_error=$(mktemp "${TMPDIR:-/tmp}/wt-health.XXXXXX")
+  health_code=0
+  health=$("$(qa_stack_bin)" health --json 2>"$health_error") || health_code=$?
+  if [ -z "$health" ]; then
+    health=$(python3 - "$health_code" "$health_error" <<'PY'
+import json, pathlib, sys
+line = pathlib.Path(sys.argv[2]).read_text(errors='replace').splitlines()
+print(json.dumps({'overall':'unknown','services':{},'checkError':f'qa-stack health failed (exit {sys.argv[1]}): {(line[0] if line else "no output")[:200]}'}))
+PY
+    )
+  fi
+  rm -f "$health_error"
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
 import concurrent.futures, datetime, json, os, pathlib, re, subprocess, urllib.request
 
 def health_data():
@@ -1681,7 +1718,7 @@ def health_data():
             return data
     except (TypeError, ValueError):
         pass
-    return {'overall': 'down', 'services': {}}
+    return {'overall': 'unknown', 'services': {}, 'checkError':'qa-stack health returned invalid JSON'}
 
 def unit_started(slot, app):
     try:
@@ -1795,7 +1832,12 @@ try: dirty = int(os.environ['WT_STATUS_DIRTY'].strip())
 except ValueError: dirty = 0
 backend = {'tree': os.environ['WT_STATUS_QA'], 'sha': os.environ['WT_STATUS_SHA'],
            'relation': os.environ['WT_STATUS_RELATION'], 'dirty': dirty,
-           'overall': h.get('overall', 'down'), 'services': h.get('services', {}),
+           'overall': h.get('overall', 'unknown'), 'services': h.get('services', {}),
+           'offset': o if os.environ['WT_STATUS_OFFSET_SOURCE'] != 'default' else None,
+           'offsetSource': os.environ['WT_STATUS_OFFSET_SOURCE'], 'taskSlots':[2,9],
+           'stackTree': os.path.realpath(os.environ['WT_STATUS_STACK_TREE']),
+           'treeAligned': os.path.realpath(os.environ['WT_STATUS_QA']) == os.path.realpath(os.environ['WT_STATUS_STACK_TREE']) if os.environ['WT_STATUS_QA'] else None,
+           'checkError': h.get('checkError'),
            'urls': {'backend': f'http://localhost:{8000+10*o}/health',
                     'readyz': f'http://localhost:{8000+10*o}/readyz',
                     'langgraph': f'http://localhost:{2024+10*o}/ok',
@@ -1815,7 +1857,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(apps))) as poo
     list(pool.map(check, apps))
 try: boot_started = datetime.datetime.fromtimestamp(int(os.environ['WT_STATUS_BOOT_TIME']), datetime.timezone.utc).isoformat()
 except (ValueError, OverflowError): boot_started = None
-print(json.dumps({'generatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+print(json.dumps({'schemaVersion':2,'generatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'boot': {'id': os.environ['WT_STATUS_BOOT_ID'] or None, 'startedAt': boot_started},
                   'backend': backend, 'slots': slots}))
 PY_JSON
@@ -2077,7 +2119,7 @@ wt serve --stop <branch>              stop its frontend units
 ~/.claude/bin/wt recover forget <slot:fp>…
                                       forget stopped saved sessions; keep worktrees
 wt logs <branch> [app] [-n N] [-f]    frontend journals (default: 80 lines)
-wt backend [status|ensure|heal|logs|update [--reset|--force]|tab]
+wt backend [status|ensure|heal|logs|update [--reset|--force]|tab|start <svc>|restart <svc>]
                                       shared QA backend controls
 wt status [--json]                    backend and task frontend health
                                       `wt status` page: http://localhost:5100 (via qa-stack)
