@@ -2,8 +2,14 @@
 
 After a machine restart, Overseer offers **Resume sessions** and **Start fresh** for saved
 sessions whose frontends are fully stopped. Resume starts the checked sessions with their
-saved apps. Start fresh forgets all listed sessions and their unit files after confirmation,
-and attempts to remove their named sign-in addresses. Both keep branches and worktrees.
+saved apps. Start fresh forgets all listed sessions and their unit files, and attempts to
+remove their named sign-in addresses. Both act on one click, with no confirmation, and keep
+branches and worktrees. Stopping a running session still asks first.
+
+Before the first status arrives, the page says it is loading saved sessions and checking the
+backend. That means checking, not an empty list or a lost session. If the first request fails,
+it reports status unavailable and retries. Only a valid status with no sessions shows the empty
+state. A later failed poll keeps the last good data under a stale banner.
 
 Normal Stop removes a saved session. Frontend units are started on demand, rather than enabled
 at login, so the records left after a reboot are useful recovery candidates. The panel describes

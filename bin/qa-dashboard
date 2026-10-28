@@ -362,7 +362,6 @@ details{flex-basis:100%}
 summary{cursor:pointer;color:var(--accent);font-size:13px;width:max-content}
 pre{margin:4px 0 0;padding:8px 10px;max-height:16em;overflow:auto;background:var(--inset);border:1px solid var(--border);border-radius:0;font:13px/1.45 var(--mono);white-space:pre-wrap;word-break:break-all}
 .state{display:inline-flex;align-items:center;gap:6px}
-.loading #backend,.loading #slots,.loading #hint{display:none}
 .empty .title{display:block;margin-bottom:2px}
 a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px;transition:text-decoration-thickness var(--dur-fast)}
 a:hover{text-decoration-thickness:2px}
@@ -397,7 +396,7 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .settings .segmented input:focus-visible{box-shadow:none}
 .settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:4px;padding-top:18px;border-top:1px dashed var(--edge-lo2)}
 .settings .done,.confirm-actions button{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:96px;border:0;border-radius:5px;padding:10px 22px 9px;font:700 15px/1 var(--serif);letter-spacing:.08em;font-variant:var(--head-variant);text-transform:var(--head-case);background:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge),0 6px 7px -2px var(--contact);overflow:visible;transition:transform var(--dur-fast) var(--ease-out)}
-.confirm-actions :is(#stop-cancel,#fresh-cancel){background:var(--inset);color:var(--text);box-shadow:inset 0 1px 0 var(--edge-hi),0 4px 0 var(--edge-lo2),0 6px 7px -2px var(--contact)}
+.confirm-actions #stop-cancel{background:var(--inset);color:var(--text);box-shadow:inset 0 1px 0 var(--edge-hi),0 4px 0 var(--edge-lo2),0 6px 7px -2px var(--contact)}
 .confirm-actions .danger{background:var(--danger,var(--seep));color:var(--danger-ink,var(--seep-ink));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 0 var(--brush-deep),0 6px 7px -2px var(--contact)}
 .settings .done:hover:not(:disabled),.confirm-actions button:hover:not(:disabled){transform:translateY(-1px)}
 .settings .done:active,.confirm-actions button:active{transform:translateY(4px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge),0 1px 2px var(--contact)}
@@ -521,7 +520,7 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 select popups: --picker-face, --picker-radius, --picker-hl, --picker-hl-ink, --picker-hl-shadow, --picker-check,
                   --picker-hl-check
   fonts         {serif, mono, body} font stacks
-  favicon       SVG string for the tab icon before the first status arrives
+  favicon       SVG string for the theme's icon, the fallback when favicons has no entry for a state
   favicons      {ok, warn, bad, badDim, down} SVG strings for the page health; bad alternates with badDim in a background tab
   logoSource    SVG string, 64x64 viewBox, transparent background; the halftone grid samples its opaque pixels
   anatomy       optional {iris:[x, y, r], pupil:r, tips:[[x, tipY, topY], ...]} in logo units; needed by the built-in eye modes
@@ -1302,7 +1301,7 @@ THEMES.terminal = (function () {
         T + ' .slot-card .tools{gap:8px}',
         T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
         T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
-        T + ' .confirm-actions :is(#stop-cancel,#fresh-cancel){background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
+        T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
         T + ' .settings .segmented label{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em}',
@@ -1668,7 +1667,7 @@ var QA_THEME = (function () {
     root.setAttribute("data-screen", theme.screen ? "1" : "0");
     applyCharacter();
     var icon = document.querySelector('link[rel="icon"]');
-    if (icon) { icon.href = "data:image/svg+xml," + encodeURIComponent(theme.favicon); icon.dataset.state = "" }
+    if (icon) icon.dataset.state = "";
     document.dispatchEvent(new CustomEvent("qa-theme"));
   }
   apply(pick());
@@ -1708,8 +1707,10 @@ var QA_THEME = (function () {
     pillHover: function () { return active.theme.pillHover || "seep" },
     buttonHover: function () { return active.theme.buttonHover || "seep" },
     favicon: function (state) {
-      var icons = active.theme.favicons, svg = icons && icons[state] || active.theme.favicon, icon = document.querySelector('link[rel="icon"]');
-      if (icon && icon.dataset.state !== state) { icon.href = "data:image/svg+xml," + encodeURIComponent(svg); icon.dataset.state = state }
+      var icons = active.theme.favicons, icon = document.querySelector('link[rel="icon"]');
+      // An unknown state (no status yet) is a blank icon, never a theme's healthy art.
+      var svg = state === "unknown" ? null : icons && icons[state] || active.theme.favicon;
+      if (icon && icon.dataset.state !== state) { icon.href = svg == null ? "data:," : "data:image/svg+xml," + encodeURIComponent(svg); icon.dataset.state = state }
     },
     copy: function (key, fallback) { var copy = active.theme.copy; return copy && copy[key] || fallback }
   };
@@ -1793,7 +1794,7 @@ var QA_THEME = (function () {
   failures.forEach(function (f) { console.warn("contrast check: " + f) });
 })();
 </script>
-</head><body class="loading">
+</head><body>
 <script>
 "use strict";
 // The desk: a real surface under every panel, drawn from the active theme's `desk` entry.
@@ -2140,10 +2141,6 @@ var QA_DESK=(function(){
 <h2 id="stop-title">Stop frontends</h2><p id="stop-message"></p>
 <div class="confirm-actions"><button type="button" id="stop-cancel">Cancel</button><button type="submit" class="danger">Stop</button></div>
 </form></dialog>
-<dialog id="fresh-confirm" class="settings confirm-dialog" aria-labelledby="fresh-title" aria-describedby="fresh-message"><form method="dialog">
-<h2 id="fresh-title">Start fresh</h2><p id="fresh-message"></p>
-<div class="confirm-actions"><button type="button" id="fresh-cancel">Cancel</button><button type="submit" class="danger">Start fresh</button></div>
-</form></dialog>
 <script>
 "use strict";
 var INITIAL=/*INITIAL*/null/*END*/;
@@ -2188,6 +2185,8 @@ function agoText(iso){
   return s<60?s+"s":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d";
 }
 function clock(iso){return iso?new Date(iso).toLocaleTimeString():""}
+// Before the first real snapshot the page says it is checking; it never claims zero sessions or a missing backend.
+var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking backend status…",STATUS_RETRYING="Status unavailable, retrying.";
 function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
@@ -2230,7 +2229,7 @@ function backendHealthy(b){
 function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===healthy?!!detailsChoice.open:!healthy}
 // Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
 function renderBackend(b){
-  if(!b)return'<div class="muted">No backend data.</div>'+renderActionResult();
+  if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
   var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
   var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
@@ -2394,8 +2393,8 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   function add(key,tone,subject,text){out.push({key:key,tone:tone,subject:subject,text:text})}
   function listed(items){return items.slice(0,3).join(", ")+(items.length>3?", and "+(items.length-3)+" more":"")}
   function serviceNames(want){return names.filter(function(name){return serviceTone(services[name])===want})}
-  if(!snapshot&&!fetchFailure)add("loading","unknown","Status","Loading status…");
-  if(fetchFailure)add("failure","down","Status","Status unavailable: "+fetchFailure+"."+(snapshot?" Showing the last data.":""));
+  if(!snapshot&&!fetchFailure)add("loading","unknown","Status",LOADING_SESSIONS+" "+CHECKING_BACKEND);
+  if(fetchFailure)add("failure",snapshot?"down":"unknown","Status",snapshot?"Status unavailable: "+fetchFailure+". Showing the last data.":"Status unavailable, retrying: "+fetchFailure+".");
   if(requestFailure)add("request","down","Backend","Request failed: "+requestFailure+".");
   if(backend){
     if(backendTone(backend)==="down"&&names.length){var down=serviceNames("down");add("backend:down","down","Backend","Backend is down."+(down.length?" Not running: "+listed(down)+".":""))}
@@ -2497,19 +2496,18 @@ function updateAgo(){
   });
 }
 function render(){
-  var loading=!data&&!failure;
-  document.body.classList.toggle("loading",loading);
-  document.querySelector("main").setAttribute("aria-busy",loading?"true":"false");
+  document.querySelector("main").setAttribute("aria-busy",!data&&!failure?"true":"false");
   var backend=data&&data.backend,backendBox=document.getElementById("backend");
   setClass(backendBox,"card backend"+(backend?(backendHealthy(backend)?"":" err"):" muted"));
   var backendChanged=setHtml(backendBox,renderBackend(backend));
   var slots=(data&&data.slots)||[];
-  setText(document.getElementById("sessions-count"),String(slots.length));
+  setText(document.getElementById("sessions-count"),data?String(slots.length):"");
   if(stopDialog&&stopDialog.open&&!stopAvailable(stopBranch))stopDialog.close();
   var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
   hint.hidden=!slots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
-  var cards=slots.length?sortedSlots(slots).map(renderSlot):
+  var cards=!data?[{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Saved sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
+    slots.length?sortedSlots(slots).map(renderSlot):
     [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
   var changedCards=reconcileCards(slotsBox,cards);
   renderRecovery();
@@ -2524,9 +2522,9 @@ function render(){
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
   var unhealthy=failure||(backend&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
-  var title=(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
+  var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
   if(document.title!==title)document.title=title;
-  var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":"")+": "+failure:"";
+  var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":" - retrying")+": "+failure:"";
   setText(document.getElementById("updated"),updatedText());
   if(failure){b.style.display="block";setText(b,banner)}
   else if(b.style.display!=="none")b.style.display="none";
@@ -2591,10 +2589,8 @@ stopDialog.addEventListener("close",function(){
 var recoveryRequest=false;
 // Saved sessions from before the restart. wt decides which slots qualify (slots[].recovery); the page only lists them.
 var recoveryBox=document.getElementById("recovery"),recoveryRows=document.getElementById("recovery-rows"),recoveryPicks={};
-var freshDialog=document.getElementById("fresh-confirm"),freshPairs=[],freshOpener=null,freshSubmitting=false;
 function recoveryCandidates(){return((data&&data.slots)||[]).filter(function(s){return s.recovery&&s.recovery.fingerprint}).sort(function(a,b){return a.slot-b.slot})}
 function recoveryPairs(list){return list.map(function(s){return{slot:s.slot,fingerprint:s.recovery.fingerprint}})}
-function samePairs(a,b){return a.length===b.length&&a.every(function(pair,i){return pair.slot===b[i].slot&&pair.fingerprint===b[i].fingerprint})}
 function recoveryRow(s){
   var apps=(s.apps||[]).map(function(a){return APP_NAMES[a.app]||a.app}).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
     body='<span class="branch">'+esc(s.branch||"(no branch)")+'</span><span class="small">'+esc(apps)+'</span>'+(leaf?'<span class="small" title="'+esc(s.worktree)+'">'+esc(leaf)+'</span>':"");
@@ -2627,7 +2623,6 @@ function renderRecovery(){
   var rowsHtml=list.map(recoveryRow).join("");
   if(recoveryRows.__html!==rowsHtml){recoveryRows.__html=rowsHtml;recoveryRows.innerHTML=rowsHtml}
   updateRecoveryButtons(list);
-  if(freshDialog.open&&!samePairs(freshPairs,recoveryPairs(list))){actionError="Saved sessions changed. Check the list and try again.";recoveryRequest=true;freshDialog.close()}
   var status=document.getElementById("recovery-status"),a=currentAction(),line="",tone="";
   if(a&&(a.action==="resume"||a.action==="forget")){var l=actionLine(a);line=l.text+". Details are on the Backend card.";tone=l.tone}
   if(recoveryRequest&&actionError){line=actionError;tone="down"}
@@ -2665,33 +2660,11 @@ document.getElementById("recovery-resume").addEventListener("click",function(){
   var pairs=recoveryPairs(checkedRecovery(recoveryCandidates()));
   if(pairs.length)runRecovery("resume",pairs);
 });
-document.getElementById("recovery-fresh").addEventListener("click",function(e){
+// One click forgets every listed saved session; the server re-checks each fingerprint and refuses any that changed.
+document.getElementById("recovery-fresh").addEventListener("click",function(){
   var list=recoveryCandidates();
-  if(!freshDialog.showModal||freshDialog.open||isRunning()||!list.length)return;
-  freshPairs=recoveryPairs(list);freshOpener=e.currentTarget;freshSubmitting=false;
-  document.getElementById("fresh-message").textContent="Forget "+list.length+" saved session"+(list.length===1?"":"s")+"? Their branches and worktrees stay. Running sessions are not affected.";
-  freshDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
-  document.getElementById("fresh-cancel").focus();
-});
-freshDialog.querySelector("form").addEventListener("submit",function(e){
-  e.preventDefault();
-  if(freshSubmitting||!freshDialog.open)return;
-  var pairs=freshPairs;
-  freshSubmitting=true;freshDialog.close();
-  // Only the list the user confirmed may be forgotten: if any record changed since, nothing is sent.
-  if(!isRunning()&&samePairs(pairs,recoveryPairs(recoveryCandidates())))runRecovery("forget",pairs);
-  else{actionError="Saved sessions changed. Check the list and try again.";recoveryRequest=true;render()}
-});
-document.getElementById("fresh-cancel").addEventListener("click",function(){freshDialog.close()});
-freshDialog.addEventListener("click",function(e){
-  var rect=freshDialog.getBoundingClientRect();
-  if(e.target===freshDialog&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))freshDialog.close();
-});
-freshDialog.addEventListener("close",function(){
-  document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
-  var opener=freshOpener;freshOpener=null;
-  if(!opener||!opener.isConnected||opener.disabled||recoveryBox.hidden)opener=recoveryFocusTarget("");
-  if(opener)opener.focus();
+  if(isRunning()||!list.length)return;
+  runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
   var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-radio]");
@@ -2714,11 +2687,12 @@ document.addEventListener("click",function(e){
   else runAction(t.getAttribute("data-action"));
 });
 document.addEventListener("toggle",function(e){if(e.target.id==="action-output")outputOpen=e.target.open},true);
+// With no real snapshot the health is unknown; a failed poll keeps what the last snapshot showed.
 function pageHealth(){
-  if(failure)return"bad";
-  var tones=[],backend=data&&data.backend;
+  if(!data)return"unknown";
+  var tones=[],backend=data.backend;
   if(backend)tones.push(backendTone(backend));
-  ((data&&data.slots)||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
+  (data.slots||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
   var worst=worstTone(tones);
   return worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
 }
@@ -2788,9 +2762,15 @@ tenantInput.addEventListener("input",function(){
 });
 var justFinished=false;
 function schedule(ms){if(INITIAL)return;clearTimeout(pollTimer);pollTimer=setTimeout(poll,ms)}
+// Only a snapshot with the expected shape replaces the last good data; anything else is a failed poll.
+function validSnapshot(j){return!!j&&typeof j==="object"&&Array.isArray(j.slots)&&!!j.backend&&typeof j.backend==="object"&&!Array.isArray(j.backend)}
 function poll(){
-  fetch("/api/status",{cache:"no-store"}).then(function(r){
-    return r.json().then(function(j){if(!r.ok||j.error)throw new Error(j.error||("HTTP "+r.status));return j});
+  return fetch("/api/status",{cache:"no-store"}).then(function(r){
+    return r.json().catch(function(){return null}).then(function(j){
+      if(!r.ok||(j&&j.error))throw new Error((j&&j.error)||("HTTP "+r.status));
+      if(!validSnapshot(j))throw new Error("Unreadable status response");
+      return j;
+    });
   }).then(function(j){var wasRunning=isRunning();data=j;lastOk=new Date();failure=null;render();justFinished=wasRunning&&!isRunning()})
     .catch(function(e){failure=e.message;render()})
     .then(function(){schedule(isRunning()?1000:justFinished?1200:5000);justFinished=false});
