@@ -66,7 +66,9 @@ Only `bin/` is needed to run the local runtime. The rest is the author's persona
 
 ## Setup on your own machine
 
-Needs Linux or WSL with systemd user services, plus `git`, `python3`, `flock`, Node with `pnpm`, and
+On macOS, use [the native Mac setup](docs/MACOS.md). It uses per-user launchd agents and the same
+`wt`, `qa-stack`, and Overseer commands. The Linux/WSL setup below needs systemd user services,
+plus `git`, `python3`, `flock`, Node with `pnpm`, and
 everything the `cl-strategy` local RI runtime already needs (backend virtualenvs, Functions, LangGraph,
 Podman/Keycloak and its local setup). If the local Keycloak container or its setup does not exist yet,
 do not look for it here: follow the `cl-strategy` `local-app-runtime` skill and the instructions printed by

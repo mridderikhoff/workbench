@@ -17,7 +17,9 @@ part of the experience, not a decorative footer or just another status icon. Giv
 place in each scene and protect its presence as the session list grows.
 
 - A **scene** determines the composition: layout, surfaces, and where the character and sessions
-  live. Overseer has two scenes, **Desk** and **Radio**; retired scenes and future ideas live in
+  live. Overseer has two scenes, **Desk** and **Radio**. Radio is hidden behind a feature flag
+  (`QA_FEATURES.radioScene` in `bin/qa-dashboard`, or `?scene=radio` for one visit) until it is ready; while it is off,
+  a stored Radio pick falls back to Desk. Retired scenes and future ideas live in
   [the scene notebook](docs/SCENE_IDEAS.md).
 - A **theme** supplies the visual world: palette, materials, typography, icons, and character effects.
   Scenes should translate across worlds such as horror, cyberpunk, classic Mac, and science fiction.
@@ -36,10 +38,12 @@ interface a coherent place in its world. In Desk, every panel is an object lying
 eye card is taped down, the backend card is an index card or an acrylic plate, pills are tags or
 keycaps. Avoid ordinary floating cards pasted over unrelated artwork.
 
-The Sessions card is a holder: its heading sits on the face, and each session is its own object in a
-recessed tray below, with an edge, a gutter and a shadow (Terminal: putty service cards in a rack;
-Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules in a milled
-recess). The slot label belongs to its session. Sessions are separated by their gutters, not by
+The Sessions card is a holder: its heading sits on the face, and each session is its own object lying
+on that same face below it (no recessed well or inset tray), with an edge, a gutter and a shadow (Terminal: putty
+service cards; Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules). The slot label
+is attached to its session in the theme's material: Terminal prints an upright asset tag (black tape with a phosphor
+readout, never tilted), Horror saddle-stitches a dark leather patch on in gold thread at a seeded tilt, and Neon
+rivets an acrylic label on. Sessions are separated by their gutters, not by
 ink dividers, so the only line under a branch name is its hover underline.
 
 Use this within reason: this is a developer workspace. Keep information scannable, actions plain,
@@ -68,7 +72,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 
 ### 1. Theme the visuals, never the words
 - Theme lives in **visuals only**: icons, typography, colour, art, texture, spacing, motion.
-- **Copy stays plain and standard.** "Settings", not "Grimoire". "up 7h", not "7h alive".
+- **Copy stays plain and standard.** "Settings", not "Grimoire". "started 1:11 PM", not "summoned at 1:11".
   "Stop the frontends for <branch>?", not anything ominous. Labels, tooltips, aria-labels, errors,
   confirm prompts and empty states are all plain.
 - A product name is not copy: "Overseer" is fine. A theme name is not copy: "Horror" is fine.
@@ -138,7 +142,10 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 - The thing you scan for is the **biggest, clearest element** in its area: the overall rollup gets
   a large glyph, a large state word and a tinted band.
 - Detail lists invert that: **healthy is quiet** (dimmed) and **problems are loud** (bright red,
-  semibold, animated).
+  semibold, animated). A failed build pill is the loudest thing on its card, in its theme's idiom: Horror scorches and
+  tears the tag and its eye glows red, Terminal turns the key to inverse-video red with a blinking cursor, Neon adds a
+  hazard edge and a red glow. The session card gets a red rim too.
+- An app pill shows its start time as quiet secondary text (no "up 5m" counter); the title has the full time.
 - Secondary information (being behind `develop`, hashes, "show details") is visually quiet until
   hovered. Being behind is not an error, so it is not red.
 - Status glyphs differ in **shape**, not only colour, with the text label always beside them. Each
@@ -188,7 +195,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   a startup check logs any key, icon or art a theme is missing, and any icon it shares with another.
 - A new theme (say, Cthulhu: tentacles and an elder sign) should touch only its registry entry.
 - Options belong in Settings (tenant, theme, Overseer, layout, appearance, logo animation) and persist across visits,
-  applied before first paint so nothing flashes. Logo animation has exactly three options with
+  applied before first paint so nothing flashes. A field with only one available value is not shown (Layout, while
+  Radio is behind its flag). Logo animation has exactly three options with
   generic names: **Full** (the whole animation), **Subtle** (less ambient motion with no cursor tracking) and **Static** (Subtle's still frame, with no loop at all). Stored values from older versions
   map to the nearest option.
 - The Overseer choices are labelled **Blip** and **Eye**. Blip is the global initial and fallback;

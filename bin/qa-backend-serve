@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/overseer-env.sh" "$@"
 # The shared QA backend without uvicorn --reload: the tree only changes through
 # `wt backend update`, which restarts this unit, so a file watcher is wasted CPU.
 # Mirrors start_backend in the repo's dev-start.sh otherwise.

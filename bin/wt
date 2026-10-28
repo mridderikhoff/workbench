@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/overseer-env.sh" "$@"
 # wt — worktree ceremony as single-call reports.
 #
 # Each subcommand answers, in one tool call, a question that otherwise costs
@@ -23,7 +24,7 @@ repo_root() { git rev-parse --show-toplevel 2>/dev/null; }
 # Commands may be called from home or another repository. Preserve the current
 # cl-strategy worktree when there is one; otherwise use its shared checkout.
 wt_git_context() {
-  local fallback="${WT_MAIN_CHECKOUT:-/home/marica/cl-strategy}" here_common base_common
+  local fallback="${WT_MAIN_CHECKOUT:-$HOME/cl-strategy}" here_common base_common
   base_common=$(git -C "$fallback" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
   here_common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
   if [ -n "$here_common" ] && [ "$here_common" = "$base_common" ]; then
@@ -101,6 +102,19 @@ dirty_count() { git -C "$1" status --porcelain 2>/dev/null | wc -l; }
 # a process that exits mid-scan is silent instead of one bash error per pid.
 read_argv() {
   ARGV=()
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mapfile -d '' -t ARGV < <(python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if info:
+    for arg in info['argv']:
+        sys.stdout.buffer.write(arg.encode() + b'\0')
+PY
+    )
+    [ "${#ARGV[@]}" -gt 0 ]; return
+  fi
   mapfile -d '' -t ARGV 2>/dev/null <"/proc/$1/cmdline" || return 1
   [ "${#ARGV[@]}" -gt 0 ]
 }
@@ -127,8 +141,7 @@ is_nx_daemon() {
 
 daemon_pids() {
   local want="${1:-}" pid
-  for pid in /proc/[0-9]*; do
-    pid=${pid#/proc/}
+  for pid in $(process_pids); do
     is_nx_daemon "$pid" || continue
     [ -n "$want" ] && { argv_has_suffix 'daemon/server/start.js' "$want" || continue; }
     echo "$pid"
@@ -151,11 +164,19 @@ daemon_tree() {
 # fails another session's gate. A live `nx` CLI or task executor rooted in the
 # same tree is that signal.
 tree_busy() {
-  local tree="$1" pid
+  local tree="$1" pid pids
   [ "$tree" = unknown ] && return 0
-  for pid in /proc/[0-9]*; do
-    pid=${pid#/proc/}
-    read_argv "$pid" || continue
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mac_tree_inspect "$tree" busy && return 0
+    [ "$?" = 1 ] && return 1
+    return 0
+  fi
+  pids=$(process_pids) || return 0
+  for pid in $pids; do
+    if ! read_argv "$pid"; then
+      [ "$OVERSEER_MACOS" != 1 ] || return 0
+      continue
+    fi
     argv_has_suffix 'daemon/server/start.js' && continue
     argv_has_suffix 'nx/dist/bin/nx.js' "$tree" && return 0
     argv_has_suffix 'run-executor.js' "$tree" && return 0
@@ -166,12 +187,93 @@ tree_busy() {
 # tree_busy only sees Nx, and an agent reading files in a tree runs no Nx at all.
 # Occupancy is the broader signal: any live process whose cwd sits in the tree.
 tree_occupied() {
-  local tree="$1" pid cwd
-  for pid in /proc/[0-9]*; do
-    cwd=$(readlink -f "$pid/cwd" 2>/dev/null) || continue
+  local tree="$1" pid cwd pids
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mac_tree_inspect "$tree" occupied && return 0
+    [ "$?" = 1 ] && return 1
+    return 0
+  fi
+  pids=$(process_pids) || return 0
+  for pid in $pids; do
+    if cwd=$(process_cwd "$pid"); then :
+    else
+      local inspect_rc=$?
+      [ "$OVERSEER_MACOS" != 1 ] || { [ "$inspect_rc" -eq 2 ] || return 0; }
+      continue
+    fi
     case "$cwd" in "$tree" | "$tree"/*) return 0 ;; esac
   done
   return 1
+}
+
+# A single Darwin process snapshot keeps cleanup bounded. Exit 0 means busy,
+# 1 means proven idle; any inspection error or timeout is treated as busy.
+mac_tree_inspect() {
+  local tree="$1" mode="$2" cap=15 remaining
+  if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    remaining=$((WT_ENSURE_DEADLINE-$(date +%s)))
+    [ "$remaining" -gt 0 ] || return 2
+    [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  fi
+  timeout --kill-after=1 "$cap" python3 - "$tree" "$mode" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import processes
+tree, mode = os.path.realpath(sys.argv[1]), sys.argv[2]
+tree_paths = {tree, os.path.abspath(sys.argv[1])}
+for item in processes():
+    cwd = item['cwd']
+    if mode == 'occupied':
+        if cwd is None or cwd == tree or cwd.startswith(tree + os.sep): sys.exit(0)
+        continue
+    args = item['argv']
+    if not args: sys.exit(2)
+    if any(arg.endswith('/daemon/server/start.js') for arg in args): continue
+    if any(any(arg.startswith(path + os.sep) for path in tree_paths) and
+           (arg.endswith('/nx/dist/bin/nx.js') or arg.endswith('/run-executor.js'))
+           for arg in args): sys.exit(0)
+sys.exit(1)
+PY
+}
+
+process_pids() {
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import processes
+for item in processes(): print(item['pid'])
+PY
+  else
+    for pid in /proc/[0-9]*; do echo "${pid#/proc/}"; done
+  fi
+}
+process_cwd() {
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if not info:
+    try: os.kill(int(sys.argv[1]), 0)
+    except ProcessLookupError: sys.exit(2)
+    except PermissionError: sys.exit(1)
+    sys.exit(1)
+if not info['cwd']: sys.exit(1)
+print(info['cwd'])
+PY
+  else readlink -f "/proc/$1/cwd"; fi
+}
+process_birth() {
+  python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if not info: sys.exit(1)
+print(info['start_time'])
+PY
 }
 
 # `worktree add` writes the tree's .git pointer file once and nothing touches it
@@ -188,6 +290,8 @@ reap_daemons() {
   local want="${1:-}" dry="${2:-0}" pid tree stopped=0 busy=0
   for pid in $(daemon_pids "$want"); do
     tree=$(daemon_tree "$pid")
+    local birth=
+    [ "$OVERSEER_MACOS" != 1 ] || birth=$(process_birth "$pid") || continue
     if tree_busy "$tree"; then
       echo "daemon     SKIP  pid $pid — a gate is still running in $tree"
       busy=$((busy + 1)); continue
@@ -195,6 +299,10 @@ reap_daemons() {
     if [ "$dry" = 1 ]; then
       echo "daemon     WOULD STOP  pid $pid  $tree"
     else
+      if [ "$OVERSEER_MACOS" = 1 ]; then
+        [ "$birth" = "$(process_birth "$pid" 2>/dev/null)" ] && is_nx_daemon "$pid" &&
+          [ "$(daemon_tree "$pid")" = "$tree" ] || continue
+      fi
       kill "$pid" 2>/dev/null && echo "daemon     stopped pid $pid  $tree"
     fi
     stopped=$((stopped + 1))
@@ -492,8 +600,7 @@ qa_backend() {
   echo "backend    http://localhost:$((8000 + 10 * offset)) via QA tree $(git -C "$qa" rev-parse --short HEAD)"
 }
 
-# Called after the QA checkout moves; only dependency installs and services
-# without hot reload need manual action.
+# Report dependency installs needed after the QA checkout moves.
 qa_restart_hints() {
   local qa="$1" old="$2" new="$3" file dir svc
   local backend=0 functions=0 langgraph=0 ui=0
@@ -527,22 +634,29 @@ qa_restart_hints() {
     fi
   done
   [ "$ui" = 1 ] && echo "deps       run: (cd $qa/apps/ui && pnpm install)"
-  if [ "$backend" = 0 ] && [ "$functions" = 0 ] && [ "$langgraph" = 0 ]; then
-    echo "restart    none needed"
-    return 0
-  fi
-  for svc in backend functions langgraph; do
-    case "$svc" in
-      backend) [ "$backend" = 1 ] || continue ;;
-      functions) [ "$functions" = 1 ] || continue ;;
-      langgraph) [ "$langgraph" = 1 ] || continue ;;
-    esac
-    echo "restart    $(qa_stack_bin) restart $svc"
-  done
+  [ "$backend" = 0 ] && [ "$functions" = 0 ] && [ "$langgraph" = 0 ] && return 0
+}
+
+qa_attachment_file() { echo "$(wt_state_root)/qa-attachment"; }
+qa_attachment_needs_return() {
+  local qa="$1" head="$2" file path saved_head branch ready
+  file=$(qa_attachment_file)
+  [ -f "$file" ] || return 1
+  { IFS= read -r path; IFS= read -r saved_head; IFS= read -r branch; IFS= read -r ready; } <"$file" || return 1
+  [ "$path" = "$(readlink -f "$qa")" ] && [ "$saved_head" = "$head" ] &&
+    { [ "$branch" != "$BASE_BRANCH" ] || [ "$ready" != 1 ]; }
+}
+qa_attachment_save() {
+  local qa="$1" head="$2" branch="$3" ready="$4" file tmp
+  file=$(qa_attachment_file)
+  mkdir -p "$(wt_state_root)" || return 1
+  tmp="$file.tmp.$$"
+  printf '%s\n%s\n%s\n%s\n' "$(readlink -f "$qa")" "$head" "$branch" "$ready" >"$tmp" || return 1
+  mv -f -- "$tmp" "$file"
 }
 
 cmd_qa_locked() {
-  local qa old new
+  local qa old new ref branch foreign svc
   qa=$(qa_tree) || { echo "no QA tree found (no worktree carries a .wt-qa-runtime marker)." >&2; return 1; }
   [ "${1:-}" = "$BASE_BRANCH" ] && { cmd_backend update; return; }
   if [ $# -eq 0 ]; then
@@ -552,12 +666,36 @@ cmd_qa_locked() {
     return 0
   fi
   [ ! -f "$(qa_update_marker)" ] || { echo 'qa tree    pending backend update; run: wt backend update' >&2; return 1; }
+  ref="$1"
+  git -C "$qa" rev-parse --verify --quiet "$ref^{commit}" >/dev/null || {
+    echo "qa tree    no commit named $ref" >&2; return 1; }
+  branch=
+  git -C "$qa" show-ref --verify --quiet "refs/heads/$ref" && branch="$ref"
   old=$(git -C "$qa" rev-parse HEAD) || return 1
-  wt_run_mutating git -C "$qa" checkout --detach "$1" || return 1
-  [ "${WT_DRY_RUN:-0}" = 1 ] && { echo "qa tree    return to develop with: wt backend update"; return 0; }
+  wt_run_mutating git -C "$qa" checkout --detach "$ref" || return 1
+  if [ "${WT_DRY_RUN:-0}" = 1 ]; then
+    for svc in functions langgraph backend; do
+      echo "dry-run    $(qa_stack_bin) restart $svc --stack app"
+      echo "dry-run    $(qa_stack_bin) wait-probe $svc 180"
+    done
+    echo "qa tree    return to develop with: wt backend update"
+    return 0
+  fi
   new=$(git -C "$qa" rev-parse HEAD) || return 1
   echo "qa tree    now ${new:0:9} (was ${old:0:9})"
   qa_restart_hints "$qa" "$old" "$new"
+  qa_attachment_save "$qa" "$new" "$branch" 0 || return 1
+  foreign=$("$(qa_stack_bin)" foreign) || { echo 'qa tree    cannot verify foreign processes' >&2; return 1; }
+  if [ -n "$foreign" ]; then
+    echo "qa tree    services run outside systemd: $foreign" >&2
+    echo "run        $(qa_stack_bin) adopt --yes" >&2
+    return 2
+  fi
+  for svc in functions langgraph backend; do
+    "$(qa_stack_bin)" restart "$svc" --stack app 8>&- || { echo "qa tree    $svc restart failed" >&2; return 1; }
+    "$(qa_stack_bin)" wait-probe "$svc" 180 8>&- || { echo "qa tree    $svc readiness failed" >&2; return 1; }
+  done
+  qa_attachment_save "$qa" "$new" "$branch" 1 || return 1
   echo "qa tree    return to develop with: wt backend update"
 }
 cmd_qa() {
@@ -583,7 +721,7 @@ wt_qa_with_lock() (
 wt_run_mutating() {
   if [ "${WT_DRY_RUN:-0}" = 1 ]; then printf 'dry-run    '; printf '%q ' "$@"; echo; else "$@"; fi
 }
-wt_systemctl() { wt_run_mutating systemctl --user "$@"; }
+wt_systemctl() { wt_run_mutating "$OVERSEER_SYSTEMCTL" --user "$@"; }
 
 serve_with_lock() (
   local state_dir
@@ -627,8 +765,26 @@ serve_state_load() {
   done <"$file" || return 1
 }
 
-wt_boot_id() { if [ -n "${WT_BOOT_ID:-}" ]; then echo "$WT_BOOT_ID"; else cat /proc/sys/kernel/random/boot_id 2>/dev/null; fi; }
-wt_boot_time() { if [ -n "${WT_BOOT_TIME:-}" ]; then echo "$WT_BOOT_TIME"; else awk '/^btime /{print $2}' /proc/stat 2>/dev/null; fi; }
+wt_boot_id() {
+  if [ -n "${WT_BOOT_ID:-}" ]; then echo "$WT_BOOT_ID"
+  elif [ "$OVERSEER_MACOS" = 1 ]; then python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import boot_identity
+print(boot_identity()[0])
+PY
+  else cat /proc/sys/kernel/random/boot_id 2>/dev/null; fi
+}
+wt_boot_time() {
+  if [ -n "${WT_BOOT_TIME:-}" ]; then echo "$WT_BOOT_TIME"
+  elif [ "$OVERSEER_MACOS" = 1 ]; then python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import boot_identity
+print(boot_identity()[1])
+PY
+  else awk '/^btime /{print $2}' /proc/stat 2>/dev/null; fi
+}
 serve_fingerprint() { sha256sum -- "$1" 2>/dev/null | cut -c1-16; }
 
 # Check every unit file for this slot, plus every canonical and saved unit.
@@ -648,7 +804,7 @@ recover_unit_guard() {
   for unit in "${units[@]}"; do
     case "$seen" in *" $unit "*) continue ;; esac
     seen="$seen$unit "
-    out=$(systemctl --user show --property=LoadState --property=ActiveState -- "$unit" 2>/dev/null); rc=$?
+    out=$("$OVERSEER_SYSTEMCTL" --user show --property=LoadState --property=ActiveState -- "$unit" 2>/dev/null); rc=$?
     [ "$rc" = 0 ] || return 1
     load= active=
     while IFS= read -r line; do
@@ -791,8 +947,8 @@ serve_command() {
 }
 
 serve_unit() { echo "cl-strategy-serve-$1-$2.service"; }
-serve_unit_dir() { echo "${QA_UNIT_DIR:-$HOME/.config/systemd/user}"; }
-serve_unit_state() { systemctl --user is-active "$(serve_unit "$1" "$2")" 2>/dev/null || echo unknown; }
+serve_unit_dir() { if [ "$OVERSEER_MACOS" = 1 ]; then echo "${QA_UNIT_DIR:-$HOME/.config/overseer/units}"; else echo "${QA_UNIT_DIR:-$HOME/.config/systemd/user}"; fi; }
+serve_unit_state() { "$OVERSEER_SYSTEMCTL" --user is-active "$(serve_unit "$1" "$2")" 2>/dev/null || echo unknown; }
 serve_http_ready() {
   [ "${WT_STUB_PORTS+x}" ] && { port_listening "$1"; return; }
   python3 - "$1" <<'PY_HTTP'
@@ -805,10 +961,14 @@ except Exception:
 PY_HTTP
 }
 serve_write_unit() {
-  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp
+  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path
   unit_dir=$(serve_unit_dir)
   mkdir -p "$unit_dir" || return 1
   command_line=$(serve_command "$path" "$app" "$slot" "$offset")
+  unit_env_path="$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    unit_env_path="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$unit_env_path"
+  fi
   unit_path="$unit_dir/$(serve_unit "$slot" "$app")"
   temp="$(serve_state_dir)/unit-$slot-$app.$$"
   cat >"$temp" <<EOF_UNIT
@@ -820,8 +980,10 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=$path/apps/ui
-Environment=PATH=$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin
-Environment=PNPM_HOME=$HOME/.local/share/pnpm
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
+Environment="PATH=$unit_env_path"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 ExecStart=/usr/bin/env bash -lc '$command_line'
 Restart=on-failure
@@ -1265,7 +1427,7 @@ cmd_logs() {
       units+=(-u "$(serve_unit "$slot" "$item")")
     done
     [ ${#units[@]} -gt 0 ] || { echo 'logs      app not in slot' >&2; return 1; }
-    if [ "$follow" = 1 ]; then journalctl --user "${units[@]}" -n "$count" -f; else journalctl --user "${units[@]}" -n "$count" --no-pager; fi
+    if [ "$follow" = 1 ]; then "$OVERSEER_JOURNALCTL" --user "${units[@]}" -n "$count" -f; else "$OVERSEER_JOURNALCTL" --user "${units[@]}" -n "$count" --no-pager; fi
     return
   done
   echo "logs      no slot for $branch" >&2; return 1
@@ -1275,7 +1437,7 @@ backend_pane_command() {
   local qa="$1" service="$2" offset="$3" quoted port probe unit
   printf -v quoted '%q' "$qa"
   unit="cl-strategy-qa-$service.service"
-  echo "exec journalctl --user -f -n 30 -u $unit"
+  printf "exec %q --user -f -n 30 -u %q\n" "$OVERSEER_JOURNALCTL" "$unit"
 }
 
 backend_herdr_start() (
@@ -1430,6 +1592,7 @@ qa_update_classify() {
         UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1 ;;
       libs/common/*) UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1 ;;
       apps/backend/pyproject.toml|apps/backend/uv.lock) UPDATE_BACKEND=1 UPDATE_BACKEND_DEPS=1 ;;
+      apps/backend/*) UPDATE_BACKEND=1 ;;
       apps/functions/pyproject.toml|apps/functions/uv.lock) UPDATE_FUNCTIONS=1 UPDATE_FUNCTIONS_DEPS=1 ;;
       apps/strategy-graph/pyproject.toml|apps/strategy-graph/uv.lock) UPDATE_LANGGRAPH=1 UPDATE_GRAPH_DEPS=1 ;;
       apps/functions/*) UPDATE_FUNCTIONS=1 ;;
@@ -1572,7 +1735,8 @@ backend_update_locked() {
   else
     git -C "$main" fetch origin develop || return 1
     new=$(git -C "$qa" rev-parse origin/develop) || return 1
-    if [ "$old" = "$new" ] && [ "${WT_BACKEND_UPDATE_FORCE:-0}" != 1 ]; then
+    if [ "$old" = "$new" ] && [ "${WT_BACKEND_UPDATE_FORCE:-0}" != 1 ] && ! qa_attachment_needs_return "$qa" "$old"; then
+      qa_attachment_save "$qa" "$old" "$BASE_BRANCH" 1 || return 1
       echo 'backend    already at origin/develop'; backend_status; return
     fi
     if [ "${WT_BACKEND_UPDATE_FORCE:-0}" = 1 ]; then
@@ -1582,6 +1746,11 @@ backend_update_locked() {
       UPDATE_COMMON=1 UPDATE_BACKEND_DEPS=1 UPDATE_FUNCTIONS_DEPS=1 UPDATE_GRAPH_DEPS=1
       UPDATE_UI=1 UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1
       echo 'backend    force: reinstalling all dependencies and restarting app services'
+    elif [ "$old" = "$new" ]; then
+      qa_update_reset
+      UPDATE_PATH="$qa" UPDATE_OLD="$old" UPDATE_NEW="$new"
+      UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1
+      echo 'backend    returning attached checkout to develop; restarting app services'
     else
       qa_update_classify "$qa" "$old" "$new" || return 1
     fi
@@ -1623,6 +1792,7 @@ backend_update_locked() {
   fi
   rm -f -- "$marker"
   current=$(git -C "$qa" rev-parse HEAD) || return 1
+  qa_attachment_save "$qa" "$current" "$BASE_BRANCH" 1 || return 1
   latest=$(git -C "$qa" rev-parse origin/develop) || return 1
   echo "backend    now at ${current:0:9}; origin/develop is ${latest:0:9}"
   if [ "$current" != "$latest" ]; then backend_update_locked; else backend_status; fi
@@ -1712,8 +1882,47 @@ PY
     )
   fi
   rm -f "$health_error"
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
 import concurrent.futures, datetime, json, os, pathlib, re, subprocess, urllib.request
+
+def backend_branch(path):
+    try:
+        head = subprocess.run(['git', '-C', path, 'rev-parse', 'HEAD'], capture_output=True,
+                              text=True, timeout=2, check=True).stdout.strip()
+        if not head: return None
+        pending = pathlib.Path(os.environ['WT_STATUS_UPDATE_MARKER'])
+        if pending.exists():
+            update_path = next((line[5:] for line in pending.read_text().splitlines()
+                                if line.startswith('path=')), None)
+            if update_path is None or os.path.realpath(update_path) == os.path.realpath(path):
+                return None
+        marker = pathlib.Path(os.environ['WT_STATUS_ATTACHMENT'])
+        if marker.exists():
+            lines = marker.read_text().splitlines()
+            if len(lines) != 4: return None
+            saved_path, saved_head, branch, ready = lines
+            if saved_path == os.path.realpath(path) and saved_head == head:
+                return branch if ready == '1' and branch else None
+        refs = subprocess.run(['git', '-C', path, 'for-each-ref', '--format=%(refname:short) %(objectname)',
+                               'refs/heads'], capture_output=True, text=True, timeout=2, check=True)
+        matches = [line.rsplit(' ', 1)[0] for line in refs.stdout.splitlines()
+                   if line.rsplit(' ', 1)[-1] == head]
+        if len(matches) == 1: return matches[0]
+        if matches: return None
+        # A legacy detached checkout can outlive its branch tip. Its latest HEAD
+        # reflog entry records the exact ref used for the checkout.
+        log = subprocess.run(['git', '-C', path, 'reflog', '-1', '--format=%H%x00%gs', 'HEAD'],
+                             capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+        recorded_head, separator, message = log.partition('\0')
+        if not separator or recorded_head != head or not message.startswith('checkout: moving from '):
+            return None
+        _, separator, branch = message.rpartition(' to ')
+        if not separator or not branch: return None
+        ref = subprocess.run(['git', '-C', path, 'show-ref', '--verify', '--quiet', f'refs/heads/{branch}'],
+                             capture_output=True, timeout=2)
+        return branch if ref.returncode == 0 else None
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
+        return None
 
 def health_data():
     try:
@@ -1726,7 +1935,7 @@ def health_data():
 
 def unit_started(slot, app):
     try:
-        result = subprocess.run(['systemctl', '--user', 'show', '-p', 'ActiveEnterTimestamp', '--timestamp=unix',
+        result = subprocess.run([os.environ.get('OVERSEER_SYSTEMCTL', 'systemctl'), '--user', 'show', '-p', 'ActiveEnterTimestamp', '--timestamp=unix',
                                  '--value', f'cl-strategy-serve-{slot}-{app}.service'],
                                 capture_output=True, text=True, timeout=2)
         value = result.stdout.strip().lstrip('@')
@@ -1750,7 +1959,7 @@ def git_head(path):
 
 def unit_state(slot, app):
     try:
-        result = subprocess.run(['systemctl', '--user', 'is-active', f'cl-strategy-serve-{slot}-{app}.service'],
+        result = subprocess.run([os.environ.get('OVERSEER_SYSTEMCTL', 'systemctl'), '--user', 'is-active', f'cl-strategy-serve-{slot}-{app}.service'],
                                 capture_output=True, text=True, timeout=2)
         return result.stdout.splitlines()[0] if result.stdout.strip() else 'unknown'
     except (OSError, subprocess.TimeoutExpired):
@@ -1801,7 +2010,7 @@ ANSI = re.compile(r'\x1b\[[0-9;]*m')
 def build_state(slot, app):
     """Latest dev-server build outcome from its journal: ok, failed (with the first error), or building."""
     try:
-        result = subprocess.run(['journalctl', '--user', '-u', f'cl-strategy-serve-{slot}-{app}.service',
+        result = subprocess.run([os.environ.get('OVERSEER_JOURNALCTL', 'journalctl'), '--user', '-u', f'cl-strategy-serve-{slot}-{app}.service',
                                  '-n', '600', '--no-pager', '-o', 'cat'],
                                 capture_output=True, text=True, timeout=3)
     except (OSError, subprocess.TimeoutExpired):
@@ -1835,6 +2044,7 @@ o = int(os.environ['WT_STATUS_OFFSET'])
 try: dirty = int(os.environ['WT_STATUS_DIRTY'].strip())
 except ValueError: dirty = 0
 backend = {'tree': os.environ['WT_STATUS_QA'], 'sha': os.environ['WT_STATUS_SHA'],
+           'branch': backend_branch(os.environ['WT_STATUS_QA']) if os.environ['WT_STATUS_QA'] else None,
            'relation': os.environ['WT_STATUS_RELATION'], 'dirty': dirty,
            'overall': h.get('overall', 'unknown'), 'services': h.get('services', {}),
            'offset': o if os.environ['WT_STATUS_OFFSET_SOURCE'] != 'default' else None,
@@ -2113,7 +2323,8 @@ wt deps <branch> [workspace-dir…]     pnpm install its workspaces (default: al
 wt verify <branch> [gate-project…]    dirt, ancestry, areas touched, gates
 wt ship <branch> [--ready]            push, open a draft PR (--ready: not draft);
                                       no local gates — PR CI is the gate
-wt qa [branch]                        point QA tree at a commit (no branch: status)
+wt qa [branch|commit]                 attach QA code, restart and probe app services
+                                      (no argument: status)
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; register named sign-in URLs
 wt serve --stop <branch>              stop its frontend units

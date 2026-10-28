@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/overseer-env.sh" "$@"
 # Manage the QA runtime's systemd user units.
 set -euo pipefail
 
 QA_TREE="${QA_TREE:-$HOME/cl-strategy-qa}"
-UNIT_DIR="${QA_UNIT_DIR:-$HOME/.config/systemd/user}"
+UNIT_DIR="${QA_UNIT_DIR:-$HOME/.config/overseer/units}"
+[ "$OVERSEER_MACOS" = 1 ] || UNIT_DIR="${QA_UNIT_DIR:-$HOME/.config/systemd/user}"
 STATE_DIR="${WT_STATE_DIR:-$HOME/.cl-strategy-local}"
 PREFIX="${QA_UNIT_PREFIX:-cl-strategy-qa-}"
 BACKEND_SERVICES=(azurite keycloak functions langgraph backend)
@@ -11,6 +13,9 @@ APP_SERVICES=("${BACKEND_SERVICES[@]}")
 DS_SERVICES=(ds-demo)
 OTHER_SERVICES=(frontend-strategy frontend-ri)
 UNIT_PATH="$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+if [ "$OVERSEER_MACOS" = 1 ]; then
+  UNIT_PATH="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$UNIT_PATH"
+fi
 INTENT="$STATE_DIR/qa-backend-intent"
 HEAL_STATE="$STATE_DIR/qa-heal-state.json"
 START_DIR="$STATE_DIR/qa-started"
@@ -21,7 +26,16 @@ dry() { [ "${QA_STACK_DRY_RUN:-0}" = 1 ]; }
 run_mutation() {
   if dry; then printf 'dry-run'; printf ' %q' "$@"; printf '\n'; else ( exec 9>&-; "$@" ); fi
 }
-read_systemctl() { ( exec 9>&-; systemctl "$@" ); }
+read_systemctl() { ( exec 9>&-; "$OVERSEER_SYSTEMCTL" "$@" ); }
+mac_inspection_cap() {
+  local cap="$1" remaining
+  if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    remaining=$((WT_ENSURE_DEADLINE-$(date +%s)))
+    [ "$remaining" -gt 0 ] || return 1
+    [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  fi
+  echo "$cap"
+}
 lock_wait() {
   local wait=600 remaining now
   if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
@@ -61,16 +75,16 @@ dependencies() {
   esac
 }
 write_unit() {
-  local service="$1" kind extra="" after directory="$QA_TREE" exec="$QA_TREE/dev-start.sh $service" group
+  local service="$1" kind extra="" after directory="$QA_TREE" exec="\"$QA_TREE/dev-start.sh\" $service" group
   group=$(group_for "$service")
   after=$(dependencies "$service")
-  [ "$service" = backend ] && exec="$(dirname "$(readlink -f "$0")")/qa-backend-serve"
+  [ "$service" = backend ] && exec="\"$(dirname "$(readlink -f "$0")")/qa-backend-serve\""
   case "$service" in
     keycloak) kind=$'Type=oneshot\nRemainAfterExit=yes\nTimeoutStartSec=420' ;;
     azurite) kind=$'Type=simple\nRemainAfterExit=yes\nRestart=on-failure\nRestartSec=5' ;;
     *) kind=$'Type=simple\nRestart=on-failure\nRestartSec=5' ;;
   esac
-  [ "$service" = backend ] && extra=$'ExecStartPost=-'"$QA_TREE"$'/dev-start.sh sync-jwt\nTimeoutStartSec=240'
+  [ "$service" = backend ] && extra=$'ExecStartPost=-"'"$QA_TREE"$'/dev-start.sh" sync-jwt\nTimeoutStartSec=240'
   [[ "$service" == frontend-* ]] && extra="TimeoutStartSec=300"
   if [ "$service" = ds-demo ]; then
     directory="$QA_TREE/apps/ui"
@@ -88,8 +102,10 @@ StartLimitBurst=5
 [Service]
 $kind
 WorkingDirectory=$directory
-Environment=PATH=$UNIT_PATH
-Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment="PATH=$UNIT_PATH"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
 ExecStart=$exec
@@ -110,15 +126,17 @@ Description=cl-strategy QA backend watchdog
 
 [Service]
 Type=oneshot
-Environment=PATH=$UNIT_PATH
-Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment="PATH=$UNIT_PATH"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
-Environment=QA_TREE=$QA_TREE
-Environment=WT_STATE_DIR=$STATE_DIR
-Environment=QA_UNIT_DIR=$UNIT_DIR
+Environment="QA_TREE=$QA_TREE"
+Environment="WT_STATE_DIR=$STATE_DIR"
+Environment="QA_UNIT_DIR=$UNIT_DIR"
 Environment=QA_STACK_WATCHDOG=1
-ExecStart=$self heal --quiet
+ExecStart="$self" heal --quiet
 EOF_WATCHDOG
   cat > "$UNIT_DIR/${PREFIX}watchdog.timer" 9>&- <<EOF_TIMER
 [Unit]
@@ -140,11 +158,13 @@ Description=cl-strategy QA status dashboard
 
 [Service]
 Type=simple
-Environment=PATH=$UNIT_PATH
-Environment=PNPM_HOME=$HOME/.local/share/pnpm
+Environment="PATH=$UNIT_PATH"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$HOME/.claude/bin/qa-dashboard
+ExecStart="$HOME/.claude/bin/qa-dashboard"
 Restart=on-failure
 RestartSec=5
 
@@ -155,6 +175,10 @@ EOF_DASHBOARD
 install_units() {
   [ -x "$QA_TREE/dev-start.sh" ] || { echo "no dev-start.sh in $QA_TREE" >&2; return 1; }
   [ -f "$QA_TREE/.wt-qa-runtime" ] || { echo "$QA_TREE is not the QA runtime tree (.wt-qa-runtime missing)" >&2; return 1; }
+  if dry; then
+    echo "dry-run install service, target, dashboard and watchdog definitions in $UNIT_DIR"
+    return 0
+  fi
   mkdir -p "$UNIT_DIR" 9>&-
   local service group wants
   for service in "${APP_SERVICES[@]}" "${DS_SERVICES[@]}" "${OTHER_SERVICES[@]}"; do write_unit "$service"; done
@@ -174,7 +198,7 @@ Wants=$(target app) $(target ds-demo)
 EOF_ALL
   write_watchdog
   write_dashboard
-  run_mutation systemctl --user daemon-reload
+  run_mutation "$OVERSEER_SYSTEMCTL" --user daemon-reload
   echo "installed  service, target and watchdog units in $UNIT_DIR (serving $QA_TREE)"
 }
 ensure_units() {
@@ -189,6 +213,17 @@ ensure_units() {
 foreign_listeners() {
   local stack="$1" mode="${2:-normal}" offset
   offset=$(qa_offset) || return 1
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    local cap
+    cap=$(mac_inspection_cap 20) || return 1
+    timeout --kill-after=1 "$cap" python3 - "$QA_TREE" "$stack" "$offset" "$mode" "$PREFIX" 9>&- <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import foreign_listeners
+print(foreign_listeners(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]), end='')
+PY
+    return
+  fi
   python3 - "$QA_TREE" "$stack" "$offset" "$mode" 9>&- <<'PY'
 import os, pathlib, sys
 qa, stack, offset = os.path.realpath(sys.argv[1]), sys.argv[2], int(sys.argv[3])
@@ -584,6 +619,11 @@ def integer(value):
     try: return int(value)
     except (ValueError, TypeError): return None
 def cwd(pid):
+    if os.environ.get('OVERSEER_MACOS') == '1' and not stub:
+        sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+        from overseer_platform import process_info
+        info = process_info(pid)
+        return info['cwd'] if info else None
     path = pathlib.Path(stub, 'proc', str(pid), 'cwd') if stub else pathlib.Path('/proc', str(pid), 'cwd')
     try: return os.path.realpath(path) if path.is_symlink() else os.readlink(path)
     except OSError: return None
@@ -592,7 +632,7 @@ def port(value, role, primary=False, shared=False, probed=True):
 def entry(name):
     unit = prefix + name + '.service'
     try:
-        result = subprocess.run(['systemctl','--user','show',unit,'--timestamp=unix','-p',','.join(properties)],
+        result = subprocess.run([os.environ.get('OVERSEER_SYSTEMCTL', 'systemctl'),'--user','show',unit,'--timestamp=unix','-p',','.join(properties)],
                                 text=True,capture_output=True,timeout=5)
         values = dict(line.split('=',1) for line in result.stdout.splitlines() if '=' in line) if result.returncode == 0 else {}
     except (OSError, subprocess.TimeoutExpired): values = {}
@@ -769,7 +809,7 @@ service_show() {
   local output key value remaining cap=5
   [ "$(service_remaining)" -gt 0 ] || return 4
   remaining=$(service_remaining); [ "$remaining" -ge "$cap" ] || cap="$remaining"
-  output=$(timeout --kill-after=1 "$cap" systemctl --user show "$(unit "$SERVICE")" --timestamp=unix -p LoadState,ActiveState,SubState,UnitFileState,Type,Result,MainPID,WorkingDirectory,Job,InvocationID,ExecMainStartTimestampMonotonic,InactiveEnterTimestampMonotonic 2>/dev/null) || {
+  output=$(timeout --kill-after=1 "$cap" "$OVERSEER_SYSTEMCTL" --user show "$(unit "$SERVICE")" --timestamp=unix -p LoadState,ActiveState,SubState,UnitFileState,Type,Result,MainPID,WorkingDirectory,Job,InvocationID,ExecMainStartTimestampMonotonic,InactiveEnterTimestampMonotonic 2>/dev/null) || {
     [ "$(service_remaining)" -gt 0 ] || return 4
     return 6
   }
@@ -813,8 +853,21 @@ service_tree_check() {
   SERVICE_TREE="$tree"
 }
 service_identity() {
-  local path actual attempt
+  local path actual attempt cap
   [ "$S_PID" -gt 0 ] || return 6
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    cap=$(mac_inspection_cap 10) || return 6
+    timeout --kill-after=1 "$cap" python3 - "$S_PID" "$SERVICE_TREE" "$(unit "$SERVICE")" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info, unit_for_pid
+pid, tree, unit = int(sys.argv[1]), os.path.realpath(sys.argv[2]), sys.argv[3]
+info = process_info(pid)
+if not info or not info['cwd'] or not (info['cwd'] == tree or info['cwd'].startswith(tree + os.sep)) or unit_for_pid(pid) != unit:
+    sys.exit('process identity or unit ownership cannot be verified')
+PY
+    return
+  fi
   path="${QA_STACK_STUB_DIR:+$QA_STACK_STUB_DIR/proc/}$S_PID/cwd"
   [ -n "${QA_STACK_STUB_DIR:-}" ] || path="/proc/$S_PID/cwd"
   for attempt in 1 2; do
@@ -834,6 +887,23 @@ service_scan() {
   else
     remaining=$(service_remaining); [ "$remaining" -gt 0 ] || return 6
     [ "$remaining" -ge "$cap" ] || cap="$remaining"
+    if [ "$OVERSEER_MACOS" = 1 ]; then
+      result=$(timeout --kill-after=1 "$cap" python3 - "$SERVICE" "$offset" "$PREFIX" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import listening_processes, unit_for_pid
+name, offset, prefix = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+port = {'azurite':10000,'functions':7071+10*offset,'langgraph':2024+10*offset,'backend':8000+10*offset}[name]
+owners = listening_processes([port]).get(port)
+if owners is None:
+    print('unknown\t?\tlistener owner unknown')
+else:
+    for pid in owners:
+        kind = 'owned' if unit_for_pid(pid) == prefix+name+'.service' else 'foreign'
+        print(f'{kind}\t{pid}\tlistener')
+PY
+      ) || return 6
+    else
     result=$(timeout --kill-after=1 "$cap" python3 - "$SERVICE" "$offset" "$PREFIX" "${QA_STACK_STUB_DIR:+$QA_STACK_STUB_DIR/proc}" "${QA_STACK_PROC_NET_DIR:-/proc/net}" "$SERVICE_TREE" <<'PY'
 import os, pathlib, sys
 name, offset, prefix, proc, net, tree = sys.argv[1:]
@@ -886,6 +956,7 @@ for inode in inodes-seen: findings.add(('unknown','?',f'listener owner unknown: 
 for row in sorted(findings): print('\t'.join(row))
 PY
     ) || return 6
+    fi
   fi
   SCAN_OWNED=0 SCAN_FOREIGN=0
   while IFS=$'\t' read -r kind pid reason; do
@@ -924,7 +995,7 @@ service_failure() {
   remaining=$(service_remaining)
   [ "$remaining" -ge "$cap" ] || cap="$remaining"
   if ! dry && [ "$cap" -gt 0 ]; then
-    ( exec 9>&-; timeout --kill-after=1 "$cap" journalctl --user -u "$(unit "$SERVICE")" -n 40 --no-pager ) >&2 || true
+    ( exec 9>&-; timeout --kill-after=1 "$cap" "$OVERSEER_JOURNALCTL" --user -u "$(unit "$SERVICE")" -n 40 --no-pager ) >&2 || true
   fi
   service_refuse 1 'refresh status before another action'
 }
@@ -1011,7 +1082,7 @@ service_control() {
       BEFORE_INV="$S_INV" BEFORE_STARTED="$S_STARTED" BEFORE_INACTIVE="$S_INACTIVE"
       if [ "$S_ACTIVE" = failed ]; then
         ACTION_REQUESTED=reset-failed
-        service_mutation systemctl --user reset-failed "$(unit "$SERVICE")" || {
+        service_mutation "$OVERSEER_SYSTEMCTL" --user reset-failed "$(unit "$SERVICE")" || {
           rc=$?
           if [ "$rc" = 124 ] || [ "$rc" = 137 ]; then service_refuse 4 'reset-failed outcome unknown'; return 4; fi
           service_failure; return 1
@@ -1022,7 +1093,7 @@ service_control() {
       [ "$(service_remaining)" -gt 0 ] || { service_refuse 4 'time budget exhausted after startup stamp'; return 4; }
       if [ "$action" = service-start ]; then action=start; else action=restart; fi
       ACTION_REQUESTED="$action"
-      service_mutation systemctl --user "$action" --no-block "$(unit "$SERVICE")" || {
+      service_mutation "$OVERSEER_SYSTEMCTL" --user "$action" --no-block "$(unit "$SERVICE")" || {
         rc=$?
         if [ "$rc" = 124 ] || [ "$rc" = 137 ]; then service_refuse 4 "$action outcome unknown"; return 4; fi
         service_failure; return 1
@@ -1162,7 +1233,7 @@ heal() {
     [ "$force" = false ] || count=0
     if [ "$count" -ge 3 ]; then
       echo "$service needs-attention: 3 heal restarts in 30 minutes" >&2
-      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      run_mutation "$OVERSEER_JOURNALCTL" --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
       failed["$service"]=1; failed_any=1
       continue
     fi
@@ -1172,10 +1243,10 @@ heal() {
     case "$service:$state" in azurite:active|keycloak:active) action=restart ;;
       azurite:*|keycloak:*) action=start ;;
     esac
-    if ! run_mutation systemctl --user reset-failed "$(unit "$service")" ||
-       ! run_mutation systemctl --user "$action" "$(unit "$service")"; then
+    if ! run_mutation "$OVERSEER_SYSTEMCTL" --user reset-failed "$(unit "$service")" ||
+       ! run_mutation "$OVERSEER_SYSTEMCTL" --user "$action" "$(unit "$service")"; then
       echo "$service $action failed" >&2
-      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      run_mutation "$OVERSEER_JOURNALCTL" --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
       failed["$service"]=1; failed_any=1
       continue
     fi
@@ -1183,7 +1254,7 @@ heal() {
     limit=180; [ "$service" = keycloak ] && limit=420
     if ! wait_probe "$service" "$limit"; then
       echo "$service still unhealthy" >&2
-      run_mutation journalctl --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
+      run_mutation "$OVERSEER_JOURNALCTL" --user -u "$(unit "$service")" -n 40 --no-pager >&2 || true
       failed["$service"]=1; failed_any=1
       continue
     fi
@@ -1243,6 +1314,10 @@ case "$command" in
   foreign) foreign_listeners "$stack" ;;
   heal) heal "$quiet" "$force" ;;
   adopt)
+    if [ "$OVERSEER_MACOS" = 1 ]; then
+      echo 'Mac legacy adopt needs manual review. Stop the old launcher yourself, then run qa-stack up.' >&2
+      exit 6
+    fi
     [ "$yes" = false ] || acquire_lock
     stray=$(foreign_listeners "$stack" adopt)
     plan=$(adopt_plan "$stray")
@@ -1328,19 +1403,19 @@ case "$command" in
     ensure_units
     if [ "$stack" = app ] || [ "$stack" = all ]; then
       if dry; then echo "dry-run touch $INTENT"; else mkdir -p "$STATE_DIR" 9>&-; touch "$INTENT" 9>&-; fi
-      run_mutation systemctl --user enable --now "${PREFIX}watchdog.timer"
+      run_mutation "$OVERSEER_SYSTEMCTL" --user enable --now "${PREFIX}watchdog.timer"
     fi
     result=0
-    run_mutation systemctl --user enable --now --no-block "${PREFIX}dashboard.service" || result=1
+    run_mutation "$OVERSEER_SYSTEMCTL" --user enable --now --no-block "${PREFIX}dashboard.service" || result=1
     for group in $(groups_for "$stack"); do
       while IFS= read -r name; do
         if shared_external_ready "$name"; then
           echo "shared     $name ready (external); leaving it running"
           continue
         fi
-        run_mutation systemctl --user reset-failed "$(unit "$name")" || true
+        run_mutation "$OVERSEER_SYSTEMCTL" --user reset-failed "$(unit "$name")" || true
         record_start "$name"
-        run_mutation systemctl --user start --no-block "$(unit "$name")" || result=1
+        run_mutation "$OVERSEER_SYSTEMCTL" --user start --no-block "$(unit "$name")" || result=1
       done < <(services_for "$group")
     done
     status "$stack"; exit "$result" ;;
@@ -1349,16 +1424,16 @@ case "$command" in
     result=0
     if [ "$stack" = app ] || [ "$stack" = all ]; then
       if dry; then echo "dry-run rm $INTENT"; else rm -f "$INTENT" 9>&-; fi
-      run_mutation systemctl --user stop "${PREFIX}watchdog.timer" || result=1
+      run_mutation "$OVERSEER_SYSTEMCTL" --user stop "${PREFIX}watchdog.timer" || result=1
     fi
     for group in $(groups_for "$stack"); do
-      run_mutation systemctl --user stop "$(target "$group")" || result=1
+      run_mutation "$OVERSEER_SYSTEMCTL" --user stop "$(target "$group")" || result=1
       while IFS= read -r name; do
         if shared_external_ready "$name"; then
           echo "shared     $name ready (external); leaving it running"
           continue
         fi
-        run_mutation systemctl --user stop "$(unit "$name")" || result=1
+        run_mutation "$OVERSEER_SYSTEMCTL" --user stop "$(unit "$name")" || result=1
       done < <(services_for "$group")
     done
     status "$stack"; exit "$result" ;;
@@ -1373,7 +1448,7 @@ case "$command" in
         echo "shared     $service ready (external); leaving it running"
       else
         record_start "$service"
-        run_mutation systemctl --user restart "$(unit "$service")" || result=1
+        run_mutation "$OVERSEER_SYSTEMCTL" --user restart "$(unit "$service")" || result=1
       fi
     else
       for group in $(groups_for "$stack"); do
@@ -1383,7 +1458,7 @@ case "$command" in
             continue
           fi
           record_start "$name"
-          run_mutation systemctl --user restart "$(unit "$name")" || result=1
+          run_mutation "$OVERSEER_SYSTEMCTL" --user restart "$(unit "$name")" || result=1
         done < <(services_for "$group")
       done
     fi
@@ -1394,5 +1469,5 @@ case "$command" in
     else while IFS= read -r name; do units+=(-u "$(unit "$name")"); done < <(services_for "$stack"); fi
     args=(--user "${units[@]}" -n "$lines" --no-pager)
     [ "$follow" = false ] || args+=(-f)
-    if dry; then run_mutation journalctl "${args[@]}"; else exec journalctl "${args[@]}"; fi ;;
+    if dry; then run_mutation "$OVERSEER_JOURNALCTL" "${args[@]}"; else exec "$OVERSEER_JOURNALCTL" "${args[@]}"; fi ;;
 esac
