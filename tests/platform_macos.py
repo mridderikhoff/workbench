@@ -162,6 +162,26 @@ class PlatformTests(unittest.TestCase):
             self.assertEqual(platform.processes(), [])
         cwd.assert_called_once_with([])
 
+    def test_processes_batches_working_directory_lookup(self):
+        listed = subprocess.CompletedProcess([], 0, "42 501 S\n43 501 R+\n", "")
+        first = {"pid": 42, "uid": 501, "cwd": "/tmp", "argv": ["a"], "ppid": 1, "start_time": "1"}
+        second = dict(first, pid=43)
+        with mock.patch.object(platform, "is_macos", return_value=True), \
+             mock.patch.object(platform, "run", return_value=listed), \
+             mock.patch.object(platform, "_cwd_map", return_value={42: "/tmp", 43: "/tmp"}) as cwd, \
+             mock.patch.object(platform, "_darwin_proc_info", side_effect=[first, second]), \
+             mock.patch.object(platform.os, "getuid", return_value=501):
+            self.assertEqual(len(platform.processes()), 2)
+        cwd.assert_called_once_with([42, 43])
+
+    def test_deadline_caps_external_process(self):
+        result = subprocess.CompletedProcess([], 0, "", "")
+        with mock.patch.dict(os.environ, WT_ENSURE_DEADLINE="110"), \
+             mock.patch.object(platform.time, "time", return_value=100), \
+             mock.patch.object(platform.subprocess, "run", return_value=result) as called:
+            platform.run(["launchctl", "print"], timeout=20)
+        self.assertEqual(called.call_args.kwargs["timeout"], 10)
+
     def test_numeric_boot_fallback_ignores_human_date(self):
         outputs = [subprocess.CompletedProcess([], 0, "{ sec = 100, usec = 42 } Wed\n", ""),
                    subprocess.CompletedProcess([], 1, "", "unknown oid")]
