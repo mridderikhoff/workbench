@@ -2503,7 +2503,7 @@ function sortedSlots(slots){
     return(hasRi(b)-hasRi(a))||String(a.branch||"").localeCompare(String(b.branch||""));
   });
 }
-var START_HINT='ask an agent to serve your branch, or run <code>~/.claude/bin/wt serve &lt;branch&gt; ri</code>';
+var START_HINT='ask an agent to serve your branch';
 function updatedText(){
   if(!lastOk)return"not loaded";
   var s=Math.max(0,Math.round((Date.now()-lastOk.getTime())/1000));
