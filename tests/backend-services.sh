@@ -26,7 +26,11 @@ case "$action" in
   reset-failed|start|restart)
     echo "$action $*" >> "$FIXTURE/mutations.log"
     unit=${!#}
-    [ ! -x "$FIXTURE/on/$action-$unit" ] || "$FIXTURE/on/$action-$unit"
+    if [ -x "$FIXTURE/on/$action-$unit" ]; then
+      "$FIXTURE/on/$action-$unit"
+    elif [ "$action" = start ] || [ "$action" = restart ]; then
+      sed -i 's/^InvocationID=.*/InvocationID=22222222222222222222222222222222/; s/^ExecMainStartTimestampMonotonic=.*/ExecMainStartTimestampMonotonic=200/' "$FIXTURE/units/$unit"
+    fi
     ;;
   is-active)
     unit=$1
@@ -45,7 +49,7 @@ done
 chmod +x "$S/bin/"*
 export FIXTURE="$S" PATH="$S/bin:$PATH" WT_STATE_DIR="$S/state" QA_UNIT_DIR="$S/unitdir" QA_TREE="$S/qa" WT_QA_TREE="$S/qa"
 export WT_PORT_REGISTRY="$S/registry.json" QA_UNIT_PREFIX=wtfixture-qa- QA_STACK_STUB_DIR="$S/stub" QA_STACK_PROC_NET_DIR="$S/net"
-export WT_ENSURE_TIMEOUT=12 WT_MAIN_CHECKOUT="$S/main" WT_BOOT_ID=fixture WT_BOOT_TIME=0
+export WT_ENSURE_TIMEOUT=12 WT_MAIN_CHECKOUT="$S/main" WT_BOOT_ID=fixture WT_BOOT_TIME=0 QA_STACK_TEST_MODE=1
 [ "$HOME" = "$ORIGINAL_HOME" ]
 for tool in systemctl journalctl podman curl; do [[ $(command -v "$tool") == "$S/bin/$tool" ]]; done
 for key in WT_STATE_DIR QA_UNIT_DIR QA_TREE WT_QA_TREE WT_PORT_REGISTRY QA_STACK_STUB_DIR QA_STACK_PROC_NET_DIR; do [[ ${!key} == "$S"/* ]]; done
@@ -77,11 +81,16 @@ ExecMainExitTimestamp=0
 ActiveEnterTimestamp=0
 InactiveEnterTimestamp=0
 WorkingDirectory=$S/qa
+Job=
+InvocationID=11111111111111111111111111111111
+ExecMainStartTimestampMonotonic=100
+InactiveEnterTimestampMonotonic=50
 EOF
 }
 reset() {
   : > "$S/mutations.log"; : > "$S/journal.log"; : > "$S/show.log"
   rm -f "$S/stub/listeners."* "$S/stub/listeners.fail" "$S/on/"* "$S/state/qa-started/"* 2>/dev/null || true
+  rm -f "$S/stub/probes.fail" "$S/stub/probes.raw" "$S/queued" "$S/show-after-action" "$S/tick-count"
   for name in azurite keycloak functions langgraph backend; do
     case "$name" in keycloak) unit_file "$name" active exited oneshot 0 ;; *) unit_file "$name" active running simple 4242 ;; esac
   done
@@ -93,6 +102,10 @@ reset() {
 wt() { "$ROOT/bin/wt" backend "$@"; }
 bash -n "$ROOT/bin/wt" "$ROOT/bin/qa-stack" "$ROOT/bin/qa-backend-serve"
 reset
+run 6 env -u QA_STACK_TEST_MODE "$ROOT/bin/wt" backend start backend
+[ ! -s "$S/show.log" ] && [ ! -s "$S/mutations.log" ] || fail 'fixture override ran without isolated mode'
+run 6 env QA_UNIT_PREFIX=cl-strategy-qa- "$ROOT/bin/wt" backend start backend
+[ ! -s "$S/show.log" ] && [ ! -s "$S/mutations.log" ] || fail 'production prefix accepted fixture override'
 run 2 wt start
 run 2 wt start 'backend;touch /tmp/should-never-exist'
 run 2 wt start backend extra
@@ -108,6 +121,17 @@ run 2 wt start backend
 [ ! -s "$S/mutations.log" ] || fail 'foreign ready mutated'
 printf 'unknown\t?\tlistener owner unknown\n' > "$S/stub/listeners.backend"
 run 6 wt start backend
+reset; : > "$S/stub/listeners.backend"
+cat > "$S/on/tick" <<'SH'
+#!/usr/bin/env bash
+[ "$1" = wtfixture-qa-backend.service ] || exit 0
+count=0; [ ! -f "$FIXTURE/tick-count" ] || read -r count < "$FIXTURE/tick-count"
+count=$((count+1)); echo "$count" > "$FIXTURE/tick-count"
+[ "$count" -ne 2 ] || printf 'owned\t4242\tlistener\n' > "$FIXTURE/stub/listeners.backend"
+SH
+chmod +x "$S/on/tick"
+run 0 wt start backend
+[ ! -s "$S/mutations.log" ] || fail 'ready ownership race mutated'
 reset; sed -i 's/^MainPID=4242/MainPID=0/' "$S/units/wtfixture-qa-backend.service"
 run 6 wt start backend
 reset; ln -sfn "$S/qa" "$S/stub/proc/4242/cwd"
@@ -142,12 +166,58 @@ cat > "$S/on/start-wtfixture-qa-backend.service" <<'SH'
 sed -i 's/^ActiveState=failed/ActiveState=active/; s/^SubState=running/SubState=running/; s/^MainPID=0/MainPID=4242/' "$FIXTURE/units/wtfixture-qa-backend.service"
 sed -i 's/^backend\tfailed/backend\tready/' "$FIXTURE/stub/probes"
 printf 'owned\t4242\tlistener\n' > "$FIXTURE/stub/listeners.backend"
+sed -i 's/^InvocationID=.*/InvocationID=22222222222222222222222222222222/; s/^ExecMainStartTimestampMonotonic=.*/ExecMainStartTimestampMonotonic=200/' "$FIXTURE/units/wtfixture-qa-backend.service"
 SH
 chmod +x "$S/on/start-wtfixture-qa-backend.service"
 run 0 wt start backend
 grep -q '^reset-failed wtfixture-qa-backend.service$' "$S/mutations.log" || fail 'missing reset'
 grep -q '^start --no-block wtfixture-qa-backend.service$' "$S/mutations.log" || fail 'missing target start'
 [ -f "$S/state/qa-started/backend" ] || fail 'missing target stamp'
+reset; sed -i 's/^ActiveState=active/ActiveState=inactive/; s/^MainPID=4242/MainPID=0/' "$S/units/wtfixture-qa-backend.service"
+sed -i 's/^backend\tready/backend\tfailed/' "$S/stub/probes"
+: > "$S/stub/listeners.backend"
+printf '#!/usr/bin/env bash\ntouch "$FIXTURE/queued"\n' > "$S/on/start-wtfixture-qa-backend.service"
+cat > "$S/on/tick" <<'SH'
+#!/usr/bin/env bash
+[ "$1" = wtfixture-qa-backend.service ] && [ -e "$FIXTURE/queued" ] || exit 0
+count=0; [ ! -f "$FIXTURE/show-after-action" ] || read -r count < "$FIXTURE/show-after-action"
+count=$((count+1)); echo "$count" > "$FIXTURE/show-after-action"
+if [ "$count" -ge 2 ]; then
+  sed -i 's/^ActiveState=inactive/ActiveState=active/; s/^MainPID=0/MainPID=4242/; s/^InvocationID=.*/InvocationID=22222222222222222222222222222222/; s/^ExecMainStartTimestampMonotonic=.*/ExecMainStartTimestampMonotonic=200/' "$FIXTURE/units/wtfixture-qa-backend.service"
+  sed -i 's/^backend\tfailed/backend\tready/' "$FIXTURE/stub/probes"
+  printf 'owned\t4242\tlistener\n' > "$FIXTURE/stub/listeners.backend"
+fi
+SH
+chmod +x "$S/on/start-wtfixture-qa-backend.service" "$S/on/tick"
+run 0 wt start backend
+[ "$(wc -l < "$S/mutations.log")" -eq 1 ] || fail 'queued start duplicated action'
+reset; printf '#!/usr/bin/env bash\ntouch "$FIXTURE/queued"\n' > "$S/on/restart-wtfixture-qa-functions.service"
+cat > "$S/on/tick" <<'SH'
+#!/usr/bin/env bash
+[ "$1" = wtfixture-qa-functions.service ] && [ -e "$FIXTURE/queued" ] || exit 0
+count=0; [ ! -f "$FIXTURE/show-after-action" ] || read -r count < "$FIXTURE/show-after-action"
+count=$((count+1)); echo "$count" > "$FIXTURE/show-after-action"
+if [ "$count" -eq 1 ]; then sed -i 's/^Job=$/Job=77\/restart/' "$FIXTURE/units/wtfixture-qa-functions.service"; fi
+if [ "$count" -ge 2 ]; then
+  sed -i 's/^Job=.*/Job=/; s/^InvocationID=.*/InvocationID=22222222222222222222222222222222/; s/^ExecMainStartTimestampMonotonic=.*/ExecMainStartTimestampMonotonic=200/' "$FIXTURE/units/wtfixture-qa-functions.service"
+fi
+SH
+chmod +x "$S/on/restart-wtfixture-qa-functions.service" "$S/on/tick"
+run 0 wt restart functions
+[ "$(wc -l < "$S/mutations.log")" -eq 1 ] || fail 'queued restart duplicated action'
+reset; printf '#!/usr/bin/env bash\n: # request accepted; old invocation stays ready\n' > "$S/on/restart-wtfixture-qa-functions.service"
+chmod +x "$S/on/restart-wtfixture-qa-functions.service"
+run 3 env WT_ENSURE_TIMEOUT=8 "$ROOT/bin/wt" backend restart functions
+grep -q 'new invocation not yet observed' "$S/err" || fail 'old ready restart reported settled'
+grep -q 'already requested: restart' "$S/err" || fail 'restart request phase missing'
+reset; sed -i 's/^ActiveState=active/ActiveState=inactive/; s/^MainPID=4242/MainPID=0/' "$S/units/wtfixture-qa-backend.service"
+sed -i 's/^backend\tready/backend\tfailed/' "$S/stub/probes"
+: > "$S/stub/listeners.backend"
+printf '#!/usr/bin/env bash\n: # accepted, but unit remains inactive\n' > "$S/on/start-wtfixture-qa-backend.service"
+chmod +x "$S/on/start-wtfixture-qa-backend.service"
+run 3 env WT_ENSURE_TIMEOUT=8 "$ROOT/bin/wt" backend start backend
+grep -q 'new invocation not yet observed' "$S/err" || fail 'old inactive start reported failure'
+grep -q 'already requested: start' "$S/err" || fail 'start request phase missing'
 reset; sed -i 's/^ActiveState=active/ActiveState=inactive/; s/^MainPID=4242/MainPID=0/' "$S/units/wtfixture-qa-backend.service"
 sed -i 's/^backend\tready/backend\tfailed/' "$S/stub/probes"
 : > "$S/stub/listeners.backend"
@@ -166,8 +236,10 @@ sed -i 's/^backend\tready/backend\tfailed/' "$S/stub/probes"
 : > "$S/stub/listeners.backend"
 printf '#!/usr/bin/env bash\nsleep 20\n' > "$S/on/reset-failed-wtfixture-qa-backend.service"
 chmod +x "$S/on/reset-failed-wtfixture-qa-backend.service"
-run 1 env WT_ENSURE_TIMEOUT=12 "$ROOT/bin/wt" backend start backend
+run 4 env WT_ENSURE_TIMEOUT=12 "$ROOT/bin/wt" backend start backend
 grep -q 'already requested: reset-failed' "$S/err" || fail 'slow reset phase missing'
+grep -q 'outcome unknown' "$S/err" || fail 'slow reset was reported as definite failure'
+[ ! -s "$S/journal.log" ] || fail 'slow reset tailed stale failure'
 [ "$(wc -l < "$S/mutations.log")" -eq 1 ] || fail 'slow reset issued another mutation'
 ! grep -q '^start ' "$S/mutations.log" || fail 'late start after slow reset'
 [ ! -f "$S/state/qa-started/backend" ] || fail 'slow reset wrote startup stamp'
@@ -176,8 +248,10 @@ sed -i 's/^backend\tready/backend\tfailed/' "$S/stub/probes"
 : > "$S/stub/listeners.backend"
 printf '#!/usr/bin/env bash\nsleep 20\n' > "$S/on/start-wtfixture-qa-backend.service"
 chmod +x "$S/on/start-wtfixture-qa-backend.service"
-run 1 env WT_ENSURE_TIMEOUT=12 "$ROOT/bin/wt" backend start backend
+run 4 env WT_ENSURE_TIMEOUT=12 "$ROOT/bin/wt" backend start backend
 grep -q 'already requested: start' "$S/err" || fail 'slow start phase missing'
+grep -q 'outcome unknown' "$S/err" || fail 'slow start was reported as definite failure'
+[ ! -s "$S/journal.log" ] || fail 'slow start tailed stale failure'
 [ "$(wc -l < "$S/mutations.log")" -eq 1 ] || fail 'slow start repeated mutation'
 reset; run 0 wt restart functions
 grep -q '^restart --no-block wtfixture-qa-functions.service$' "$S/mutations.log" || fail 'missing target restart'
@@ -196,6 +270,7 @@ cat > "$S/on/start-wtfixture-qa-keycloak.service" <<'SH'
 #!/usr/bin/env bash
 sed -i 's/^ActiveState=inactive/ActiveState=active/' "$FIXTURE/units/wtfixture-qa-keycloak.service"
 sed -i 's/^keycloak\tfailed/keycloak\tready/' "$FIXTURE/stub/probes"
+sed -i 's/^InvocationID=.*/InvocationID=22222222222222222222222222222222/; s/^ExecMainStartTimestampMonotonic=.*/ExecMainStartTimestampMonotonic=200/' "$FIXTURE/units/wtfixture-qa-keycloak.service"
 SH
 chmod +x "$S/on/start-wtfixture-qa-keycloak.service"
 run 0 wt start keycloak
@@ -252,6 +327,32 @@ d=json.load(open(sys.argv[1])); assert set(d['backend']['services']) == {'azurit
 assert all(s['unitLoad']=='loaded' for s in d['backend']['services'].values())
 PY
 [ "$(wc -l < "$S/show.log")" -eq 5 ] || fail 'slow status missed a show'
+reset; touch "$S/stub/probes.fail"
+run 1 "$ROOT/bin/qa-stack" health --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); assert d['overall']=='unknown' and d['checkError'] and not d['services']
+PY
+run 0 "$ROOT/bin/wt" status --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); assert d['backend']['overall']=='unknown' and d['backend']['checkError']
+PY
+[ ! -s "$S/show.log" ] || fail 'failed probe collector inspected units'
+rm "$S/stub/probes.fail"
+printf 'backend\tready\tHTTP 200\n' > "$S/stub/probes.raw"
+run 1 "$ROOT/bin/qa-stack" health --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); assert d['overall']=='unknown' and d['checkError'] and not d['services']
+PY
+printf 'backend\tbogus\tbad\n' > "$S/stub/probes.raw"
+run 1 "$ROOT/bin/qa-stack" health --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); assert d['overall']=='unknown' and d['checkError'] and not d['services']
+PY
+rm "$S/stub/probes.raw"
 rm "$S/qa/.port-offset"
 run 1 "$ROOT/bin/qa-stack" health --json
 python3 - "$S/out" <<'PY'

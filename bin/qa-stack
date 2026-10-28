@@ -409,6 +409,10 @@ PY
 probe_results() {
   local offset
   offset=$(qa_offset) || return 1
+  if [ -n "${QA_STACK_STUB_DIR:-}" ]; then
+    [ ! -e "$QA_STACK_STUB_DIR/probes.fail" ] || return 1
+    if [ -f "$QA_STACK_STUB_DIR/probes.raw" ]; then cat "$QA_STACK_STUB_DIR/probes.raw"; return; fi
+  fi
   python3 - "$offset" "${QA_STACK_STUB_DIR:-}" "$@" 9>&- <<'PY'
 from concurrent.futures import ThreadPoolExecutor
 import pathlib, socket, sys, urllib.request, urllib.error
@@ -535,7 +539,7 @@ health_lines() {
   done
 }
 health_json() {
-  local offset probes error
+  local offset probes
   if ! offset=$(qa_offset 2>&1); then
     QA_HEALTH_ERROR="$offset" python3 - <<'PY'
 import json, os
@@ -543,16 +547,29 @@ print(json.dumps({'overall':'unknown','checkError':os.environ['QA_HEALTH_ERROR']
 PY
     return 1
   fi
-  probes=$(probe_results "${BACKEND_SERVICES[@]}") || probes=''
+  if ! probes=$(probe_results "${BACKEND_SERVICES[@]}"); then
+    QA_HEALTH_ERROR='could not collect backend probes' python3 - <<'PY'
+import json, os
+print(json.dumps({'overall':'unknown','checkError':os.environ['QA_HEALTH_ERROR'],'services':{}}))
+PY
+    return 1
+  fi
   QA_HEALTH_OFFSET="$offset" QA_HEALTH_PROBES="$probes" QA_HEALTH_TREE="$QA_TREE" QA_HEALTH_PREFIX="$PREFIX" QA_HEALTH_STATE="$HEAL_STATE" QA_HEALTH_STUB="${QA_STACK_STUB_DIR:-}" python3 - <<'PY'
 import concurrent.futures, datetime, json, os, pathlib, signal, subprocess, sys, time
 names = ('azurite','keycloak','functions','langgraph','backend')
 offset = int(os.environ['QA_HEALTH_OFFSET']); tree = os.path.realpath(os.environ['QA_HEALTH_TREE'])
 prefix = os.environ['QA_HEALTH_PREFIX']; stub = os.environ['QA_HEALTH_STUB']
 probes = {}
+valid_probes = True
 for line in os.environ['QA_HEALTH_PROBES'].splitlines():
     parts = line.split('\t', 2)
-    if len(parts) == 3: probes[parts[0]] = parts[1:]
+    if len(parts) != 3 or parts[0] not in names or parts[0] in probes or parts[1] not in ('ready','failed') or not parts[2]:
+        valid_probes = False
+        continue
+    probes[parts[0]] = parts[1:]
+if not valid_probes or set(probes) != set(names):
+    print(json.dumps({'overall':'unknown','checkError':'backend probe results incomplete or invalid','services':{}}))
+    sys.exit(1)
 try: breaker = json.loads(pathlib.Path(os.environ['QA_HEALTH_STATE']).read_text())
 except (OSError, ValueError): breaker = {}
 properties = ('LoadState','ActiveState','SubState','UnitFileState','Type','Result','MainPID','NRestarts',
@@ -732,6 +749,16 @@ service_mutation() {
     return "$result"
   }
 }
+service_fixture_guard() {
+  [ -n "${QA_STACK_STUB_DIR:-}${QA_STACK_PROC_NET_DIR:-}" ] || return 0
+  local fake root
+  [ "${QA_STACK_TEST_MODE:-0}" = 1 ] || return 6
+  case "$PREFIX" in wtfixture-*) ;; *) return 6 ;; esac
+  [ -n "${QA_STACK_STUB_DIR:-}" ] && [[ "$QA_STACK_STUB_DIR" = /* ]] || return 6
+  root=$(realpath -e "$QA_STACK_STUB_DIR/.." 2>/dev/null) || return 6
+  fake=$(realpath -e "$(command -v systemctl)" 2>/dev/null) || return 6
+  [ "$fake" = "$root/bin/systemctl" ] && [ -x "$fake" ] || return 6
+}
 service_refuse() {
   local code="$1"; shift
   printf 'REFUSED %s: %s\n' "$SERVICE" "$*" >&2
@@ -742,22 +769,37 @@ service_show() {
   local output key value remaining cap=5
   [ "$(service_remaining)" -gt 0 ] || return 4
   remaining=$(service_remaining); [ "$remaining" -ge "$cap" ] || cap="$remaining"
-  output=$(timeout --kill-after=1 "$cap" systemctl --user show "$(unit "$SERVICE")" --timestamp=unix -p LoadState,ActiveState,SubState,UnitFileState,Type,Result,MainPID,WorkingDirectory 2>/dev/null) || {
+  output=$(timeout --kill-after=1 "$cap" systemctl --user show "$(unit "$SERVICE")" --timestamp=unix -p LoadState,ActiveState,SubState,UnitFileState,Type,Result,MainPID,WorkingDirectory,Job,InvocationID,ExecMainStartTimestampMonotonic,InactiveEnterTimestampMonotonic 2>/dev/null) || {
     [ "$(service_remaining)" -gt 0 ] || return 4
     return 6
   }
-  S_LOAD= S_ACTIVE= S_SUB= S_FILE= S_TYPE= S_RESULT= S_PID= S_WD=
+  S_LOAD= S_ACTIVE= S_SUB= S_FILE= S_TYPE= S_RESULT= S_PID= S_WD= S_JOB= S_INV= S_STARTED= S_INACTIVE=
   while IFS='=' read -r key value; do
     case "$key" in
       LoadState) S_LOAD="$value" ;; ActiveState) S_ACTIVE="$value" ;; SubState) S_SUB="$value" ;;
       UnitFileState) S_FILE="$value" ;; Type) S_TYPE="$value" ;; Result) S_RESULT="$value" ;;
       MainPID) S_PID="$value" ;; WorkingDirectory) S_WD="$value" ;;
+      Job) S_JOB="$value" ;; InvocationID) S_INV="$value" ;;
+      ExecMainStartTimestampMonotonic) S_STARTED="$value" ;;
+      InactiveEnterTimestampMonotonic) S_INACTIVE="$value" ;;
     esac
   done <<< "$output"
   [[ "$S_PID" =~ ^[0-9]+$ ]] && [ -n "$S_SUB" ] && [ -n "$S_FILE" ] && [ -n "$S_TYPE" ] && [ -n "$S_RESULT" ] && [ -n "$S_WD" ] || return 6
+  [[ "$S_STARTED" =~ ^[0-9]+$ ]] && [[ "$S_INACTIVE" =~ ^[0-9]+$ ]] || return 6
+  [ -z "$S_INV" ] || [[ "$S_INV" =~ ^[0-9a-fA-F]+$ ]] || return 6
   case "$S_ACTIVE" in active|inactive|failed|activating|deactivating|reloading|refreshing) ;; *) return 6 ;; esac
   [ "$S_LOAD" = loaded ] || { echo "unit $(unit "$SERVICE") load state $S_LOAD; run qa-stack install if not installed" >&2; return 6; }
   case "$S_FILE" in masked|masked-runtime) echo "unit $(unit "$SERVICE") is $S_FILE" >&2; return 6 ;; esac
+}
+service_new_attempt() {
+  [ "${ACTION_REQUESTED:-0}" = start ] || [ "${ACTION_REQUESTED:-0}" = restart ] || return 1
+  [ -n "$S_INV" ] && [ "$S_INV" != "${BEFORE_INV:-}" ] && return 0
+  [ "$S_STARTED" -gt 0 ] && [ "$S_STARTED" != "${BEFORE_STARTED:-0}" ]
+}
+service_terminal_attempt() {
+  service_new_attempt && return 0
+  [ "$S_INACTIVE" -gt 0 ] && [ "$S_INACTIVE" != "${BEFORE_INACTIVE:-0}" ] &&
+    [ -z "$S_JOB" ] && [ "$S_RESULT" != success ]
 }
 service_tree_check() {
   local tree expected actual
@@ -888,7 +930,7 @@ service_failure() {
 }
 service_control() {
   SERVICE="$2"; ACTION_REQUESTED=0
-  local action="$1" old tries rc remaining pending_wait=0
+  local action="$1" old tries rc remaining pending_wait=0 target_requested=0 can_complete
   case "$SERVICE" in azurite|keycloak|functions|langgraph|backend) ;; *) usage; return 2 ;; esac
   if [ "$action" = service-restart ]; then
     case "$SERVICE" in
@@ -898,6 +940,7 @@ service_control() {
   fi
   [ -z "${QA_STACK_STUB_DIR:-}" ] || [[ "$QA_STACK_STUB_DIR" = /* ]] || return 2
   [ -z "${QA_STACK_PROC_NET_DIR:-}" ] || [[ "$QA_STACK_PROC_NET_DIR" = /* ]] || return 2
+  service_fixture_guard || { service_refuse 6 'fixture overrides require isolated test mode and fake systemctl'; return 6; }
   if ! [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
     [[ "${WT_ENSURE_TIMEOUT:-150}" =~ ^[1-9][0-9]*$ ]] || return 2
     WT_ENSURE_DEADLINE=$(($(date +%s)+${WT_ENSURE_TIMEOUT:-150}))
@@ -935,7 +978,19 @@ service_control() {
       if [ "$S_ACTIVE" = active ] && [ "$S_SUB" = running ] && [ "${SCAN_OWNED:-0}" = 1 ]; then echo "$SERVICE already ready"; return 0; fi
       if [ "${SCAN_OWNED:-0}" = 0 ] && [ "$SERVICE" != keycloak ]; then
         service_probe || { service_refuse 6 'probe unavailable on recheck'; return 6; }
+        service_show || { service_refuse 6 'unit unavailable on ready recheck'; return 6; }
+        service_tree_check || { service_refuse 6 'QA tree changed on ready recheck'; return 6; }
+        if [ "$S_ACTIVE" = active ]; then
+          service_identity || { service_refuse 6 'process identity changed on ready recheck'; return 6; }
+        fi
         service_scan || { rc=$?; service_refuse "$rc" 'listener ownership changed'; return "$rc"; }
+        if [ "$S_PROBE" = ready ] && [ "$S_ACTIVE" = active ] && [ "$S_SUB" = running ] &&
+           [ -z "$S_JOB" ] && [ "$SCAN_OWNED" = 1 ]; then
+          echo "$SERVICE already ready"; return 0
+        fi
+        if [ "$SERVICE" = azurite ] && [ "$S_PROBE" = ready ] && [ "$SCAN_FOREIGN" = 1 ]; then
+          echo "$SERVICE ready (shared, external)"; return 0
+        fi
       fi
       service_refuse 6 'probe ready but no owned listener'; return 6
     fi
@@ -953,36 +1008,58 @@ service_control() {
   if [ "$pending_wait" = 1 ]; then :
     elif [ "$(service_remaining)" -lt 5 ]; then service_refuse 4 'time budget exhausted before action'; return 4
     else
+      BEFORE_INV="$S_INV" BEFORE_STARTED="$S_STARTED" BEFORE_INACTIVE="$S_INACTIVE"
       if [ "$S_ACTIVE" = failed ]; then
         ACTION_REQUESTED=reset-failed
-        service_mutation systemctl --user reset-failed "$(unit "$SERVICE")" || { service_failure; return 1; }
+        service_mutation systemctl --user reset-failed "$(unit "$SERVICE")" || {
+          rc=$?
+          if [ "$rc" = 124 ] || [ "$rc" = 137 ]; then service_refuse 4 'reset-failed outcome unknown'; return 4; fi
+          service_failure; return 1
+        }
       fi
       [ "$(service_remaining)" -gt 0 ] || { service_refuse 4 'time budget exhausted after reset-failed'; return 4; }
       record_start "$SERVICE"
       [ "$(service_remaining)" -gt 0 ] || { service_refuse 4 'time budget exhausted after startup stamp'; return 4; }
       if [ "$action" = service-start ]; then action=start; else action=restart; fi
       ACTION_REQUESTED="$action"
-      service_mutation systemctl --user "$action" --no-block "$(unit "$SERVICE")" || { service_failure; return 1; }
+      service_mutation systemctl --user "$action" --no-block "$(unit "$SERVICE")" || {
+        rc=$?
+        if [ "$rc" = 124 ] || [ "$rc" = 137 ]; then service_refuse 4 "$action outcome unknown"; return 4; fi
+        service_failure; return 1
+      }
+      target_requested=1
       [ -f "$INTENT" ] || echo "note: backend intent absent; watchdog will not keep $SERVICE up; use wt backend ensure for full stack"
   fi
   if dry; then echo "dry-run would wait up to $(service_remaining)s for $SERVICE to settle"; return 0; fi
   while [ "$(service_remaining)" -gt 0 ]; do
     service_show || { service_refuse 6 'unit inspection failed while waiting'; return 6; }
     service_probe || { service_refuse 6 'probe failed while waiting'; return 6; }
-    if [ "$S_ACTIVE" = failed ] || { [ "$ACTION_REQUESTED" != 0 ] && [ "$S_ACTIVE" = inactive ]; }; then service_failure; return 1; fi
-    if [ "$S_ACTIVE" = active ] && [ "$S_PROBE" = ready ]; then
+    if [ "$target_requested" = 1 ]; then
+      if [ -z "$S_JOB" ] && service_terminal_attempt && { [ "$S_ACTIVE" = failed ] || [ "$S_ACTIVE" = inactive ]; }; then
+        service_failure; return 1
+      fi
+    elif [ "$S_ACTIVE" = failed ]; then service_failure; return 1
+    fi
+    if [ "$S_ACTIVE" = active ] && [ "$S_PROBE" = ready ] && [ -z "$S_JOB" ]; then
+      can_complete=0
+      if [ "$target_requested" = 0 ] || service_new_attempt; then can_complete=1; fi
       if [ "$SERVICE" = keycloak ]; then
-        if [ "$S_SUB" = exited ] && [ "$S_RESULT" = success ]; then echo "$SERVICE ready"; return 0; fi
-      elif [ "$SERVICE" = azurite ] && [ "$S_SUB" = exited ] && [ "$S_PID" = 0 ]; then echo "$SERVICE ready (shared, external)"; return 0
+        if [ "$can_complete" = 1 ] && [ "$S_SUB" = exited ] && [ "$S_RESULT" = success ]; then echo "$SERVICE ready"; return 0; fi
+      elif [ "$SERVICE" = azurite ] && [ "$S_SUB" = exited ] && [ "$S_PID" = 0 ]; then
+        if [ "$can_complete" = 1 ]; then echo "$SERVICE ready (shared, external)"; return 0; fi
       elif [ "$S_SUB" = running ]; then
         service_identity || { service_refuse 6 'process identity changed'; return 6; }
         service_scan || { rc=$?; service_refuse "$rc" 'listener ownership changed'; return "$rc"; }
-        if [ "$SCAN_OWNED" = 1 ]; then echo "$SERVICE ready"; return 0; fi
+        if [ "$can_complete" = 1 ] && [ "$SCAN_OWNED" = 1 ]; then echo "$SERVICE ready"; return 0; fi
       fi
     fi
     remaining=$(service_remaining); [ "$remaining" -gt 2 ] || break
     sleep 2
   done
+  if [ "$target_requested" = 1 ] && { [ -n "$S_JOB" ] || ! service_new_attempt; }; then
+    echo "re-run: ~/.claude/bin/wt backend start $SERVICE" >&2
+    service_refuse 3 'request queued or new invocation not yet observed'; return 3
+  fi
   if [ "$S_ACTIVE" = activating ] || [ "$S_ACTIVE" = reloading ] || [ "$S_ACTIVE" = deactivating ] || [ "$S_ACTIVE" = refreshing ] || startup_pending "$SERVICE" "$S_ACTIVE"; then
     echo "re-run: ~/.claude/bin/wt backend start $SERVICE" >&2
     service_refuse 3 'still starting or stopping'; return 3
