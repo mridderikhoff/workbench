@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from overseer_platform import main
+raise SystemExit(main(["systemctl", *sys.argv[1:]]))
