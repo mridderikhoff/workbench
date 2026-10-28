@@ -12,7 +12,10 @@ BACKEND_SERVICES=(azurite keycloak functions langgraph backend)
 APP_SERVICES=("${BACKEND_SERVICES[@]}")
 DS_SERVICES=(ds-demo)
 OTHER_SERVICES=(frontend-strategy frontend-ri)
-UNIT_PATH="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+UNIT_PATH="$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+if [ "$OVERSEER_MACOS" = 1 ]; then
+  UNIT_PATH="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$UNIT_PATH"
+fi
 INTENT="$STATE_DIR/qa-backend-intent"
 HEAL_STATE="$STATE_DIR/qa-heal-state.json"
 START_DIR="$STATE_DIR/qa-started"
@@ -24,6 +27,15 @@ run_mutation() {
   if dry; then printf 'dry-run'; printf ' %q' "$@"; printf '\n'; else ( exec 9>&-; "$@" ); fi
 }
 read_systemctl() { ( exec 9>&-; "$OVERSEER_SYSTEMCTL" "$@" ); }
+mac_inspection_cap() {
+  local cap="$1" remaining
+  if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    remaining=$((WT_ENSURE_DEADLINE-$(date +%s)))
+    [ "$remaining" -gt 0 ] || return 1
+    [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  fi
+  echo "$cap"
+}
 lock_wait() {
   local wait=600 remaining now
   if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
@@ -91,7 +103,7 @@ StartLimitBurst=5
 $kind
 WorkingDirectory=$directory
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
 Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
@@ -115,7 +127,7 @@ Description=cl-strategy QA backend watchdog
 [Service]
 Type=oneshot
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
 Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
@@ -147,7 +159,7 @@ Description=cl-strategy QA status dashboard
 [Service]
 Type=simple
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
 Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
@@ -202,7 +214,9 @@ foreign_listeners() {
   local stack="$1" mode="${2:-normal}" offset
   offset=$(qa_offset) || return 1
   if [ "$OVERSEER_MACOS" = 1 ]; then
-    python3 - "$QA_TREE" "$stack" "$offset" "$mode" "$PREFIX" 9>&- <<'PY'
+    local cap
+    cap=$(mac_inspection_cap 20) || return 1
+    timeout --kill-after=1 "$cap" python3 - "$QA_TREE" "$stack" "$offset" "$mode" "$PREFIX" 9>&- <<'PY'
 import os, sys
 sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
 from overseer_platform import foreign_listeners
@@ -839,10 +853,11 @@ service_tree_check() {
   SERVICE_TREE="$tree"
 }
 service_identity() {
-  local path actual attempt
+  local path actual attempt cap
   [ "$S_PID" -gt 0 ] || return 6
   if [ "$OVERSEER_MACOS" = 1 ]; then
-    python3 - "$S_PID" "$SERVICE_TREE" "$(unit "$SERVICE")" <<'PY'
+    cap=$(mac_inspection_cap 10) || return 6
+    timeout --kill-after=1 "$cap" python3 - "$S_PID" "$SERVICE_TREE" "$(unit "$SERVICE")" <<'PY'
 import os, sys
 sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
 from overseer_platform import process_info, unit_for_pid

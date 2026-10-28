@@ -166,6 +166,11 @@ daemon_tree() {
 tree_busy() {
   local tree="$1" pid pids
   [ "$tree" = unknown ] && return 0
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mac_tree_inspect "$tree" busy && return 0
+    [ "$?" = 1 ] && return 1
+    return 0
+  fi
   pids=$(process_pids) || return 0
   for pid in $pids; do
     if ! read_argv "$pid"; then
@@ -183,6 +188,11 @@ tree_busy() {
 # Occupancy is the broader signal: any live process whose cwd sits in the tree.
 tree_occupied() {
   local tree="$1" pid cwd pids
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mac_tree_inspect "$tree" occupied && return 0
+    [ "$?" = 1 ] && return 1
+    return 0
+  fi
   pids=$(process_pids) || return 0
   for pid in $pids; do
     if cwd=$(process_cwd "$pid"); then :
@@ -194,6 +204,35 @@ tree_occupied() {
     case "$cwd" in "$tree" | "$tree"/*) return 0 ;; esac
   done
   return 1
+}
+
+# A single Darwin process snapshot keeps cleanup bounded. Exit 0 means busy,
+# 1 means proven idle; any inspection error or timeout is treated as busy.
+mac_tree_inspect() {
+  local tree="$1" mode="$2" cap=15 remaining
+  if [[ "${WT_ENSURE_DEADLINE:-}" =~ ^[0-9]+$ ]]; then
+    remaining=$((WT_ENSURE_DEADLINE-$(date +%s)))
+    [ "$remaining" -gt 0 ] || return 2
+    [ "$remaining" -ge "$cap" ] || cap="$remaining"
+  fi
+  timeout --kill-after=1 "$cap" python3 - "$tree" "$mode" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import processes
+tree, mode = os.path.realpath(sys.argv[1]), sys.argv[2]
+for item in processes():
+    cwd = item['cwd']
+    if mode == 'occupied':
+        if cwd is None or cwd == tree or cwd.startswith(tree + os.sep): sys.exit(0)
+        continue
+    args = item['argv']
+    if not args: sys.exit(2)
+    if any(arg.endswith('/daemon/server/start.js') for arg in args): continue
+    if any(arg.startswith(tree + os.sep) and
+           (arg.endswith('/nx/dist/bin/nx.js') or arg.endswith('/run-executor.js'))
+           for arg in args): sys.exit(0)
+sys.exit(1)
+PY
 }
 
 process_pids() {
@@ -921,10 +960,14 @@ except Exception:
 PY_HTTP
 }
 serve_write_unit() {
-  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp
+  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path
   unit_dir=$(serve_unit_dir)
   mkdir -p "$unit_dir" || return 1
   command_line=$(serve_command "$path" "$app" "$slot" "$offset")
+  unit_env_path="$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    unit_env_path="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$unit_env_path"
+  fi
   unit_path="$unit_dir/$(serve_unit "$slot" "$app")"
   temp="$(serve_state_dir)/unit-$slot-$app.$$"
   cat >"$temp" <<EOF_UNIT
@@ -936,9 +979,9 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=$path/apps/ui
-EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
 Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
-Environment="PATH=/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+Environment="PATH=$unit_env_path"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 ExecStart=/usr/bin/env bash -lc '$command_line'
