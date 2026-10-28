@@ -10,6 +10,9 @@ set -euo pipefail
 usage() { echo 'usage: ./install.sh [--dry-run] [--runtime-only]' >&2; exit 2; }
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# An explicit target root lets isolated previews avoid touching the user's home.
+install_home="${OVERSEER_INSTALL_HOME:-$HOME}"
+case "$install_home" in /*) ;; *) echo 'OVERSEER_INSTALL_HOME must be an absolute path' >&2; exit 2 ;; esac
 if [ "$OVERSEER_MACOS" = 1 ]; then
   [ -x "$repo/bin/overseer-systemctl" ] && [ -x "$repo/bin/overseer-journalctl" ] || {
     echo 'Overseer Mac runtime adapters are missing or not executable; update this checkout first.' >&2; exit 1;
@@ -44,23 +47,23 @@ link() {
   echo "linked    $target -> $source"
 }
 
-for file in "$repo"/bin/*; do link "$file" "$HOME/.claude/bin/$(basename "$file")"; done
+for file in "$repo"/bin/*; do link "$file" "$install_home/.claude/bin/$(basename "$file")"; done
 
 if $runtime_only; then
   # A bare ~/.codex/bin/wt must never run a stale copy, but a machine without Codex should not grow ~/.codex.
-  if [ -d "$HOME/.codex" ]; then
-    link "$repo/bin/wt" "$HOME/.codex/bin/wt"
+  if [ -d "$install_home/.codex" ]; then
+    link "$repo/bin/wt" "$install_home/.codex/bin/wt"
   else
-    echo "skipped   $HOME/.codex/bin/wt (no ~/.codex directory)"
+    echo "skipped   $install_home/.codex/bin/wt (no ~/.codex directory)"
   fi
   echo "runtime-only: scripts/, hooks/ and Codex hook files were not touched"
   exit 0
 fi
 
-for file in "$repo"/scripts/*; do link "$file" "$HOME/.claude/scripts/$(basename "$file")"; done
-for file in "$repo"/hooks/*; do link "$file" "$HOME/.claude/hooks/$(basename "$file")"; done
+for file in "$repo"/scripts/*; do link "$file" "$install_home/.claude/scripts/$(basename "$file")"; done
+for file in "$repo"/hooks/*; do link "$file" "$install_home/.claude/hooks/$(basename "$file")"; done
 # Codex loads its own hook set; ~/.codex/bin/wt is kept as a link so a bare path never runs a stale copy.
-for file in "$repo"/codex/hooks/*; do link "$file" "$HOME/.codex/hooks/$(basename "$file")"; done
-link "$repo/codex/hooks.json" "$HOME/.codex/hooks.json"
-link "$repo/codex/herdr-agent-state.sh" "$HOME/.codex/herdr-agent-state.sh"
-link "$repo/bin/wt" "$HOME/.codex/bin/wt"
+for file in "$repo"/codex/hooks/*; do link "$file" "$install_home/.codex/hooks/$(basename "$file")"; done
+link "$repo/codex/hooks.json" "$install_home/.codex/hooks.json"
+link "$repo/codex/herdr-agent-state.sh" "$install_home/.codex/herdr-agent-state.sh"
+link "$repo/bin/wt" "$install_home/.codex/bin/wt"

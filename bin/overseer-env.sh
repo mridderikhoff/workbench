@@ -21,7 +21,9 @@ if [ "$(uname -s)" = Darwin ]; then
 fi
 OVERSEER_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 export OVERSEER_BIN_DIR
-if [ -f "$HOME/.config/overseer/runtime.env" ]; then
+OVERSEER_CONFIG_FILE="${OVERSEER_CONFIG_FILE:-$HOME/.config/overseer/runtime.env}"
+export OVERSEER_CONFIG_FILE
+if [ -f "$OVERSEER_CONFIG_FILE" ]; then
   overseer_saved_env=()
   for overseer_name in WT_MAIN_CHECKOUT QA_TREE WT_QA_TREE WT_TENANT KC_LIB QA_UNIT_DIR WT_STATE_DIR; do
     if declare -p "$overseer_name" >/dev/null 2>&1; then
@@ -29,7 +31,7 @@ if [ -f "$HOME/.config/overseer/runtime.env" ]; then
     fi
   done
   set -a
-  . "$HOME/.config/overseer/runtime.env"
+  . "$OVERSEER_CONFIG_FILE"
   set +a
   for overseer_assignment in "${overseer_saved_env[@]}"; do eval "$overseer_assignment"; done
 fi
