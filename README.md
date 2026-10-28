@@ -7,6 +7,17 @@ status page that shows all of it. It also works for colleagues who only want the
 
 Recovering sessions after a machine restart is described in [docs/SESSION_RECOVERY.md](docs/SESSION_RECOVERY.md).
 
+## Why use this?
+
+Comparing branches usually means juggling terminals, tabs, ports and a backend you hope is healthy. This gives you:
+
+- **Named URLs per branch:** `http://<branch>.localhost:<port>/` tells you which checkout you're opening, so you spend less time matching ports to branches.
+- **One place for frontends:** see, open and manage every branch's frontends from the status page or `wt`.
+- **Backend health in view:** the shared backend's status sits next to your tasks. Check individual services and logs with `wt backend`.
+- **Agent-friendly:** `wt status --json` gives real ports, units and log commands, so agents can repair a slot without guessing.
+
+It earns its place when you compare branches or run tasks in parallel. For one branch and one frontend, your usual start command may be enough.
+
 ## What is here
 
 | Path | What it does |
