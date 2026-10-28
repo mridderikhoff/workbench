@@ -120,4 +120,18 @@ check_log "$expected"$'\nheal '
 "$ROOT/bin/wt" backend update >"$S/out" || fail 'repeat develop update failed'
 check_log ''
 
+# Before provenance existed, a detached checkout's latest HEAD reflog recorded
+# the branch used. The branch may advance while QA remains at the old commit.
+git -C "$S/qa" checkout -q --detach feature
+rm "$S/state/qa-attachment"
+git -C "$S/main" checkout -q feature
+printf 'feature advanced\n' >"$S/main/apps/backend/server.py"
+git -C "$S/main" commit -qam advance
+git -C "$S/main" checkout -q develop
+[ "$(git -C "$S/qa" rev-parse HEAD)" = "$feature_head" ] || fail 'legacy QA HEAD moved'
+[ "$(status_branch)" = feature ] || fail 'reflog did not identify advanced feature ref'
+git -C "$S/qa" checkout -q --detach "$develop_head"
+git -C "$S/qa" checkout -q --detach "$feature_head"
+[ "$(status_branch)" = None ] || fail 'raw hash checkout inferred a branch'
+
 echo 'qa-attachment: all cases passed'

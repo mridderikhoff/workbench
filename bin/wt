@@ -1775,7 +1775,20 @@ def backend_branch(path):
                                'refs/heads'], capture_output=True, text=True, timeout=2, check=True)
         matches = [line.rsplit(' ', 1)[0] for line in refs.stdout.splitlines()
                    if line.rsplit(' ', 1)[-1] == head]
-        return matches[0] if len(matches) == 1 else None
+        if len(matches) == 1: return matches[0]
+        if matches: return None
+        # A legacy detached checkout can outlive its branch tip. Its latest HEAD
+        # reflog entry records the exact ref used for the checkout.
+        log = subprocess.run(['git', '-C', path, 'reflog', '-1', '--format=%H%x00%gs', 'HEAD'],
+                             capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+        recorded_head, separator, message = log.partition('\0')
+        if not separator or recorded_head != head or not message.startswith('checkout: moving from '):
+            return None
+        _, separator, branch = message.rpartition(' to ')
+        if not separator or not branch: return None
+        ref = subprocess.run(['git', '-C', path, 'show-ref', '--verify', '--quiet', f'refs/heads/{branch}'],
+                             capture_output=True, timeout=2)
+        return branch if ref.returncode == 0 else None
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
         return None
 
