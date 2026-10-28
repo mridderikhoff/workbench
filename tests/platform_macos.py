@@ -46,12 +46,13 @@ class PlatformTests(unittest.TestCase):
 
     def test_install_plist_keeps_arguments_cwd_and_environment(self):
         envfile = pathlib.Path(self.tmp.name) / "runtime env"
-        envfile.write_text("CUSTOM='two words'\n")
+        envfile.write_text("CUSTOM='two words'\nPATH='/custom tools/bin:/usr/bin'\n")
         unit = self.unit(envfile=str(envfile))
         data = plistlib.loads(platform.install(unit).read_bytes())
         self.assertEqual(data["Label"], "com.overseer." + unit)
         self.assertEqual(data["WorkingDirectory"], str(pathlib.Path(self.tmp.name) / "QA tree with spaces"))
         self.assertEqual(data["EnvironmentVariables"]["CUSTOM"], "two words")
+        self.assertEqual(data["EnvironmentVariables"]["PATH"], "/custom tools/bin:/usr/bin")
         self.assertEqual(data["KeepAlive"], {"SuccessfulExit": False})
         self.assertEqual(data["ThrottleInterval"], 5)
         self.assertEqual(data["StandardOutPath"], data["StandardErrorPath"])

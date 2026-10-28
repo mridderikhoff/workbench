@@ -125,6 +125,13 @@ def _definition(unit: str) -> dict:
         values = _values(service, key)
         return values[-1] if values else default
     env: dict[str, str] = {}
+    for spec in _values(service, "Environment"):
+        for item in shlex.split(spec):
+            if "=" in item:
+                key, value = item.split("=", 1)
+                env[key] = value
+    # systemd applies EnvironmentFile after inline Environment directives,
+    # regardless of their text order. A colleague's runtime.env must win.
     for file_spec in _values(service, "EnvironmentFile"):
         optional = file_spec.startswith("-")
         parsed_path = shlex.split(file_spec[1:] if optional else file_spec)
@@ -139,11 +146,6 @@ def _definition(unit: str) -> dict:
                 if parsed and "=" in parsed[0]:
                     key, value = parsed[0].split("=", 1)
                     env[key] = value
-    for spec in _values(service, "Environment"):
-        for item in shlex.split(spec):
-            if "=" in item:
-                key, value = item.split("=", 1)
-                env[key] = value
     command = one("ExecStart").lstrip("-")
     return {"path": str(path), "type": one("Type", "simple"), "cwd": one("WorkingDirectory"),
             "argv": shlex.split(command) if command else [], "env": env,
