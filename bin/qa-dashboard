@@ -133,9 +133,11 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
-.card-drip::before{content:"";position:absolute;left:0;top:0;width:3px;height:58%;background:var(--drip,var(--brush));border-radius:2px 0 3px 2px/2px 0 6px 2px;pointer-events:none}
-.card-drip::after{content:"";position:absolute;left:-1.5px;top:calc(58% - 4px);width:6px;height:8px;background:var(--drip,var(--brush));border-radius:50% 50% 50% 50%/40% 40% 60% 60%;pointer-events:none}
-.slot-card .card-drip{position:absolute;left:7px;top:18px;width:6px;height:calc(100% - 36px)}
+/* The problem marker down the left edge of a problem card (the backend card when unhealthy, a session with a failed build).
+   This only places it; each theme draws its own in deskCss (Horror: a blood strike with a drop; Neon: a red neon tube;
+   Terminal: an inverse-video block gutter). A theme without one shows none, and the card's rim still signals the problem. */
+.card-drip{position:absolute;left:0;top:0;width:6px;height:100%;pointer-events:none}
+.slot-card .card-drip{left:7px;top:18px;height:calc(100% - 36px)}
 .brush{position:absolute;left:-2px;top:calc(100% - 10px);pointer-events:none;overflow:visible}
 .mark .brush{cursor:pointer}
 .branch .brush{top:calc(100% - 4px);clip-path:inset(0 100% 0 0);opacity:0;transition:clip-path var(--dur) var(--ease-out),opacity var(--dur-fast)}
@@ -846,6 +848,9 @@ var THEMES = {
         // Tags: a luggage-tag cut with a brass eyelet; a stopped tag has lost its brass.
         D + ' .app-pill{--tag-shape:polygon(13px 0,100% 0,100% 100%,13px 100%,0 calc(100% - 11px),0 11px);--tag-face:var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
           '--tag-mount:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px);--tag-mount-off:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,var(--tag-edge) 3.2px 4.6px,transparent 5.2px)}',
+        // The problem marker is a blood strike: a thin stroke down the card's left edge ending in a drop.
+        D + ' .card-drip::before{content:"";position:absolute;left:0;top:0;width:3px;height:58%;background:var(--drip,var(--brush));border-radius:2px 0 3px 2px/2px 0 6px 2px}',
+        D + ' .card-drip::after{content:"";position:absolute;left:-1.5px;top:calc(58% - 4px);width:6px;height:8px;background:var(--drip,var(--brush));border-radius:50% 50% 50% 50%/40% 40% 60% 60%}',
         // A failed build scorches its tag: dark burnt card with the far end torn off, bone ink, the failure in bright blood red
         // and the crying eye glowing red. The text stays upright and AA on the dark face.
         D + ' .app-pill.failed{--pill-pad:7px 24px 8px 31px;--tag-shape:polygon(13px 0,calc(100% - 3px) 0,calc(100% - 9px) 14%,100% 27%,calc(100% - 6px) 41%,calc(100% - 1px) 55%,calc(100% - 8px) 70%,calc(100% - 2px) 84%,calc(100% - 6px) 100%,13px 100%,0 calc(100% - 11px),0 11px);' +
@@ -1099,6 +1104,13 @@ THEMES.neon = (function () {
       // App pills are backlit keycaps: a lit face, a dark key wall below it, and an LED glow behind the status glyph.
       N + ' .app-pill{--pill-pad:7px 15px 8px 12px;--led:var(--tag-ok);--tag-shape:inset(0 round 7px);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--tag) 55%);--tag-mount:radial-gradient(circle at 21px 50%,color-mix(in srgb,var(--led) 42%,transparent) 0,transparent 15px);font-family:var(--mono);font-size:14px}',
       N + ' .app-pill::after{inset:0 0 -4px}',
+      // The problem marker is a red neon tube down the left edge: a glowing core between two metal end caps, with an irregular
+      // flicker (still under reduced motion).
+      N + ' .card-drip{left:-1px;width:7px}',
+      N + ' .card-drip::before{content:"";position:absolute;left:1px;right:1px;top:7px;bottom:7px;border-radius:3px;background:linear-gradient(90deg,var(--glyph-bad),color-mix(in srgb,var(--glyph-bad) 40%,#fff) 50%,var(--glyph-bad));box-shadow:0 0 4px var(--glyph-bad),0 0 12px color-mix(in srgb,var(--glyph-bad) 60%,transparent)}',
+      N + ' .card-drip::after{content:"";position:absolute;inset:0;background:linear-gradient(var(--cap-hi),var(--edge-lo2)) 0 0/100% 7px no-repeat,linear-gradient(var(--edge-lo2),var(--cap-hi)) 0 100%/100% 7px no-repeat;border-radius:2px}',
+      '@media (prefers-reduced-motion:no-preference){' + N + ' .card-drip::before{animation:neon-tube 5.3s linear infinite}}',
+      '@keyframes neon-tube{0%,100%{opacity:1}7%{opacity:.55}8%{opacity:1}31%{opacity:.85}33%{opacity:1}58%{opacity:.4}59%{opacity:.95}61%{opacity:.6}62%{opacity:1}83%{opacity:.8}84%{opacity:1}}',
       // A failed build sounds the alarm: a hazard-striped edge, a bright red rim and a red glow round the whole key.
       N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-rim:var(--bad);--tag-face:repeating-linear-gradient(-45deg,var(--glyph-bad) 0 3px,transparent 3px 6px) 0 0/6px 100% no-repeat,var(--fail-face);--tag-ink:var(--fail-ink);--tag-muted:var(--fail-ink);--tag-bad:var(--fail-bad);--glyph-bad:var(--fail-bad);color:var(--fail-ink);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--bad) 65%,transparent))}',
       N + ' .slots>.card.err{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--glyph-bad) 80%,transparent),0 0 14px -2px color-mix(in srgb,var(--glyph-bad) 45%,transparent),var(--item-shadow)}',
@@ -1330,6 +1342,9 @@ THEMES.terminal = (function () {
         // App pills are chunky keycaps: a dished face on a tall key wall.
         T + ' .app-pill{--pill-pad:7px 15px 9px 12px;--tag-shape:inset(0 round 5px);--tag-face:radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);font-family:var(--mono);font-size:14px}',
         T + ' .app-pill::after{inset:-1px -1px -5px;background:linear-gradient(180deg,var(--tag-edge),var(--cap-wall))}',
+        // The problem marker is an inverse-video gutter: a column of solid red character cells down the left margin, with
+        // the line gaps a text screen leaves between rows. No drop.
+        T + ' .card-drip::before{content:"";position:absolute;left:0;top:0;width:6px;height:100%;background:repeating-linear-gradient(180deg,var(--bad) 0 11px,transparent 11px 14px)}',
         // A failed build is inverse video: the whole key turns the problem red with the legend in its paired ink, and a block cursor
         // blinks after the message (still under reduced motion). The card's groove turns red as well.
         T + ' .app-pill.failed{--tag-face:radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--tag-ink:var(--bad-ink);--tag-muted:var(--bad-ink);--tag-bad:var(--bad-ink);--glyph-bad:var(--bad-ink);' +
