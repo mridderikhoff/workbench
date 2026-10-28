@@ -241,6 +241,8 @@ background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inse
 .backend .svc>*{min-width:0}
 .backend .svc .name{min-width:0}
 .backend .svc .small{grid-column:3}
+/* Restart sits on its own line under a down, broken or attention service, in the theme's small action button. */
+.backend .svc .svc-restart{grid-column:3;justify-self:start;margin:3px 0 5px;padding:3px 10px;font-size:12.5px}
 @media (min-width:1280px){.backend .head>.rel{align-self:flex-start}.backend-details{margin-top:10px;padding-top:8px}}
 .tools{display:inline-flex;flex-wrap:wrap;gap:6px}
 .muted{color:var(--muted)}.small{font-size:13px;font-family:var(--mono);overflow-wrap:anywhere}
@@ -2296,8 +2298,8 @@ var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking back
 function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",resume:"Resume sessions",forget:"Start fresh"};
-function actionSubject(a){return a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",restart:"Restart",resume:"Resume sessions",forget:"Start fresh"};
+function actionSubject(a){return a.action==="restart"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
   var label=busy?labels[1]:(idle||labels[0]);
@@ -2351,9 +2353,11 @@ function renderBackend(b){
     h+='<div id="backend-details" class="backend-details">'+(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
     Object.keys(svcs).forEach(function(n){
       var s=svcs[n],t=serviceTone(s),attn=!!s.needsAttention||/attention/i.test(s.status||"");
+      var restartable=t==="down"||t==="broken"||t==="attn";
       h+='<div class="svc tone-'+(t||"unknown")+(attn?" attn":"")+'">'+dot(t)+
         '<span class="name">'+esc(n)+'</span><span>'+esc(s.status||s.probe||s.unitState)+'</span>'+
-        (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+'</div>';
+        (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+
+        (restartable?'<button type="button" class="act svc-restart" data-restart="'+esc(n)+'" aria-label="Restart '+esc(n)+'" title="Restart '+esc(n)+' (wt backend restart '+esc(n)+')"'+(isRunning()?" disabled":"")+'>Restart</button>':"")+'</div>';
     });
     h+='</div>';
   }
@@ -2609,7 +2613,7 @@ function render(){
   var backendChanged=setHtml(backendBox,renderBackend(backend));
   var slots=(data&&data.slots)||[];
   setText(document.getElementById("sessions-count"),data?String(slots.length):"");
-  if(stopDialog&&stopDialog.open&&!stopAvailable(stopBranch))stopDialog.close();
+  if(stopDialog&&stopDialog.open&&!confirmAvailable())stopDialog.close();
   var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
   hint.hidden=!slots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
@@ -2651,12 +2655,12 @@ function copyText(text,button){
   try{ok=document.execCommand("copy")}catch(e){}
   area.remove();done(ok);
 }
-function runAction(name,branch){
+function runAction(name,branch,service){
   actionError=null;recoveryRequest=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
   if(branch&&data){data.actions={action:"stop",target:branch,state:"running",output:[]};render()}
-  var request=branch?{url:"/api/slot/stop",body:JSON.stringify({branch:branch})}:{url:"/api/backend/"+name,body:null};
+  var request=branch?{url:"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
       if(data)data.actions=j.actions||before;
@@ -2665,18 +2669,39 @@ function runAction(name,branch){
     });
   }).catch(function(e){if(data)data.actions=before;actionError=e.message;render();schedule(1000)});
 }
-var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopOpener=null,stopSubmitting=false;
+// One confirm dialog serves Stop (a session's frontends) and Restart (one backend service); confirmKind says which.
+var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
 function stopAvailable(branch){return!isRunning()&&!!((data&&data.slots)||[]).find(function(slot){return slot.branch===branch&&(slot.apps||[]).length})}
 function confirmStop(branch,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!stopAvailable(branch))return;
-  stopBranch=branch;stopOpener=opener;stopSubmitting=false;
-  document.getElementById("stop-message").textContent="Stop the frontends for "+branch+"?";
+  stopBranch=branch;stopOpener=opener;stopSubmitting=false;confirmKind="stop";
+  confirmText("Stop frontends","Stop the frontends for "+branch+"?","Stop");
+  stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
+  document.getElementById("stop-cancel").focus();
+}
+function confirmText(title,message,verb){
+  document.getElementById("stop-title").textContent=title;document.getElementById("stop-message").textContent=message;
+  stopDialog.querySelector(".danger").textContent=verb;buttonFx(stopDialog);
+}
+function restartAvailable(service){
+  var services=data&&data.backend&&data.backend.services||{},t=services[service]&&serviceTone(services[service]);
+  return!isRunning()&&(t==="down"||t==="broken"||t==="attn");
+}
+function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):stopAvailable(stopBranch)}
+function confirmRestart(service,opener){
+  if(!stopDialog||!stopDialog.showModal||stopDialog.open||!restartAvailable(service))return;
+  restartService=service;stopOpener=opener;stopSubmitting=false;confirmKind="restart";
+  confirmText("Restart service","Restart "+service+"? It is unavailable for a moment while it starts again.","Restart");
   stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
   document.getElementById("stop-cancel").focus();
 }
 stopDialog.querySelector("form").addEventListener("submit",function(e){
   e.preventDefault();
   if(stopSubmitting||!stopDialog.open)return;
+  if(confirmKind==="restart"){
+    if(!restartAvailable(restartService)){stopDialog.close();return}
+    stopSubmitting=true;var service=restartService;stopDialog.close();runAction("restart",null,service);return;
+  }
   if(!stopAvailable(stopBranch)){stopDialog.close();return}
   stopSubmitting=true;var branch=stopBranch;stopDialog.close();runAction("stop",branch);
 });
@@ -2688,7 +2713,8 @@ stopDialog.addEventListener("click",function(e){
 stopDialog.addEventListener("close",function(){
   document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
   var opener=stopOpener;
-  if(!opener||!opener.isConnected||opener.disabled)opener=Array.from(document.querySelectorAll("[data-stop]")).find(function(button){return button.getAttribute("data-stop")===stopBranch&&!button.disabled});
+  var attr=confirmKind==="restart"?"data-restart":"data-stop",value=confirmKind==="restart"?restartService:stopBranch;
+  if(!opener||!opener.isConnected||opener.disabled)opener=Array.from(document.querySelectorAll("["+attr+"]")).find(function(button){return button.getAttribute(attr)===value&&!button.disabled});
   if(!opener)opener=document.getElementById("settings-open");
   if(opener)opener.focus();
   stopOpener=null;
@@ -2774,7 +2800,7 @@ document.getElementById("recovery-fresh").addEventListener("click",function(){
   runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-radio]");
+  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-restart],[data-radio]");
   if(!t||t.disabled)return;
   if(t.hasAttribute("data-radio")){
     var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
@@ -2791,6 +2817,7 @@ document.addEventListener("click",function(e){
     var branch=t.getAttribute("data-stop");
     confirmStop(branch,t);
   }
+  else if(t.hasAttribute("data-restart"))confirmRestart(t.getAttribute("data-restart"),t);
   else runAction(t.getAttribute("data-action"));
 });
 document.addEventListener("toggle",function(e){if(e.target.id==="action-output")outputOpen=e.target.open},true);
@@ -3884,6 +3911,20 @@ def handle_action(runner, action, headers, port):
     return 202, {"actions": runner.snapshot()}
 
 
+def handle_service_restart(runner, body, headers, port, known_services):
+    """Restarts one backend service through `wt backend restart <service>`; the service must be one of the services in the
+    current backend status, so no free text reaches the command. qa-stack still refuses foreign listeners and leaves shared
+    external services running."""
+    if not same_origin(headers, port):
+        return 403, {"error": "forbidden"}
+    service = body.get("service") if isinstance(body, dict) else None
+    if not isinstance(service, str) or service not in known_services:
+        return 400, {"error": "unknown service"}
+    if not runner.start("restart", ["backend", "restart", service], target=service):
+        return 409, {"error": "another action is still running", "actions": runner.snapshot()}
+    return 202, {"actions": runner.snapshot()}
+
+
 def handle_slot_stop(runner, body, headers, port, known_branches):
     """Stops one task slot's frontends; the branch must be a slot in the current status."""
     if not same_origin(headers, port):
@@ -3945,6 +3986,14 @@ def cached_status(source):
         return None
 
 
+def backend_services(source):
+    try:
+        services = (source.get().get("backend") or {}).get("services") or {}
+        return {name for name in services if isinstance(name, str)}
+    except Exception:  # an unreadable status means no service can be confirmed
+        return set()
+
+
 def slot_branches(source):
     try:
         return {slot.get("branch") for slot in source.get().get("slots") or [] if slot.get("branch")}
@@ -3992,6 +4041,12 @@ def make_handler(source, runner, port):
                 except ValueError:
                     body = None
                 code, body = handle_slot_stop(runner, body, self.headers, port, slot_branches(source))
+            elif path == "/api/backend/restart":
+                try:
+                    body = json.loads(raw or b"{}")
+                except ValueError:
+                    body = None
+                code, body = handle_service_restart(runner, body, self.headers, port, backend_services(source))
             elif recovery_route:
                 try:
                     body = json.loads(raw or b"{}")
