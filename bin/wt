@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/overseer-env.sh" "$@"
 # wt — worktree ceremony as single-call reports.
 #
 # Each subcommand answers, in one tool call, a question that otherwise costs
@@ -23,7 +24,7 @@ repo_root() { git rev-parse --show-toplevel 2>/dev/null; }
 # Commands may be called from home or another repository. Preserve the current
 # cl-strategy worktree when there is one; otherwise use its shared checkout.
 wt_git_context() {
-  local fallback="${WT_MAIN_CHECKOUT:-/home/marica/cl-strategy}" here_common base_common
+  local fallback="${WT_MAIN_CHECKOUT:-$HOME/cl-strategy}" here_common base_common
   base_common=$(git -C "$fallback" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
   here_common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
   if [ -n "$here_common" ] && [ "$here_common" = "$base_common" ]; then
@@ -101,6 +102,19 @@ dirty_count() { git -C "$1" status --porcelain 2>/dev/null | wc -l; }
 # a process that exits mid-scan is silent instead of one bash error per pid.
 read_argv() {
   ARGV=()
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    mapfile -d '' -t ARGV < <(python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if info:
+    for arg in info['argv']:
+        sys.stdout.buffer.write(arg.encode() + b'\0')
+PY
+    )
+    [ "${#ARGV[@]}" -gt 0 ]; return
+  fi
   mapfile -d '' -t ARGV 2>/dev/null <"/proc/$1/cmdline" || return 1
   [ "${#ARGV[@]}" -gt 0 ]
 }
@@ -127,8 +141,7 @@ is_nx_daemon() {
 
 daemon_pids() {
   local want="${1:-}" pid
-  for pid in /proc/[0-9]*; do
-    pid=${pid#/proc/}
+  for pid in $(process_pids); do
     is_nx_daemon "$pid" || continue
     [ -n "$want" ] && { argv_has_suffix 'daemon/server/start.js' "$want" || continue; }
     echo "$pid"
@@ -153,8 +166,7 @@ daemon_tree() {
 tree_busy() {
   local tree="$1" pid
   [ "$tree" = unknown ] && return 0
-  for pid in /proc/[0-9]*; do
-    pid=${pid#/proc/}
+  for pid in $(process_pids); do
     read_argv "$pid" || continue
     argv_has_suffix 'daemon/server/start.js' && continue
     argv_has_suffix 'nx/dist/bin/nx.js' "$tree" && return 0
@@ -167,11 +179,46 @@ tree_busy() {
 # Occupancy is the broader signal: any live process whose cwd sits in the tree.
 tree_occupied() {
   local tree="$1" pid cwd
-  for pid in /proc/[0-9]*; do
-    cwd=$(readlink -f "$pid/cwd" 2>/dev/null) || continue
+  for pid in $(process_pids); do
+    cwd=$(process_cwd "$pid") || continue
     case "$cwd" in "$tree" | "$tree"/*) return 0 ;; esac
   done
   return 1
+}
+
+process_pids() {
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import processes
+for item in processes(): print(item['pid'])
+PY
+  else
+    for pid in /proc/[0-9]*; do echo "${pid#/proc/}"; done
+  fi
+}
+process_cwd() {
+  if [ "$OVERSEER_MACOS" = 1 ]; then
+    python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if not info or not info['cwd']: sys.exit(1)
+print(info['cwd'])
+PY
+  else readlink -f "/proc/$1/cwd"; fi
+}
+process_birth() {
+  python3 - "$1" <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import process_info
+info = process_info(int(sys.argv[1]))
+if not info: sys.exit(1)
+print(info['start_time'])
+PY
 }
 
 # `worktree add` writes the tree's .git pointer file once and nothing touches it
@@ -188,6 +235,8 @@ reap_daemons() {
   local want="${1:-}" dry="${2:-0}" pid tree stopped=0 busy=0
   for pid in $(daemon_pids "$want"); do
     tree=$(daemon_tree "$pid")
+    local birth=
+    [ "$OVERSEER_MACOS" != 1 ] || birth=$(process_birth "$pid") || continue
     if tree_busy "$tree"; then
       echo "daemon     SKIP  pid $pid — a gate is still running in $tree"
       busy=$((busy + 1)); continue
@@ -195,6 +244,10 @@ reap_daemons() {
     if [ "$dry" = 1 ]; then
       echo "daemon     WOULD STOP  pid $pid  $tree"
     else
+      if [ "$OVERSEER_MACOS" = 1 ]; then
+        [ "$birth" = "$(process_birth "$pid" 2>/dev/null)" ] && is_nx_daemon "$pid" &&
+          [ "$(daemon_tree "$pid")" = "$tree" ] || continue
+      fi
       kill "$pid" 2>/dev/null && echo "daemon     stopped pid $pid  $tree"
     fi
     stopped=$((stopped + 1))
@@ -613,7 +666,7 @@ wt_qa_with_lock() (
 wt_run_mutating() {
   if [ "${WT_DRY_RUN:-0}" = 1 ]; then printf 'dry-run    '; printf '%q ' "$@"; echo; else "$@"; fi
 }
-wt_systemctl() { wt_run_mutating systemctl --user "$@"; }
+wt_systemctl() { wt_run_mutating "$OVERSEER_SYSTEMCTL" --user "$@"; }
 
 serve_with_lock() (
   local state_dir
@@ -657,8 +710,26 @@ serve_state_load() {
   done <"$file" || return 1
 }
 
-wt_boot_id() { if [ -n "${WT_BOOT_ID:-}" ]; then echo "$WT_BOOT_ID"; else cat /proc/sys/kernel/random/boot_id 2>/dev/null; fi; }
-wt_boot_time() { if [ -n "${WT_BOOT_TIME:-}" ]; then echo "$WT_BOOT_TIME"; else awk '/^btime /{print $2}' /proc/stat 2>/dev/null; fi; }
+wt_boot_id() {
+  if [ -n "${WT_BOOT_ID:-}" ]; then echo "$WT_BOOT_ID"
+  elif [ "$OVERSEER_MACOS" = 1 ]; then python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import boot_identity
+print(boot_identity()[0])
+PY
+  else cat /proc/sys/kernel/random/boot_id 2>/dev/null; fi
+}
+wt_boot_time() {
+  if [ -n "${WT_BOOT_TIME:-}" ]; then echo "$WT_BOOT_TIME"
+  elif [ "$OVERSEER_MACOS" = 1 ]; then python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
+from overseer_platform import boot_identity
+print(boot_identity()[1])
+PY
+  else awk '/^btime /{print $2}' /proc/stat 2>/dev/null; fi
+}
 serve_fingerprint() { sha256sum -- "$1" 2>/dev/null | cut -c1-16; }
 
 # Check every unit file for this slot, plus every canonical and saved unit.
@@ -678,7 +749,7 @@ recover_unit_guard() {
   for unit in "${units[@]}"; do
     case "$seen" in *" $unit "*) continue ;; esac
     seen="$seen$unit "
-    out=$(systemctl --user show --property=LoadState --property=ActiveState -- "$unit" 2>/dev/null); rc=$?
+    out=$("$OVERSEER_SYSTEMCTL" --user show --property=LoadState --property=ActiveState -- "$unit" 2>/dev/null); rc=$?
     [ "$rc" = 0 ] || return 1
     load= active=
     while IFS= read -r line; do
@@ -821,8 +892,8 @@ serve_command() {
 }
 
 serve_unit() { echo "cl-strategy-serve-$1-$2.service"; }
-serve_unit_dir() { echo "${QA_UNIT_DIR:-$HOME/.config/systemd/user}"; }
-serve_unit_state() { systemctl --user is-active "$(serve_unit "$1" "$2")" 2>/dev/null || echo unknown; }
+serve_unit_dir() { if [ "$OVERSEER_MACOS" = 1 ]; then echo "${QA_UNIT_DIR:-$HOME/.config/overseer/units}"; else echo "${QA_UNIT_DIR:-$HOME/.config/systemd/user}"; fi; }
+serve_unit_state() { "$OVERSEER_SYSTEMCTL" --user is-active "$(serve_unit "$1" "$2")" 2>/dev/null || echo unknown; }
 serve_http_ready() {
   [ "${WT_STUB_PORTS+x}" ] && { port_listening "$1"; return; }
   python3 - "$1" <<'PY_HTTP'
@@ -850,8 +921,9 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=$path/apps/ui
-Environment=PATH=$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin
-Environment=PNPM_HOME=$HOME/.local/share/pnpm
+EnvironmentFile=-"$HOME/.config/overseer/runtime.env"
+Environment="PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 ExecStart=/usr/bin/env bash -lc '$command_line'
 Restart=on-failure
@@ -1295,7 +1367,7 @@ cmd_logs() {
       units+=(-u "$(serve_unit "$slot" "$item")")
     done
     [ ${#units[@]} -gt 0 ] || { echo 'logs      app not in slot' >&2; return 1; }
-    if [ "$follow" = 1 ]; then journalctl --user "${units[@]}" -n "$count" -f; else journalctl --user "${units[@]}" -n "$count" --no-pager; fi
+    if [ "$follow" = 1 ]; then "$OVERSEER_JOURNALCTL" --user "${units[@]}" -n "$count" -f; else "$OVERSEER_JOURNALCTL" --user "${units[@]}" -n "$count" --no-pager; fi
     return
   done
   echo "logs      no slot for $branch" >&2; return 1
@@ -1305,7 +1377,7 @@ backend_pane_command() {
   local qa="$1" service="$2" offset="$3" quoted port probe unit
   printf -v quoted '%q' "$qa"
   unit="cl-strategy-qa-$service.service"
-  echo "exec journalctl --user -f -n 30 -u $unit"
+  printf "exec %q --user -f -n 30 -u %q\n" "$OVERSEER_JOURNALCTL" "$unit"
 }
 
 backend_herdr_start() (
@@ -1803,7 +1875,7 @@ def health_data():
 
 def unit_started(slot, app):
     try:
-        result = subprocess.run(['systemctl', '--user', 'show', '-p', 'ActiveEnterTimestamp', '--timestamp=unix',
+        result = subprocess.run([os.environ.get('OVERSEER_SYSTEMCTL', 'systemctl'), '--user', 'show', '-p', 'ActiveEnterTimestamp', '--timestamp=unix',
                                  '--value', f'cl-strategy-serve-{slot}-{app}.service'],
                                 capture_output=True, text=True, timeout=2)
         value = result.stdout.strip().lstrip('@')
@@ -1827,7 +1899,7 @@ def git_head(path):
 
 def unit_state(slot, app):
     try:
-        result = subprocess.run(['systemctl', '--user', 'is-active', f'cl-strategy-serve-{slot}-{app}.service'],
+        result = subprocess.run([os.environ.get('OVERSEER_SYSTEMCTL', 'systemctl'), '--user', 'is-active', f'cl-strategy-serve-{slot}-{app}.service'],
                                 capture_output=True, text=True, timeout=2)
         return result.stdout.splitlines()[0] if result.stdout.strip() else 'unknown'
     except (OSError, subprocess.TimeoutExpired):
@@ -1878,7 +1950,7 @@ ANSI = re.compile(r'\x1b\[[0-9;]*m')
 def build_state(slot, app):
     """Latest dev-server build outcome from its journal: ok, failed (with the first error), or building."""
     try:
-        result = subprocess.run(['journalctl', '--user', '-u', f'cl-strategy-serve-{slot}-{app}.service',
+        result = subprocess.run([os.environ.get('OVERSEER_JOURNALCTL', 'journalctl'), '--user', '-u', f'cl-strategy-serve-{slot}-{app}.service',
                                  '-n', '600', '--no-pager', '-o', 'cat'],
                                 capture_output=True, text=True, timeout=3)
     except (OSError, subprocess.TimeoutExpired):

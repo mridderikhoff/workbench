@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/overseer-env.sh" "$@"
 # Manage task frontend callback hosts on the local backend Keycloak client.
 set -euo pipefail
 umask 077
 
 STATE_DIR="${WT_STATE_DIR:-$HOME/.cl-strategy-local}"
-KC_LIB="${KC_LIB:-/home/marica/cl-strategy-qa/scripts/keycloak/local-common.sh}"
+KC_LIB="${KC_LIB:-${QA_TREE:-$HOME/cl-strategy-qa}/scripts/keycloak/local-common.sh}"
 REALM_NAME="${REALM_NAME:-cl-strategy}"
 BACKEND_CLIENT_ID="${BACKEND_CLIENT_ID:-cl-strategy-backend}"
 

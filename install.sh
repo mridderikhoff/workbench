@@ -4,11 +4,18 @@
 # Usage: ./install.sh [--dry-run] [--runtime-only]
 #   --runtime-only  link only bin/* into ~/.claude/bin (plus ~/.codex/bin/wt when ~/.codex exists);
 #                   skip scripts/, hooks/ and every Codex hook file, including ~/.codex/hooks.json.
+source "$(dirname "${BASH_SOURCE[0]}")/bin/overseer-env.sh" "$@"
 set -euo pipefail
 
 usage() { echo 'usage: ./install.sh [--dry-run] [--runtime-only]' >&2; exit 2; }
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$OVERSEER_MACOS" = 1 ]; then
+  [ -x "$repo/bin/overseer-systemctl" ] && [ -x "$repo/bin/overseer-journalctl" ] || {
+    echo 'Overseer Mac runtime adapters are missing or not executable; update this checkout first.' >&2; exit 1;
+  }
+  command -v launchctl >/dev/null 2>&1 || { echo 'Overseer needs macOS launchctl.' >&2; exit 1; }
+fi
 dry_run=false
 runtime_only=false
 for arg in "$@"; do
