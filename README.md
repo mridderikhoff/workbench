@@ -65,7 +65,7 @@ The order matters: the dashboard unit does not exist until step 5 installs it.
 
 1. **Install the tools.** Prefer the runtime-only install; preview it first:
    ```bash
-   git clone <this repo> ~/workbench && cd ~/workbench
+   git clone https://github.com/mridderikhoff/workbench.git ~/workbench && cd ~/workbench
    ./install.sh --runtime-only --dry-run   # shows what would be linked
    ./install.sh --runtime-only             # links bin/* into ~/.claude/bin only
    ```
@@ -138,18 +138,22 @@ The order matters: the dashboard unit does not exist until step 5 installs it.
    has claims, check that none collides with the offset you chose.
    `dev-start.sh` and `scripts/dev/ports.py` are tracked in `cl-strategy`, so the new tree has them.
    Install the tree's dependencies the way the `cl-strategy` local runtime documents.
-4. **Give the dashboard the same settings.** Shell exports do not reach systemd. Add a drop-in that reads the
-   file, using an absolute path (written with `$HOME` expanded), then reload:
+4. **Give the dashboard and the watchdog the same settings.** Shell exports do not reach systemd. The
+   dashboard runs `wt` for you, and the watchdog (the timer that heals the backend and syncs the named sign-in
+   addresses) needs `KC_LIB`, or it falls back to the author's Keycloak helper path. Add a drop-in to each unit
+   that reads the file, using an absolute path (written with `$HOME` expanded), then reload:
    ```bash
-   dropin=$HOME/.config/systemd/user/cl-strategy-qa-dashboard.service.d
-   mkdir -p "$dropin"
-   cat > "$dropin"/env.conf <<EOT
+   for unit in dashboard watchdog; do
+     dropin=$HOME/.config/systemd/user/cl-strategy-qa-$unit.service.d
+     mkdir -p "$dropin"
+     cat > "$dropin"/env.conf <<EOT
    [Service]
    EnvironmentFile=$HOME/.config/overseer/runtime.env
    EOT
+   done
    systemctl --user daemon-reload
    ```
-   The unit does not exist yet, so do not restart anything here. The drop-in survives `qa-stack install`.
+   Neither unit exists yet, so do not restart anything here. The drop-ins survive `qa-stack install`.
 5. **Install and start the units** (you run this once; agents use `wt` afterwards). With the settings loaded,
    `qa-stack` uses the same `QA_TREE`:
    ```bash
@@ -160,8 +164,10 @@ The order matters: the dashboard unit does not exist until step 5 installs it.
    when it is set, otherwise from the unit's working directory. The unit `PATH` assumes `fnm` and `pnpm`
    under `~/.local`; if yours live elsewhere, add the tool directories with a drop-in on the affected units.
    Keycloak admin credentials for `kc-redirects` stay in `~/.keycloak-local/config`, outside git.
-   Only if a dashboard unit was already running before you added the drop-in, restart it once:
-   `systemctl --user restart cl-strategy-qa-dashboard.service`.
+   On a fresh machine this is the whole flow: the units start with the drop-ins already in place. Only if a
+   dashboard unit was already running before you added its drop-in, restart it once:
+   `systemctl --user restart cl-strategy-qa-dashboard.service`. The watchdog is a timer-run one-shot unit, so
+   its next run picks the drop-in up after `daemon-reload`.
 6. **Check.** `~/.claude/bin/wt status` for a summary, `~/.claude/bin/wt status --json` for details, or open
    `http://127.0.0.1:5100` (`QA_DASHBOARD_PORT` overrides the port).
 
@@ -212,9 +218,9 @@ WT_DRY_RUN=1 ~/.claude/bin/wt backend start <service>   # show what it would do;
 | 1 | The start or restart failed, or the service ended failed, inactive, or running but not answering. A short journal tail is printed. |
 | 2 | Bad usage, or a foreign process owns the service. |
 | 3 | Not settled before the deadline, or a start was already in progress. Wait and refresh status before any other action. Re-running the same `start` only re-waits on the pending start when nothing else changed, as the printed hint says. |
-| 4 | QA lock busy or time budget ran out. |
+| 4 | QA lock busy or time budget ran out. If a start or restart was already requested, its outcome is unknown (the message says so); refresh status before acting again. |
 | 5 | Refused by policy: missing dependencies, restart of a shared service, or a shared service active but not answering. |
-| 6 | Cannot verify: unit missing or masked, unreadable state, tree mismatch, unknown listener owner. This can come before or after an action was requested; look for `already requested:` in the output. |
+| 6 | Cannot verify: unit missing or masked, unreadable or invalid state, tree mismatch, unknown listener owner. This can come before or after an action was requested; look for `already requested:` in the output. |
 
 Exit `2`, `4` and `6` can happen *after* the command already issued a start or `reset-failed` (for example a
 foreign listener appears while it waits). Refusals print `REFUSED <service>: <reason>`, and when an action was already

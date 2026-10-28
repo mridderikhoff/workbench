@@ -20,11 +20,12 @@ directory is the workbench repository) explains the model and every field named 
 
 ## Workflow
 
-1. Load the settings, in the same shell command as every `wt` call (a sourced shell does not persist between
-   tool calls): if `~/.config/overseer/runtime.env` exists, run `set -a; . ~/.config/overseer/runtime.env; set +a`
-   first; otherwise use the `WT_*`/`QA_*` environment you were given. Do not override a project or profile the
-   user chose. Then read state: `~/.claude/bin/wt status --json`; if `backend.treeAligned` is `false` or the
-   tree is not the repository you were asked about, stop and report instead of acting. Exit 0 only means the snapshot was produced; read
+1. Pick the settings. Precedence: a project or profile the user selected, or `WT_*`/`QA_*` variables already
+   in your environment, win and are never overwritten. Only when neither exists, and
+   `~/.config/overseer/runtime.env` does, load that trusted file in the same shell command as every `wt` call
+   (a sourced shell does not persist between tool calls): `set -a; . ~/.config/overseer/runtime.env; set +a`.
+   Then read state: `~/.claude/bin/wt status --json`; if `backend.treeAligned` is `false` or the backend tree
+   is not the repository you were asked about, stop and report instead of acting. Exit 0 only means the snapshot was produced; read
    `backend.overall` and `backend.checkError`. `unknown` means "could not check", not "down".
 2. Find the affected service in `backend.services.<svc>`. Look at `probe`, `probeDetail`,
    `unitState`/`subState`, `owner`, `lastRun`, `dependsOn`, `treeMatches`, `needsAttention`.
