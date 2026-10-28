@@ -220,6 +220,7 @@ import os, sys
 sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
 from overseer_platform import processes
 tree, mode = os.path.realpath(sys.argv[1]), sys.argv[2]
+tree_paths = {tree, os.path.abspath(sys.argv[1])}
 for item in processes():
     cwd = item['cwd']
     if mode == 'occupied':
@@ -228,7 +229,7 @@ for item in processes():
     args = item['argv']
     if not args: sys.exit(2)
     if any(arg.endswith('/daemon/server/start.js') for arg in args): continue
-    if any(arg.startswith(tree + os.sep) and
+    if any(any(arg.startswith(path + os.sep) for path in tree_paths) and
            (arg.endswith('/nx/dist/bin/nx.js') or arg.endswith('/run-executor.js'))
            for arg in args): sys.exit(0)
 sys.exit(1)

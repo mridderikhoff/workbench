@@ -40,4 +40,30 @@ OVERSEER_TEST_HOST_PYTHON="$host_python" OVERSEER_CONFIG_FILE="$scratch/home/.co
   test "$OVERSEER_JOURNALCTL" = "$1/bin/overseer-journalctl"
   test "$WT_MAIN_CHECKOUT" = "$2/check out"
 ' _ "$repo" "$scratch/home"
+mkdir -p "$scratch/QA tree" "$scratch/units" "$scratch/state" "$scratch/kit/bin"
+printf '#!/bin/sh\nexit 0\n' > "$scratch/QA tree/dev-start.sh"
+chmod +x "$scratch/QA tree/dev-start.sh"
+touch "$scratch/QA tree/.wt-qa-runtime"
+cp "$repo/bin/qa-stack" "$repo/bin/overseer-env.sh" "$scratch/kit/bin/"
+cat > "$scratch/kit/bin/overseer-systemctl" <<'EOF'
+#!/bin/sh
+test "$*" = '--user daemon-reload' || exit 99
+EOF
+chmod +x "$scratch/kit/bin/overseer-systemctl"
+OVERSEER_TEST_HOST_PYTHON="$host_python" OVERSEER_CONFIG_FILE="$scratch/home/.config/overseer/runtime.env" \
+  QA_TREE="$scratch/QA tree" WT_QA_TREE="$scratch/QA tree" QA_UNIT_DIR="$scratch/units" \
+  WT_STATE_DIR="$scratch/state" QA_STACK_DRY_RUN=0 PATH="$scratch/bin:$PATH" \
+  "$scratch/kit/bin/qa-stack" install > "$scratch/install-preview"
+QA_UNIT_DIR="$scratch/units" python3 - "$repo" "$scratch/QA tree" <<'PY'
+import pathlib, shlex, sys
+sys.path.insert(0, str(pathlib.Path(sys.argv[1]) / 'bin'))
+from overseer_platform import _definition
+tree = sys.argv[2]
+functions = _definition('cl-strategy-qa-functions.service')
+assert functions['argv'] == [tree + '/dev-start.sh', 'functions'], functions['argv']
+assert functions['cwd'] == tree
+assert functions['env']['WT_TENANT'] == 'designer'
+backend = _definition('cl-strategy-qa-backend.service')
+assert shlex.split(backend['post'][0].lstrip('-')) == [tree + '/dev-start.sh', 'sync-jwt']
+PY
 echo 'macos integration smoke: ok'

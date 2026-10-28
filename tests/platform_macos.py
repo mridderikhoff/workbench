@@ -6,9 +6,12 @@ import json
 import os
 import pathlib
 import plistlib
+import shlex
 import signal
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -202,6 +205,84 @@ class PlatformTests(unittest.TestCase):
         self.assertEqual(kill.call_args_list[1].args, (77, signal.SIGKILL))
         self.assertEqual(child.wait.call_args_list[0].kwargs["timeout"], 5)
         self.assertEqual(child.wait.call_args_list[1].kwargs["timeout"], 2)
+
+    @unittest.skipUnless(os.name == "posix", "managed process groups require POSIX")
+    def test_runner_delivers_term_to_real_children_and_records_exit(self):
+        self._check_real_runner(ignore_term=False)
+
+    @unittest.skipUnless(os.name == "posix", "managed process groups require POSIX")
+    def test_runner_escalates_real_children_without_reentrant_wait(self):
+        self._check_real_runner(ignore_term=True)
+
+    def _check_real_runner(self, *, ignore_term):
+        root = pathlib.Path(self.tmp.name)
+        child_script = root / "managed child.py"
+        child_script.write_text('''import os, pathlib, signal, sys, time
+ready, stopped = map(pathlib.Path, sys.argv[1:3])
+mask = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+if signal.SIGTERM in mask or signal.SIGINT in mask:
+    raise SystemExit(41)
+def terminate(*args):
+    stopped.write_text("terminated")
+    raise SystemExit(0)
+signal.signal(signal.SIGTERM, signal.SIG_IGN if sys.argv[3] == "1" else terminate)
+ready.write_text(str(os.getpid()))
+while True:
+    time.sleep(0.05)
+''')
+        markers = [(root / (name + ".ready"), root / (name + ".stopped")) for name in ("main", "post")]
+        commands = [shlex.join([sys.executable, str(child_script), str(ready), str(stopped),
+                               "1" if ignore_term else "0"]) for ready, stopped in markers]
+        unit = self.unit()
+        definition = self.units / unit
+        lines = definition.read_text().splitlines()
+        definition.write_text("\n".join("ExecStart=" + commands[0] if line.startswith("ExecStart=") else line
+                                        for line in lines) + "\nExecStartPost=-" + commands[1] + "\n")
+        entry = (f"import sys; sys.path.insert(0, {str(SOURCE.parent)!r}); "
+                 f"import overseer_platform; raise SystemExit(overseer_platform._runner({unit!r}))")
+        runner = subprocess.Popen([sys.executable, "-c", entry], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True, start_new_session=True)
+        try:
+            until = time.monotonic() + 8
+            while not all(ready.exists() for ready, _ in markers):
+                if runner.poll() is not None:
+                    self.fail("runner exited before its children were ready: " + runner.stderr.read())
+                self.assertLess(time.monotonic(), until, "managed children did not become ready")
+                time.sleep(0.02)
+            started = time.monotonic()
+            runner.terminate()
+            runner.wait(timeout=8 if ignore_term else 3)
+            recorded = json.loads(platform.meta_path(unit).read_text())
+            self.assertEqual(recorded["exit_code"], -signal.SIGKILL if ignore_term else 0)
+            if ignore_term:
+                self.assertGreaterEqual(time.monotonic() - started, 4.5)
+            else:
+                self.assertTrue(all(stopped.exists() for _, stopped in markers))
+            self.assertNotIn("Traceback", runner.stderr.read())
+        finally:
+            if runner.poll() is None:
+                runner.kill()
+                runner.wait(timeout=2)
+            for ready, _ in markers:
+                if ready.exists():
+                    pid = int(ready.read_text())
+                    info = platform.process_info(pid)
+                    if info and str(child_script) in info["argv"]:
+                        try:
+                            os.killpg(pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+            runner.stdout.close()
+            runner.stderr.close()
+
+    def test_expired_inspection_budget_reports_unknown_status(self):
+        unit = self.unit()
+        with mock.patch.dict(os.environ, WT_ENSURE_DEADLINE="1"), \
+             mock.patch.object(platform, "is_macos", return_value=True):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(platform._systemctl(["show", unit, "-p", "ActiveState"]), 0)
+        self.assertEqual(out.getvalue(), "ActiveState=unknown\n")
 
     def test_restart_rebootstraps_current_plist(self):
         unit = self.unit()

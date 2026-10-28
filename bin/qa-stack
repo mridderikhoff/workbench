@@ -75,16 +75,16 @@ dependencies() {
   esac
 }
 write_unit() {
-  local service="$1" kind extra="" after directory="$QA_TREE" exec="$QA_TREE/dev-start.sh $service" group
+  local service="$1" kind extra="" after directory="$QA_TREE" exec="\"$QA_TREE/dev-start.sh\" $service" group
   group=$(group_for "$service")
   after=$(dependencies "$service")
-  [ "$service" = backend ] && exec="$(dirname "$(readlink -f "$0")")/qa-backend-serve"
+  [ "$service" = backend ] && exec="\"$(dirname "$(readlink -f "$0")")/qa-backend-serve\""
   case "$service" in
     keycloak) kind=$'Type=oneshot\nRemainAfterExit=yes\nTimeoutStartSec=420' ;;
     azurite) kind=$'Type=simple\nRemainAfterExit=yes\nRestart=on-failure\nRestartSec=5' ;;
     *) kind=$'Type=simple\nRestart=on-failure\nRestartSec=5' ;;
   esac
-  [ "$service" = backend ] && extra=$'ExecStartPost=-'"$QA_TREE"$'/dev-start.sh sync-jwt\nTimeoutStartSec=240'
+  [ "$service" = backend ] && extra=$'ExecStartPost=-"'"$QA_TREE"$'/dev-start.sh" sync-jwt\nTimeoutStartSec=240'
   [[ "$service" == frontend-* ]] && extra="TimeoutStartSec=300"
   if [ "$service" = ds-demo ]; then
     directory="$QA_TREE/apps/ui"
@@ -136,7 +136,7 @@ Environment="QA_TREE=$QA_TREE"
 Environment="WT_STATE_DIR=$STATE_DIR"
 Environment="QA_UNIT_DIR=$UNIT_DIR"
 Environment=QA_STACK_WATCHDOG=1
-ExecStart=$self heal --quiet
+ExecStart="$self" heal --quiet
 EOF_WATCHDOG
   cat > "$UNIT_DIR/${PREFIX}watchdog.timer" 9>&- <<EOF_TIMER
 [Unit]
@@ -164,7 +164,7 @@ Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$HOME/.claude/bin/qa-dashboard
+ExecStart="$HOME/.claude/bin/qa-dashboard"
 Restart=on-failure
 RestartSec=5
 

@@ -269,17 +269,23 @@ def service_snapshot(unit: str) -> dict[str, str]:
     plist = plist_path(unit)
     if not source.exists() and not plist.exists():
         return {"LoadState": "not-found", "ActiveState": "inactive"}
-    state = _launch_state(unit)
+    try:
+        state = _launch_state(unit)
+        current_boot = boot_identity()[0]
+        birth = _birth(state["pid"]) if state["pid"] else None
+    except (RuntimeError, OSError, subprocess.TimeoutExpired):
+        # Expired inspection budgets are unknown, not evidence of a stopped job.
+        state = {"loaded": None, "state": "unknown", "pid": 0, "exit": None}
+        current_boot, birth = "", None
     meta = _metadata(unit)
     try:
         definition = _definition(_service_for_timer(unit))
     except (OSError, ValueError):
         definition = {"cwd": "", "type": "simple", "argv": [], "remain": False}
     pid = state["pid"]
-    trusted = bool(pid and pid == meta.get("runner_pid") and _birth(pid) == meta.get("runner_birth") and meta.get("invocation"))
+    trusted = bool(pid and pid == meta.get("runner_pid") and birth == meta.get("runner_birth") and meta.get("invocation"))
     # launchctl's PID is the runner.  A stale metadata file is never evidence.
     running = state["loaded"] and state["state"] == "running" and trusted
-    current_boot = boot_identity()[0]
     same_boot = bool(current_boot) and meta.get("boot_id") == current_boot
     completed_oneshot = bool(definition.get("remain"))
     interval_timer = unit.endswith(".timer")
@@ -416,12 +422,15 @@ def _runner(unit: str) -> int:
     boot = boot_identity()[0]
     if not boot:
         raise RuntimeError("cannot read boot identity for managed runner")
-    blocked = {signal.SIGTERM, signal.SIGINT}
-    old_mask = signal.pthread_sigmask(signal.SIG_BLOCK, blocked)
     process = None
+    data = None
+    code = None
+    stopping = {"signal": None}
     def terminate(signum: int, _frame: Any) -> None:
-        if process is not None:
-            _terminate_child(process, signum)
+        # A handler must never call Popen.wait/poll: it may interrupt wait
+        # while that method holds its own non-reentrant lock.
+        stopping["signal"] = signum
+    old_handlers = {sig: signal.signal(sig, terminate) for sig in (signal.SIGTERM, signal.SIGINT)}
     try:
         process = subprocess.Popen(spec["argv"], cwd=cwd, env=env, start_new_session=True)
         runner_pid = os.getpid()
@@ -433,29 +442,75 @@ def _runner(unit: str) -> int:
                 "started_epoch": time.time(), "started_monotonic_us": time.monotonic_ns() // 1000,
                 "restart_count": int(previous.get("restart_count", 0)) + 1}
         _atomic_json(meta_path(unit), data)
-        signal.signal(signal.SIGTERM, terminate)
-        signal.signal(signal.SIGINT, terminate)
-    except BaseException:
-        if process is not None and process.poll() is None:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait(timeout=2)
-        raise
+        code = _supervise_children(process, spec["post"], cwd, env, stopping)
+        return code
     finally:
-        signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
-    for post in spec["post"]:
         try:
-            subprocess.run(shlex.split(post.lstrip("-")), cwd=cwd, env=env, timeout=120, check=True)
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            if not post.startswith("-"):
-                terminate(signal.SIGTERM, None)
-                raise
-    code = process.wait()
-    data.update(exit_epoch=time.time(), exited_monotonic_us=time.monotonic_ns() // 1000, exit_code=code)
-    _atomic_json(meta_path(unit), data)
-    return code
+            try:
+                if process is not None and process.returncode is None:
+                    _terminate_child(process, signal.SIGTERM)
+            finally:
+                if data is not None:
+                    data.update(exit_epoch=time.time(), exited_monotonic_us=time.monotonic_ns() // 1000,
+                                exit_code=code if code is not None else process.returncode)
+                    _atomic_json(meta_path(unit), data)
+        finally:
+            for sig, handler in old_handlers.items():
+                signal.signal(sig, handler)
+
+
+def _supervise_children(process: subprocess.Popen, posts: list[str], cwd: str,
+                        env: dict[str, str], stopping: dict) -> int:
+    active = [{"process": process, "main": True, "deadline": None, "killed": False}]
+    post_index = 0
+    main_code = None
+    post_failed = False
+    try:
+        while active or (post_index < len(posts) and not stopping["signal"] and not post_failed):
+            stop_signal = stopping["signal"] or (signal.SIGTERM if post_failed or main_code not in (None, 0) else None)
+            if (not stop_signal and post_index < len(posts)
+                    and not any(not entry["main"] for entry in active)):
+                post = posts[post_index]
+                post_index += 1
+                child = subprocess.Popen(shlex.split(post.lstrip("-")), cwd=cwd, env=env,
+                                         start_new_session=True)
+                active.append({"process": child, "main": False, "soft": post.startswith("-"),
+                               "expires": time.monotonic() + 120, "deadline": None, "killed": False})
+            for entry in list(active):
+                child = entry["process"]
+                now = time.monotonic()
+                expired = not entry["main"] and now >= entry["expires"]
+                if (stop_signal or expired) and entry["deadline"] is None:
+                    # These are unreaped children created in their own sessions;
+                    # their PID/PGID cannot have been reused by a foreign job.
+                    try:
+                        os.killpg(child.pid, stop_signal or signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    entry["deadline"] = now + 5
+                    if expired and not entry["soft"]:
+                        post_failed = True
+                if entry["deadline"] is not None and now >= entry["deadline"] and not entry["killed"]:
+                    try:
+                        os.killpg(child.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    entry["killed"] = True
+                try:
+                    result = child.wait(timeout=0.05)
+                except subprocess.TimeoutExpired:
+                    continue
+                active.remove(entry)
+                if entry["main"]:
+                    main_code = result
+                elif result and not entry["soft"] and not stopping["signal"]:
+                    post_failed = True
+            if main_code not in (None, 0):
+                post_index = len(posts)
+        return 1 if post_failed else (main_code if main_code is not None else 1)
+    finally:
+        for entry in active:
+            _terminate_child(entry["process"], signal.SIGTERM)
 
 
 def _terminate_child(process: subprocess.Popen, signum: int) -> None:

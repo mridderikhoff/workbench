@@ -70,8 +70,8 @@ If a legacy process already holds a QA port, `qa-stack` refuses to take ownershi
 
 Run this on a Mac after setup. The Linux stub tests check command routing and safety behavior, but cannot establish that launchd starts the applications on your machine.
 
-1. `qa-stack install`, `qa-stack up`, and `wt status --json`: confirm dashboard, watchdog, and expected backend services appear with the correct QA tree.
-2. Open `http://localhost:5100`, run `wt backend logs backend -n 30`, and confirm the log tail and health status match.
-3. Run `wt serve <branch> ds-demo`, open its printed URL, inspect `wt logs <branch> ds-demo`, then `wt serve --stop <branch>`.
-4. Verify `wt backend ensure` repairs a stopped owned service, and confirm a foreign listener causes a refusal without stopping its process.
+1. `~/.claude/bin/qa-stack install`, `~/.claude/bin/qa-stack up`, and `~/.claude/bin/wt status --json`: confirm dashboard, watchdog, and expected backend services appear with the correct QA tree.
+2. Open `http://localhost:5100`, run `~/.claude/bin/wt backend logs backend -n 30`, and confirm the log tail and health status match.
+3. Run `~/.claude/bin/wt serve <branch> ds-demo`, open its printed URL, inspect `~/.claude/bin/wt logs <branch> ds-demo`, then `~/.claude/bin/wt serve --stop <branch>`.
+4. Verify `~/.claude/bin/wt backend ensure` repairs a stopped owned service, and confirm a foreign listener causes a refusal without stopping its process.
 5. Sign out and back in; confirm enabled dashboard and watchdog agents return and branch status remains accurate.
