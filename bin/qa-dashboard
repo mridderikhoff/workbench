@@ -199,7 +199,9 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
 .backend .rollup:not(.tone-ok) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
 .backend .rollup.tone-warn .state{color:var(--warn);background:none}
-.backend .rel{display:inline-flex;align-items:center}
+.backend .backend-branch{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;max-width:100%;font:13px/1.35 var(--mono);color:var(--muted)}
+.backend .backend-branch-value{min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text)}
+.backend .rel{display:inline-flex;align-items:center;min-width:0;max-width:100%}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
 .backend .meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px 12px;width:100%;margin-top:2px;padding-top:7px;border-top:1px dashed var(--edge-lo2);font:12px var(--mono);color:var(--muted)}
 .backend .meta code{font-size:12px}
@@ -210,7 +212,7 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
    Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
-.backend .update-btn{display:inline-flex;align-items:center;gap:9px;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
+.backend .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
 font:700 14px/1 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--key-ink);
 background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--key-wall),0 5px 6px -2px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}
 .backend .update-btn .behind-badge{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px 4px;border-radius:3px;font:600 12px/1 var(--mono);letter-spacing:.02em;text-transform:none;color:var(--badge-ink);background:var(--badge-bg);box-shadow:var(--sunk)}
@@ -2311,12 +2313,13 @@ function actionButton(name,idle,extra){
   var label=busy?labels[1]:(idle||labels[0]);
   return'<button type="button" class="act'+(extra?" "+extra:"")+'" data-action="'+name+'"'+(isRunning()?" disabled":"")+'>'+label+'</button>';
 }
-// Updating the backend is a real button: "Update" plus a badge with how far behind develop it is. Behind is not an error.
-function updateButton(relation){
+// Updating or returning to develop uses the same action. A behind count is useful; an attached SHA is shown in the branch row.
+function updateButton(relation,switching){
   var a=currentAction(),busy=isRunning()&&a.action==="update",count=(/behind\D*(\d+)/i.exec(relation)||[])[1];
-  var badge=count?count+" behind":relation,title="Update the backend to develop ("+relation+")";
-  return'<button type="button" class="update-btn" data-action="update" title="'+esc(title)+'" aria-label="'+esc(busy?"Updating the backend to develop":"Update to develop, "+badge)+'"'+(isRunning()?" disabled":"")+'>'+
-    '<span class="update-label">'+(busy?"Updating&hellip;":"Update")+'</span><span class="behind-badge">'+esc(badge)+'</span></button>';
+  var label=switching?"Switch to develop":"Update",busyLabel=switching?"Switching&hellip;":"Updating&hellip;";
+  var description=label+(count?", "+count+" behind":"");
+  return'<button type="button" class="update-btn" data-action="update" title="'+esc(description)+'" aria-label="'+esc(busy?busyLabel.replace("&hellip;","…"):description)+'"'+(isRunning()?" disabled":"")+'>'+
+    '<span class="update-label">'+(busy?busyLabel:label)+'</span>'+(count?'<span class="behind-badge">'+esc(count)+' behind</span>':"")+'</button>';
 }
 function actionLine(a){
   var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:"");
@@ -2346,11 +2349,12 @@ function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===heal
 // Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
 function renderBackend(b){
   if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
-  var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
+  var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
   var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
-    '<span class="state" style="--stamp-chars:'+Math.max(6,String(b.overall||"unknown").length)+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span></div>'+
-    '<div class="rel">'+(behind?updateButton(b.relation):'<span class="pill rel">'+esc(b.relation||"?")+'</span>')+'</div>'+
+    '<span class="state" style="--stamp-chars:'+Math.max(6,String(b.overall||"unknown").length)+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span>'+
+    '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span></div>'+
+    ((switching||behind)?'<div class="rel">'+updateButton(b.relation||"",switching)+'</div>':"")+
     (actions?'<div class="acts">'+actions+'</div>':"")+
     '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span></div></div>'+
     '<div class="backend-disclosure"><button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+
@@ -2528,7 +2532,7 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Start fresh.");
   if(backend){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
-  if(backend&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1];add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. Update is on the Backend card.":"Backend: "+backend.relation+".")}
+  if(backend&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
   if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
   else if(backend&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
     if(!out.some(function(message){return message.key.indexOf("backend:")===0}))add("backend:unknown","unknown","Backend",names.length?"Backend readiness is unknown.":"No backend service data.");
