@@ -816,6 +816,12 @@ var THEMES = {
           'var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px) repeat}',
         D + ' .page::after{content:"";position:absolute;inset:37px 27px 57px;z-index:-2;pointer-events:none;border:1.5px dashed var(--stitch);border-radius:4px}',
         // The backend card is plain card stock with a brass grommet; leather-stitched seams split its rows.
+        // The rollup stamp sizes its type to the card: the rollup is a container, and the font shrinks with the card width and the
+        // word's length (--stamp-chars, from the page), so a long state such as DEGRADED stays inside the card, even scaled up
+        // as a problem stamp, at desktop and phone widths. 31px stays the cap for short words on wide cards.
+        D + ' .backend .rollup{container-type:inline-size;width:100%}',
+        D + ' .backend .rollup .state{max-width:calc(100% - 8px);font-size:clamp(17px,calc((100cqi - 78px) / (var(--stamp-chars,7) * 1.04)),31px);letter-spacing:.05em}',
+        D + ' .backend .rollup:not(.tone-ok) .state{max-width:calc((100% - 8px) / 1.08)}',
         D + ' .backend{background:radial-gradient(circle at calc(100% - 19px) 19px,var(--desk-floor) 0 3.6px,#e4c06a 4.2px,#9d742a 6.2px,#3c2a0c 7.4px,transparent 8px),var(--stock)}',
         // Seams are saddle-stitched: a pressed groove with angled waxed-thread stitches, instead of a drawn dashed line.
         D + '{--stitch-seam:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%277%27%3E%3Crect y=%273%27 width=%2712%27 height=%271.2%27 fill=%27%23000%27 fill-opacity=%27.42%27/%3E%3Crect y=%274.2%27 width=%2712%27 height=%27.6%27 fill=%27%23fff%27 fill-opacity=%27.07%27/%3E%3Ccircle cx=%271.4%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Ccircle cx=%279.6%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Cg transform=%27rotate(-9 5.5 3.5)%27%3E%3Crect x=%271.8%27 y=%272.5%27 width=%277.4%27 height=%272%27 rx=%271%27 fill=%27%238f7450%27/%3E%3Crect x=%272.6%27 y=%272.7%27 width=%275.6%27 height=%27.6%27 rx=%27.3%27 fill=%27%23e6d2a6%27 fill-opacity=%27.4%27/%3E%3C/g%3E%3C/svg%3E\")}',
@@ -2297,7 +2303,7 @@ function renderBackend(b){
   var behind=/behind|attached|not develop/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
   var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
-    '<span class="state">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span></div>'+
+    '<span class="state" style="--stamp-chars:'+Math.max(6,String(b.overall||"unknown").length)+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span></div>'+
     '<div class="rel">'+(behind?updateButton(b.relation):'<span class="pill rel">'+esc(b.relation||"?")+'</span>')+'</div>'+
     (actions?'<div class="acts">'+actions+'</div>':"")+
     '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span>'+
