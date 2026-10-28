@@ -164,10 +164,14 @@ daemon_tree() {
 # fails another session's gate. A live `nx` CLI or task executor rooted in the
 # same tree is that signal.
 tree_busy() {
-  local tree="$1" pid
+  local tree="$1" pid pids
   [ "$tree" = unknown ] && return 0
-  for pid in $(process_pids); do
-    read_argv "$pid" || continue
+  pids=$(process_pids) || return 0
+  for pid in $pids; do
+    if ! read_argv "$pid"; then
+      [ "$OVERSEER_MACOS" != 1 ] || return 0
+      continue
+    fi
     argv_has_suffix 'daemon/server/start.js' && continue
     argv_has_suffix 'nx/dist/bin/nx.js' "$tree" && return 0
     argv_has_suffix 'run-executor.js' "$tree" && return 0
@@ -178,9 +182,15 @@ tree_busy() {
 # tree_busy only sees Nx, and an agent reading files in a tree runs no Nx at all.
 # Occupancy is the broader signal: any live process whose cwd sits in the tree.
 tree_occupied() {
-  local tree="$1" pid cwd
-  for pid in $(process_pids); do
-    cwd=$(process_cwd "$pid") || continue
+  local tree="$1" pid cwd pids
+  pids=$(process_pids) || return 0
+  for pid in $pids; do
+    if cwd=$(process_cwd "$pid"); then :
+    else
+      local inspect_rc=$?
+      [ "$OVERSEER_MACOS" != 1 ] || { [ "$inspect_rc" -eq 2 ] || return 0; }
+      continue
+    fi
     case "$cwd" in "$tree" | "$tree"/*) return 0 ;; esac
   done
   return 1
@@ -205,7 +215,12 @@ import os, sys
 sys.path.insert(0, os.environ['OVERSEER_BIN_DIR'])
 from overseer_platform import process_info
 info = process_info(int(sys.argv[1]))
-if not info or not info['cwd']: sys.exit(1)
+if not info:
+    try: os.kill(int(sys.argv[1]), 0)
+    except ProcessLookupError: sys.exit(2)
+    except PermissionError: sys.exit(1)
+    sys.exit(1)
+if not info['cwd']: sys.exit(1)
 print(info['cwd'])
 PY
   else readlink -f "/proc/$1/cwd"; fi

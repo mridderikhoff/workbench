@@ -29,13 +29,17 @@ The underlying `cl-strategy` runtime also needs Git, Node and pnpm, Python 3.13 
 
    ```bash
    mkdir -p "$HOME/.config/overseer"
-   cat > "$HOME/.config/overseer/runtime.env" <<EOF
+   if [ -e "$HOME/.config/overseer/runtime.env" ]; then
+     cat "$HOME/.config/overseer/runtime.env"
+   else
+     cat > "$HOME/.config/overseer/runtime.env" <<EOF
    WT_MAIN_CHECKOUT="$HOME/cl-strategy"
    QA_TREE="$HOME/cl-strategy-qa"
    WT_QA_TREE="$HOME/cl-strategy-qa"
    WT_TENANT="your-tenant"
    KC_LIB="$HOME/cl-strategy-qa/scripts/keycloak/local-common.sh"
    EOF
+   fi
    ```
 
    Review an existing file instead of overwriting it. The QA tree must be a dedicated worktree with `.wt-qa-runtime` and `.port-offset` as described in the [shared setup](../README.md#setup-on-your-own-machine). The runtime never creates the application dependencies or Keycloak configuration.
