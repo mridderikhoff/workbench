@@ -84,9 +84,11 @@ function page(opts) {
 
 const jsonResponse = (body, ok = true, status = 200) => Promise.resolve({ ok, status, json: () => Promise.resolve(body) });
 const badJson = (status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.reject(new SyntaxError("Unexpected token <")) });
-const snapshot = slots => ({ generatedAt: "2026-01-01T00:00:00Z", backend: { overall: "ready", relation: "develop", sha: "abc", services: { api: { probe: "ready", status: "ready" } } }, slots, actions: null });
-const saved = (slot, fp) => ({ slot, branch: "b" + slot, apps: [{ app: "ri" }], worktree: "/w/b" + slot, recovery: { fingerprint: fp, resumable: true } });
+const snapshot = slots => ({ generatedAt: "2026-01-01T00:00:00Z", backend: { overall: "healthy", relation: "develop", sha: "abc", services: { api: { probe: "ready", status: "ready" } } }, slots, actions: null });
+const fp = n => "c0ffee00000000" + n.toString(16).padStart(2, "0"); // 16 hex characters, like the server's
+const saved = slot => ({ slot, branch: "b" + slot, apps: [{ app: "ri" }], worktree: "/w/b" + slot, recovery: { fingerprint: fp(slot), resumable: true } });
 const plain = v => JSON.parse(JSON.stringify(v)); // values from the vm realm compare by structure
+const recoverySnapshot = () => snapshot([saved(3), saved(2), Object.assign(saved(4), { recovery: { fingerprint: fp(4), resumable: false, reason: "x" } })]);
 const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
 
 const tests = [];
@@ -111,7 +113,7 @@ test("before the first status: placeholders, count not 0, no empty/down claim, b
 
 test("initial failure: status unavailable and retrying, not empty or down; later success shows sessions", async () => {
   let n = 0;
-  const p = page({ fetch: () => ++n === 1 ? jsonResponse({ error: "boom" }, false, 502) : jsonResponse(snapshot([saved(1, "f1")])) });
+  const p = page({ fetch: () => ++n === 1 ? jsonResponse({ error: "boom" }, false, 502) : jsonResponse(snapshot([saved(2)])) });
   await p.poll();
   assert(/Status unavailable, retrying/.test(cards(p)) && /Status unavailable, retrying/.test(p.html("backend")));
   assert.doesNotMatch(cards(p) + p.html("backend"), /No sessions running|No backend data|Checking backend|down/i);
@@ -128,8 +130,8 @@ test("initial failure: status unavailable and retrying, not empty or down; later
   await p.poll();
   assert.strictEqual(p.run("failure"), null);
   assert.strictEqual(p.text("sessions-count"), "1");
-  assert(/b1/.test(cards(p)) && !/Status unavailable/.test(cards(p)));
-  assert.strictEqual(p.html("recovery-rows").includes('data-slot="1"'), true);
+  assert(/b2/.test(cards(p)) && !/Status unavailable/.test(cards(p)));
+  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"'), true);
 });
 
 test("a valid snapshot with slots[] empty shows the true empty card", async () => {
@@ -141,7 +143,7 @@ test("a valid snapshot with slots[] empty shows the true empty card", async () =
 });
 
 test("a later failed poll keeps the last snapshot, its cards, its backend and a stale banner", async () => {
-  const replies = [() => jsonResponse(snapshot([saved(1, "f1")])), () => jsonResponse({ error: "late" }, false, 502), () => badJson(502)];
+  const replies = [() => jsonResponse(snapshot([saved(2)])), () => jsonResponse({ error: "late" }, false, 502), () => badJson(502)];
   const p = page({ fetch: () => replies.shift()() });
   await p.poll();
   const before = [cards(p), p.html("backend"), p.run("pageHealth()")];
@@ -157,28 +159,84 @@ test("a later failed poll keeps the last snapshot, its cards, its backend and a 
   assert.strictEqual(p.run("data.slots.length"), 1);
 });
 
-test("malformed or wrongly shaped responses never replace data or become a fake empty state", async () => {
-  const bodies = [snapshot([saved(1, "f1")]), {}, { slots: [], backend: null }, { slots: {}, backend: {} }, [], null, "text", { backend: {}, slots: "x" }];
-  const p = page({ fetch: () => jsonResponse(bodies.shift()) });
-  await p.poll();
-  const good = p.run("data");
-  for (let i = 1; i < 8; i++) {
+// Each body is JSON-valid and has the top-level keys, but would make render() throw or claim an empty state.
+const withSlots = slots => Object.assign(snapshot([]), { slots });
+const MALFORMED = {
+  "empty object": {}, "null backend": { slots: [], backend: null }, "slots not an array": { slots: {}, backend: {} }, "array": [], "null": null, "string": "text",
+  "slots is a string": { backend: {}, slots: "x" },
+  "null slot": withSlots([null]), "string slot": withSlots(["x"]), "array slot": withSlots([[]]),
+  "apps not an array": withSlots([Object.assign(saved(2), { apps: "ri" })]), "apps is an object": withSlots([Object.assign(saved(2), { apps: { app: "ri" } })]),
+  "null app": withSlots([Object.assign(saved(2), { apps: [null] })]), "string app": withSlots([Object.assign(saved(2), { apps: ["ri"] })]),
+  "numeric app url": withSlots([Object.assign(saved(2), { apps: [{ app: "ri", url: 5 }] })]),
+  "services not an object": Object.assign(snapshot([]), { backend: { overall: "healthy", services: [] } }),
+  "null service": Object.assign(snapshot([]), { backend: { overall: "healthy", services: { api: null } } }),
+  "string service": Object.assign(snapshot([]), { backend: { overall: "healthy", services: { api: "ready" } } }),
+  "actions not an object": Object.assign(snapshot([]), { actions: "running" }),
+  "action output not an array": Object.assign(snapshot([]), { actions: { action: "heal", state: "ok", output: "line one" } }),
+};
+
+test("malformed or wrongly shaped responses never replace data, keep the stale UI and keep retrying", async () => {
+  for (const [name, bad] of Object.entries(MALFORMED)) {
+    const bodies = [snapshot([saved(2)]), bad];
+    const p = page({ fetch: () => jsonResponse(bodies.shift()) });
     await p.poll();
-    assert.strictEqual(p.run("data"), good, "body " + i + " must not replace data");
-    assert.match(p.text("banner"), /Unreadable status response/);
-    assert.doesNotMatch(cards(p), /No sessions running/);
+    const good = p.run("data"), before = [cards(p), p.html("backend")], timers = p.timers.length;
+    await p.poll(); // a render() that throws would reject here
+    assert.strictEqual(p.run("data"), good, name + " must not replace data");
+    assert.deepStrictEqual([cards(p), p.html("backend")], before, name + " must keep the stale UI");
+    assert.match(p.text("banner"), /^Status unavailable - showing stale data: /, name);
+    assert.doesNotMatch(cards(p), /No sessions running/, name);
+    assert.strictEqual(p.timers.length, timers + 1, name + " must schedule the next poll");
   }
-  assert.match(cards(p), /b1/);
+});
+
+test("a malformed first response stays unavailable and retrying, never a fake empty state", async () => {
+  for (const [name, bad] of Object.entries(MALFORMED)) {
+    const p = page({ fetch: () => jsonResponse(bad) });
+    await p.poll();
+    assert.strictEqual(p.run("data"), null, name);
+    assert.match(cards(p), /Status unavailable, retrying/, name);
+    assert.doesNotMatch(cards(p) + p.html("backend"), /No sessions running|No backend data/, name);
+    assert.strictEqual(p.text("sessions-count"), "", name);
+    assert.strictEqual(p.run("pageHealth()"), "unknown", name);
+    assert.strictEqual(p.timers.length, 1, name + " must schedule a retry");
+  }
   const q = page({ fetch: () => badJson() });
   await q.poll();
   assert.strictEqual(q.run("data"), null);
-  assert.doesNotMatch(cards(q), /No sessions running/);
   assert.match(cards(q), /Status unavailable, retrying/);
+});
+
+test("sparse or unknown but well-formed snapshots are accepted and render", async () => {
+  const sparse = {
+    backend: { overall: "healthy", services: null, future: { x: 1 } },
+    slots: [{ slot: 2, branch: "b2", apps: null, mystery: [1] }, { slot: 3, branch: "b3", apps: [{ app: "ri", url: null, httpReady: true }, { app: "ds-demo", url: "http://x/", extra: 1 }] }, { slot: 4 }],
+    actions: { action: "heal", state: "ok", output: [] },
+  };
+  const p = page({ fetch: () => jsonResponse(sparse) });
+  await p.poll();
+  assert.strictEqual(p.run("failure"), null);
+  assert.strictEqual(p.text("sessions-count"), "3");
+});
+
+test("a real but unknown snapshot keeps the page health neutral, not healthy", async () => {
+  const unknown = { backend: { overall: "unknown", services: {} }, slots: [] };
+  const noneKnown = { backend: { overall: "unknown", services: { api: { status: "mystery" } } }, slots: [] };
+  for (const body of [unknown, noneKnown]) {
+    const p = page({ fetch: () => jsonResponse(body) });
+    await p.poll();
+    assert.strictEqual(p.run("failure"), null);
+    assert.strictEqual(p.run("pageHealth()"), "unknown");
+    assert.strictEqual(p.favicons[p.favicons.length - 1], "unknown");
+  }
+  const healthy = page({ fetch: () => jsonResponse(snapshot([])) });
+  await healthy.poll();
+  assert.strictEqual(healthy.run("pageHealth()"), "ok");
 });
 
 test("Resume and Start fresh act directly with their payloads; a second click is blocked; no automatic POST", async () => {
   const posts = [];
-  const p = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body), headers: init.headers }); return new Promise(() => {}) } return jsonResponse(snapshot([saved(2, "f2"), saved(1, "f1"), Object.assign(saved(3, "f3"), { recovery: { fingerprint: "f3", resumable: false, reason: "x" } })])) } });
+  const p = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body), headers: init.headers }); return new Promise(() => {}) } return jsonResponse(recoverySnapshot()) } });
   await p.poll();
   assert.deepStrictEqual(posts, [], "nothing is posted by loading");
   assert.strictEqual(p.get("recovery-fresh").disabled, false);
@@ -186,14 +244,14 @@ test("Resume and Start fresh act directly with their payloads; a second click is
   p.get("recovery-resume").fire("click");
   assert.strictEqual(posts.length, 1);
   assert.strictEqual(posts[0].url, "/api/recovery/resume");
-  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 1, fingerprint: "f1" }, { slot: 2, fingerprint: "f2" }] });
+  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 2, fingerprint: fp(2) }, { slot: 3, fingerprint: fp(3) }] });
   assert.strictEqual(posts[0].headers["X-QA-Dashboard"], "1");
   p.get("recovery-resume").fire("click");
   p.get("recovery-fresh").fire("click");
   assert.strictEqual(posts.length, 1, "optimistic running state blocks a second action");
   assert.strictEqual(p.get("recovery-fresh").disabled, true);
 
-  const q = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body) }); return new Promise(() => {}) } return jsonResponse(snapshot([saved(2, "f2"), saved(1, "f1"), Object.assign(saved(3, "f3"), { recovery: { fingerprint: "f3", resumable: false, reason: "x" } })])) } });
+  const q = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body) }); return new Promise(() => {}) } return jsonResponse(recoverySnapshot()) } });
   await q.poll();
   posts.length = 0;
   q.get("recovery-fresh").fire("click");
@@ -201,7 +259,7 @@ test("Resume and Start fresh act directly with their payloads; a second click is
   q.get("recovery-resume").fire("click");
   assert.strictEqual(posts.length, 1, "double click sends one request");
   assert.strictEqual(posts[0].url, "/api/recovery/forget");
-  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 1, fingerprint: "f1" }, { slot: 2, fingerprint: "f2" }, { slot: 3, fingerprint: "f3" }] });
+  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 2, fingerprint: fp(2) }, { slot: 3, fingerprint: fp(3) }, { slot: 4, fingerprint: fp(4) }] });
   assert.strictEqual(q.run("typeof freshDialog + typeof samePairs"), "undefinedundefined");
   assert.strictEqual(q.run("recoveryBox.hidden"), false);
   assert.strictEqual(q.run("isRunning()"), true);

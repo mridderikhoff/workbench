@@ -2687,14 +2687,14 @@ document.addEventListener("click",function(e){
   else runAction(t.getAttribute("data-action"));
 });
 document.addEventListener("toggle",function(e){if(e.target.id==="action-output")outputOpen=e.target.open},true);
-// With no real snapshot the health is unknown; a failed poll keeps what the last snapshot showed.
+// With no real snapshot, or one that says nothing known, the health is unknown, not healthy; a failed poll keeps what the last snapshot showed.
 function pageHealth(){
   if(!data)return"unknown";
   var tones=[],backend=data.backend;
-  if(backend)tones.push(backendTone(backend));
+  if(backend)tones.push(!Object.keys(backend.services||{}).length&&!tone(backend.overall)?"unknown":backendTone(backend));
   (data.slots||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
   var worst=worstTone(tones);
-  return worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
+  return worst==="unknown"?"unknown":worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
 }
 var reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)"),faviconTimer=null,faviconDim=false;
 function updateFavicon(){
@@ -2763,7 +2763,17 @@ tenantInput.addEventListener("input",function(){
 var justFinished=false;
 function schedule(ms){if(INITIAL)return;clearTimeout(pollTimer);pollTimer=setTimeout(poll,ms)}
 // Only a snapshot with the expected shape replaces the last good data; anything else is a failed poll.
-function validSnapshot(j){return!!j&&typeof j==="object"&&Array.isArray(j.slots)&&!!j.backend&&typeof j.backend==="object"&&!Array.isArray(j.backend)}
+// It checks only the containers render() walks (slots, their apps, backend services, action output); unknown or missing fields are fine.
+function plainObject(v){return!!v&&typeof v==="object"&&!Array.isArray(v)}
+function validSnapshot(j){
+  if(!plainObject(j)||!Array.isArray(j.slots)||!plainObject(j.backend))return false;
+  var services=j.backend.services,actions=j.actions;
+  if(services!=null&&(!plainObject(services)||!Object.keys(services).every(function(n){return plainObject(services[n])})))return false;
+  if(actions!=null&&(!plainObject(actions)||(actions.output!=null&&!Array.isArray(actions.output))))return false;
+  return j.slots.every(function(s){
+    return plainObject(s)&&(s.apps==null||Array.isArray(s.apps)&&s.apps.every(function(a){return plainObject(a)&&(a.url==null||typeof a.url==="string")}));
+  });
+}
 function poll(){
   return fetch("/api/status",{cache:"no-store"}).then(function(r){
     return r.json().catch(function(){return null}).then(function(j){
