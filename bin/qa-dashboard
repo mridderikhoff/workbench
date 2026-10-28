@@ -985,7 +985,7 @@ THEMES.neon = (function () {
         "--brush": "#ff3ea5", "--brush-deep": "#7a001c", "--drip": "#ff3b30", "--seep": "#ff3ea5", "--seep-ink": "#0a0a0c", "--danger": "#ff3b30", "--danger-ink": "#0a0a0c",
         "--charge": "#ff3ea5", "--charge-ink": "#0a0a0c", "--charge-edge": "#2fe6ff", "--charge-scan": "rgba(0,0,0,.10)",
         "--ok-ink": "#0a0a0c", "--warn-ink": "#0a0a0c", "--bad-ink": "#0a0a0c",
-        "--hl": "#2b0a12", "--fail-face": "linear-gradient(180deg,color-mix(in srgb,var(--hl) 70%,var(--cap-hi)),var(--hl) 55%)", "--fail-ink": "var(--tag-ink)", "--fail-bad": "var(--tag-bad)", "--banner": "#b0002a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.55)", "--dim": "rgba(3,3,4,.74)",
+        "--hl": "#2b0a12", "--fail-face": "linear-gradient(180deg,color-mix(in srgb,var(--hl) 70%,var(--cap-hi)),var(--hl) 55%)", "--fail-ink": "#ff5cb4", "--fail-bad": "#ff6a5e", "--banner": "#b0002a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.55)", "--dim": "rgba(3,3,4,.74)",
         "--desk-floor": "#060607", "--desk-card": "#111114", "--desk-card2": "#0c0c0f", "--edge-hi": "rgba(255,62,165,.10)", "--edge-line": "rgba(255,62,165,.10)",
         "--edge-lo": "#040405", "--edge-lo2": "#020203", "--age": "rgba(0,0,0,.4)", "--contact": "rgba(0,0,0,.85)", "--lift": "rgba(0,0,0,.9)",
         "--emb-hi": "rgba(255,255,255,.06)", "--emb-lo": "rgba(0,0,0,.8)", "--well": "rgba(0,0,0,.75)", "--stamp-ok": "#ff5cb4",
@@ -1076,7 +1076,7 @@ THEMES.neon = (function () {
       N + ' .app-pill{--pill-pad:7px 15px 8px 12px;--led:var(--tag-ok);--tag-shape:inset(0 round 7px);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--tag) 55%);--tag-mount:radial-gradient(circle at 21px 50%,color-mix(in srgb,var(--led) 42%,transparent) 0,transparent 15px);font-family:var(--mono);font-size:14px}',
       N + ' .app-pill::after{inset:0 0 -4px}',
       // A failed build sounds the alarm: a hazard-striped edge, a bright red rim and a red glow round the whole key.
-      N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-rim:var(--glyph-bad);--tag-face:repeating-linear-gradient(-45deg,var(--glyph-bad) 0 3px,transparent 3px 6px) 0 0/6px 100% no-repeat,var(--fail-face);--tag-ink:var(--fail-ink);--tag-muted:var(--fail-ink);--tag-bad:var(--fail-bad);--glyph-bad:var(--fail-bad);color:var(--fail-ink);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--glyph-bad) 65%,transparent))}',
+      N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-rim:var(--bad);--tag-face:repeating-linear-gradient(-45deg,var(--glyph-bad) 0 3px,transparent 3px 6px) 0 0/6px 100% no-repeat,var(--fail-face);--tag-ink:var(--fail-ink);--tag-muted:var(--fail-ink);--tag-bad:var(--fail-bad);--glyph-bad:var(--fail-bad);color:var(--fail-ink);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--bad) 65%,transparent))}',
       N + ' .slots>.card.err{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--glyph-bad) 80%,transparent),0 0 14px -2px color-mix(in srgb,var(--glyph-bad) 45%,transparent),var(--item-shadow)}',
       N + ' .app-pill.tone-warn{--led:var(--warn)}',
       N + ' .app-pill.off{transform:translateY(3px)}',
@@ -2241,11 +2241,13 @@ function agoText(iso){
   return s<60?s+"s":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d";
 }
 function clock(iso){return iso?new Date(iso).toLocaleTimeString():""}
-// A compact start time for an app pill: hours and minutes today, with the date in front on any other day.
-function shortClock(iso){
-  var d=new Date(iso);if(isNaN(d))return"";
+// An app's start time, parsed once: label is compact for the pill (hours and minutes today, the date in front on any other
+// day) and full is the local date and time for its tooltip. A missing or unparseable time gives null, so neither is shown.
+function startTime(iso){
+  if(!iso)return null;
+  var d=new Date(iso);if(isNaN(d.getTime()))return null;
   var time=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
-  return d.toDateString()===new Date().toDateString()?time:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+time;
+  return{label:d.toDateString()===new Date().toDateString()?time:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+time,full:d.toLocaleString()};
 }
 // Before the first real snapshot the page says it is checking; it never claims zero sessions or a missing backend.
 var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking backend status…",STATUS_RETRYING="Status unavailable, retrying.";
@@ -2400,13 +2402,13 @@ function settleUnderPointer(){
 function buildFailed(a){return!!(a.httpReady&&a.build&&a.build.state==="failed")}
 function appPill(a){
   var name=APP_NAMES[a.app]||a.app||"app",url=appUrl(a),ready=!!a.httpReady&&!!url,status=appStatus(a);
-  var state=status.label||(a.httpReady&&!url?"no link":"");
+  var state=status.label||(a.httpReady&&!url?"no link":""),started=startTime(a.startedAt);
   var inner=dot(status.tone)+'<span class="app-name">'+esc(name)+'</span>'+
     (status.failed?'<span class="build-failed">'+esc(state)+'</span>':
     (state?'<span class="port">'+esc(state)+'</span>':"")+
-    (a.httpReady&&a.startedAt?'<span class="since"><span class="sr-only">started </span>'+esc(shortClock(a.startedAt))+'</span>':""));
-  var since=a.startedAt?" (dev server started "+clock(a.startedAt)+"; if your tab is older, hard-refresh)":"";
-  var title=status.failed?"Build failed: "+(a.build.error||"see the browser overlay"):"Open "+name+" on :"+a.port+since;
+    (a.httpReady&&started?'<span class="since"><span class="sr-only">started </span>'+esc(started.label)+'</span>':""));
+  var since=started?" (dev server started "+started.full+"; if your tab is older, hard-refresh)":"";
+  var title=status.failed?"Build failed: "+(a.build.error||"see the browser overlay")+(started?" (dev server started "+started.full+")":""):"Open "+name+" on :"+a.port+since;
   if(ready){
     var seed=hashText(name+":"+a.port),awake=inner.replace(dot(status.tone),dot(status.tone==="ok"?"awake":status.tone));
     var fx=(PILL_HOVERS[QA_THEME.pillHover()]||PILL_HOVERS.none)(awake,seed);
