@@ -123,14 +123,14 @@ main,.backend,.settings,.desk-obj .paper{background:var(--stock);border:0;border
 main::before,.backend::after,.desk-obj .sheet{content:"";position:absolute;inset:9px -7px -9px 7px;z-index:-1;pointer-events:none;transform:rotate(.8deg);border-radius:var(--obj-radius);
 background:var(--desk-card2) var(--desk-stock,none) 70px 30px/var(--desk-stock-size,320px) repeat;box-shadow:inset 0 0 30px var(--age),var(--obj-edge),var(--obj-shadow)}
 .backend::after{inset:7px 6px -8px -6px;transform:rotate(-1.1deg)}
-/* The Sessions card is a holder: the heading sits on its face, and the sessions rest in a recessed tray below it, each one a
-   separate object with its own edge, gutter and shadow. Themes supply the materials (--tray*, --item-*); text inside an item
+/* The Sessions card is a holder: the heading sits on its face, and the sessions lie directly on that face below it (no
+   recessed well), each one a separate object with its own edge, gutter and shadow. Themes supply the materials (--tray*, --item-*); text inside an item
    uses the item's inks, so a theme can set a dark object on a light holder. */
 main{position:relative;grid-column:2;grid-row:1;padding:28px 36px 24px}
 main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22px;height:62px;pointer-events:none;background:var(--desk-drip,none) center top/100% 100% no-repeat}
 .sessions-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 2px;font:700 27px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);margin-bottom:14px}
 .sessions-count{font:600 13px/1 var(--mono);letter-spacing:.04em;color:var(--muted);padding:5px 9px 4px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);text-shadow:none}
-.slots{display:grid;gap:14px;padding:12px;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
+.slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
 .card-drip::before{content:"";position:absolute;left:0;top:0;width:3px;height:58%;background:var(--drip,var(--brush));border-radius:2px 0 3px 2px/2px 0 6px 2px;pointer-events:none}
@@ -153,7 +153,9 @@ position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-ra
 .branch{position:relative;font:600 22px/1.25 var(--serif);overflow-wrap:anywhere;text-shadow:var(--emboss)}
 .slot-card{position:relative}
 .slot-card .head{padding-right:4.5em;align-items:center;padding-bottom:6px}
-.slotno{position:absolute;top:16px;right:16px;padding:3px 7px 2px;border-radius:3px;font:13px/1.2 var(--mono);color:var(--muted);background:var(--inset);box-shadow:var(--sunk)}
+/* The slot label is attached to its session: "slot" and the number are separate spans, so a theme can set them as two fields. */
+.slotno{position:absolute;top:16px;right:16px;display:inline-flex;align-items:baseline;gap:.35em;padding:3px 8px 2px;border-radius:3px;font:13px/1.2 var(--mono);color:var(--muted);background:var(--inset);box-shadow:var(--sunk);white-space:nowrap}
+.slotno-v{font-weight:700;color:var(--text)}
 .hint{margin:12px 0 0;padding:14px 0 0;border-top:1px dashed var(--edge-lo2);font-size:13.5px;text-align:center}
 /* The eye card is the masthead: halftone eye, wordmark, freshness and Settings, taped to the desk at a slight tilt. */
 .eye-card{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;padding:28px 22px 16px;margin:8px 6px 0;transform:rotate(var(--eye-tilt,-1.4deg))}
@@ -225,6 +227,11 @@ background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inse
 @media (prefers-reduced-motion:no-preference){.backend .toggle.turned[aria-expanded="true"] .chev{animation:chev-open .2s ease-out}.backend .toggle.turned[aria-expanded="false"] .chev{animation:chev-close .2s ease-out}}
 @keyframes chev-open{from{transform:none}to{transform:rotate(90deg)}}
 @keyframes chev-close{from{transform:rotate(90deg)}to{transform:none}}
+/* The action output disclosure is a smaller sibling of the details toggle, in the same theme material; open, it latches down. */
+.backend summary.toggle{list-style:none;display:inline-flex;width:max-content;min-height:26px;margin:4px 0 2px;font-size:12.5px;cursor:pointer}
+.backend summary.toggle::-webkit-details-marker{display:none}
+.backend details[open]>summary.toggle{background:var(--inset);box-shadow:var(--sunk);color:var(--text)}
+.backend details[open]>summary.toggle .chev{transform:rotate(90deg)}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px dashed var(--edge-lo2)}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
 .backend .action-result{margin:6px 0 0}
@@ -252,13 +259,22 @@ button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(-
 .app-pill{--pill-pad:7px 17px 8px 31px;--muted:var(--tag-muted);--glyph-ok:var(--tag-ok);--warn:var(--tag-warn);--glyph-bad:var(--tag-bad);position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:var(--pill-pad);border:0;background:none;color:var(--tag-ink);text-decoration:none;font-size:15px;transition:transform var(--dur-fast) var(--ease-out)}
 .app-pill::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape,none);background:var(--tag-mount,none),var(--tag-face,var(--tag))}
 .app-pill::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape,none);background:var(--tag-rim,var(--tag-edge))}
-.app-pill .app-name{font-weight:700}
+.app-pill .app-name{font-weight:700;white-space:nowrap}
 .app-pill .build-failed{color:var(--glyph-bad);font-weight:600;font-size:13px}
 .app-pill .port{font:600 13px var(--mono);color:var(--muted)}
+/* The dev server's start time: quiet secondary text after the label, never louder than the state; the title has the full time. */
+.app-pill .since{font:400 13px var(--mono);letter-spacing:-.01em;color:var(--muted)}
+.app-pill .since::before{content:"\00b7" / "";margin-right:6px}
 a.app-pill:hover,a.app-pill:focus-visible{transform:translateY(-2px) rotate(-.6deg)}
 a.app-pill:active{transform:translateY(1px) scale(.97)}
-.app-pill.failed{--tag-rim:var(--tag-bad)}
+/* A failed build is loud: a thick rim in the problem ink, the tag knocked askew, and the failure text in heavy type beside its
+   glyph (shape and words, not only colour). Themes add their own alarm on top (Horror: a scorched, torn tag with glowing eyes;
+   Terminal: inverse video with a blinking cursor; Neon: a hazard edge and a red glow). The session card gets a red rim too. */
+.app-pill.failed{--tag-rim:var(--tag-bad);transform:rotate(-1.4deg)}
 .app-pill.failed::after{inset:-2.5px -2.5px -4.5px}
+.app-pill.failed .build-failed{font-weight:800}
+a.app-pill.failed:hover,a.app-pill.failed:focus-visible{transform:translateY(-2px) rotate(-2deg)}
+.slots>.card.err{background:linear-gradient(color-mix(in srgb,var(--bad) 7%,transparent),color-mix(in srgb,var(--bad) 7%,transparent)),var(--item-face);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--bad) 80%,transparent),var(--item-shadow)}
 .app-pill.tone-warn{--tag-rim:var(--warn)}
 .app-pill.off::before{background:var(--tag-mount-off,none),var(--tag-off)}
 .app-pill.off.tone-warn::before{background:var(--tag-mount,none),var(--tag-face,var(--tag))}
@@ -269,7 +285,7 @@ a.app-pill.off:hover,a.app-pill.off:focus-visible{transform:rotate(0)}
 /* Pill hover effects (the theme's pillHover). Each one is a layer clipped to the tag, with a copy of the label in the effect's ink. */
 .pill-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;clip-path:var(--tag-shape,none)}
 .fx-text{position:absolute;inset:0;display:flex;align-items:center;gap:7px;padding:var(--pill-pad);color:var(--fx-ink);font-weight:inherit}
-.fx-text .port,.fx-text .build-failed,.fx-text .app-name,.fx-text .dot{color:var(--fx-ink)}
+.fx-text .port,.fx-text .since,.fx-text .build-failed,.fx-text .app-name,.fx-text .dot{color:var(--fx-ink)}
 .fx-text .dot{filter:none}
 /* seep: a thin wet band of ink fills the bottom third from the left, and one drop falls (with a cooldown). */
 .seep-fill{position:absolute;bottom:0;left:0;height:30%;width:calc(100% + 14px);transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
@@ -378,6 +394,7 @@ box-shadow:var(--obj-face),var(--obj-edge),0 8px 8px -2px var(--contact),0 22px 
 .settings-form{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:14px 20px;align-items:center}
 .settings-form>h2{grid-column:1/-1;margin-bottom:8px}
 .settings-row{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center}
+.settings-row[hidden]{display:none}
 .settings-rule{grid-column:1/-1;height:0;margin:2px 0;border:0;border-top:1px dashed var(--edge-lo2)}
 .settings label,.settings .field-label{font:600 15px/1.2 var(--serif);font-variant:var(--head-variant);text-transform:var(--head-case);letter-spacing:var(--head-spacing);color:var(--muted);white-space:nowrap}
 .settings input:not([type="radio"]),.settings select{width:100%;min-height:38px;margin:0;font:16px/1.3 var(--serif);color:var(--text);background-color:var(--inset);border:0;border-radius:4px;box-shadow:var(--sunk);padding:7px 10px 6px;transition:background-color var(--dur-fast)}
@@ -401,7 +418,7 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .settings .done:hover:not(:disabled),.confirm-actions button:hover:not(:disabled){transform:translateY(-1px)}
 .settings .done:active,.confirm-actions button:active{transform:translateY(4px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge),0 1px 2px var(--contact)}
 .settings .done:focus-visible,.confirm-actions button:focus-visible{box-shadow:var(--ring),inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge)}
-.recovery{margin:14px 0 22px;padding:16px 18px 14px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk)}
+.recovery{margin:14px 0 22px;padding:0 0 16px;border-bottom:1px dashed var(--edge-lo2)}
 .recovery[hidden]{display:none}
 .recovery h2{margin:0 0 4px;font:700 20px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss)}
 .recovery p{margin:0}
@@ -462,14 +479,14 @@ html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible)::after
 .page::before{inset:12px 4px 24px}
 .side{position:static;align-items:stretch}
 main{grid-column:1;grid-row:2;padding:22px 14px 20px}
-.slots{gap:10px;padding:7px}
+.slots{gap:12px}
 .slots>.card{padding:13px 13px 12px}
 /* Stacked, the Sessions paper keeps its offset but not its tilt: a tilted tall sheet swings its far corner past the page edge and scrolls sideways. */
 main::before{transform:none}
 .eye-card{align-self:center;width:min(330px,calc(100% - 12px))}
 }
 /* On a phone the slot label sits in the flow above the branch, so a long branch name gets the whole width of its card. */
-@media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-block;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
+@media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
 </style>
@@ -488,7 +505,7 @@ var QA_PERF=(function(){
   return stats;
 })();
 /* ===== THEMES =====================================================================
-Overseer has two layouts, Desk and Radio. A theme supplies its whole visual world.
+Overseer has two layouts, Desk and Radio (Radio is behind QA_FEATURES.radioScene). A theme supplies its whole visual world.
 Themes: Terminal (the default when nothing is stored), Horror and Neon. A stored pick always wins; the old id "blood" maps
 to "horror". How to add a theme: add one entry to THEMES below. Its css merges over BASE, so it lists only what differs.
 On ?debug=1 a startup check logs any required key, icon or art a theme is missing, any icon it shares with another theme,
@@ -514,7 +531,7 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                   tag keys --tag, --tag-edge, --tag-ink, --tag-muted, --tag-ok, --tag-warn, --tag-bad, --tag-off, --tag-off-ink, --tag-off-bad
                 update key and details toggle: --key-face, --key-hover-face, --key-rim (border gradient), --key-ink,
                   --key-hover-ink, --key-wall, --badge-bg, --badge-ink, --toggle-edge
-                sessions: the tray in the Sessions card (--tray, --tray-radius, --tray-shadow) and each session on it (--item-face,
+                sessions: the tray in the Sessions card (--tray, --tray-radius, --tray-shadow; none by default, so sessions lie on the card) and each session on it (--item-face,
                   --item-radius, --item-shadow; --item-card is its solid colour, the contrast reference and focus-ring inner colour;
                   --item-text and --item-muted are the inks inside it)
                 select popups: --picker-face, --picker-radius, --picker-hl, --picker-hl-ink, --picker-hl-shadow, --picker-check,
@@ -588,6 +605,9 @@ Minimal skeleton:
     eyeModes: ["static"]
   };
 ==================================================================================== */
+// Feature flags for work that is not ready to show. radioScene: offer the Radio layout in Settings (set true to bring it back;
+// ?scene=radio shows it for one visit). While it is off, a stored Radio pick falls back to Desk.
+var QA_FEATURES = {radioScene: false};
 function svgAsset(svg){return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'")'}
 // Brush-ink marks in a 24-unit box; strokes vary in weight so they read hand-drawn.
 function inkIcon(parts){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'+parts+'</svg>'}
@@ -648,7 +668,7 @@ var BASE = (function () {
     "--radio-tag": "var(--tag)", "--radio-tag-ink": "var(--tag-ink)", "--radio-glyph-bad": "var(--glyph-bad)",
     "--radio-problem-tag-ink": "var(--radio-tag-ink)", "--radio-problem-tag-glyph": "var(--radio-problem-tag-ink)",
     "--focus-inner": "var(--desk-card)", "--dur-fast": ".12s", "--dur": ".24s", "--ease": "cubic-bezier(.4,0,.2,1)", "--ease-out": "cubic-bezier(.2,.7,.3,1)",
-    "--tray": "color-mix(in srgb,var(--desk-card) 84%,#000)", "--tray-radius": "7px", "--tray-shadow": "inset 0 2px 6px var(--well),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--emb-hi)",
+    "--tray": "transparent", "--tray-radius": "0", "--tray-shadow": "none",
     "--item-card": "var(--desk-card)", "--item-face": "var(--stock)", "--item-text": "var(--text)", "--item-muted": "var(--muted)", "--item-radius": "5px",
     "--item-shadow": "inset 0 1px 0 var(--edge-hi),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 2px 0 var(--edge-lo2),0 5px 7px -3px var(--contact)",
     "--hover-fill": "color-mix(in srgb,var(--text) 8%,transparent)", "--line-soft": "color-mix(in srgb,var(--text) 22%,transparent)"};
@@ -767,7 +787,8 @@ var THEMES = {
     actionIcons: {
       copy: inkIcon('<rect x="8.5" y="8.5" width="11" height="12" rx="1.5" stroke-width="2"/><path d="M5 15.5V5.6A1.6 1.6 0 0 1 6.6 4h9" stroke-width="1.8"/>'),
       terminal: inkIcon('<rect x="3" y="4.5" width="18" height="15" rx="1.5" stroke-width="2"/><path d="m7 10 3 2.5L7 15M12.5 15.5h4.5" stroke-width="2.1"/>'),
-      stop: inkIcon('<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v5.5m0-3a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.4a6 6 0 0 1-4.6-2.2L4.5 15.6a1.5 1.5 0 0 1 2.3-1.9L8 15" stroke-width="1.9"/>'),
+      // A stop sign: a brush-inked octagon (the stroke overshoots where the brush lifted) with a heavy bar struck across it.
+      stop: inkIcon('<path d="M8.3 2.6h7.6l5.5 5.6v7.6l-5.6 5.6H8.2l-5.6-5.6V8.1L8 2.7l1.1-.3" stroke-width="2.1"/><path d="M7.2 12.2c3-.5 6.6-.6 9.7-.2" stroke-width="3"/>'),
       // A tick written in blood: a heavy, pooled start, a thin tapered flick with a slightly uneven edge, and a bead where the brush lifted.
       check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd"><path d="M1.70 12.20C1.8 11.72 2.2 11.17 2.6 10.9C3 10.63 3.58 10.53 4.1 10.6C4.62 10.67 5.2 10.95 5.7 11.3C6.2 11.65 6.67 12.22 7.1 12.7C7.53 13.18 7.93 13.78 8.3 14.2C8.67 14.62 8.95 15.3 9.3 15.2C9.65 15.1 9.92 14.27 10.4 13.6C10.88 12.93 11.53 12.02 12.2 11.2C12.87 10.38 13.67 9.47 14.4 8.7C15.13 7.93 15.88 7.23 16.6 6.6C17.32 5.97 18.08 5.37 18.7 4.9C19.32 4.43 19.97 3.9 20.3 3.8C20.63 3.7 20.92 3.92 20.7 4.3C20.48 4.68 19.62 5.42 19 6.1C18.38 6.78 17.65 7.6 17 8.4C16.35 9.2 15.67 10.12 15.1 10.9C14.53 11.68 13.93 12.67 13.6 13.1C13.27 13.53 13.3 13.22 13.1 13.5C12.9 13.78 12.72 14.18 12.4 14.8C12.08 15.42 11.55 16.52 11.2 17.2C10.85 17.88 10.62 18.5 10.3 18.9C9.98 19.3 9.65 19.55 9.3 19.6C8.95 19.65 8.63 19.5 8.2 19.2C7.77 18.9 7.23 18.28 6.7 17.8C6.17 17.32 5.57 16.77 5 16.3C4.43 15.83 3.8 15.42 3.3 15C2.8 14.58 2.27 14.27 2 13.8C1.73 13.33 1.6 12.68 1.7 12.2ZM3.7 12.7C4.9 13 6.3 14 7.7 15.6C6.2 14.4 4.9 13.6 3.7 12.7Z"/><circle cx="20.9" cy="3.7" r="1.1"/><circle cx="22.4" cy="2.3" r=".38"/></svg>'
     },
@@ -803,32 +824,44 @@ var THEMES = {
         // Tags: a luggage-tag cut with a brass eyelet; a stopped tag has lost its brass.
         D + ' .app-pill{--tag-shape:polygon(13px 0,100% 0,100% 100%,13px 100%,0 calc(100% - 11px),0 11px);--tag-face:var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
           '--tag-mount:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px);--tag-mount-off:radial-gradient(circle at 15px 50%,var(--desk-floor) 0 2.6px,var(--tag-edge) 3.2px 4.6px,transparent 5.2px)}',
+        // A failed build scorches its tag: dark burnt card with the far end torn off, bone ink, the failure in bright blood red
+        // and the crying eye glowing red. The text stays upright and AA on the dark face.
+        D + ' .app-pill.failed{--pill-pad:7px 24px 8px 31px;--tag-shape:polygon(13px 0,calc(100% - 3px) 0,calc(100% - 9px) 14%,100% 27%,calc(100% - 6px) 41%,calc(100% - 1px) 55%,calc(100% - 8px) 70%,calc(100% - 2px) 84%,calc(100% - 6px) 100%,13px 100%,0 calc(100% - 11px),0 11px);' +
+          '--tag-face:radial-gradient(70% 120% at 78% 50%,rgba(150,0,16,.42),transparent 72%),linear-gradient(rgba(22,5,3,.84),rgba(22,5,3,.84)),var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
+          '--tag-rim:#b3001b;--tag-ink:#f3e4c6;--tag-muted:#e6d2ae;--tag-bad:#ff6b76;--glyph-bad:#ff4a5a;--seep-ink:#fff4e0;color:var(--tag-ink)}',
+        D + ' .app-pill.failed .dot{filter:drop-shadow(0 0 2px #ff2a3a) drop-shadow(0 0 6px rgba(255,30,45,.75))}',
+        D + ' .app-pill.failed .build-failed{text-shadow:0 0 8px rgba(255,40,55,.45)}',
         // Popups are taped down at both top corners.
         D + ' .settings::before,' + D + ' .settings::after{content:"";position:absolute;pointer-events:none;width:100px;height:28px;background:var(--desk-mount,none) center/100% 100% no-repeat}',
         D + ' .settings::before{top:-10px;left:-26px;right:auto;transform:rotate(-31deg)}',
         // Lifted towards the candle, the popup catches more of its light.
         D + ' .settings{background:radial-gradient(120% 90% at 30% 0,var(--flicker-1) 0,transparent 60%),var(--stock)}',
         D + ' .settings::after{top:-10px;right:-26px;left:auto;bottom:auto;transform:rotate(29deg)}',
-        // Each session is a leather folio resting in a shallow press on the card stock: worn oxblood leather with a sheen where
+        // Each session is a leather folio lying on the card stock: worn oxblood leather with a sheen where
         // the candle catches it, a saddle-stitched border and a turned edge. Its gold foil and bone inks come with it (--folio-*),
         // so it reads the same on light and dark stock.
-        D + '{--tray:linear-gradient(rgba(60,30,10,.07),rgba(60,30,10,.07)),var(--stock);--tray-radius:4px;--tray-shadow:inset 0 2px 5px var(--well),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--emb-hi);--item-radius:6px 5px 6px 4px;' +
+        D + '{--item-radius:6px 5px 6px 4px;' +
           '--item-face:radial-gradient(120% 90% at 22% 0,var(--folio-sheen),transparent 62%),linear-gradient(var(--folio-tint),var(--folio-tint)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
           '--item-shadow:inset 0 1px 0 rgba(255,220,180,.12),inset 0 -2px 3px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.45),0 1px 0 #1a0806,0 2px 0 #120403,0 7px 9px -4px var(--contact)}',
         D + ' .slots>.card{--foil-hi:var(--folio-foil-hi);--foil-mid:var(--folio-foil-mid);--foil-lo:var(--folio-foil-lo);--foil-rim:var(--folio-foil-rim);--foil-lip:var(--folio-foil-lip);--tooled:var(--folio-tooled);--ok:var(--folio-ok);--bad:var(--folio-bad);--warn:var(--folio-warn)}',
         D + ' .slots>.card::before{content:"";position:absolute;inset:5px;pointer-events:none;border:4px solid transparent;border-radius:4px;border-image:var(--folio-stitch) 8 / 4px round;opacity:.8}',
-        // Slot numbers are foil-stamped into the folio: a seeded tilt, a stamped frame and worn grit in the foil.
-        D + ' .slot-card .head{padding-right:5.6em}',
-        D + ' .slotno{padding:4px 8px 3px;border:1.5px solid currentColor;border-radius:5px;background:none;box-shadow:none;color:var(--foil-mid);' +
-          'font:700 14px/1.05 var(--serif);font-variant:small-caps;letter-spacing:.1em;transform:rotate(var(--stamp-tilt,-3deg));' +
-          '-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7))}',
+        // Slot numbers are a dark leather patch saddle-stitched onto the folio in gold thread, set at a seeded tilt, with the
+        // number in gold foil. The patch keeps its own inks in both schemes, like the folio it sits on.
+        D + ' .slot-card .head{padding-right:6.2em}',
+        D + '{--slot-stitch:' + stitchBorder("#f2c22e", "#fff3b8", "rgba(0,0,0,.75)", "rgba(255,214,130,.18)") + '}',
+        D + ' .slotno{top:14px;right:16px;padding:7px 12px 6px;border:0;border-radius:6px 5px 7px 5px/5px 7px 5px 6px;color:var(--folio-foil-hi);font:700 14px/1 var(--serif);font-variant:small-caps;letter-spacing:.1em;' +
+          'background:radial-gradient(120% 100% at 30% 10%,rgba(255,210,170,.12),transparent 62%),linear-gradient(rgba(14,3,2,.62),rgba(14,3,2,.62)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
+          'box-shadow:inset 0 1px 0 rgba(255,220,180,.14),inset 0 -1px 2px rgba(0,0,0,.5),0 1px 0 #0c0302,0 2px 0 #0c0302,0 4px 5px -1px rgba(0,0,0,.7);text-shadow:0 1px 0 #000;transform:rotate(var(--stamp-tilt,-3deg))}',
+        D + ' .slotno::before{content:"";position:absolute;inset:2px;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--slot-stitch) 8 / 4px round}',
+        D + ' .slotno-v{color:var(--folio-foil-hi);font-size:16px}',
         // The update button is a manila tag like the app pills: card stock cut with a brass eyelet, the behind count stamped
         // on it in sepia ink (being behind is not an error, so it is never red). It lifts on hover and squashes on press.
         D + ' .backend .update-btn{--tag-shape:polygon(12px 0,100% 0,100% 100%,12px 100%,0 calc(100% - 10px),0 10px);min-height:36px;padding:6px 12px 6px 27px;border:0;border-radius:0;background:none;color:var(--tag-ink);box-shadow:none;font-size:15px;transform:rotate(-1deg)}',
         D + ' .backend .update-btn::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape);background:radial-gradient(circle at 14px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px),var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px)}',
         D + ' .backend .update-btn::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape);background:var(--tag-edge)}',
         D + ' .backend .update-btn .bfx{clip-path:var(--tag-shape);border-radius:0}',
-        D + ' .backend .update-btn .behind-badge{padding:4px 6px 2px;border:1.5px solid currentColor;border-radius:4px;background:none;box-shadow:none;color:var(--stamp-ink);font:700 13px/1 var(--serif);font-variant:small-caps;letter-spacing:.06em;transform:rotate(-5deg);-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.75));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.75))}',
+        // The stamp is inked hard enough to read: full-strength sepia, upright capitals at 13px, and only a light grit in the ink.
+        D + ' .backend .update-btn .behind-badge{padding:5px 7px 3px;border:2px solid currentColor;border-radius:4px;background:color-mix(in srgb,var(--stamp-ink) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--stamp-ink) 30%,transparent);color:var(--stamp-ink);font:800 13px/1 var(--serif);font-variant:normal;text-transform:uppercase;letter-spacing:.07em;transform:rotate(-4deg);-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94))}',
         D + ' .backend .update-btn:hover:not(:disabled),' + D + ' .backend .update-btn:focus-visible{background:none;color:var(--tag-ink);transform:translateY(-2px) rotate(-1.6deg);box-shadow:none}',
         D + ' .backend .update-btn:focus-visible{box-shadow:var(--ring)}',
         D + ' .backend .update-btn:active:not(:disabled){transform:translateY(1px) scale(.97);box-shadow:none}',
@@ -854,9 +887,10 @@ var THEMES = {
         D + ' #settings-open svg{width:21px;height:21px}',
         D + ' .backend .toggle{min-height:32px;padding:6px 13px 6px 11px;color:var(--patch-ink)}',
         D + ' .backend .toggle .chev{color:var(--patch-ink)}',
+        D + ' .backend summary.toggle{min-height:28px;padding:5px 12px 5px 10px;font-size:13px}',
         D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):focus-visible{box-shadow:var(--ring),0 3px 4px -1px var(--contact)}',
         D + ' :is(.slot-card button.icon,.backend .toggle):hover:not(:disabled){transform:translateY(-1px)}',
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"]{transform:translateY(2px);' +
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"],' + D + ' .backend details[open]>summary.toggle{transform:translateY(2px);' +
           'box-shadow:inset 0 2px 4px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.2),0 1px 0 var(--emb-hi)}',
         D + ' #settings-open:active{transform:translateY(2px) rotate(-8deg)}',
         D + ' .slot-card button.icon:disabled{opacity:.55}',
@@ -931,7 +965,7 @@ THEMES.neon = (function () {
         "--brush": "#0d0b10", "--brush-deep": "#6a0018", "--drip": "#d1002e", "--seep": "#0d0b10", "--seep-ink": "#ff4fae", "--danger": "#c4102c", "--danger-ink": "#ffffff",
         "--charge": "#0d0b10", "--charge-ink": "#ff4fae", "--charge-edge": "#00b8d4", "--charge-scan": "rgba(255,255,255,.07)",
         "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff",
-        "--hl": "#ffd9e2", "--banner": "#c4102c", "--banner-text": "#ffffff", "--shade": "rgba(30,20,40,.10)", "--dim": "rgba(20,14,26,.5)",
+        "--hl": "#ffd9e2", "--fail-face": "linear-gradient(180deg,#d41a35,#c4102c 55%)", "--fail-ink": "#ffffff", "--fail-bad": "#ffffff", "--banner": "#c4102c", "--banner-text": "#ffffff", "--shade": "rgba(30,20,40,.10)", "--dim": "rgba(20,14,26,.5)",
         "--desk-floor": "#8f8c96", "--desk-card": "#f4f3f7", "--desk-card2": "#e3e1ea", "--edge-hi": "rgba(255,255,255,.95)", "--edge-line": "rgba(30,20,50,.14)",
         "--edge-lo": "#c6c3cf", "--edge-lo2": "#9b98a6", "--age": "rgba(120,60,140,.05)", "--contact": "rgba(20,10,30,.45)", "--lift": "rgba(20,10,30,.42)",
         "--emb-hi": "rgba(255,255,255,.95)", "--emb-lo": "rgba(30,10,40,.12)", "--well": "rgba(30,10,40,.26)", "--stamp-ok": "#0d0b10",
@@ -942,7 +976,7 @@ THEMES.neon = (function () {
         "--pool": "rgba(255,62,165,.14)", "--pool-2": "rgba(47,230,255,.14)", "--flicker-1": "rgba(255,62,165,.14)", "--flicker-2": "rgba(47,230,255,.10)",
         "--desk-vignette": "rgba(30,20,40,.34)", "--blotter-edge": "#77737f", "--stitch": "rgba(0,0,0,.38)",
         "--scan": "rgba(30,10,40,.035)", "--screw": "#b8b5c0", "--screw-hi": "#ffffff", "--screw-lo": "#6e6b78", "--cap-hi": "#ff9fd2",
-        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.5)", "--led-bad": "#ff4d4d", "--led-bad-glow": "rgba(255,60,60,.55)", "--led-warn": "#ffc23c", "--led-bg": "#0d0b10", "--item-card": "#fbfbfd", "--mill-lo": "#d9d7e0", "--mill-hi": "#e4e2ea", "--acr-sheen": "rgba(255,255,255,.95)", "--acr-hi": "#fff", "--acr-rim": "transparent",
+        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.5)", "--led-bad": "#ff4d4d", "--led-bad-glow": "rgba(255,60,60,.55)", "--led-warn": "#ffc23c", "--led-bg": "#0d0b10", "--item-card": "#fbfbfd", "--acr-sheen": "rgba(255,255,255,.95)", "--acr-hi": "#fff", "--acr-rim": "transparent",
         "--picker-radius": "8px", "--picker-hl": "#0d0b10", "--picker-hl-ink": "#ff4fae", "--picker-hl-shadow": "none", "--picker-check": "#a3005a", "--picker-hl-check": "#ff4fae",
         "--key-face": "linear-gradient(180deg,#ffffff,#e9e7ee 55%)", "--key-hover-face": "linear-gradient(#0d0b10,#0d0b10)", "--key-rim": "linear-gradient(180deg,#d4d1dc,#8f8c99)",
         "--key-ink": "#0d0b10", "--key-hover-ink": "#ff4fae", "--key-wall": "#7c7986", "--badge-bg": "#0d0b10", "--badge-ink": "#2fe6ff", "--toggle-edge": "#9b98a6", "--focus-outer": "#6a0040"},
@@ -951,7 +985,7 @@ THEMES.neon = (function () {
         "--brush": "#ff3ea5", "--brush-deep": "#7a001c", "--drip": "#ff3b30", "--seep": "#ff3ea5", "--seep-ink": "#0a0a0c", "--danger": "#ff3b30", "--danger-ink": "#0a0a0c",
         "--charge": "#ff3ea5", "--charge-ink": "#0a0a0c", "--charge-edge": "#2fe6ff", "--charge-scan": "rgba(0,0,0,.10)",
         "--ok-ink": "#0a0a0c", "--warn-ink": "#0a0a0c", "--bad-ink": "#0a0a0c",
-        "--hl": "#2b0a12", "--banner": "#b0002a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.55)", "--dim": "rgba(3,3,4,.74)",
+        "--hl": "#2b0a12", "--fail-face": "linear-gradient(180deg,color-mix(in srgb,var(--hl) 70%,var(--cap-hi)),var(--hl) 55%)", "--fail-ink": "var(--tag-ink)", "--fail-bad": "var(--tag-bad)", "--banner": "#b0002a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.55)", "--dim": "rgba(3,3,4,.74)",
         "--desk-floor": "#060607", "--desk-card": "#111114", "--desk-card2": "#0c0c0f", "--edge-hi": "rgba(255,62,165,.10)", "--edge-line": "rgba(255,62,165,.10)",
         "--edge-lo": "#040405", "--edge-lo2": "#020203", "--age": "rgba(0,0,0,.4)", "--contact": "rgba(0,0,0,.85)", "--lift": "rgba(0,0,0,.9)",
         "--emb-hi": "rgba(255,255,255,.06)", "--emb-lo": "rgba(0,0,0,.8)", "--well": "rgba(0,0,0,.75)", "--stamp-ok": "#ff5cb4",
@@ -962,7 +996,7 @@ THEMES.neon = (function () {
         "--pool": "rgba(255,62,165,.08)", "--pool-2": "rgba(47,230,255,.08)", "--flicker-1": "rgba(255,62,165,.11)", "--flicker-2": "rgba(47,230,255,.08)",
         "--desk-vignette": "rgba(0,0,0,.72)", "--blotter-edge": "#000", "--stitch": "rgba(255,62,165,.42)",
         "--scan": "rgba(255,255,255,.022)", "--screw": "#433c48", "--screw-hi": "#d2c6d8", "--screw-lo": "#08080a", "--cap-hi": "#2a2632",
-        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.5)", "--led-bad": "#ff3b30", "--led-bad-glow": "rgba(255,59,48,.6)", "--led-warn": "#ffc23c", "--led-bg": "#060607", "--item-card": "#1b1a20", "--mill-lo": "#040405", "--mill-hi": "#08080a", "--acr-sheen": "rgba(255,255,255,.075)", "--acr-hi": "rgba(255,255,255,.26)", "--acr-rim": "rgba(255,62,165,.26)",
+        "--led-ok": "#2fe6ff", "--led-ok-glow": "rgba(47,230,255,.5)", "--led-bad": "#ff3b30", "--led-bad-glow": "rgba(255,59,48,.6)", "--led-warn": "#ffc23c", "--led-bg": "#060607", "--item-card": "#1b1a20", "--acr-sheen": "rgba(255,255,255,.075)", "--acr-hi": "rgba(255,255,255,.26)", "--acr-rim": "rgba(255,62,165,.26)",
         "--picker-radius": "8px", "--picker-hl": "#ff3ea5", "--picker-hl-ink": "#0a0a0c", "--picker-hl-shadow": "none", "--picker-check": "#2fe6ff", "--picker-hl-check": "#0a0a0c",
         "--key-face": "linear-gradient(180deg,#2a2632,#1c1a22 55%)", "--key-hover-face": "linear-gradient(#ff3ea5,#ff3ea5)", "--key-rim": "linear-gradient(180deg,rgba(255,62,165,.5),rgba(255,62,165,.14))",
         "--key-ink": "#ff5cb4", "--key-hover-ink": "#0a0a0c", "--key-wall": "#000", "--badge-bg": "#060607", "--badge-ink": "#2fe6ff", "--toggle-edge": "rgba(47,230,255,.45)", "--focus-outer": "#2fe6ff"}
@@ -989,11 +1023,11 @@ THEMES.neon = (function () {
     glitch: {every: [3.5, 11], frames: [2, 4], shift: [4, 14], bands: [1, 3]},
     statusGlyphs: {ok: bitIcon(BITS.ok), warn: bitIcon(BITS.warn), broken: bitIcon(BITS.broken), down: bitIcon(BITS.down), attn: bitIcon(BITS.attn),
       unknown: bitIcon(BITS.unknown), awake: bitIcon(BITS.reticle, BITS.pupil)},
-    // Pixel action icons: the copy sheets, the terminal window and the open hand.
+    // Pixel action icons: the copy sheets, the terminal window and a stop sign.
     actionIcons: {
       copy: plate('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
       terminal: plate('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
-      stop: plate('<path d="M7 5h3v9H7zM11 2h3v12h-3zM15 3h3v11h-3zM19 6h3v10h-3z"/><path d="M7 13h15v5h-2v3h-3v2H9v-2H7v-2H5v-2H3v-2H2v-5h3v2h2zM10 16v1h8v-1z"/>'),
+      stop: plate('<path d="M8 1h8v2h2v2h2v2h2v10h-2v2h-2v2h-2v2H8v-2H6v-2H4v-2H2V7h2V5h2V3h2zM9 4v2H7v2H5v8h2v2h2v2h6v-2h2v-2h2V8h-2V6h-2V4z"/><path d="M7 10h10v4H7z"/>'),
       // A chunky pixel tick.
       check: bitIcon([".......##", "......###", ".....###.", "##..###..", "###.##...", ".#####...", "..###....", "...#....."])
     },
@@ -1041,26 +1075,30 @@ THEMES.neon = (function () {
       // App pills are backlit keycaps: a lit face, a dark key wall below it, and an LED glow behind the status glyph.
       N + ' .app-pill{--pill-pad:7px 15px 8px 12px;--led:var(--tag-ok);--tag-shape:inset(0 round 7px);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--tag) 55%);--tag-mount:radial-gradient(circle at 21px 50%,color-mix(in srgb,var(--led) 42%,transparent) 0,transparent 15px);font-family:var(--mono);font-size:14px}',
       N + ' .app-pill::after{inset:0 0 -4px}',
-      N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-face:linear-gradient(180deg,color-mix(in srgb,var(--hl) 70%,var(--cap-hi)),var(--hl) 55%)}',
+      // A failed build sounds the alarm: a hazard-striped edge, a bright red rim and a red glow round the whole key.
+      N + ' .app-pill.failed{--led:var(--glyph-bad);--tag-rim:var(--glyph-bad);--tag-face:repeating-linear-gradient(-45deg,var(--glyph-bad) 0 3px,transparent 3px 6px) 0 0/6px 100% no-repeat,var(--fail-face);--tag-ink:var(--fail-ink);--tag-muted:var(--fail-ink);--tag-bad:var(--fail-bad);--glyph-bad:var(--fail-bad);color:var(--fail-ink);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--glyph-bad) 65%,transparent))}',
+      N + ' .slots>.card.err{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--glyph-bad) 80%,transparent),0 0 14px -2px color-mix(in srgb,var(--glyph-bad) 45%,transparent),var(--item-shadow)}',
       N + ' .app-pill.tone-warn{--led:var(--warn)}',
       N + ' .app-pill.off{transform:translateY(3px)}',
       N + ' .app-pill.off::after{inset:0 0 -1px}',
       N + ' a.app-pill.off:hover,' + N + ' a.app-pill.off:focus-visible{transform:translateY(2px)}',
       N + ' a.app-pill:hover,' + N + ' a.app-pill:focus-visible{transform:translateY(2px)}',
-      // Slot numbers are printed labels on the acrylic: a second-ink outline with a cut corner, a registration bar and a hatch.
-      // Each session is a smoked acrylic module seated in a milled recess in the plate: a sheen across the face, a polished edge
+      // Slot numbers are acrylic labels riveted onto the module: a second-ink outline with a rivet at each end.
+      // Each session is a smoked acrylic module lying on the plate: a sheen across the face, a polished edge
       // that picks up the second ink, a faint rim of the main ink in the dark (--acr-rim), and a contact shadow.
-      N + '{--tray:linear-gradient(180deg,var(--mill-lo),var(--mill-hi));--tray-radius:8px;--tray-shadow:inset 0 2px 7px var(--well),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-hi);--item-radius:7px;' +
+      N + '{--item-radius:7px;' +
         '--item-face:linear-gradient(155deg,var(--acr-sheen),transparent 42%),' + scan + ',var(--item-card);' +
         '--item-shadow:inset 0 1px 0 var(--acr-hi),inset 0 0 0 1px color-mix(in srgb,var(--ink2) 32%,transparent),0 0 0 1px var(--acr-rim),0 1px 0 color-mix(in srgb,var(--ink2) 42%,var(--edge-lo2)),0 2px 0 var(--edge-lo2),0 7px 10px -4px var(--contact)}',
       N + ' .slot-card .head{padding-right:6.6em}',
-      N + ' .slotno{padding:4px 10px 3px 10px;border:1px solid color-mix(in srgb,var(--ink2) 65%,transparent);border-left:3px solid var(--ink2);border-radius:0;box-shadow:none;color:var(--ink2);' +
-        'background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--ink2) 13%,transparent) 0 1.5px,transparent 1.5px 5px);font:700 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;' +
-        'clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%)}',
+      N + ' .slotno{top:15px;padding:4px 15px 3px;border:1px solid color-mix(in srgb,var(--ink2) 60%,transparent);border-radius:2px;color:var(--ink2);' +
+        'background:radial-gradient(circle at 6px 50%,var(--ink2) 0 1.5px,color-mix(in srgb,var(--ink2) 35%,transparent) 1.6px 2.3px,transparent 2.6px),radial-gradient(circle at calc(100% - 6px) 50%,var(--ink2) 0 1.5px,color-mix(in srgb,var(--ink2) 35%,transparent) 1.6px 2.3px,transparent 2.6px),' +
+        'linear-gradient(170deg,var(--acr-sheen),transparent 55%),color-mix(in srgb,var(--ink2) 9%,var(--item-card));box-shadow:0 1px 0 var(--edge-lo2),0 3px 4px -1px var(--contact);font:700 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase}',
+      N + ' .slotno-v{color:inherit;font-size:13px}',
       // The update key and the details toggle are keycaps in the plate's mono type; the behind count is an inset LED.
       N + ' .backend .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
       N + ' .backend .update-btn{font-size:13px;border-radius:5px}',
       N + ' .backend .toggle{font-size:11.5px}',
+      N + ' .backend summary.toggle{font-size:11px}',
       N + ' .backend .toggle .chev{color:var(--ink2)}',
       N + ' .backend .update-btn .behind-badge{background:' + scan + ',var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 55%,transparent);box-shadow:inset 0 1px 3px #000}',
       // The chosen Appearance segment is lit like a charged key.
@@ -1126,7 +1164,7 @@ THEMES.terminal = (function () {
         "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
         "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,235,220,.85)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.45)",
         "--screen-warn": "#ffb000", "--bezel": "#c4ba9f", "--dymo": "#1d1d20", "--dymo-ink": "#f2efe6",
-        "--rack-lo": "#a89f86", "--rack-hi": "#b9b099", "--card-hi": "rgba(255,255,255,.3)", "--item-card": "#e3dcc8"},
+        "--card-hi": "rgba(255,255,255,.3)", "--item-card": "#e3dcc8"},
       dark: {"--inset": "#24211c", "--text": "#efe7d2", "--muted": "#c7bca3", "--border": "#4d473c", "--rule": "#5a5446", "--ok": "#4fe07a", "--bad": "#ff7a6a", "--warn": "#ffb000",
         "--idle": "#8f8775", "--glyph-ok": "#a89e86", "--glyph-bad": "#ff5a48", "--accent": "#ffb000", "--accent-ink": "#1a1206", "--ok-ink": "#0a140d", "--warn-ink": "#1a1206", "--bad-ink": "#1a0806",
         "--hl": "#4a1d18", "--banner": "#b3261e", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(4,3,2,.72)",
@@ -1151,7 +1189,7 @@ THEMES.terminal = (function () {
         "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
         "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,255,255,.6)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.55)",
         "--screen-warn": "#ffb000", "--bezel": "#5a5446", "--dymo": "#141416", "--dymo-ink": "#f2efe6",
-        "--rack-lo": "#1a1814", "--rack-hi": "#24211b", "--card-hi": "rgba(255,246,222,.06)", "--item-card": "#3a362d"}
+        "--card-hi": "rgba(255,246,222,.06)", "--item-card": "#3a362d"}
     },
     fonts: {
       serif: '"Px437 IBM VGA 8x16","Perfect DOS VGA 437","Fixedsys Excelsior","VT323","IBM Plex Mono","Cascadia Mono","DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace',
@@ -1181,7 +1219,8 @@ THEMES.terminal = (function () {
     actionIcons: {
       copy: bitIcon(["######....", "#....#....", "#..#######", "#..#.....#", "#..#.....#", "####.....#", "...#.....#", "...#.....#", "...#######", ".........."]),
       terminal: bitIcon(["##########", "##########", "#........#", "#.#......#", "#..#.....#", "#.#..###.#", "#........#", "##########"]),
-      stop: bitIcon(["...####...", "..######..", ".########.", "##########", "#........#", "#........#", "##########", ".########.", "..######..", "...####..."]),
+      // A stop sign in blocks: a solid octagon with a bar knocked out of it.
+      stop: bitIcon(["...######...", "..########..", ".##########.", "############", "############", "##........##", "##........##", "############", "############", ".##########.", "..########..", "...######..."]),
       // The code page 437 check mark (the square-root sign), in blocks.
       check: bitIcon([".......##", "......##.", "......##.", ".....##..", "##...##..", ".##.##...", "..###....", "...#....."])
     },
@@ -1265,7 +1304,17 @@ THEMES.terminal = (function () {
         // App pills are chunky keycaps: a dished face on a tall key wall.
         T + ' .app-pill{--pill-pad:7px 15px 9px 12px;--tag-shape:inset(0 round 5px);--tag-face:radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);font-family:var(--mono);font-size:14px}',
         T + ' .app-pill::after{inset:-1px -1px -5px;background:linear-gradient(180deg,var(--tag-edge),var(--cap-wall))}',
-        T + ' .app-pill.failed::after{background:var(--tag-bad)}',
+        // A failed build is inverse video: the whole key turns the problem red with the legend in its paired ink, and a block cursor
+        // blinks after the message (still under reduced motion). The card's groove turns red as well.
+        T + ' .app-pill.failed{--tag-face:radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--tag-ink:var(--bad-ink);--tag-muted:var(--bad-ink);--tag-bad:var(--bad-ink);--glyph-bad:var(--bad-ink);' +
+          '--legend-lit-bad:var(--bad-ink);--legend-wash-bad:none;--legend-glow-bad:none;--legend-halo-bad:transparent;color:var(--bad-ink)}',
+        T + ' .app-pill.failed{transform:none}',
+        T + ' .app-pill.failed::after{background:color-mix(in srgb,var(--bad) 55%,#000)}',
+        T + ' .app-pill.failed .build-failed::after{content:"";display:inline-block;width:.6em;height:1.05em;margin-left:5px;vertical-align:-.2em;background:currentColor}',
+        T + ' .app-pill.failed .dot{filter:none}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' .app-pill.failed .build-failed::after{animation:term-cursor 1.06s steps(1,end) infinite}}',
+        '@keyframes term-cursor{50%{opacity:0}}',
+        T + ' .slots>.card.err{outline:2px solid var(--bad);outline-offset:-6px}',
         T + ' .app-pill.off{transform:translateY(3px)}',
         T + ' .app-pill.off::after{inset:-1px -1px -2px}',
         // The press hover: the key travels down and its wall gets shorter (the wall stays put while the cap sinks); pressed, it
@@ -1276,24 +1325,27 @@ THEMES.terminal = (function () {
         T + ' a.app-pill:active{transform:translateY(4px)}',
         T + ' a.app-pill:active::after{transform:scaleY(.9)}',
         T + ' a.app-pill.off:hover,' + T + ' a.app-pill.off:focus-visible{transform:translateY(3px)}',
-        // Slot numbers are embossed label tape.
-        // Each session is a putty service card slid into a rack: a darker moulded tray, and on it cards with the same moulded
+        // Slot numbers are an asset tag: black label tape with SLOT printed on it and the number in a small phosphor readout. Never tilted.
+        // Each session is a putty service card lying on the case: cards with the same moulded
         // lip and groove as the case, a shade lighter, each sitting on its own shadow.
-        T + '{--tray:linear-gradient(180deg,var(--rack-lo),var(--rack-hi) 40%);--tray-radius:6px;--tray-shadow:inset 0 3px 6px var(--well),inset 0 0 0 1px var(--edge-line),inset 0 -1px 0 var(--mould-hi),0 1px 0 var(--mould-hi);--item-radius:6px;' +
+        T + '{--item-radius:6px;' +
           '--item-face:linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);' +
           '--item-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 2px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 7px 8px -4px var(--contact)}',
         T + ' .slots>.card{outline:1px solid var(--groove);outline-offset:-6px}',
         T + ' .slot-card .head{padding-right:6.4em}',
-        T + ' .slotno{padding:4px 9px 3px;border-radius:2px;background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 45%),var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 rgba(0,0,0,.4),0 2px 3px var(--contact);' +
-          'font:700 12px/1.2 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.6),0 -1px 0 rgba(255,255,255,.22);transform:rotate(calc(var(--stamp-tilt,-2deg) * .4))}',
+        T + ' .slotno{top:15px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
+          'font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:none}',
+        T + ' .slotno-k{display:flex;align-items:center;padding:5px 7px 4px 9px}',
+        T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .backend details[open]>summary.toggle,' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
-        T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
+        T + ' :is(.backend .toggle[aria-expanded="true"],.backend details[open]>summary.toggle) > .bfx .bfx-fill{opacity:1}',
+        T + ' .backend summary.toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         T + ' #settings-open{width:36px;height:30px}',
         T + ' #settings-open svg{width:21px;height:21px}',
         T + ' .slot-card button.icon{width:30px;height:28px}',
@@ -1595,13 +1647,16 @@ var QA_THEME = (function () {
     return /^(dark|light)$/.test(value) ? value : "system";
   }
   var schemePreference = pickScheme();
-  // The layout is chosen before body parsing, including a temporary query override.
+  // The layouts on offer. Radio sits behind QA_FEATURES.radioScene; ?scene=radio turns it on for that visit only.
+  function scenes(){return QA_FEATURES.radioScene||query.get("scene")==="radio"?["desk","radio"]:["desk"]}
+  // The layout is chosen before body parsing, including a temporary query override. A stored layout that is not on offer
+  // (Radio while its flag is off) falls back to Desk but stays stored, so turning the flag back on restores it.
   function pickScene(){
-    var id=query.get("scene");
+    var id=query.get("scene"),offered=scenes();
     try{localStorage.removeItem("qaDashboardBackground")}catch(e){}
-    if(id==="desk"||id==="radio")return id;
+    if(offered.indexOf(id)>=0)return id;
     try{id=localStorage.getItem("qaDashboardScene");if(id&&id!=="desk"&&id!=="radio")localStorage.removeItem("qaDashboardScene")}catch(e){id=null}
-    return id==="radio"?"radio":"desk";
+    return offered.indexOf(id)>=0?id:"desk";
   }
   document.documentElement.setAttribute("data-scene",pickScene());
   // A stored pick always wins over the default; renamed themes carry over (Blood is now Horror).
@@ -1674,7 +1729,8 @@ var QA_THEME = (function () {
   return {
     current: function () { return active.theme },
     sceneId: function () { return document.documentElement.getAttribute("data-scene")||"desk" },
-    chooseScene: function (id) { if(id!=="desk"&&id!=="radio")return;try{localStorage.setItem("qaDashboardScene",id)}catch(e){}document.documentElement.setAttribute("data-scene",id);document.dispatchEvent(new CustomEvent("qa-scene")) },
+    scenes: scenes,
+    chooseScene: function (id) { if(scenes().indexOf(id)<0)return;try{localStorage.setItem("qaDashboardScene",id)}catch(e){}document.documentElement.setAttribute("data-scene",id);document.dispatchEvent(new CustomEvent("qa-scene")) },
     id: function () { return active.id },
     character: function () { return CHARACTERS[characterId()] },
     characterId: characterId,
@@ -2132,7 +2188,7 @@ var QA_DESK=(function(){
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
 <div class="settings-row"><label for="character-pick">Overseer</label><select id="character-pick"></select></div>
-<div class="settings-row"><label for="scene-pick">Layout</label><select id="scene-pick"><option value="desk">Desk</option><option value="radio">Radio</option></select></div>
+<div class="settings-row"><label for="scene-pick">Layout</label><select id="scene-pick"></select></div>
 <div class="settings-row"><span class="field-label" id="scheme-label">Appearance</span><div class="segmented" role="radiogroup" aria-labelledby="scheme-label"><label><input type="radio" name="scheme" value="system"><span>System</span></label><label><input type="radio" name="scheme" value="dark"><span>Dark</span></label><label><input type="radio" name="scheme" value="light"><span>Light</span></label></div></div>
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
@@ -2185,6 +2241,12 @@ function agoText(iso){
   return s<60?s+"s":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d";
 }
 function clock(iso){return iso?new Date(iso).toLocaleTimeString():""}
+// A compact start time for an app pill: hours and minutes today, with the date in front on any other day.
+function shortClock(iso){
+  var d=new Date(iso);if(isNaN(d))return"";
+  var time=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  return d.toDateString()===new Date().toDateString()?time:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+time;
+}
 // Before the first real snapshot the page says it is checking; it never claims zero sessions or a missing backend.
 var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking backend status…",STATUS_RETRYING="Status unavailable, retrying.";
 function currentAction(){return data&&data.actions}
@@ -2217,7 +2279,7 @@ function renderActionResult(){
   if(a){
     var line=actionLine(a);
     h+='<span>'+dot(line.tone)+esc(line.text)+'</span>';
-    if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary>show output</summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
+    if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary class="toggle output-toggle"><span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span><span>show output</span></summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
   return h+'</div>';
@@ -2341,7 +2403,8 @@ function appPill(a){
   var state=status.label||(a.httpReady&&!url?"no link":"");
   var inner=dot(status.tone)+'<span class="app-name">'+esc(name)+'</span>'+
     (status.failed?'<span class="build-failed">'+esc(state)+'</span>':
-    (state||a.startedAt?'<span class="port">'+[state&&esc(state),a.httpReady&&a.startedAt&&"up "+agoSpan(a.startedAt)].filter(Boolean).join(" &middot; ")+'</span>':""));
+    (state?'<span class="port">'+esc(state)+'</span>':"")+
+    (a.httpReady&&a.startedAt?'<span class="since"><span class="sr-only">started </span>'+esc(shortClock(a.startedAt))+'</span>':""));
   var since=a.startedAt?" (dev server started "+clock(a.startedAt)+"; if your tab is older, hard-refresh)":"";
   var title=status.failed?"Build failed: "+(a.build.error||"see the browser overlay"):"Open "+name+" on :"+a.port+since;
   if(ready){
@@ -2358,7 +2421,7 @@ function stampTilt(s){var h=hashText("stamp:"+s.slot+":"+(s.branch||"")),m=1.5+(
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
-  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno" style="--stamp-tilt:'+stampTilt(s)+'deg">slot '+esc(s.slot)+'</span>'+
+  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno" style="--stamp-tilt:'+stampTilt(s)+'deg"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
       ((s.apps||[]).length&&!s.recovery?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
@@ -2746,10 +2809,19 @@ document.addEventListener("visibilitychange",updateFavicon);
     }
   });
 })();
+// Settings shows only real choices: a row whose select or radio group offers fewer than two values is hidden (Layout, while
+// Radio is behind its flag). Runs whenever a picker's options are rebuilt and when the dialog opens.
+function hideSingleChoiceRows(){
+  Array.prototype.forEach.call(document.querySelectorAll("#settings .settings-row"),function(row){
+    var select=row.querySelector("select"),radios=row.querySelectorAll('input[type="radio"]');
+    var choices=select?select.options.length:radios.length?radios.length:2;
+    row.hidden=choices<2;
+  });
+}
 (function settingsDialog(){
   var dialog=document.getElementById("settings"),trigger=document.getElementById("settings-open");
   if(!dialog||!trigger||!dialog.showModal)return;
-  trigger.addEventListener("click",function(){dialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));if(window.QA_BRUSH)QA_BRUSH.dialogTitle();tenantInput.focus()});
+  trigger.addEventListener("click",function(){hideSingleChoiceRows();dialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));if(window.QA_BRUSH)QA_BRUSH.dialogTitle();tenantInput.focus()});
   dialog.addEventListener("close",function(){document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));trigger.focus()});
   dialog.addEventListener("click",function(e){
     var rect=dialog.getBoundingClientRect();
@@ -3548,6 +3620,7 @@ var QA_BRUSH=(function(){
       try{buildSource(art)}catch(e){return}
       ready=true;setupCanvas();
       if(modeSelect)modeSelect.innerHTML=availableModes().map(function(entry){return'<option value="'+entry.id+'" data-label="'+entry.label+'">'+entry.label+'</option>'}).join("");
+      hideSingleChoiceRows();
       chooseMode(mode!==blank?mode.id:wanted||"full");
     }
     if(!source){begin(null);return}
@@ -3566,11 +3639,17 @@ var QA_BRUSH=(function(){
     if(!characterSelect)return;
     characterSelect.innerHTML=["blip"].concat(Object.keys(CHARACTERS).filter(function(id){return id!=="blip"})).map(function(id){var label=CHARACTERS[id].name;return'<option value="'+id+'" data-label="'+esc(label)+'">'+esc(label)+'</option>'}).join("");
     characterSelect.value=QA_THEME.characterPick();
+    hideSingleChoiceRows();
   }
   characterOptions();
   if(characterSelect)characterSelect.addEventListener("change",function(){QA_THEME.chooseCharacter(characterSelect.value)});
   var sceneSelect=document.getElementById("scene-pick");
-  if(sceneSelect){sceneSelect.value=QA_THEME.sceneId();sceneSelect.addEventListener("change",function(){QA_THEME.chooseScene(sceneSelect.value)})}
+  var SCENE_LABELS={desk:"Desk",radio:"Radio"};
+  if(sceneSelect){
+    sceneSelect.innerHTML=QA_THEME.scenes().map(function(id){return'<option value="'+id+'" data-label="'+SCENE_LABELS[id]+'">'+SCENE_LABELS[id]+'</option>'}).join("");
+    sceneSelect.value=QA_THEME.sceneId();sceneSelect.addEventListener("change",function(){QA_THEME.chooseScene(sceneSelect.value)});
+  }
+  hideSingleChoiceRows();
   document.addEventListener("qa-scene",function(){radioPainted=false;render();buttonFx(document);QA_BRUSH.wordmark();QA_BRUSH.decorate(document);fitFloor()});
   var fitTimer=0;
   window.addEventListener("resize",function(){cancelAnimationFrame(fitTimer);fitTimer=requestAnimationFrame(fitFloor)});
