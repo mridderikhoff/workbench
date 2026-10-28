@@ -250,6 +250,19 @@ code{font-family:var(--mono);font-size:13.5px}
 button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:3px}
 .dot{display:inline-flex;width:18px;height:18px;flex:none;color:var(--idle)}
 .dot svg{display:block;width:100%;height:100%}
+/* busy: an action in progress. Neutral ink, never the warning colour; the theme's loader steps gently and stands still,
+   still reading as a loader, under reduced motion. */
+.dot.busy{color:var(--muted)}
+.action-result .tone-busy{color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){
+.dot.busy :is(.busy-a,.busy-b,.busy-c){fill-opacity:1}
+.dot.busy .busy-a{animation:busy-dot 1.2s linear infinite}
+.dot.busy .busy-b{animation:busy-dot 1.2s linear .4s infinite}
+.dot.busy .busy-c{animation:busy-dot 1.2s linear .8s infinite}
+.dot.busy .busy-spin{transform-box:view-box;transform-origin:50% 50%;animation:busy-spin 1.6s steps(4,end) infinite}
+}
+@keyframes busy-dot{0%,30%{opacity:1}34%,100%{opacity:.35}}
+@keyframes busy-spin{to{transform:rotate(360deg)}}
 .dot.ok{color:var(--glyph-ok)}.dot.warn{color:var(--warn)}.dot.attn,.dot.down{color:var(--glyph-bad)}
 .tone-ok{color:var(--muted)}
 .svc.tone-broken,.svc.tone-down,.svc.tone-attn,.state.tone-broken,.state.tone-down,.state.tone-attn{color:var(--glyph-bad);font-weight:600}
@@ -543,7 +556,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
   anatomy       optional {iris:[x, y, r], pupil:r, tips:[[x, tipY, topY], ...]} in logo units; needed by the built-in eye modes
   palette       {light:[5 colours], dark:[5 colours]} halftone ramp from least to most lit (ink 0)
   inks          optional {light:[[5 colours], ...], dark:[...]}: extra ramps, inks 1..n, for custom renderers
-  statusGlyphs  {ok, warn, broken, down, attn, unknown, awake} SVG strings drawn with currentColor, each a distinct shape,
+  statusGlyphs  {ok, warn, broken, down, attn, unknown, busy, awake} SVG strings drawn with currentColor, each a distinct shape;
+                busy is a loader for an action in progress (elements .busy-a/.busy-b/.busy-c step in turn, .busy-spin turns),
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle; awake (optional) has a .glyph-pupil group that follows
                 the cursor while a ready app pill is hovered
   actionIcons   {copy, terminal, stop, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
@@ -782,6 +796,8 @@ var THEMES = {
       down: inkIcon('<path d="M2.3 10.4c3.4 4.7 6.6 6.1 9.7 6.1s6.4-1.6 9.7-6.1" stroke-width="2.5"/><path d="M5.6 14.4 4.1 17.1M18.4 14.4l1.5 2.7" stroke-width="2"/><path d="M12 17.3c1.5 2.1 2.5 3.1 2.5 4.2a2.5 2.5 0 0 1-5 0c0-1.1 1-2.1 2.5-4.2z" fill="currentColor" stroke="none"/>'),
       attn: inkIcon('<circle cx="12" cy="3.2" r="1.7" fill="currentColor" stroke="none"/><path d="M12 4.8v3.2" stroke-width="2.4"/><path d="M6.3 8.7c2.1-.7 3.9-1 5.7-1s3.6.3 5.7 1" stroke-width="2.5"/><path d="M10.2 9.6h3.6L12 22.4z" fill="currentColor" stroke="none"/>'),
       awake: inkIcon('<path d="M1.8 12.3C5.4 6.6 9 5 12.2 5s6.9 1.7 10 7.3" stroke-width="2.5"/><path d="M2.5 13.4C6 17.8 9 19.3 12 19.3s6.2-1.8 9.1-5.5" stroke-width="1.9"/><g class="glyph-pupil"><circle cx="12" cy="12.3" r="4.3" fill="currentColor" stroke="none"/></g>'),
+      // busy (an action in progress): three brush-ink dots, the middle one beading into a drip; they ink in one after another.
+      busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><circle class="busy-a" cx="4.6" cy="12.6" r="2.5"/><path class="busy-b" d="M12 9.6c1.6 0 2.8 1.2 2.8 2.8 0 1.1-.6 2-1.5 2.5l-.6 3.2c-.1.5-.9.5-1 0l-.6-3.2c-.9-.5-1.5-1.4-1.5-2.5 0-1.6 1.2-2.8 2.4-2.8z"/><circle class="busy-c" cx="19.4" cy="12.2" r="2.3"/></svg>',
       unknown: inkIcon('<path d="M12 4.4a7.6 7.6 0 1 1-7.4 6" stroke-width="2.3"/><circle cx="5.4" cy="7.6" r=".9" fill="currentColor" stroke="none"/>')
     },
     actionIcons: {
@@ -1028,7 +1044,9 @@ THEMES.neon = (function () {
     halftoneOverprint: {dx: 2.4, dy: 1.8, scale: 0.6, alpha: 0.8, dark: {color: "#2fe6ff", blend: "destination-over"}, light: {color: "#ff3ea5", blend: "destination-over"}},
     glitch: {every: [3.5, 11], frames: [2, 4], shift: [4, 14], bands: [1, 3]},
     statusGlyphs: {ok: bitIcon(BITS.ok), warn: bitIcon(BITS.warn), broken: bitIcon(BITS.broken), down: bitIcon(BITS.down), attn: bitIcon(BITS.attn),
-      unknown: bitIcon(BITS.unknown), awake: bitIcon(BITS.reticle, BITS.pupil)},
+      unknown: bitIcon(BITS.unknown), awake: bitIcon(BITS.reticle, BITS.pupil),
+      // busy: a pixel spinner, a ring of blocks with a fading tail, turned a quarter at a time so the pixels stay crisp.
+      busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><g class="busy-spin"><path d="M9.5 2h5v5h-5z"/><path d="M17 4.5h4.5V9H17z" fill-opacity=".9"/><path d="M17 9.5h5v5h-5z" fill-opacity=".8"/><path d="M17 15h4.5v4.5H17z" fill-opacity=".72"/><path d="M9.5 17h5v5h-5z" fill-opacity=".64"/><path d="M2.5 15H7v4.5H2.5z" fill-opacity=".58"/><path d="M2 9.5h5v5H2z" fill-opacity=".54"/><path d="M2.5 4.5H7V9H2.5z" fill-opacity=".5"/></g></svg>'},
     // Pixel action icons: the copy sheets, the terminal window and a stop sign.
     actionIcons: {
       copy: plate('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
@@ -1221,7 +1239,9 @@ THEMES.terminal = (function () {
     // Now and then the phosphor slips for a frame or two.
     glitch: {every: [18, 40], frames: [1, 2], shift: [2, 6], bands: [1, 2]},
     statusGlyphs: {ok: bitIcon(TINY.ok), warn: bitIcon(TINY.warn), broken: bitIcon(TINY.broken), down: bitIcon(TINY.down), attn: bitIcon(TINY.attn), unknown: bitIcon(TINY.unknown),
-      awake: bitIcon(TINY.awake, TINY.pupil)},
+      awake: bitIcon(TINY.awake, TINY.pupil),
+      // busy: a DOS progress bar, [▓▒░] in brackets; the lit block steps along it.
+      busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><path d="M1 6h4v2H3v8h2v2H1zM23 6h-4v2h2v8h-2v2h4z"/><path class="busy-a" d="M5 9h4v6H5z"/><path class="busy-b" d="M10 9h4v6h-4z" fill-opacity=".6"/><path class="busy-c" d="M15 9h4v6h-4z" fill-opacity=".32"/></svg>'},
     actionIcons: {
       copy: bitIcon(["######....", "#....#....", "#..#######", "#..#.....#", "#..#.....#", "####.....#", "...#.....#", "...#.....#", "...#######", ".........."]),
       terminal: bitIcon(["##########", "##########", "#........#", "#.#......#", "#..#.....#", "#.#..###.#", "#........#", "##########"]),
@@ -1781,7 +1801,7 @@ var QA_THEME = (function () {
 // (a leak), and WCAG contrast failures for text and paired inks in both schemes. A clean run logs one summary line per check.
 (function themeCheck() {
   if (!/^(1|true)$/.test(new URLSearchParams(location.search).get("debug") || "")) return;
-  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown"], actionIcons: ["copy", "terminal", "stop", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
+  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["copy", "terminal", "stop", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
   var problems = [], seen = {};
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
@@ -2224,7 +2244,8 @@ function tone(state,attn){
   return"";
 }
 // Rank decides the worst state shown on the overall badge and in the favicon.
-var TONE_RANK={ok:0,unknown:1,warn:2,down:3,broken:4,attn:5};
+// busy (an action in progress) is neutral: it never raises a rollup, the favicon or the radio's urgency.
+var TONE_RANK={ok:0,busy:0,unknown:1,warn:2,down:3,broken:4,attn:5};
 function serviceTone(s){
   if(!s)return"unknown";
   if(s.needsAttention||/attention/i.test(s.status||""))return"attn";
@@ -2276,7 +2297,7 @@ function updateButton(relation){
 }
 function actionLine(a){
   var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:"");
-  if(a.state==="running")return{text:verb+" running since "+clock(a.startedAt),tone:"warn"};
+  if(a.state==="running")return{text:verb+" running since "+clock(a.startedAt),tone:"busy"};
   if(a.state==="ok")return{text:verb+" finished at "+clock(a.endedAt),tone:"ok"};
   return{text:verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt),tone:"down"};
 }
@@ -2286,7 +2307,7 @@ function renderActionResult(){
   var h='<div class="action-result" aria-live="polite">';
   if(a){
     var line=actionLine(a);
-    h+='<span>'+dot(line.tone)+esc(line.text)+'</span>';
+    h+='<span class="tone-'+line.tone+'">'+dot(line.tone)+esc(line.text)+'</span>';
     if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary class="toggle output-toggle"><span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span><span>show output</span></summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
@@ -2476,7 +2497,7 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
-  if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"warn",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
+  if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"busy",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
   if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Start fresh.");
   if(backend){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
