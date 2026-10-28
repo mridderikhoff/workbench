@@ -492,8 +492,7 @@ qa_backend() {
   echo "backend    http://localhost:$((8000 + 10 * offset)) via QA tree $(git -C "$qa" rev-parse --short HEAD)"
 }
 
-# Called after the QA checkout moves; only dependency installs and services
-# without hot reload need manual action.
+# Report dependency installs needed after the QA checkout moves.
 qa_restart_hints() {
   local qa="$1" old="$2" new="$3" file dir svc
   local backend=0 functions=0 langgraph=0 ui=0
@@ -527,22 +526,29 @@ qa_restart_hints() {
     fi
   done
   [ "$ui" = 1 ] && echo "deps       run: (cd $qa/apps/ui && pnpm install)"
-  if [ "$backend" = 0 ] && [ "$functions" = 0 ] && [ "$langgraph" = 0 ]; then
-    echo "restart    none needed"
-    return 0
-  fi
-  for svc in backend functions langgraph; do
-    case "$svc" in
-      backend) [ "$backend" = 1 ] || continue ;;
-      functions) [ "$functions" = 1 ] || continue ;;
-      langgraph) [ "$langgraph" = 1 ] || continue ;;
-    esac
-    echo "restart    $(qa_stack_bin) restart $svc"
-  done
+  [ "$backend" = 0 ] && [ "$functions" = 0 ] && [ "$langgraph" = 0 ] && return 0
+}
+
+qa_attachment_file() { echo "$(wt_state_root)/qa-attachment"; }
+qa_attachment_needs_return() {
+  local qa="$1" head="$2" file path saved_head branch ready
+  file=$(qa_attachment_file)
+  [ -f "$file" ] || return 1
+  { IFS= read -r path; IFS= read -r saved_head; IFS= read -r branch; IFS= read -r ready; } <"$file" || return 1
+  [ "$path" = "$(readlink -f "$qa")" ] && [ "$saved_head" = "$head" ] &&
+    { [ "$branch" != "$BASE_BRANCH" ] || [ "$ready" != 1 ]; }
+}
+qa_attachment_save() {
+  local qa="$1" head="$2" branch="$3" ready="$4" file tmp
+  file=$(qa_attachment_file)
+  mkdir -p "$(wt_state_root)" || return 1
+  tmp="$file.tmp.$$"
+  printf '%s\n%s\n%s\n%s\n' "$(readlink -f "$qa")" "$head" "$branch" "$ready" >"$tmp" || return 1
+  mv -f -- "$tmp" "$file"
 }
 
 cmd_qa_locked() {
-  local qa old new
+  local qa old new ref branch foreign svc
   qa=$(qa_tree) || { echo "no QA tree found (no worktree carries a .wt-qa-runtime marker)." >&2; return 1; }
   [ "${1:-}" = "$BASE_BRANCH" ] && { cmd_backend update; return; }
   if [ $# -eq 0 ]; then
@@ -552,12 +558,36 @@ cmd_qa_locked() {
     return 0
   fi
   [ ! -f "$(qa_update_marker)" ] || { echo 'qa tree    pending backend update; run: wt backend update' >&2; return 1; }
+  ref="$1"
+  git -C "$qa" rev-parse --verify --quiet "$ref^{commit}" >/dev/null || {
+    echo "qa tree    no commit named $ref" >&2; return 1; }
+  branch=
+  git -C "$qa" show-ref --verify --quiet "refs/heads/$ref" && branch="$ref"
   old=$(git -C "$qa" rev-parse HEAD) || return 1
-  wt_run_mutating git -C "$qa" checkout --detach "$1" || return 1
-  [ "${WT_DRY_RUN:-0}" = 1 ] && { echo "qa tree    return to develop with: wt backend update"; return 0; }
+  wt_run_mutating git -C "$qa" checkout --detach "$ref" || return 1
+  if [ "${WT_DRY_RUN:-0}" = 1 ]; then
+    for svc in functions langgraph backend; do
+      echo "dry-run    $(qa_stack_bin) restart $svc --stack app"
+      echo "dry-run    $(qa_stack_bin) wait-probe $svc 180"
+    done
+    echo "qa tree    return to develop with: wt backend update"
+    return 0
+  fi
   new=$(git -C "$qa" rev-parse HEAD) || return 1
   echo "qa tree    now ${new:0:9} (was ${old:0:9})"
   qa_restart_hints "$qa" "$old" "$new"
+  qa_attachment_save "$qa" "$new" "$branch" 0 || return 1
+  foreign=$("$(qa_stack_bin)" foreign) || { echo 'qa tree    cannot verify foreign processes' >&2; return 1; }
+  if [ -n "$foreign" ]; then
+    echo "qa tree    services run outside systemd: $foreign" >&2
+    echo "run        $(qa_stack_bin) adopt --yes" >&2
+    return 2
+  fi
+  for svc in functions langgraph backend; do
+    "$(qa_stack_bin)" restart "$svc" --stack app 8>&- || { echo "qa tree    $svc restart failed" >&2; return 1; }
+    "$(qa_stack_bin)" wait-probe "$svc" 180 8>&- || { echo "qa tree    $svc readiness failed" >&2; return 1; }
+  done
+  qa_attachment_save "$qa" "$new" "$branch" 1 || return 1
   echo "qa tree    return to develop with: wt backend update"
 }
 cmd_qa() {
@@ -1430,6 +1460,7 @@ qa_update_classify() {
         UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1 ;;
       libs/common/*) UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1 ;;
       apps/backend/pyproject.toml|apps/backend/uv.lock) UPDATE_BACKEND=1 UPDATE_BACKEND_DEPS=1 ;;
+      apps/backend/*) UPDATE_BACKEND=1 ;;
       apps/functions/pyproject.toml|apps/functions/uv.lock) UPDATE_FUNCTIONS=1 UPDATE_FUNCTIONS_DEPS=1 ;;
       apps/strategy-graph/pyproject.toml|apps/strategy-graph/uv.lock) UPDATE_LANGGRAPH=1 UPDATE_GRAPH_DEPS=1 ;;
       apps/functions/*) UPDATE_FUNCTIONS=1 ;;
@@ -1572,7 +1603,8 @@ backend_update_locked() {
   else
     git -C "$main" fetch origin develop || return 1
     new=$(git -C "$qa" rev-parse origin/develop) || return 1
-    if [ "$old" = "$new" ] && [ "${WT_BACKEND_UPDATE_FORCE:-0}" != 1 ]; then
+    if [ "$old" = "$new" ] && [ "${WT_BACKEND_UPDATE_FORCE:-0}" != 1 ] && ! qa_attachment_needs_return "$qa" "$old"; then
+      qa_attachment_save "$qa" "$old" "$BASE_BRANCH" 1 || return 1
       echo 'backend    already at origin/develop'; backend_status; return
     fi
     if [ "${WT_BACKEND_UPDATE_FORCE:-0}" = 1 ]; then
@@ -1582,6 +1614,11 @@ backend_update_locked() {
       UPDATE_COMMON=1 UPDATE_BACKEND_DEPS=1 UPDATE_FUNCTIONS_DEPS=1 UPDATE_GRAPH_DEPS=1
       UPDATE_UI=1 UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1
       echo 'backend    force: reinstalling all dependencies and restarting app services'
+    elif [ "$old" = "$new" ]; then
+      qa_update_reset
+      UPDATE_PATH="$qa" UPDATE_OLD="$old" UPDATE_NEW="$new"
+      UPDATE_BACKEND=1 UPDATE_FUNCTIONS=1 UPDATE_LANGGRAPH=1
+      echo 'backend    returning attached checkout to develop; restarting app services'
     else
       qa_update_classify "$qa" "$old" "$new" || return 1
     fi
@@ -1623,6 +1660,7 @@ backend_update_locked() {
   fi
   rm -f -- "$marker"
   current=$(git -C "$qa" rev-parse HEAD) || return 1
+  qa_attachment_save "$qa" "$current" "$BASE_BRANCH" 1 || return 1
   latest=$(git -C "$qa" rev-parse origin/develop) || return 1
   echo "backend    now at ${current:0:9}; origin/develop is ${latest:0:9}"
   if [ "$current" != "$latest" ]; then backend_update_locked; else backend_status; fi
@@ -1712,8 +1750,34 @@ PY
     )
   fi
   rm -f "$health_error"
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
 import concurrent.futures, datetime, json, os, pathlib, re, subprocess, urllib.request
+
+def backend_branch(path):
+    try:
+        head = subprocess.run(['git', '-C', path, 'rev-parse', 'HEAD'], capture_output=True,
+                              text=True, timeout=2, check=True).stdout.strip()
+        if not head: return None
+        pending = pathlib.Path(os.environ['WT_STATUS_UPDATE_MARKER'])
+        if pending.exists():
+            update_path = next((line[5:] for line in pending.read_text().splitlines()
+                                if line.startswith('path=')), None)
+            if update_path is None or os.path.realpath(update_path) == os.path.realpath(path):
+                return None
+        marker = pathlib.Path(os.environ['WT_STATUS_ATTACHMENT'])
+        if marker.exists():
+            lines = marker.read_text().splitlines()
+            if len(lines) != 4: return None
+            saved_path, saved_head, branch, ready = lines
+            if saved_path == os.path.realpath(path) and saved_head == head:
+                return branch if ready == '1' and branch else None
+        refs = subprocess.run(['git', '-C', path, 'for-each-ref', '--format=%(refname:short) %(objectname)',
+                               'refs/heads'], capture_output=True, text=True, timeout=2, check=True)
+        matches = [line.rsplit(' ', 1)[0] for line in refs.stdout.splitlines()
+                   if line.rsplit(' ', 1)[-1] == head]
+        return matches[0] if len(matches) == 1 else None
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
+        return None
 
 def health_data():
     try:
@@ -1835,6 +1899,7 @@ o = int(os.environ['WT_STATUS_OFFSET'])
 try: dirty = int(os.environ['WT_STATUS_DIRTY'].strip())
 except ValueError: dirty = 0
 backend = {'tree': os.environ['WT_STATUS_QA'], 'sha': os.environ['WT_STATUS_SHA'],
+           'branch': backend_branch(os.environ['WT_STATUS_QA']) if os.environ['WT_STATUS_QA'] else None,
            'relation': os.environ['WT_STATUS_RELATION'], 'dirty': dirty,
            'overall': h.get('overall', 'unknown'), 'services': h.get('services', {}),
            'offset': o if os.environ['WT_STATUS_OFFSET_SOURCE'] != 'default' else None,
@@ -2113,7 +2178,8 @@ wt deps <branch> [workspace-dir…]     pnpm install its workspaces (default: al
 wt verify <branch> [gate-project…]    dirt, ancestry, areas touched, gates
 wt ship <branch> [--ready]            push, open a draft PR (--ready: not draft);
                                       no local gates — PR CI is the gate
-wt qa [branch]                        point QA tree at a commit (no branch: status)
+wt qa [branch|commit]                 attach QA code, restart and probe app services
+                                      (no argument: status)
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; register named sign-in URLs
 wt serve --stop <branch>              stop its frontend units
