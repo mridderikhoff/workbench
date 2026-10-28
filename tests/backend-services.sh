@@ -17,7 +17,8 @@ shift
 action=$1; shift
 case "$action" in
   show)
-    unit=$1
+    unit=${!#}
+    for arg in "$@"; do [[ "$arg" != *.service ]] || unit=$arg; done
     echo "$unit" >> "$FIXTURE/show.log"
     [ ! -e "$FIXTURE/units/$unit.fail" ] || exit 1
     [ ! -e "$FIXTURE/on/tick" ] || "$FIXTURE/on/tick" "$unit"
@@ -376,4 +377,41 @@ import json,sys
 d=json.load(open(sys.argv[1])); assert d['backend']['offsetSource']=='registry' and d['backend']['offset']==1
 PY
 cmp "$S/registry.json" "$S/registry.original" || fail 'status wrote registry'
+# Cold-start recovery must also inspect offsets without invoking the allocator.
+git -C "$S/main" init --quiet --initial-branch=fixture
+mkdir -p "$S/state/wt-serve" "$S/qa/scripts/dev"
+cat > "$S/state/wt-serve/slot-2" <<EOF
+branch=fixture
+path=$S/main
+apps=ds-demo
+units=ds-demo
+boot=previous-boot
+EOF
+for app in strategy ri ds-demo; do
+  printf 'LoadState=loaded\nActiveState=inactive\n' > "$S/units/cl-strategy-serve-2-$app.service"
+done
+cat > "$S/qa/scripts/dev/ports.py" <<'PY'
+import os,pathlib
+pathlib.Path(os.environ['FIXTURE'], 'allocator-called').touch()
+print(1)
+PY
+rm "$S/registry.json"
+run 0 env WT_STUB_PORTS= "$ROOT/bin/wt" status --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); slot=d['slots'][0]
+assert slot['recovery']['resumable'] is False
+assert slot['recovery']['reason']=='QA port offset unavailable'
+PY
+[ ! -e "$S/allocator-called" ] || fail 'cold-start status called offset allocator'
+[ ! -e "$S/registry.json" ] || fail 'cold-start status allocated registry'
+cp "$S/registry.original" "$S/registry.json"
+run 0 env WT_STUB_PORTS= "$ROOT/bin/wt" status --json
+python3 - "$S/out" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1])); assert d['slots'][0]['recovery']['resumable'] is True
+PY
+[ ! -e "$S/allocator-called" ] || fail 'cold-start status called allocator for existing claim'
+cmp "$S/registry.json" "$S/registry.original" || fail 'cold-start status wrote registry'
+[ ! -s "$S/mutations.log" ] || fail 'cold-start status mutated services'
 echo "qa-services: $count cases passed"

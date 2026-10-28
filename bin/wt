@@ -708,8 +708,12 @@ recover_classify() {
     for app in "${apps[@]}"; do case "$app" in ri|strategy) REC_REASON='slot cannot serve RI or Strategy' ;; esac; done
   fi
   if [ -z "$REC_REASON" ]; then
-    qa=$(qa_tree 2>/dev/null) && offset=$(qa_offset "$qa" 2>/dev/null) || offset=
-    [ "$offset" != "$slot" ] || REC_REASON='slot is used by the QA tree'
+    if qa=$(qa_tree 2>/dev/null) && offset=$(qa_offset_readonly "$qa" 2>/dev/null); then
+      offset=${offset%% *}
+      [ "$offset" != "$slot" ] || REC_REASON='slot is used by the QA tree'
+    else
+      REC_REASON='QA port offset unavailable'
+    fi
   fi
   [ -z "$REC_REASON" ] || REC_OK=0
   return 0
