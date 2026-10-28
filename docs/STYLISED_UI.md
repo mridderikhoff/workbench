@@ -45,6 +45,9 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
     and foil are pre-rendered tiles or static layers. Only opacity and transform animate.
 14. **Effects have an off switch.** Reduced motion gives a designed still frame; Static logo mode
     runs no loop.
+15. **Separate objects, not ruled lists.** A list is a holder with one object per item (a card in a
+    rack, a folio, an acrylic module), split by gutters and edges. A line between items would read
+    as the hover underline, so we don't draw one.
 
 ## Toolbox (pick per theme, per moment)
 

@@ -36,6 +36,12 @@ interface a coherent place in its world. In Desk, every panel is an object lying
 eye card is taped down, the backend card is an index card or an acrylic plate, pills are tags or
 keycaps. Avoid ordinary floating cards pasted over unrelated artwork.
 
+The Sessions card is a holder: its heading sits on the face, and each session is its own object in a
+recessed tray below, with an edge, a gutter and a shadow (Terminal: putty service cards in a rack;
+Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules in a milled
+recess). The slot label belongs to its session. Sessions are separated by their gutters, not by
+ink dividers, so the only line under a branch name is its hover underline.
+
 Use this within reason: this is a developer workspace. Keep information scannable, actions plain,
 and controls familiar. Never add fictional meters, pretend controls, or cumbersome navigation just
 to complete a metaphor. The art is here to bring play and joy to the workday, not to turn routine
@@ -80,8 +86,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   the eye.
 - **Props match the character.** Margin props (candles) are screened into the same
   halftone dots as the eye, flames and glow included, rather than drawn as realistic illustrations.
-- **Ink goes where a hand would make a mark**: the halftone character, brush underlines, seeded
-  dividers, rubber stamps, a seal, a single drip, the seep on a pill. Keep that mark language
+- **Ink goes where a hand would make a mark**: the halftone character, brush underlines,
+  rubber stamps, a seal, a single drip, the seep on a pill. Keep that mark language
   consistent within a scene: don't mix smooth vector icons with pixel glyphs and brush ink at random.
 - **Two-ink printing is welcome**: a theme may overprint a second spot ink slightly off register.
 - **Popups belong to the same world**: same materials, lifted higher with a bigger shadow, fields
@@ -213,7 +219,7 @@ Paste this when asking an agent to build or restyle a tool in this repo:
 > Build this as a **fun-first dev tool** following `DESIGN.md` in the workbench repo; maximalism is
 > welcome. Make panels physical objects lying on a real, textured surface (edge thickness, contact
 > shadows, sunk controls, pressed-in headings), and put ink where a hand would mark: halftone art,
-> brush underlines, stamps, seeded dividers. Animate the character in stepped frames (8–12fps,
+> brush underlines, stamps. Animate the character in stepped frames (8–12fps,
 > squash/stretch and smear frames) with a pulpy horror-poster attitude, and keep it SFW. Theme the **visuals only**: every word on screen stays plain and
 > standard. Make the most important status the biggest, most scannable element; healthy detail is
 > quiet and problems are loud. Status glyphs differ by shape, with labels beside them. No rhythmic
