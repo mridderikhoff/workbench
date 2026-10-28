@@ -228,6 +228,16 @@ test("a real but unknown snapshot keeps the page health neutral, not healthy", a
     assert.strictEqual(p.run("failure"), null);
     assert.strictEqual(p.run("pageHealth()"), "unknown");
     assert.strictEqual(p.favicons[p.favicons.length - 1], "unknown");
+    assert.strictEqual(p.run("window.QA_ROLLUP"), "unknown");
+    assert.match(p.html("backend"), /tone-unknown/);
+  }
+  // With no services listed, the overall label still decides: healthy, degraded and down keep their meaning.
+  for (const [overall, rollup, health] of [["healthy", "ok", "ok"], ["degraded", "warn", "warn"], ["down", "down", "down"]]) {
+    const p = page({ fetch: () => jsonResponse({ backend: { overall, services: {} }, slots: [] }) });
+    await p.poll();
+    assert.strictEqual(p.run("window.QA_ROLLUP"), rollup, overall);
+    assert.strictEqual(p.run("pageHealth()"), health, overall);
+    assert.match(p.html("backend"), new RegExp("tone-" + rollup), overall);
   }
   const healthy = page({ fetch: () => jsonResponse(snapshot([])) });
   await healthy.poll();

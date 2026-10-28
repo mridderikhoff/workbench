@@ -2175,7 +2175,7 @@ function serviceTone(s){
 function worstTone(tones){return tones.reduce(function(worst,t){return(TONE_RANK[t]||0)>(TONE_RANK[worst]||0)?t:worst},"ok")}
 function backendTone(b){
   var services=b.services||{},names=Object.keys(services);
-  if(!names.length)return tone(b.overall)==="ok"?"ok":tone(b.overall)==="warn"?"warn":"down";
+  if(!names.length){var t=tone(b.overall);return t==="ok"?"ok":t==="warn"?"warn":t==="bad"||t==="attn"?"down":"unknown"}
   return worstTone(names.map(function(n){return serviceTone(services[n])}));
 }
 function dot(t){return'<span class="dot '+(t||"unknown")+'">'+QA_THEME.glyph(t||"unknown")+'</span>'}
@@ -2691,7 +2691,7 @@ document.addEventListener("toggle",function(e){if(e.target.id==="action-output")
 function pageHealth(){
   if(!data)return"unknown";
   var tones=[],backend=data.backend;
-  if(backend)tones.push(!Object.keys(backend.services||{}).length&&!tone(backend.overall)?"unknown":backendTone(backend));
+  if(backend)tones.push(backendTone(backend));
   (data.slots||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
   var worst=worstTone(tones);
   return worst==="unknown"?"unknown":worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
