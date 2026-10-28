@@ -229,11 +229,8 @@ background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inse
 @media (prefers-reduced-motion:no-preference){.backend .toggle.turned[aria-expanded="true"] .chev{animation:chev-open .2s ease-out}.backend .toggle.turned[aria-expanded="false"] .chev{animation:chev-close .2s ease-out}}
 @keyframes chev-open{from{transform:none}to{transform:rotate(90deg)}}
 @keyframes chev-close{from{transform:rotate(90deg)}to{transform:none}}
-/* The action output disclosure is a smaller sibling of the details toggle, in the same theme material; open, it latches down. */
-.backend summary.toggle{list-style:none;display:inline-flex;width:max-content;min-height:26px;margin:4px 0 2px;font-size:12.5px;cursor:pointer}
-.backend summary.toggle::-webkit-details-marker{display:none}
-.backend details[open]>summary.toggle{background:var(--inset);box-shadow:var(--sunk);color:var(--text)}
-.backend details[open]>summary.toggle .chev{transform:rotate(90deg)}
+/* Show output is a smaller sibling of the details toggle, in the same theme material; it opens the output dialog. */
+.backend .output-toggle{flex-basis:auto;width:max-content;min-height:26px;margin:4px 0 2px;font-size:12.5px}
 .backend-details{margin-top:6px;padding-top:6px;border-top:1px dashed var(--edge-lo2)}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
 .backend .action-result{margin:6px 0 0}
@@ -391,8 +388,6 @@ html[data-button-hover="press"] .settings .segmented label:is(:hover,:has(input:
 .copied{font-size:13px;color:var(--ok);font-weight:600}
 .action-result{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin:0 0 6px;font-size:14px}
 .action-result>span{display:inline-flex;align-items:center;gap:6px}
-details{flex-basis:100%}
-summary{cursor:pointer;color:var(--accent);font-size:13px;width:max-content}
 pre{margin:4px 0 0;padding:8px 10px;max-height:16em;overflow:auto;background:var(--inset);border:1px solid var(--border);border-radius:0;font:13px/1.45 var(--mono);white-space:pre-wrap;word-break:break-all}
 .state{display:inline-flex;align-items:center;gap:6px}
 .empty .title{display:block;margin-bottom:2px}
@@ -453,6 +448,18 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .recovery-actions button:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}
 .recovery-status{margin-top:10px;display:flex;align-items:center;gap:6px;font-family:var(--sans,inherit)}
 .confirm-dialog{max-width:440px}
+/* The action output dialog: the same lifted material as Settings, wide, with the log in a sunk monospace well. Lines never
+   wrap mid-word: they keep their shape and the well scrolls sideways. */
+.output-dialog{width:min(920px,calc(100vw - 24px))}
+.output-dialog form{display:grid;gap:16px}
+.output-dialog h2{display:flex;align-items:center;gap:10px;font-size:23px;overflow-wrap:anywhere}
+.output-dialog h2 .dot{width:22px;height:22px}
+.output-log{margin:0;min-height:8em;max-height:min(60vh,34em);overflow:auto;padding:12px 14px;border:0;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre;word-break:normal;overflow-wrap:normal;tab-size:4}
+.output-log:focus-visible{box-shadow:var(--ring),var(--sunk)}
+.output-dialog .confirm-actions{align-items:center}
+.output-dialog .copied{margin-right:auto}
+@media (prefers-reduced-motion:no-preference){.output-dialog[open]{animation:dialog-in var(--dur) var(--ease-out)}}
+@keyframes dialog-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
 .confirm-dialog form{display:grid;gap:16px}
 .confirm-dialog h2{font-size:24px}
 .confirm-dialog p{margin:0;font-size:16px;overflow-wrap:anywhere}
@@ -916,10 +923,10 @@ var THEMES = {
         D + ' #settings-open svg{width:21px;height:21px}',
         D + ' .backend .toggle{min-height:32px;padding:6px 13px 6px 11px;color:var(--patch-ink)}',
         D + ' .backend .toggle .chev{color:var(--patch-ink)}',
-        D + ' .backend summary.toggle{min-height:28px;padding:5px 12px 5px 10px;font-size:13px}',
+        D + ' .backend .output-toggle{min-height:28px;padding:5px 12px 5px 10px;font-size:13px}',
         D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):focus-visible{box-shadow:var(--ring),0 3px 4px -1px var(--contact)}',
         D + ' :is(.slot-card button.icon,.backend .toggle):hover:not(:disabled){transform:translateY(-1px)}',
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"],' + D + ' .backend details[open]>summary.toggle{transform:translateY(2px);' +
+        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"]{transform:translateY(2px);' +
           'box-shadow:inset 0 2px 4px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.2),0 1px 0 var(--emb-hi)}',
         D + ' #settings-open:active{transform:translateY(2px) rotate(-8deg)}',
         D + ' .slot-card button.icon:disabled{opacity:.55}',
@@ -1136,7 +1143,7 @@ THEMES.neon = (function () {
       N + ' .backend .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
       N + ' .backend .update-btn{font-size:13px;border-radius:5px}',
       N + ' .backend .toggle{font-size:11.5px}',
-      N + ' .backend summary.toggle{font-size:11px}',
+      N + ' .backend .output-toggle{font-size:11px}',
       N + ' .backend .toggle .chev{color:var(--ink2)}',
       N + ' .backend .update-btn .behind-badge{background:' + scan + ',var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 55%,transparent);box-shadow:inset 0 1px 3px #000}',
       // The chosen Appearance segment is lit like a charged key.
@@ -1385,10 +1392,12 @@ THEMES.terminal = (function () {
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .backend details[open]>summary.toggle,' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
         T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
-        T + ' :is(.backend .toggle[aria-expanded="true"],.backend details[open]>summary.toggle) > .bfx .bfx-fill{opacity:1}',
-        T + ' .backend summary.toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
+        T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
+        T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
+        // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
+        T + ' .output-log{background:var(--screen);color:var(--screen-ink);text-shadow:0 0 5px var(--screen-glow);box-shadow:inset 0 2px 8px #000,0 0 0 3px var(--bezel),0 1px 0 3px var(--emb-hi)}',
         T + ' #settings-open{width:36px;height:30px}',
         T + ' #settings-open svg{width:21px;height:21px}',
         T + ' .slot-card button.icon{width:30px;height:28px}',
@@ -2236,6 +2245,11 @@ var QA_DESK=(function(){
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
+<dialog id="output-dialog" class="settings output-dialog" aria-labelledby="output-title"><form method="dialog">
+<h2 id="output-title"><span id="output-glyph"></span><span id="output-title-text">Output</span></h2>
+<pre id="output-log" class="output-log" tabindex="0" aria-label="Action output"></pre>
+<div class="confirm-actions"><span class="copied" role="status"></span><button type="button" id="output-copy">Copy output</button><button type="submit" id="output-close">Close</button></div>
+</form></dialog>
 <dialog id="stop-confirm" class="settings confirm-dialog" aria-labelledby="stop-title" aria-describedby="stop-message"><form method="dialog">
 <h2 id="stop-title">Stop frontends</h2><p id="stop-message"></p>
 <div class="confirm-actions"><button type="button" id="stop-cancel">Cancel</button><button type="submit" class="danger">Stop</button></div>
@@ -2246,7 +2260,7 @@ var INITIAL=/*INITIAL*/null/*END*/;
 var APP_NAMES={ri:"RI","ds-demo":"ds-demo",strategy:"Strategy"};
 var tenantInput=document.getElementById("tenant");
 try{tenantInput.value=localStorage.getItem("qaDashboardTenant")||"mridderikhoff"}catch(e){}
-var data=null,lastOk=null,failure=null,actionError=null,outputOpen=false,pollTimer=null;
+var data=null,lastOk=null,failure=null,actionError=null,pollTimer=null;
 // The user's expand/collapse choice for the backend details applies only while the health it was made under still holds.
 var detailsChoice=null;
 try{detailsChoice=JSON.parse(sessionStorage.getItem("qaDashboardBackendDetails"))}catch(e){}
@@ -2325,7 +2339,7 @@ function renderActionResult(){
   if(a){
     var line=actionLine(a);
     h+='<span class="tone-'+line.tone+'">'+dot(line.tone)+esc(line.text)+'</span>';
-    if(a.output&&a.output.length)h+='<details id="action-output"'+(outputOpen?" open":"")+'><summary class="toggle output-toggle"><span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span><span>show output</span></summary><pre>'+esc(a.output.join("\n"))+'</pre></details>';
+    if(a.output&&a.output.length)h+='<button type="button" class="toggle output-toggle" data-output aria-haspopup="dialog"><span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span><span>Show output</span></button>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
   return h+'</div>';
@@ -2633,6 +2647,7 @@ function render(){
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
   var unhealthy=failure||(backend&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
+  updateOutputDialog();
   var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
   if(document.title!==title)document.title=title;
   var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":" - retrying")+": "+failure:"";
@@ -2659,7 +2674,7 @@ function runAction(name,branch,service){
   actionError=null;recoveryRequest=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
-  if(branch&&data){data.actions={action:"stop",target:branch,state:"running",output:[]};render()}
+  if((branch||service)&&data){data.actions={action:service?"restart":"stop",target:service||branch,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
   var request=branch?{url:"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
@@ -2800,7 +2815,7 @@ document.getElementById("recovery-fresh").addEventListener("click",function(){
   runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-restart],[data-radio]");
+  var t=e.target.closest("[data-action],[data-copy],[data-toggle],[data-stop],[data-restart],[data-output],[data-radio]");
   if(!t||t.disabled)return;
   if(t.hasAttribute("data-radio")){
     var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
@@ -2818,9 +2833,46 @@ document.addEventListener("click",function(e){
     confirmStop(branch,t);
   }
   else if(t.hasAttribute("data-restart"))confirmRestart(t.getAttribute("data-restart"),t);
+  else if(t.hasAttribute("data-output"))openOutput();
   else runAction(t.getAttribute("data-action"));
 });
-document.addEventListener("toggle",function(e){if(e.target.id==="action-output")outputOpen=e.target.open},true);
+// The action output dialog. It shows the latest action's state and output, follows polls while open (the scroll position stays
+// put unless it was already at the bottom, where it keeps following), and closes on Esc, Close or a backdrop click, returning
+// focus to the Show output button.
+var outputDialog=document.getElementById("output-dialog"),outputLog=document.getElementById("output-log");
+function outputTitle(a){
+  var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:""),line=actionLine(a);
+  return line.text.indexOf(verb+" ")===0?verb+" \u00b7 "+line.text.slice(verb.length+1).replace(/ at /," "):line.text;
+}
+function updateOutputDialog(){
+  if(!outputDialog||!outputDialog.open)return;
+  var a=currentAction();if(!a)return;
+  setHtml(document.getElementById("output-glyph"),dot(actionLine(a).tone));
+  setText(document.getElementById("output-title-text"),outputTitle(a));
+  var text=(a.output||[]).join("\n");
+  if(outputLog.textContent!==text){
+    var follow=outputLog.scrollHeight-outputLog.scrollTop-outputLog.clientHeight<4;
+    outputLog.textContent=text;
+    if(follow)outputLog.scrollTop=outputLog.scrollHeight;
+  }
+}
+function openOutput(){
+  if(!outputDialog||!outputDialog.showModal||outputDialog.open||!currentAction())return;
+  outputLog.textContent="";outputDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
+  buttonFx(outputDialog);updateOutputDialog();outputLog.scrollTop=outputLog.scrollHeight;outputLog.focus();
+}
+if(outputDialog){
+  outputDialog.addEventListener("click",function(e){
+    var rect=outputDialog.getBoundingClientRect();
+    if(e.target===outputDialog&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))outputDialog.close();
+  });
+  outputDialog.addEventListener("close",function(){
+    document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
+    var opener=document.querySelector("[data-output]");
+    (opener||document.getElementById("settings-open")).focus();
+  });
+  document.getElementById("output-copy").addEventListener("click",function(e){copyText(outputLog.textContent,e.currentTarget)});
+}
 // With no real snapshot, or one that says nothing known, the health is unknown, not healthy; a failed poll keeps what the last snapshot showed.
 function pageHealth(){
   if(!data)return"unknown";

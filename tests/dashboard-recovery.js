@@ -283,6 +283,25 @@ test("no saved sessions and no data: Start fresh does nothing", async () => {
   assert.deepStrictEqual(posts, []);
 });
 
+test("service restart disables actions immediately, then restores state if the request fails", async () => {
+  let resolve;
+  const p = page({ fetch: () => new Promise(done => { resolve = done }) });
+  p.run('data=' + JSON.stringify(snapshot([])));
+  p.run('data.backend.relation="behind 1"');
+  p.run('runAction("restart",null,"api")');
+  assert.strictEqual(p.run("isRunning()"), true);
+  assert.strictEqual(p.run("data.actions.action"), "restart");
+  assert.strictEqual(p.run("data.actions.target"), "api");
+  assert.match(p.html("backend"), /data-action="update"[^>]*disabled/);
+  assert.strictEqual(p.calls[0].url, "/api/backend/restart");
+  assert.deepStrictEqual(JSON.parse(p.calls[0].init.body), { service: "api" });
+  resolve({ ok: false, json: () => Promise.resolve({ error: "unavailable" }) });
+  await new Promise(done => setImmediate(done));
+  assert.strictEqual(p.run("isRunning()"), false);
+  assert.strictEqual(p.run("data.actions"), null);
+  assert.match(p.html("backend"), /unavailable/);
+});
+
 test("favicon: unknown is a blank icon, known states keep theme art", () => {
   const icon = { href: "x", dataset: {} };
   const ctx = { document: { querySelector: () => icon }, encodeURIComponent, active: { theme: { favicon: "<svg-theme/>", favicons: { ok: "<svg-ok/>" } } } };
