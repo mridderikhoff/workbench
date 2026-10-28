@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Shared environment for CLI entrypoints and launchd jobs.
 if [ "$(uname -s)" = Darwin ]; then
-  for overseer_prefix in /opt/homebrew /usr/local; do
+  for overseer_prefix in /usr/local /opt/homebrew; do
     [ -d "$overseer_prefix/bin" ] && PATH="$overseer_prefix/bin:$PATH"
     [ -d "$overseer_prefix/opt/coreutils/libexec/gnubin" ] && PATH="$overseer_prefix/opt/coreutils/libexec/gnubin:$PATH"
+    [ -d "$overseer_prefix/opt/python@3.13/libexec/bin" ] && PATH="$overseer_prefix/opt/python@3.13/libexec/bin:$PATH"
   done
   export PATH
   if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ] || { [ "${BASH_VERSINFO[0]:-0}" -eq 4 ] && [ "${BASH_VERSINFO[1]:-0}" -lt 4 ]; }; then
@@ -18,10 +19,17 @@ if [ "$(uname -s)" = Darwin ]; then
       echo "Overseer needs $overseer_tool. Install: brew install bash coreutils flock python@3.13" >&2; exit 1;
     }
   done
+  python3 -c 'import sys; sys.exit(sys.version_info < (3, 13))' || {
+    echo 'Overseer needs Python 3.13 or newer. Install: brew install python@3.13' >&2; exit 1;
+  }
 fi
 OVERSEER_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 export OVERSEER_BIN_DIR
 OVERSEER_CONFIG_FILE="${OVERSEER_CONFIG_FILE:-$HOME/.config/overseer/runtime.env}"
+case "$OVERSEER_CONFIG_FILE" in
+  /*) ;;
+  *) echo 'OVERSEER_CONFIG_FILE must be an absolute path' >&2; exit 2 ;;
+esac
 export OVERSEER_CONFIG_FILE
 if [ -f "$OVERSEER_CONFIG_FILE" ]; then
   overseer_saved_env=()

@@ -12,7 +12,7 @@ BACKEND_SERVICES=(azurite keycloak functions langgraph backend)
 APP_SERVICES=("${BACKEND_SERVICES[@]}")
 DS_SERVICES=(ds-demo)
 OTHER_SERVICES=(frontend-strategy frontend-ri)
-UNIT_PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
+UNIT_PATH="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 INTENT="$STATE_DIR/qa-backend-intent"
 HEAL_STATE="$STATE_DIR/qa-heal-state.json"
 START_DIR="$STATE_DIR/qa-started"
@@ -91,7 +91,8 @@ StartLimitBurst=5
 $kind
 WorkingDirectory=$directory
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$HOME/.config/overseer/runtime.env"
+EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
@@ -114,7 +115,8 @@ Description=cl-strategy QA backend watchdog
 [Service]
 Type=oneshot
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$HOME/.config/overseer/runtime.env"
+EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
@@ -145,7 +147,8 @@ Description=cl-strategy QA status dashboard
 [Service]
 Type=simple
 Environment="PATH=$UNIT_PATH"
-EnvironmentFile=-"$HOME/.config/overseer/runtime.env"
+EnvironmentFile=-"$OVERSEER_CONFIG_FILE"
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
 Environment=PYTHONUNBUFFERED=1
