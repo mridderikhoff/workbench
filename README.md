@@ -27,10 +27,9 @@ the saved apps; Start fresh forgets the saved records; both keep branches and wo
 
 ## Why use this?
 
-- **Named URLs per branch:** `http://<branch>.localhost:<port>/` tells you which checkout you're opening.
-- **One place for frontends:** see, open and manage every branch's frontends from the page.
-- **Backend health in view:** the shared backend's status sits next to your tasks.
-- **Agent-friendly:** `wt status --json` gives real ports, units and log commands, so agents can repair a slot without guessing.
+- **Every branch's frontends in one view:** each running frontend gets a named URL, `http://<branch>.localhost:<port>/`, so you always know which branch you're QAing.
+- **Agent-first:** agents start, repair and stop the servers. `wt status --json` gives them real ports, units and log commands, so they don't have to guess.
+- **Backend health at a glance:** the shared backend has a health panel with a Heal button, plus logs your agents can use to repair harder cases.
 
 It earns its place when you compare branches or run tasks in parallel.
 
