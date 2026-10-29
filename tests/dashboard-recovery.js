@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Behavioural checks for the Overseer page's startup and recovery states.
+// Behavioural checks for the Overseer page's startup and recovery states, the first-run tenant prompt and the backend switch.
 // Runs the page's real app script (INITIAL ... poll) from bin/qa-dashboard in a Node vm against small DOM stubs,
 // so the real render(), poll() and click handlers execute. No browser, jsdom or network is involved.
 "use strict";
@@ -57,7 +57,7 @@ function page(opts) {
   const favicons = [];
   const sandbox = {
     document: doc, console, Promise, JSON, Date, Math, Object, Array, String, Number, Set, Error, CustomEvent: function () {},
-    localStorage: { getItem: () => null, setItem() {} }, sessionStorage: { getItem: () => null, setItem() {} },
+    localStorage: { getItem: k => k === "qaDashboardTenant" && opts.tenant || null, setItem() {} }, sessionStorage: { getItem: () => null, setItem() {} },
     location: { search: "" }, QA_PERF: null,
     setInterval: () => 0, clearInterval() {}, clearTimeout() {},
     setTimeout: (fn, ms) => { timers.push(ms); return timers.length },
@@ -391,6 +391,40 @@ test("the fresh-confirm dialog and its styling are gone; Stop confirmation stays
   assert.match(SRC, /id="stop-confirm"/);
   assert.match(SRC, /function confirmStop\(/);
   assert.doesNotMatch(SRC, /\.loading #backend/);
+});
+
+test("first visit asks for the tenant; a saved tenant skips the prompt and fills Settings", () => {
+  const first = page({ fetch: () => new Promise(() => {}) });
+  assert.strictEqual(first.get("tenant-welcome").open, true);
+  assert.strictEqual(first.get("tenant").value, "", "no personal default tenant");
+  const known = page({ tenant: "jsmith", fetch: () => new Promise(() => {}) });
+  assert.strictEqual(known.get("tenant-welcome").open, false);
+  assert.strictEqual(known.get("tenant").value, "jsmith");
+});
+
+test("each session offers to switch the backend to its branch, except the one already on it", async () => {
+  const snap = snapshot([{ slot: 2, branch: "feat/a", apps: [{ app: "ri" }], head: { sha: "aaa111" } },
+                         { slot: 3, branch: "feat/b", apps: [{ app: "ri" }], head: { sha: "bbb222" } },
+                         { slot: 4, branch: "feat/c", apps: [{ app: "ri" }], head: { sha: "ccc999" } }]);
+  Object.assign(snap.backend, { branch: "feat/b", sha: "bbb222" });
+  const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: { action: "attach", target: "feat/a", state: "running", output: [] } }, true, 202) });
+  await p.poll();
+  const html = p.get("slots").children.map(c => c.innerHTML);
+  const card = b => html.find(h => h.includes(">" + b + "<"));
+  assert.match(card("feat/a"), /data-attach="feat\/a"[^>]*>Use for backend</);
+  assert.match(card("feat/b"), /Backend runs this branch/);
+  assert.doesNotMatch(card("feat/b"), /data-attach/);
+  assert.strictEqual(p.run("attachAvailable('feat/b')"), false);
+  snap.backend.branch = "feat/c"; snap.backend.sha = "ccc111";
+  await p.poll();
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend runs an older commit.*>Update backend</);
+  assert.strictEqual(p.run("attachAvailable('feat/c')"), true);
+  p.run("runAction('attach','feat/a')");
+  await new Promise(r => setImmediate(r));
+  const post = p.calls.find(c => c.url === "/api/slot/backend");
+  assert(post, "the switch posts to /api/slot/backend");
+  assert.deepStrictEqual(JSON.parse(post.init.body), { branch: "feat/a" });
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Switching the backend/);
 });
 
 (async () => {

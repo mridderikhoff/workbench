@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Checks the Overseer server's backend Restart action: validation, the exact wt arguments, and the busy refusal.
+"""Checks the Overseer server's backend Restart and session backend-switch actions: validation, the exact wt arguments,
+and the busy refusal.
 A fake runner records what would run, so nothing touches the live backend."""
 import importlib.machinery
 import importlib.util
@@ -59,6 +60,26 @@ for label, headers in [("no page header", {"Origin": f"http://localhost:{PORT}"}
 runner = FakeRunner(busy=True)
 code, body = dashboard.handle_service_restart(runner, {"service": "functions"}, PAGE, PORT, SERVICES)
 check("a second action while one runs gets 409 with the running action", code == 409 and body.get("actions"))
+
+BRANCHES = {"mridderikhoff/STR-1", "t3code/chart"}
+runner = FakeRunner()
+code, body = dashboard.handle_slot_backend(runner, {"branch": "t3code/chart"}, PAGE, PORT, BRANCHES)
+check("a session branch starts `wt qa <branch>` with the branch as target",
+      code == 202 and runner.started == [("attach", ["qa", "t3code/chart"], "t3code/chart")])
+
+for label, payload in [("a branch with no session", {"branch": "develop"}), ("shell text", {"branch": "t3code/chart; rm -rf ~"}),
+                       ("a non-string", {"branch": ["t3code/chart"]}), ("no branch", {}), ("a non-object body", None)]:
+    runner = FakeRunner()
+    code, body = dashboard.handle_slot_backend(runner, payload, PAGE, PORT, BRANCHES)
+    check(f"switching to {label} is refused with 400 and runs nothing", code == 400 and not runner.started)
+
+runner = FakeRunner()
+code, body = dashboard.handle_slot_backend(runner, {"branch": "t3code/chart"}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, PORT, BRANCHES)
+check("a backend switch from a foreign origin is refused with 403", code == 403 and not runner.started)
+
+runner = FakeRunner(busy=True)
+code, body = dashboard.handle_slot_backend(runner, {"branch": "t3code/chart"}, PAGE, PORT, BRANCHES)
+check("a backend switch while another action runs gets 409", code == 409 and not runner.started)
 
 
 class FakeSource:

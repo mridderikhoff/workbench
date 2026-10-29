@@ -208,9 +208,9 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
-.backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
-.backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
-.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
+:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+:is(.backend,.slot-card) button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
+:is(.backend,.slot-card) button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
    Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
 .backend .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
@@ -512,6 +512,8 @@ main::before{transform:none}
 @media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
+.slot-card .slot-backend{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:8px;font:13px/1.35 var(--mono);color:var(--muted)}
+.slot-card .slot-backend button.act{padding:3px 10px;font-size:12.5px}
 </style>
 <script>
 "use strict";
@@ -1396,11 +1398,11 @@ THEMES.terminal = (function () {
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
@@ -1410,8 +1412,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.icon{width:30px;height:28px}',
         T + ' .slot-card button.icon svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
-        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
-        T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .slot-card button.icon:disabled,' + T + ' :is(.backend,.slot-card) button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' :is(.backend,.slot-card) button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
@@ -2252,6 +2254,11 @@ var QA_DESK=(function(){
 <div class="settings-row"><label for="eye-mode">Logo animation</label><select id="eye-mode"></select></div>
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
+<dialog id="tenant-welcome" class="settings confirm-dialog" aria-labelledby="welcome-title" aria-describedby="welcome-message"><form method="dialog">
+<h2 id="welcome-title">Welcome</h2><p id="welcome-message">Which tenant do you sign in to? The RI and Strategy links open under it. You can change it later in Settings.</p>
+<div class="settings-row"><label for="welcome-tenant">Tenant</label><input id="welcome-tenant" placeholder="tenant id" autocomplete="off" required></div>
+<div class="confirm-actions"><button type="button" id="welcome-later">Later</button><button type="submit">Save</button></div>
+</form></dialog>
 <dialog id="stop-confirm" class="settings confirm-dialog" aria-labelledby="stop-title" aria-describedby="stop-message"><form method="dialog">
 <h2 id="stop-title">Stop frontends</h2><p id="stop-message"></p>
 <div class="confirm-actions"><button type="button" id="stop-cancel">Cancel</button><button type="submit" class="danger">Stop</button></div>
@@ -2261,7 +2268,9 @@ var QA_DESK=(function(){
 var INITIAL=/*INITIAL*/null/*END*/;
 var APP_NAMES={ri:"RI","ds-demo":"ds-demo",strategy:"Strategy"};
 var tenantInput=document.getElementById("tenant");
-try{tenantInput.value=localStorage.getItem("qaDashboardTenant")||"mridderikhoff"}catch(e){}
+var storedTenant=null;
+try{storedTenant=localStorage.getItem("qaDashboardTenant")}catch(e){}
+tenantInput.value=storedTenant||"";
 var data=null,lastOk=null,failure=null,actionError=null,pollTimer=null;
 // The user's expand/collapse choice for the backend details applies only while the health it was made under still holds.
 var detailsChoice=null;
@@ -2315,8 +2324,8 @@ var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking back
 function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",restart:"Restart",resume:"Resume sessions",forget:"Start fresh"};
-function actionSubject(a){return a.action==="restart"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Start fresh"};
+function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
   var label=busy?labels[1]:(idle||labels[0]);
@@ -2487,6 +2496,7 @@ function appPill(a){
 function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
+  var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
@@ -2501,6 +2511,10 @@ function renderSlot(s){
     (s.head.uncommitted?' &middot; <span style="color:var(--warn)">'+esc(s.head.uncommitted)+' uncommitted</span>':'')+'</div>';
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
+  if(switching)h+='<div class="stopping-note" role="status">Switching the backend&hellip;</div>';
+  else if(here==="current")h+='<div class="slot-backend">'+dot("ok")+'<span>Backend runs this branch</span></div>';
+  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here==="stale"?dot("warn")+'<span>Backend runs an older commit</span>':"")+
+    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+(here==="stale"?"Update backend":"Use for backend")+'</button></div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
@@ -2691,8 +2705,8 @@ function runAction(name,branch,service){
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
-  if((branch||service)&&data){data.actions={action:service?"restart":"stop",target:service||branch,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
-  var request=branch?{url:"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
+  if((branch||service)&&data){data.actions={action:service?"restart":name,target:service||branch,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
+  var request=branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
       if(data)data.actions=j.actions||before;
@@ -2701,7 +2715,8 @@ function runAction(name,branch,service){
     });
   }).catch(function(e){if(data)data.actions=before;actionError=e.message;render();schedule(1000)});
 }
-// One confirm dialog serves Stop (a session's frontends) and Restart (one backend service); confirmKind says which.
+// One confirm dialog serves Stop (a session's frontends), Attach (the backend to a session's branch) and Restart (one
+// backend service); confirmKind says which. Stop and Attach both name a session branch in stopBranch.
 var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
 function stopAvailable(branch){return!isRunning()&&!!((data&&data.slots)||[]).find(function(slot){return slot.branch===branch&&(slot.apps||[]).length})}
 function confirmStop(branch,opener){
@@ -2719,7 +2734,25 @@ function restartAvailable(service){
   var services=data&&data.backend&&data.backend.services||{},t=services[service]&&serviceTone(services[service]);
   return!isRunning()&&(t==="down"||t==="broken"||t==="attn");
 }
-function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):stopAvailable(stopBranch)}
+// Whether the shared backend runs this session's branch: "current" at its head, "stale" at an older commit, or null.
+function backendOn(s){
+  var b=data&&data.backend;
+  if(!s||!s.branch||!b||b.branch!==s.branch)return null;
+  var mine=s.head&&s.head.sha?String(s.head.sha):"",theirs=b.sha?String(b.sha):"";
+  return mine&&theirs&&mine.indexOf(theirs)!==0&&theirs.indexOf(mine)!==0?"stale":"current";
+}
+function attachAvailable(branch){
+  var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
+  return!isRunning()&&!!slot&&branch!=="develop"&&backendOn(slot)!=="current";
+}
+function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):stopAvailable(stopBranch)}
+function confirmAttach(branch,opener){
+  if(!stopDialog||!stopDialog.showModal||stopDialog.open||!attachAvailable(branch))return;
+  stopBranch=branch;stopOpener=opener;stopSubmitting=false;confirmKind="attach";
+  confirmText("Switch backend","Run the shared backend on "+branch+"? Every session's backend calls go to this branch until you switch back to develop. The backend restarts, which takes a few minutes.","Switch");
+  stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
+  document.getElementById("stop-cancel").focus();
+}
 function confirmRestart(service,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!restartAvailable(service))return;
   restartService=service;stopOpener=opener;stopSubmitting=false;confirmKind="restart";
@@ -2734,6 +2767,10 @@ stopDialog.querySelector("form").addEventListener("submit",function(e){
     if(!restartAvailable(restartService)){stopDialog.close();return}
     stopSubmitting=true;var service=restartService;stopDialog.close();runAction("restart",null,service);return;
   }
+  if(confirmKind==="attach"){
+    if(!attachAvailable(stopBranch)){stopDialog.close();return}
+    stopSubmitting=true;var target=stopBranch;stopDialog.close();runAction("attach",target);return;
+  }
   if(!stopAvailable(stopBranch)){stopDialog.close();return}
   stopSubmitting=true;var branch=stopBranch;stopDialog.close();runAction("stop",branch);
 });
@@ -2745,7 +2782,7 @@ stopDialog.addEventListener("click",function(e){
 stopDialog.addEventListener("close",function(){
   document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
   var opener=stopOpener;
-  var attr=confirmKind==="restart"?"data-restart":"data-stop",value=confirmKind==="restart"?restartService:stopBranch;
+  var attr=confirmKind==="restart"?"data-restart":confirmKind==="attach"?"data-attach":"data-stop",value=confirmKind==="restart"?restartService:stopBranch;
   if(!opener||!opener.isConnected||opener.disabled)opener=Array.from(document.querySelectorAll("["+attr+"]")).find(function(button){return button.getAttribute(attr)===value&&!button.disabled});
   if(!opener)opener=document.getElementById("settings-open");
   if(opener)opener.focus();
@@ -2833,7 +2870,7 @@ document.getElementById("recovery-fresh").addEventListener("click",function(){
   runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy],[data-copy-output],[data-toggle],[data-stop],[data-restart],[data-output],[data-radio]");
+  var t=e.target.closest("[data-action],[data-copy],[data-copy-output],[data-toggle],[data-stop],[data-attach],[data-restart],[data-output],[data-radio]");
   if(!t||t.disabled)return;
   if(t.hasAttribute("data-radio")){
     var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
@@ -2851,6 +2888,7 @@ document.addEventListener("click",function(e){
     var branch=t.getAttribute("data-stop");
     confirmStop(branch,t);
   }
+  else if(t.hasAttribute("data-attach"))confirmAttach(t.getAttribute("data-attach"),t);
   else if(t.hasAttribute("data-restart"))confirmRestart(t.getAttribute("data-restart"),t);
   else if(t.hasAttribute("data-output")){
     outputOpen=!outputOpen;
@@ -2947,6 +2985,21 @@ function hideSingleChoiceRows(){
     var rect=dialog.getBoundingClientRect();
     if(e.target===dialog&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))dialog.close();
   });
+})();
+// The first visit asks for the tenant up front; until one is saved the page asks again on each load.
+(function tenantWelcome(){
+  var dialog=document.getElementById("tenant-welcome"),input=document.getElementById("welcome-tenant");
+  if(storedTenant||!dialog||!dialog.showModal||!input)return;
+  dialog.querySelector("form").addEventListener("submit",function(e){
+    var t=input.value.trim();
+    if(!t){e.preventDefault();return}
+    tenantInput.value=t;
+    try{localStorage.setItem("qaDashboardTenant",t)}catch(err){}
+    render();
+  });
+  document.getElementById("welcome-later").addEventListener("click",function(){dialog.close()});
+  dialog.addEventListener("close",function(){document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}))});
+  buttonFx(dialog);dialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));input.focus();
 })();
 tenantInput.addEventListener("input",function(){
   try{localStorage.setItem("qaDashboardTenant",tenantInput.value)}catch(e){}
@@ -3986,6 +4039,19 @@ def handle_slot_stop(runner, body, headers, port, known_branches):
     return 202, {"actions": runner.snapshot()}
 
 
+def handle_slot_backend(runner, body, headers, port, known_branches):
+    """Switches the shared backend to one session's branch through `wt qa <branch>`; the branch must be a slot in the
+    current status. A person clicks this on the page, which is the human request `wt qa <branch>` needs."""
+    if not same_origin(headers, port):
+        return 403, {"error": "forbidden"}
+    branch = body.get("branch") if isinstance(body, dict) else None
+    if not isinstance(branch, str) or branch not in known_branches or branch.startswith("-"):
+        return 400, {"error": "unknown branch"}
+    if not runner.start("attach", ["qa", branch], target=branch):
+        return 409, {"error": "another action is still running", "actions": runner.snapshot()}
+    return 202, {"actions": runner.snapshot()}
+
+
 def recovery_tokens(body):
     """Validates a recovery selection; returns {slot: fingerprint}, or None when it is malformed."""
     entries = body.get("slots") if isinstance(body, dict) else None
@@ -4084,12 +4150,13 @@ def make_handler(source, runner, port):
                 self.send(403, json.dumps({"error": "forbidden"}), "application/json")
                 return
             raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 65536))
-            if path == "/api/slot/stop":
+            if path in ("/api/slot/stop", "/api/slot/backend"):
                 try:
                     body = json.loads(raw or b"{}")
                 except ValueError:
                     body = None
-                code, body = handle_slot_stop(runner, body, self.headers, port, slot_branches(source))
+                handler = handle_slot_stop if path == "/api/slot/stop" else handle_slot_backend
+                code, body = handler(runner, body, self.headers, port, slot_branches(source))
             elif path == "/api/backend/restart":
                 try:
                     body = json.loads(raw or b"{}")
