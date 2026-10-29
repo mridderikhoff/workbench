@@ -208,7 +208,8 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
-:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px}
+.backend button.act:not(.quiet){margin-bottom:3px}
 :is(.backend,.slot-card) button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
 :is(.backend,.slot-card) button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
@@ -512,8 +513,9 @@ main::before{transform:none}
 @media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
-.slot-card .slot-backend{display:inline-flex;align-items:center;gap:6px;min-height:36px;font:13px/1.35 var(--mono);color:var(--muted)}
-.slot-card .slot-backend button.act{gap:7px;min-height:32px;padding:5px 12px 4px;margin-bottom:4px}
+/* The backend button stretches to the app pills' row height, so every button in the row matches. */
+.slot-card .slot-backend{display:inline-flex;align-items:stretch;min-height:36px}
+.slot-card .slot-backend button.act{gap:7px}
 .slot-card .slot-backend button.act svg{width:16px;height:16px;flex:none}
 .slot-card .slot-backend button.backend-here:disabled{cursor:default}
 </style>
@@ -1414,7 +1416,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.icon svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
         T + ' .slot-card button.icon:disabled,' + T + ' :is(.backend,.slot-card) button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
-        T + ' :is(.backend,.slot-card) button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .backend button.act:not(.quiet){margin-bottom:3px}',
+        T + ' :is(.backend,.slot-card) button.act:not(.quiet){padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
