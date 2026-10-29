@@ -130,6 +130,7 @@ main{position:relative;grid-column:2;grid-row:1;padding:28px 36px 24px}
 main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22px;height:62px;pointer-events:none;background:var(--desk-drip,none) center top/100% 100% no-repeat}
 .sessions-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 2px;font:700 27px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);margin-bottom:14px}
 .sessions-count{font:600 13px/1 var(--mono);letter-spacing:.04em;color:var(--muted);padding:5px 9px 4px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);text-shadow:none}
+.sessions-title[hidden],.slots[hidden]{display:none}
 .slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
@@ -2631,13 +2632,18 @@ function render(){
     if(focusTarget)focusTarget.focus();
   }
   var slots=(data&&data.slots)||[];
-  setText(document.getElementById("sessions-count"),data?String(slots.length):"");
+  // Saved recovery slots belong to the recovery picker only; the Sessions section lists everything else.
+  var liveSlots=slots.filter(function(slot){return!slot.recovery}),savedOnly=!!data&&slots.length>0&&!liveSlots.length;
+  setText(document.getElementById("sessions-count"),data?String(liveSlots.length):"");
+  document.getElementById("sessions-title").hidden=savedOnly;
   if(stopDialog&&stopDialog.open&&!confirmAvailable())stopDialog.close();
-  var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
-  hint.hidden=!slots.length;setHtml(hint,hintHtml);
+  var hint=document.getElementById("hint"),hintHtml=liveSlots.length?"To start another session, "+START_HINT+".":"";
+  hint.hidden=!liveSlots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
+  slotsBox.hidden=savedOnly;
   var cards=!data?[{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Saved sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
-    slots.length?sortedSlots(slots).map(renderSlot):
+    liveSlots.length?sortedSlots(liveSlots).map(renderSlot):
+    savedOnly?[]:
     [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
   var changedCards=reconcileCards(slotsBox,cards);
   renderRecovery();
@@ -2652,7 +2658,7 @@ function render(){
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
   var unhealthy=failure||(backend&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
-  var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
+  var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+liveSlots.length+" session"+(liveSlots.length===1?"":"s");
   if(document.title!==title)document.title=title;
   var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":" - retrying")+": "+failure:"";
   setText(document.getElementById("updated"),updatedText());

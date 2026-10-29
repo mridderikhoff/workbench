@@ -129,8 +129,11 @@ test("initial failure: status unavailable and retrying, not empty or down; later
   assert(p.timers.length >= 1, "a retry is scheduled");
   await p.poll();
   assert.strictEqual(p.run("failure"), null);
-  assert.strictEqual(p.text("sessions-count"), "1");
-  assert(/b2/.test(cards(p)) && !/Status unavailable/.test(cards(p)));
+  assert.strictEqual(p.text("sessions-count"), "0");
+  assert.strictEqual(cards(p), "", "a saved slot is not also a session card");
+  assert.strictEqual(p.get("sessions-title").hidden, true);
+  assert.strictEqual(p.get("slots").hidden, true);
+  assert.strictEqual(p.get("hint").hidden, true);
   assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"'), true);
 });
 
@@ -140,6 +143,62 @@ test("a valid snapshot with slots[] empty shows the true empty card", async () =
   assert.match(cards(p), /No sessions running/);
   assert.strictEqual(p.text("sessions-count"), "0");
   assert.strictEqual(p.run("pageHealth()"), "ok");
+});
+
+test("saved slots appear only in the recovery picker; live slots keep their cards and count", async () => {
+  const live = { slot: 5, branch: "live5", apps: [{ app: "ri" }], worktree: "/w/live5" };
+  const bodies = [snapshot([saved(2), saved(3)]), snapshot([saved(2), live]), snapshot([live]), snapshot([saved(2)]), snapshot([])];
+  const p = page({ fetch: () => jsonResponse(bodies.shift()) });
+  const title = () => p.sandbox.document.title;
+
+  await p.poll(); // saved only: no Sessions section, no empty-state card
+  assert.strictEqual(p.get("recovery").hidden, false);
+  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"') && p.html("recovery-rows").includes('data-slot="3"'), true);
+  assert.strictEqual(cards(p), "");
+  assert.doesNotMatch(cards(p), /No sessions running/);
+  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [true, true, true]);
+  assert.strictEqual(p.text("sessions-count"), "0");
+  assert.strictEqual(title(), "Overseer · 0 sessions");
+
+  await p.poll(); // mixed: only the live slot is a card and is counted
+  assert.strictEqual(p.get("recovery").hidden, false);
+  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"'), true);
+  assert.strictEqual(p.get("slots").children.length, 1);
+  assert(/live5/.test(cards(p)) && !/b2/.test(cards(p)));
+  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [false, false, false]);
+  assert.match(p.html("hint"), /To start another session/);
+  assert.strictEqual(p.text("sessions-count"), "1");
+  assert.strictEqual(title(), "Overseer · 1 session");
+
+  await p.poll(); // recovery flags cleared, live remains: normal UI, picker gone
+  assert.strictEqual(p.get("recovery").hidden, true);
+  assert(/live5/.test(cards(p)));
+  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [false, false, false]);
+  assert.strictEqual(p.text("sessions-count"), "1");
+
+  await p.poll(); // back to saved only
+  assert.strictEqual(p.get("recovery").hidden, false);
+  assert.strictEqual(cards(p), "");
+  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [true, true, true]);
+
+  await p.poll(); // saved slot resumed or forgotten and gone: the true empty state
+  assert.strictEqual(p.get("recovery").hidden, true);
+  assert.match(cards(p), /No sessions running/);
+  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden], [false, false]);
+  assert.strictEqual(p.text("sessions-count"), "0");
+});
+
+test("saved slots return to session cards once their recovery flags clear", async () => {
+  const cleared = slot => Object.assign({}, slot, { recovery: undefined });
+  const bodies = [snapshot([saved(2)]), snapshot([cleared(saved(2))])];
+  const p = page({ fetch: () => jsonResponse(bodies.shift()) });
+  await p.poll();
+  assert.strictEqual(cards(p), "");
+  await p.poll();
+  assert.strictEqual(p.get("recovery").hidden, true);
+  assert(/b2/.test(cards(p)), "a slot without recovery is a normal card");
+  assert.strictEqual(p.get("sessions-title").hidden, false);
+  assert.strictEqual(p.text("sessions-count"), "1");
 });
 
 test("a later failed poll keeps the last snapshot, its cards, its backend and a stale banner", async () => {
@@ -152,7 +211,7 @@ test("a later failed poll keeps the last snapshot, its cards, its backend and a 
   assert.strictEqual(p.text("banner"), "Status unavailable - showing stale data: late");
   assert.strictEqual(p.run("window.QA_ROLLUP"), "ok");
   assert.doesNotMatch(p.html("backend"), /unavailable|No backend data/);
-  assert.match(p.sandbox.document.title, /^\(!\) Overseer · 1 session$/);
+  assert.match(p.sandbox.document.title, /^\(!\) Overseer · 0 sessions$/);
   assert(p.run("radioMessages(data,failure,actionError)").some(m => /Showing the last data/.test(m.text)));
   await p.poll(); // a 502 whose body is not JSON is still a plain HTTP failure
   assert.strictEqual(p.text("banner"), "Status unavailable - showing stale data: HTTP 502");
