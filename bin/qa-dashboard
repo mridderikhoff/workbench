@@ -241,7 +241,7 @@ background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inse
 .backend-details{margin:6px 0 0 12px;padding:6px 0 0 9px;border-left:1px dashed var(--edge-lo2)}
 .backend-details[hidden],.output-log[hidden]{display:none}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
-.backend .action-result{margin:12px 0 0}
+.backend .action-result{margin:12px 0 0;padding-top:9px;border-top:1px dashed var(--edge-lo2)}
 .backend .svc{display:grid;grid-template-columns:18px 6.5em minmax(0,1fr);gap:1px 8px;align-items:center}
 .backend .svc>*{min-width:0}
 .backend .svc .name{min-width:0}
@@ -851,7 +851,7 @@ var THEMES = {
         D + ' .backend{background:radial-gradient(circle at calc(100% - 19px) 19px,var(--desk-floor) 0 3.6px,#e4c06a 4.2px,#9d742a 6.2px,#3c2a0c 7.4px,transparent 8px),var(--stock)}',
         // Seams are saddle-stitched: a pressed groove with angled waxed-thread stitches, instead of a drawn dashed line.
         D + '{--stitch-seam:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%277%27%3E%3Crect y=%273%27 width=%2712%27 height=%271.2%27 fill=%27%23000%27 fill-opacity=%27.42%27/%3E%3Crect y=%274.2%27 width=%2712%27 height=%27.6%27 fill=%27%23fff%27 fill-opacity=%27.07%27/%3E%3Ccircle cx=%271.4%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Ccircle cx=%279.6%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Cg transform=%27rotate(-9 5.5 3.5)%27%3E%3Crect x=%271.8%27 y=%272.5%27 width=%277.4%27 height=%272%27 rx=%271%27 fill=%27%238f7450%27/%3E%3Crect x=%272.6%27 y=%272.7%27 width=%275.6%27 height=%27.6%27 rx=%27.3%27 fill=%27%23e6d2a6%27 fill-opacity=%27.4%27/%3E%3C/g%3E%3C/svg%3E\")}',
-        D + ' :is(.hint,.masthead-tools,.backend .meta,.backend-details,.settings-actions,.confirm-actions){border-top:0;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
+        D + ' :is(.hint,.masthead-tools,.backend .meta,.backend .action-result,.backend-details,.settings-actions,.confirm-actions){border-top:0;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
         D + ' .settings-rule{border:0;height:7px;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
         // Tags: a luggage-tag cut with a brass eyelet; a stopped tag has lost its brass.
         D + ' .app-pill{--tag-shape:polygon(13px 0,100% 0,100% 100%,13px 100%,0 calc(100% - 11px),0 11px);--tag-face:var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
