@@ -515,6 +515,7 @@ main::before{transform:none}
 .slot-card .slot-backend{display:inline-flex;align-items:center;gap:6px;min-height:36px;font:13px/1.35 var(--mono);color:var(--muted)}
 .slot-card .slot-backend button.act{gap:7px;min-height:32px;padding:5px 12px 4px;margin-bottom:4px}
 .slot-card .slot-backend button.act svg{width:16px;height:16px;flex:none}
+.slot-card .slot-backend button.backend-here:disabled{cursor:default}
 </style>
 <script>
 "use strict";
@@ -2503,8 +2504,8 @@ function renderSlot(s){
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
-  // The backend switch sits with the app pills: a button, or a note when the backend already runs this branch's head.
-  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?dot("ok")+'<span>Backend on this branch</span>':
+  // The backend switch sits with the app pills; when the backend already runs this branch's head it stays, disabled, as the note.
+  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="act backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
     '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
       'Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>')+'</span>';
   h+='</div>';
