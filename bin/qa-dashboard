@@ -208,20 +208,19 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
-:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px}
-.backend button.act:not(.quiet){margin-bottom:3px}
-:is(.backend,.slot-card) button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
-:is(.backend,.slot-card) button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
+.backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+.backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
+.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
    Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
-.backend .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
+:is(.backend,.slot-backend) .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
 font:700 14px/1 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--key-ink);
 background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--key-wall),0 5px 6px -2px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}
-.backend .update-btn .behind-badge{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px 4px;border-radius:3px;font:600 12px/1 var(--mono);letter-spacing:.02em;text-transform:none;color:var(--badge-ink);background:var(--badge-bg);box-shadow:var(--sunk)}
-.backend .update-btn:hover:not(:disabled),.backend .update-btn:focus-visible{border-color:transparent;color:var(--key-hover-ink);background:var(--key-hover-face) padding-box,var(--key-rim) border-box;transform:translateY(-1px);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--key-wall),0 7px 8px -2px var(--contact)}
-.backend .update-btn:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--well),0 0 0 var(--key-wall),0 1px 2px var(--contact)}
-.backend .update-btn:focus-visible{box-shadow:var(--ring),inset 0 1px 0 var(--btn-hi),0 4px 0 var(--key-wall)}
-.backend .update-btn:disabled{cursor:progress;transform:translateY(2px);opacity:.62;box-shadow:inset 0 1px 0 var(--btn-hi),0 1px 0 var(--key-wall)}
+:is(.backend,.slot-backend) .update-btn .behind-badge{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px 4px;border-radius:3px;font:600 12px/1 var(--mono);letter-spacing:.02em;text-transform:none;color:var(--badge-ink);background:var(--badge-bg);box-shadow:var(--sunk)}
+:is(.backend,.slot-backend) .update-btn:hover:not(:disabled),:is(.backend,.slot-backend) .update-btn:focus-visible{border-color:transparent;color:var(--key-hover-ink);background:var(--key-hover-face) padding-box,var(--key-rim) border-box;transform:translateY(-1px);box-shadow:inset 0 1px 0 var(--btn-hi),0 4px 0 var(--key-wall),0 7px 8px -2px var(--contact)}
+:is(.backend,.slot-backend) .update-btn:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--well),0 0 0 var(--key-wall),0 1px 2px var(--contact)}
+:is(.backend,.slot-backend) .update-btn:focus-visible{box-shadow:var(--ring),inset 0 1px 0 var(--btn-hi),0 4px 0 var(--key-wall)}
+:is(.backend,.slot-backend) .update-btn:disabled{cursor:progress;transform:translateY(2px);opacity:.62;box-shadow:inset 0 1px 0 var(--btn-hi),0 1px 0 var(--key-wall)}
 /* Show/Hide details: a small toggle key; expanded, it stays pressed in and its chevron points down. */
 .backend .toggle{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 10px 4px 7px;border:1px solid var(--toggle-edge,var(--border));border-radius:4px;background:transparent;color:var(--muted);font:600 13px/1 var(--serif);font-variant:var(--head-variant);letter-spacing:.03em;box-shadow:0 1px 0 var(--emb-hi);transition:transform var(--dur-fast) var(--ease-out)}
 .backend .toggle .chev{display:inline-flex;width:12px;height:12px;flex:none;transition:transform var(--dur) var(--ease-out)}
@@ -359,7 +358,7 @@ button.icon:active{transform:translateY(1px)}
    its label: the fill and the copy move together by transform only, so the label reads in the effect's ink as the fill passes.
    seep: a wet band rises in from the left along the bottom third, and the label copy is clipped to it; one drop falls.
    charge: a stepped bar of --charge charges across and the label inverts. blocks: the same in whole blocks with a ▓▒░ edge. */
-:is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label){position:relative;isolation:isolate}
+:is(button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label){position:relative;isolation:isolate}
 .bfx{position:absolute;inset:0;z-index:1;display:block;overflow:hidden;padding:inherit;border-radius:inherit;pointer-events:none;justify-content:inherit;gap:inherit}
 .bfx-fill{position:absolute;inset:0;padding:inherit;overflow:hidden;justify-content:inherit;gap:inherit;transform:translateX(-101%);transition:transform var(--dur-fast) steps(4,end)}
 .bfx-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:inherit;gap:inherit;padding:inherit;color:var(--fx-ink);transform:translateX(101%);transition:inherit}
@@ -375,10 +374,10 @@ background:conic-gradient(var(--charge) 0 75%,transparent 0) 0 0/3px 3px;-webkit
 html[data-button-hover="seep"] .bfx{--fx-ink:var(--seep-ink)}
 html[data-button-hover="seep"] .bfx-fill{inset:auto 0 0 0;height:30%;padding-top:0;padding-bottom:0;background:var(--seep);transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
 html[data-button-hover="seep"] .bfx-text{inset:auto 0 0 0;height:333.34%;transform:translateX(102%)}
-:is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
-html[data-button-hover="blocks"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
+:is(button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="blocks"] :is(button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
 .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text),html[data-button-hover="blocks"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx::after{transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
-html[data-button-hover="seep"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="seep"] :is(button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
 html[data-button-hover="seep"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text){transition-timing-function:var(--ease-out)}
 html[data-button-hover="seep"] .settings .segmented label:has(input:checked) > .bfx{display:none}
 /* press: no fill. The legend copy (in --legend-lit, with a --legend-glow halo) fades in over the label, so the key looks backlit;
@@ -389,7 +388,7 @@ html[data-button-hover="press"] .bfx-text{transform:none;text-shadow:var(--legen
 html[data-button-hover="press"] .bfx-text *{text-shadow:inherit!important}
 html[data-button-hover="press"] .bfx-text svg{filter:drop-shadow(0 0 2px var(--legend-halo,transparent))}
 html[data-button-hover="press"] .bfx-text .behind-badge{visibility:hidden}
-html[data-button-hover="press"] :is(button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx .bfx-fill,
+html[data-button-hover="press"] :is(button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx .bfx-fill,
 html[data-button-hover="press"] .settings .segmented label:is(:hover,:has(input:focus-visible),:has(input:checked),.fx-settled) > .bfx .bfx-fill{opacity:1;transition-duration:var(--dur);transition-timing-function:var(--ease-out)}
 .bfx-drip{z-index:2}
 /* Two focus rings: the surface colour, then a contrasting accent, so focus shows on every texture. */
@@ -513,11 +512,11 @@ main::before{transform:none}
 @media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
-/* The backend button stretches to the app pills' row height, so every button in the row matches. */
+/* The backend button is the Backend card's update button, stretched to the app pills' row height so the row matches. */
 .slot-card .slot-backend{display:inline-flex;align-items:stretch;min-height:36px}
-.slot-card .slot-backend button.act{gap:7px}
-.slot-card .slot-backend button.act svg{width:16px;height:16px;flex:none}
-.slot-card .slot-backend button.backend-here:disabled{cursor:default}
+.slot-card .slot-backend .update-btn{margin:0}
+.slot-card .slot-backend .update-btn svg{width:16px;height:16px;flex:none}
+.slot-card .slot-backend .backend-here:disabled{cursor:default}
 </style>
 <script>
 "use strict";
@@ -903,16 +902,16 @@ var THEMES = {
         D + ' .sessions-title .sessions-count::before{content:"";position:absolute;inset:2px;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--slot-stitch) 8 / 4px round}',
         // The update button is a manila tag like the app pills: card stock cut with a brass eyelet, the behind count stamped
         // on it in sepia ink (being behind is not an error, so it is never red). It lifts on hover and squashes on press.
-        D + ' .backend .update-btn{--tag-shape:polygon(12px 0,100% 0,100% 100%,12px 100%,0 calc(100% - 10px),0 10px);min-height:36px;padding:6px 12px 6px 27px;border:0;border-radius:0;background:none;color:var(--tag-ink);box-shadow:none;font-size:15px;transform:rotate(-1deg)}',
-        D + ' .backend .update-btn::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape);background:radial-gradient(circle at 14px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px),var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px)}',
-        D + ' .backend .update-btn::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape);background:var(--tag-edge)}',
-        D + ' .backend .update-btn .bfx{clip-path:var(--tag-shape);border-radius:0}',
+        D + ' :is(.backend,.slot-backend) .update-btn{--tag-shape:polygon(12px 0,100% 0,100% 100%,12px 100%,0 calc(100% - 10px),0 10px);min-height:36px;padding:6px 12px 6px 27px;border:0;border-radius:0;background:none;color:var(--tag-ink);box-shadow:none;font-size:15px;transform:rotate(-1deg)}',
+        D + ' :is(.backend,.slot-backend) .update-btn::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape);background:radial-gradient(circle at 14px 50%,var(--desk-floor) 0 2.6px,#e8c470 3.2px,#a37a2c 4.8px,#4a3410 5.8px,transparent 6.4px),var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px)}',
+        D + ' :is(.backend,.slot-backend) .update-btn::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape);background:var(--tag-edge)}',
+        D + ' :is(.backend,.slot-backend) .update-btn .bfx{clip-path:var(--tag-shape);border-radius:0}',
         // The stamp is inked hard enough to read: full-strength sepia, upright capitals at 13px, and only a light grit in the ink.
-        D + ' .backend .update-btn .behind-badge{padding:5px 7px 3px;border:2px solid currentColor;border-radius:4px;background:color-mix(in srgb,var(--stamp-ink) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--stamp-ink) 30%,transparent);color:var(--stamp-ink);font:800 13px/1 var(--serif);font-variant:normal;text-transform:uppercase;letter-spacing:.07em;transform:rotate(-4deg);-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94))}',
-        D + ' .backend .update-btn:hover:not(:disabled),' + D + ' .backend .update-btn:focus-visible{background:none;color:var(--tag-ink);transform:translateY(-2px) rotate(-1.6deg);box-shadow:none}',
-        D + ' .backend .update-btn:focus-visible{box-shadow:var(--ring)}',
-        D + ' .backend .update-btn:active:not(:disabled){transform:translateY(1px) scale(.97);box-shadow:none}',
-        D + ' .backend .update-btn:disabled{transform:rotate(-1deg);opacity:.6;box-shadow:none}',
+        D + ' :is(.backend,.slot-backend) .update-btn .behind-badge{padding:5px 7px 3px;border:2px solid currentColor;border-radius:4px;background:color-mix(in srgb,var(--stamp-ink) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--stamp-ink) 30%,transparent);color:var(--stamp-ink);font:800 13px/1 var(--serif);font-variant:normal;text-transform:uppercase;letter-spacing:.07em;transform:rotate(-4deg);-webkit-mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94));mask:var(--desk-grit,none) 0 0/120px repeat,linear-gradient(rgba(0,0,0,.94),rgba(0,0,0,.94))}',
+        D + ' :is(.backend,.slot-backend) .update-btn:hover:not(:disabled),' + D + ' :is(.backend,.slot-backend) .update-btn:focus-visible{background:none;color:var(--tag-ink);transform:translateY(-2px) rotate(-1.6deg);box-shadow:none}',
+        D + ' :is(.backend,.slot-backend) .update-btn:focus-visible{box-shadow:var(--ring)}',
+        D + ' :is(.backend,.slot-backend) .update-btn:active:not(:disabled){transform:translateY(1px) scale(.97);box-shadow:none}',
+        D + ' :is(.backend,.slot-backend) .update-btn:disabled{transform:rotate(-1deg);opacity:.6;box-shadow:none}',
         // Headings and branch names are hot-stamped in gold foil: a static metallic fill (repeated per line), a dark rim where the die
         // bit into the stock and a faint lip of light below it. text-shadow would paint over a text-clipped fill, so the rim is a
         // pair of unblurred drop-shadows on these few small elements.
@@ -1150,12 +1149,12 @@ THEMES.neon = (function () {
       N + ' .slotno-v{color:inherit;font-size:13px}',
       N + ' .sessions-title .sessions-count{align-self:center;font-size:13px;text-shadow:none}',
       // The update key and the details toggle are keycaps in the plate's mono type; the behind count is an inset LED.
-      N + ' .backend .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
-      N + ' .backend .update-btn{font-size:13px;border-radius:5px}',
+      N + ' :is(.backend,.slot-backend) .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
+      N + ' :is(.backend,.slot-backend) .update-btn{font-size:13px;border-radius:5px}',
       N + ' .backend .toggle{font-size:11.5px}',
       N + ' .backend .output-toggle{font-size:11px}',
       N + ' .backend .toggle .chev{color:var(--ink2)}',
-      N + ' .backend .update-btn .behind-badge{background:' + scan + ',var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 55%,transparent);box-shadow:inset 0 1px 3px #000}',
+      N + ' :is(.backend,.slot-backend) .update-btn .behind-badge{background:' + scan + ',var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 55%,transparent);box-shadow:inset 0 1px 3px #000}',
       // The chosen Appearance segment is lit like a charged key.
       N + ' .settings .segmented label:has(input:checked){background:var(--charge);color:var(--charge-ink);box-shadow:0 2px 0 var(--btn-edge),0 3px 4px var(--contact)}',
       // The open select list is the same dark acrylic, edged with a hairline of the second ink.
@@ -1401,11 +1400,11 @@ THEMES.terminal = (function () {
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
@@ -1415,21 +1414,20 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.icon{width:30px;height:28px}',
         T + ' .slot-card button.icon svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
-        T + ' .slot-card button.icon:disabled,' + T + ' :is(.backend,.slot-card) button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
-        T + ' .backend button.act:not(.quiet){margin-bottom:3px}',
-        T + ' :is(.backend,.slot-card) button.act:not(.quiet){padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
         T + ' .settings .segmented label{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em}',
         // The update key: the same travel, on its own taller wall; the behind count is an amber readout set into it.
-        T + ' .backend .update-btn,' + T + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
-        T + ' .backend .update-btn{font-size:13px;border-radius:5px}',
-        T + ' .backend .update-btn:hover:not(:disabled),' + T + ' .backend .update-btn:is(:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),0 1.5px 0 var(--key-wall),0 2px 3px -1px var(--contact)}',
-        T + ' .backend .update-btn:focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--key-wall)}',
+        T + ' :is(.backend,.slot-backend) .update-btn,' + T + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
+        T + ' :is(.backend,.slot-backend) .update-btn{font-size:13px;border-radius:5px}',
+        T + ' :is(.backend,.slot-backend) .update-btn:hover:not(:disabled),' + T + ' :is(.backend,.slot-backend) .update-btn:is(:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),0 1.5px 0 var(--key-wall),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.backend,.slot-backend) .update-btn:focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--key-wall)}',
         T + ' .backend .toggle{min-height:28px;padding:5px 11px 4px 9px;font-size:11.5px}',
         T + ' .backend .toggle .chev{color:currentColor}',
-        T + ' .backend .update-btn .behind-badge{background:var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 50%,transparent);box-shadow:inset 0 1px 3px #000}',
+        T + ' :is(.backend,.slot-backend) .update-btn .behind-badge{background:var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 50%,transparent);box-shadow:inset 0 1px 3px #000}',
         T + ' .sessions-title,' + T + ' .settings h2{letter-spacing:.12em}',
         T + ' .settings select::picker(select){outline:1.5px solid var(--groove);outline-offset:-6px}',
         T + ' .settings option{font:14px/1.3 var(--mono);letter-spacing:.04em}'
@@ -2444,7 +2442,7 @@ var PILL_HOVERS={
 // Button hover effects (the theme's buttonHover): every button gets a copy of its label inside a fill layer, so the effect
 // moves by transform only and the label stays readable as the fill passes. CSS picks the look from data-button-hover; the
 // seep also gets a drop that falls once per hover, with a cooldown.
-var FX_BUTTONS="button.icon,button.act,.backend .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label";
+var FX_BUTTONS="button.icon,button.act,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label";
 function buttonFx(root){
   var kind=QA_THEME.buttonHover();
   Array.prototype.forEach.call((root||document).querySelectorAll(FX_BUTTONS),function(button){
@@ -2508,8 +2506,8 @@ function renderSlot(s){
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
   // The backend switch sits with the app pills; when the backend already runs this branch's head it stays, disabled, as the note.
-  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="act backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
-    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
+  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="update-btn backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
+    '<button type="button" class="update-btn" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
       'Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>')+'</span>';
   h+='</div>';
   if(s.head)h+='<div class="muted small head-line" title="'+esc(s.head.subject||"")+'"><code>'+esc(s.head.sha)+'</code>'+
