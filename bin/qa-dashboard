@@ -2872,7 +2872,10 @@ function pageHealth(){
   if(!data)return"unknown";
   var tones=[],backend=data.backend;
   if(backend)tones.push(backendTone(backend));
-  (data.slots||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){tones.push(appStatus(a).tone)})});
+  (data.slots||[]).forEach(function(slot){(slot.apps||[]).forEach(function(a){
+    // A ready app remains usable while rebuilding; the pill still shows its build activity.
+    tones.push(a.httpReady&&a.build&&a.build.state==="building"?"ok":appStatus(a).tone);
+  })});
   var worst=worstTone(tones);
   return worst==="unknown"?"unknown":worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
 }

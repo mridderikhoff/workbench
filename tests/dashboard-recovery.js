@@ -303,6 +303,20 @@ test("a real but unknown snapshot keeps the page health neutral, not healthy", a
   assert.strictEqual(healthy.run("pageHealth()"), "ok");
 });
 
+test("rebuilding ready apps keep a healthy favicon while build failures and startup still warn", async () => {
+  for (const [app, health, pill] of [
+    [{ httpReady: true, build: { state: "building" } }, "ok", /rebuilding/],
+    [{ httpReady: true, build: { state: "failed" } }, "bad", /build failed/],
+    [{ httpReady: false, unitState: "active", build: { state: "building" } }, "warn", /starting/],
+  ]) {
+    const p = page({ fetch: () => jsonResponse(snapshot([{ slot: 2, branch: "build", apps: [{ app: "ri", ...app }] }])) });
+    await p.poll();
+    assert.strictEqual(p.run("pageHealth()"), health);
+    assert.strictEqual(p.favicons[p.favicons.length - 1], health);
+    assert.match(cards(p), pill);
+  }
+});
+
 test("Resume and Start fresh act directly with their payloads; a second click is blocked; no automatic POST", async () => {
   const posts = [];
   const p = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body), headers: init.headers }); return new Promise(() => {}) } return jsonResponse(recoverySnapshot()) } });
