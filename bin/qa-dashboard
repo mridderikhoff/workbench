@@ -208,9 +208,9 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
-:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
-:is(.backend,.slot-card) button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
-:is(.backend,.slot-card) button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
+.backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+.backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
+.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
    Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
 .backend .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
@@ -513,7 +513,6 @@ main::before{transform:none}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
 .slot-card .slot-backend{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:8px;font:13px/1.35 var(--mono);color:var(--muted)}
-.slot-card .slot-backend button.act{padding:3px 10px;font-size:12.5px}
 </style>
 <script>
 "use strict";
@@ -572,7 +571,7 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 busy is a loader for an action in progress (elements .busy-a/.busy-b/.busy-c step in turn, .busy-spin turns),
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle; awake (optional) has a .glyph-pupil group that follows
                 the cursor while a ready app pill is hovered
-  actionIcons   {copy, terminal, stop, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
+  actionIcons   {copy, terminal, stop, backend, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
                 the selected option in a select list, drawn as a mask in --picker-check (sized by --check-size, default 14px)
   settingsIcon  SVG string for the settings button; chevron (optional) the details toggle arrow (12-unit box)
   wordmarkStroke  optional false: no brush underline under the wordmark (Horror: the eye already drips onto it)
@@ -817,6 +816,8 @@ var THEMES = {
       terminal: inkIcon('<rect x="3" y="4.5" width="18" height="15" rx="1.5" stroke-width="2"/><path d="m7 10 3 2.5L7 15M12.5 15.5h4.5" stroke-width="2.1"/>'),
       // A stop sign: a brush-inked octagon (the stroke overshoots where the brush lifted) with a heavy bar struck across it.
       stop: inkIcon('<path d="M8.3 2.6h7.6l5.5 5.6v7.6l-5.6 5.6H8.2l-5.6-5.6V8.1L8 2.7l1.1-.3" stroke-width="2.1"/><path d="M7.2 12.2c3-.5 6.6-.6 9.7-.2" stroke-width="3"/>'),
+      // The backend: two brush-inked server units, each with a lamp and a vent slot; the top one's stroke runs past its corner.
+      backend: inkIcon('<path d="M5 3.6h14.2a1.5 1.5 0 0 1 1.5 1.5v4.2a1.5 1.5 0 0 1-1.5 1.5H4.8a1.5 1.5 0 0 1-1.5-1.5V5.1c0-.9.5-1.4 1.4-1.6l.9-.4" stroke-width="2"/><rect x="3.3" y="13.3" width="17.4" height="7.2" rx="1.5" stroke-width="2"/><path d="M7 7.2h.1M7 16.9h.1" stroke-width="2.8"/><path d="M11 7.2h6M11 16.9h6" stroke-width="1.7"/>'),
       // A tick written in blood: a heavy, pooled start, a thin tapered flick with a slightly uneven edge, and a bead where the brush lifted.
       check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" fill-rule="evenodd"><path d="M1.70 12.20C1.8 11.72 2.2 11.17 2.6 10.9C3 10.63 3.58 10.53 4.1 10.6C4.62 10.67 5.2 10.95 5.7 11.3C6.2 11.65 6.67 12.22 7.1 12.7C7.53 13.18 7.93 13.78 8.3 14.2C8.67 14.62 8.95 15.3 9.3 15.2C9.65 15.1 9.92 14.27 10.4 13.6C10.88 12.93 11.53 12.02 12.2 11.2C12.87 10.38 13.67 9.47 14.4 8.7C15.13 7.93 15.88 7.23 16.6 6.6C17.32 5.97 18.08 5.37 18.7 4.9C19.32 4.43 19.97 3.9 20.3 3.8C20.63 3.7 20.92 3.92 20.7 4.3C20.48 4.68 19.62 5.42 19 6.1C18.38 6.78 17.65 7.6 17 8.4C16.35 9.2 15.67 10.12 15.1 10.9C14.53 11.68 13.93 12.67 13.6 13.1C13.27 13.53 13.3 13.22 13.1 13.5C12.9 13.78 12.72 14.18 12.4 14.8C12.08 15.42 11.55 16.52 11.2 17.2C10.85 17.88 10.62 18.5 10.3 18.9C9.98 19.3 9.65 19.55 9.3 19.6C8.95 19.65 8.63 19.5 8.2 19.2C7.77 18.9 7.23 18.28 6.7 17.8C6.17 17.32 5.57 16.77 5 16.3C4.43 15.83 3.8 15.42 3.3 15C2.8 14.58 2.27 14.27 2 13.8C1.73 13.33 1.6 12.68 1.7 12.2ZM3.7 12.7C4.9 13 6.3 14 7.7 15.6C6.2 14.4 4.9 13.6 3.7 12.7Z"/><circle cx="20.9" cy="3.7" r="1.1"/><circle cx="22.4" cy="2.3" r=".38"/></svg>'
     },
@@ -1067,11 +1068,12 @@ THEMES.neon = (function () {
       unknown: bitIcon(BITS.unknown), awake: bitIcon(BITS.reticle, BITS.pupil),
       // busy: a pixel spinner, a ring of blocks with a fading tail, turned a quarter at a time so the pixels stay crisp.
       busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><g class="busy-spin"><path d="M9.5 2h5v5h-5z"/><path d="M17 4.5h4.5V9H17z" fill-opacity=".9"/><path d="M17 9.5h5v5h-5z" fill-opacity=".8"/><path d="M17 15h4.5v4.5H17z" fill-opacity=".72"/><path d="M9.5 17h5v5h-5z" fill-opacity=".64"/><path d="M2.5 15H7v4.5H2.5z" fill-opacity=".58"/><path d="M2 9.5h5v5H2z" fill-opacity=".54"/><path d="M2.5 4.5H7V9H2.5z" fill-opacity=".5"/></g></svg>'},
-    // Pixel action icons: the copy sheets, the terminal window and a stop sign.
+    // Pixel action icons: the copy sheets, the terminal window, a stop sign and the backend's two server units.
     actionIcons: {
       copy: plate('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
       terminal: plate('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
       stop: plate('<path d="M8 1h8v2h2v2h2v2h2v10h-2v2h-2v2h-2v2H8v-2H6v-2H4v-2H2V7h2V5h2V3h2zM9 4v2H7v2H5v8h2v2h2v2h6v-2h2v-2h2V8h-2V6h-2V4z"/><path d="M7 10h10v4H7z"/>'),
+      backend: plate('<path d="M2 2h20v9H2zm3 3v3h3V5zm5 1v2h9V6zM2 13h20v9H2zm3 3v3h3v-3zm5 1v2h9v-2z"/>'),
       // A chunky pixel tick.
       check: bitIcon([".......##", "......###", ".....###.", "##..###..", "###.##...", ".#####...", "..###....", "...#....."])
     },
@@ -1275,6 +1277,8 @@ THEMES.terminal = (function () {
       terminal: bitIcon(["##########", "##########", "#........#", "#.#......#", "#..#.....#", "#.#..###.#", "#........#", "##########"]),
       // A stop sign in blocks: a solid octagon with a bar knocked out of it.
       stop: bitIcon(["...######...", "..########..", ".##########.", "############", "############", "##........##", "##........##", "############", "############", ".##########.", "..########..", "...######..."]),
+      // The backend in blocks: two server units, each with a lamp and a vent.
+      backend: bitIcon(["##########", "#.##.....#", "#.##.###.#", "##########", "..........", "##########", "#.##.###.#", "#.##.....#", "##########"]),
       // The code page 437 check mark (the square-root sign), in blocks.
       check: bitIcon([".......##", "......##.", "......##.", ".....##..", "##...##..", ".##.##...", "..###....", "...#....."])
     },
@@ -1398,11 +1402,11 @@ THEMES.terminal = (function () {
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
@@ -1412,8 +1416,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.icon{width:30px;height:28px}',
         T + ' .slot-card button.icon svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
-        T + ' .slot-card button.icon:disabled,' + T + ' :is(.backend,.slot-card) button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
-        T + ' :is(.backend,.slot-card) button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
@@ -1836,7 +1840,7 @@ var QA_THEME = (function () {
 // (a leak), and WCAG contrast failures for text and paired inks in both schemes. A clean run logs one summary line per check.
 (function themeCheck() {
   if (!/^(1|true)$/.test(new URLSearchParams(location.search).get("debug") || "")) return;
-  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["copy", "terminal", "stop", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
+  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["copy", "terminal", "stop", "backend", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
   var problems = [], seen = {};
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
@@ -2496,11 +2500,12 @@ function appPill(a){
 function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
-  var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
+  var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s),attachLabel=here?"Update backend to this commit":"Switch backend to this branch";
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
+      (s.branch!=="develop"&&here!=="current"&&!switching?'<button type="button" class="icon backend-switch" data-attach="'+esc(s.branch)+'" aria-label="'+attachLabel+'" title="'+attachLabel+' (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'</button>':"")+
       ((s.apps||[]).length&&!s.recovery?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
@@ -2511,10 +2516,9 @@ function renderSlot(s){
     (s.head.uncommitted?' &middot; <span style="color:var(--warn)">'+esc(s.head.uncommitted)+' uncommitted</span>':'')+'</div>';
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
-  if(switching)h+='<div class="stopping-note" role="status">Switching the backend&hellip;</div>';
-  else if(here==="current")h+='<div class="slot-backend">'+dot("ok")+'<span>Backend runs this branch</span></div>';
-  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here==="different"?dot("warn")+'<span>Backend runs a different commit</span>':here==="unverified"?dot("unknown")+'<span>Backend commit unverified</span>':"")+
-    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+(here?"Update backend":"Use for backend")+'</button></div>';
+  if(switching)h+='<div class="stopping-note" role="status">Switching backend&hellip;</div>';
+  else if(here)h+='<div class="slot-backend">'+dot(here==="current"?"ok":here==="different"?"warn":"unknown")+'<span>'+
+    (here==="current"?"Backend on this branch":here==="different"?"Backend on another commit":"Backend commit unknown")+'</span></div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
@@ -2751,7 +2755,7 @@ function confirmAvailable(){return confirmKind==="restart"?restartAvailable(rest
 function confirmAttach(branch,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!attachAvailable(branch))return;
   stopBranch=branch;stopOpener=opener;stopSubmitting=false;confirmKind="attach";
-  confirmText("Switch backend","Run the shared backend on "+branch+"? Every session's backend calls go to this branch until you switch back to develop. The backend restarts, which takes a few minutes.","Switch");
+  confirmText("Switch backend","Switch the shared backend to "+branch+"? Every session uses it until you switch back to develop. The restart takes a few minutes.","Switch");
   stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
   document.getElementById("stop-cancel").focus();
 }

@@ -411,24 +411,24 @@ test("each session offers to switch the backend to its branch, except the one al
   await p.poll();
   const html = p.get("slots").children.map(c => c.innerHTML);
   const card = b => html.find(h => h.includes(">" + b + "<"));
-  assert.match(card("feat/a"), /data-attach="feat\/a"[^>]*>Use for backend</);
-  assert.match(card("feat/b"), /Backend runs this branch/);
+  assert.match(card("feat/a"), /data-attach="feat\/a"[^>]*aria-label="Switch backend to this branch"/);
+  assert.match(card("feat/b"), /Backend on this branch/);
   assert.doesNotMatch(card("feat/b"), /data-attach/);
   assert.strictEqual(p.run("attachAvailable('feat/b')"), false);
   snap.backend.branch = "feat/c"; snap.backend.sha = "ccc111";
   await p.poll();
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend runs a different commit.*>Update backend</);
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /data-attach="feat\/c"[^>]*aria-label="Update backend to this commit".*Backend on another commit/);
   assert.strictEqual(p.run("attachAvailable('feat/c')"), true);
   delete snap.backend.sha;
   await p.poll();
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend commit unverified.*>Update backend</, "an unknown commit is not claimed current");
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /data-attach="feat\/c".*Backend commit unknown/, "an unknown commit is not claimed current");
   snap.backend.sha = "ccc111";
   p.run("runAction('attach','feat/a')");
   await new Promise(r => setImmediate(r));
   const post = p.calls.find(c => c.url === "/api/slot/backend");
   assert(post, "the switch posts to /api/slot/backend");
   assert.deepStrictEqual(JSON.parse(post.init.body), { branch: "feat/a" });
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Switching the backend/);
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Switching backend/);
 });
 
 (async () => {
