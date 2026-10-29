@@ -417,8 +417,12 @@ test("each session offers to switch the backend to its branch, except the one al
   assert.strictEqual(p.run("attachAvailable('feat/b')"), false);
   snap.backend.branch = "feat/c"; snap.backend.sha = "ccc111";
   await p.poll();
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend runs an older commit.*>Update backend</);
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend runs a different commit.*>Update backend</);
   assert.strictEqual(p.run("attachAvailable('feat/c')"), true);
+  delete snap.backend.sha;
+  await p.poll();
+  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Backend commit unverified.*>Update backend</, "an unknown commit is not claimed current");
+  snap.backend.sha = "ccc111";
   p.run("runAction('attach','feat/a')");
   await new Promise(r => setImmediate(r));
   const post = p.calls.find(c => c.url === "/api/slot/backend");

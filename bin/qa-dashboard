@@ -2513,8 +2513,8 @@ function renderSlot(s){
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
   if(switching)h+='<div class="stopping-note" role="status">Switching the backend&hellip;</div>';
   else if(here==="current")h+='<div class="slot-backend">'+dot("ok")+'<span>Backend runs this branch</span></div>';
-  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here==="stale"?dot("warn")+'<span>Backend runs an older commit</span>':"")+
-    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+(here==="stale"?"Update backend":"Use for backend")+'</button></div>';
+  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here==="different"?dot("warn")+'<span>Backend runs a different commit</span>':here==="unverified"?dot("unknown")+'<span>Backend commit unverified</span>':"")+
+    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+(here?"Update backend":"Use for backend")+'</button></div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
@@ -2734,12 +2734,14 @@ function restartAvailable(service){
   var services=data&&data.backend&&data.backend.services||{},t=services[service]&&serviceTone(services[service]);
   return!isRunning()&&(t==="down"||t==="broken"||t==="attn");
 }
-// Whether the shared backend runs this session's branch: "current" at its head, "stale" at an older commit, or null.
+// Whether the shared backend runs this session's branch: "current" at its head, "different" at another commit,
+// "unverified" when either commit is unknown, or null for another branch. Only "current" hides the switch.
 function backendOn(s){
   var b=data&&data.backend;
   if(!s||!s.branch||!b||b.branch!==s.branch)return null;
   var mine=s.head&&s.head.sha?String(s.head.sha):"",theirs=b.sha?String(b.sha):"";
-  return mine&&theirs&&mine.indexOf(theirs)!==0&&theirs.indexOf(mine)!==0?"stale":"current";
+  if(!mine||!theirs)return"unverified";
+  return mine.indexOf(theirs)===0||theirs.indexOf(mine)===0?"current":"different";
 }
 function attachAvailable(branch){
   var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
