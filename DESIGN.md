@@ -42,8 +42,9 @@ The Sessions card is a holder: its heading sits on the face, and each session is
 on that same face below it (no recessed well or inset tray), with an edge, a gutter and a shadow (Terminal: putty
 service cards; Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules). The slot label
 is attached to its session in the theme's material: Terminal prints an upright asset tag (black tape with a phosphor
-readout, never tilted), Horror saddle-stitches a dark leather patch on in gold thread at a seeded tilt, and Neon
-rivets an acrylic label on. Sessions are separated by their gutters, not by
+readout, never tilted), Horror saddle-stitches a dark leather patch on in gold thread (upright, because
+it is sewn on; only tags and stamps tilt), and Neon rivets an acrylic label on. The session count beside the heading
+is made the same way as the slot label in every theme. Sessions are separated by their gutters, not by
 ink dividers, so the only line under a branch name is its hover underline.
 
 Use this within reason: this is a developer workspace. Keep information scannable, actions plain,

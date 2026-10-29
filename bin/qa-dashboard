@@ -886,9 +886,15 @@ var THEMES = {
         D + '{--slot-stitch:' + stitchBorder("#f2c22e", "#fff3b8", "rgba(0,0,0,.75)", "rgba(255,214,130,.18)") + '}',
         D + ' .slotno{top:14px;right:16px;padding:7px 12px 6px;border:0;border-radius:6px 5px 7px 5px/5px 7px 5px 6px;color:var(--folio-foil-hi);font:700 14px/1 var(--serif);font-variant:small-caps;letter-spacing:.1em;' +
           'background:radial-gradient(120% 100% at 30% 10%,rgba(255,210,170,.12),transparent 62%),linear-gradient(rgba(14,3,2,.62),rgba(14,3,2,.62)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
-          'box-shadow:inset 0 1px 0 rgba(255,220,180,.14),inset 0 -1px 2px rgba(0,0,0,.5),0 1px 0 #0c0302,0 2px 0 #0c0302,0 4px 5px -1px rgba(0,0,0,.7);text-shadow:0 1px 0 #000;transform:rotate(var(--stamp-tilt,-3deg))}',
+          'box-shadow:inset 0 1px 0 rgba(255,220,180,.14),inset 0 -1px 2px rgba(0,0,0,.5),0 1px 0 #0c0302,0 2px 0 #0c0302,0 4px 5px -1px rgba(0,0,0,.7);text-shadow:0 1px 0 #000}',
         D + ' .slotno::before{content:"";position:absolute;inset:2px;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--slot-stitch) 8 / 4px round}',
         D + ' .slotno-v{color:var(--folio-foil-hi);font-size:16px}',
+        // The session count is the same patch, sewn on beside the heading.
+        D + ' .sessions-title .sessions-count{position:relative;align-self:center;padding:7px 11px 6px;border-radius:6px 5px 7px 5px/5px 7px 5px 6px;font:700 16px/1 var(--serif);letter-spacing:.04em;' +
+          'color:var(--folio-foil-hi);-webkit-text-fill-color:var(--folio-foil-hi);' +
+          'background:radial-gradient(120% 100% at 30% 10%,rgba(255,210,170,.12),transparent 62%),linear-gradient(rgba(14,3,2,.62),rgba(14,3,2,.62)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
+          'box-shadow:inset 0 1px 0 rgba(255,220,180,.14),inset 0 -1px 2px rgba(0,0,0,.5),0 1px 0 #0c0302,0 2px 0 #0c0302,0 4px 5px -1px rgba(0,0,0,.7);text-shadow:0 1px 0 #000}',
+        D + ' .sessions-title .sessions-count::before{content:"";position:absolute;inset:2px;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--slot-stitch) 8 / 4px round}',
         // The update button is a manila tag like the app pills: card stock cut with a brass eyelet, the behind count stamped
         // on it in sepia ink (being behind is not an error, so it is never red). It lifts on hover and squashes on press.
         D + ' .backend .update-btn{--tag-shape:polygon(12px 0,100% 0,100% 100%,12px 100%,0 calc(100% - 10px),0 10px);min-height:36px;padding:6px 12px 6px 27px;border:0;border-radius:0;background:none;color:var(--tag-ink);box-shadow:none;font-size:15px;transform:rotate(-1deg)}',
@@ -908,7 +914,6 @@ var THEMES = {
           'background:linear-gradient(174deg,var(--foil-mid) 0,var(--foil-hi) 24%,var(--foil-mid) 42%,var(--foil-lo) 56%,var(--foil-mid) 68%,var(--foil-hi) 84%,var(--foil-mid) 100%) 0 0/100% 1.2em repeat-y;-webkit-background-clip:text;background-clip:text;' +
           'filter:drop-shadow(0 -1px 0 var(--foil-rim)) drop-shadow(0 1px 0 var(--foil-lip))}',
         D + ' .slot-card .branch{background-size:100% 1.25em}',
-        D + ' .sessions-title .sessions-count{-webkit-text-fill-color:var(--muted)}',
         // Secondary text is blind-tooled: pressed into the stock with no ink, so the top edge falls into shade and the lower edge catches light.
         D + ' :is(.slot-card .head-line,.slot-card>.muted.small,.backend .rollup .title,#updated,.backend .meta>span,.slot-card .stopping-note){text-shadow:var(--tooled)}',
         // Small buttons on the cards are leather patches saddle-stitched on, the same stitch as the seams; a press pushes them into the card.
@@ -1134,10 +1139,11 @@ THEMES.neon = (function () {
         '--item-face:linear-gradient(155deg,var(--acr-sheen),transparent 42%),' + scan + ',var(--item-card);' +
         '--item-shadow:inset 0 1px 0 var(--acr-hi),inset 0 0 0 1px color-mix(in srgb,var(--ink2) 32%,transparent),0 0 0 1px var(--acr-rim),0 1px 0 color-mix(in srgb,var(--ink2) 42%,var(--edge-lo2)),0 2px 0 var(--edge-lo2),0 7px 10px -4px var(--contact)}',
       N + ' .slot-card .head{padding-right:6.6em}',
-      N + ' .slotno{top:15px;padding:4px 15px 3px;border:1px solid color-mix(in srgb,var(--ink2) 60%,transparent);border-radius:2px;color:var(--ink2);' +
+      N + ' :is(.slotno,.sessions-title .sessions-count){top:15px;padding:4px 15px 3px;border:1px solid color-mix(in srgb,var(--ink2) 60%,transparent);border-radius:2px;color:var(--ink2);' +
         'background:radial-gradient(circle at 6px 50%,var(--ink2) 0 1.5px,color-mix(in srgb,var(--ink2) 35%,transparent) 1.6px 2.3px,transparent 2.6px),radial-gradient(circle at calc(100% - 6px) 50%,var(--ink2) 0 1.5px,color-mix(in srgb,var(--ink2) 35%,transparent) 1.6px 2.3px,transparent 2.6px),' +
         'linear-gradient(170deg,var(--acr-sheen),transparent 55%),color-mix(in srgb,var(--ink2) 9%,var(--item-card));box-shadow:0 1px 0 var(--edge-lo2),0 3px 4px -1px var(--contact);font:700 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase}',
       N + ' .slotno-v{color:inherit;font-size:13px}',
+      N + ' .sessions-title .sessions-count{align-self:center;font-size:13px;text-shadow:none}',
       // The update key and the details toggle are keycaps in the plate's mono type; the behind count is an inset LED.
       N + ' .backend .update-btn,' + N + ' .backend .toggle{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}',
       N + ' .backend .update-btn{font-size:13px;border-radius:5px}',
@@ -1384,6 +1390,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card .head{padding-right:6.4em}',
         T + ' .slotno{top:15px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
           'font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:none}',
+        T + ' .sessions-title .sessions-count{align-self:center;min-width:28px;padding:4px 7px 3px;border:2px solid var(--dymo);border-radius:3px;background:var(--screen);color:var(--screen-ink);' +
+          'font:700 13px/1 var(--mono);letter-spacing:0;text-align:center;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000,0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25)}',
         T + ' .slotno-k{display:flex;align-items:center;padding:5px 7px 4px 9px}',
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
@@ -2477,12 +2485,10 @@ function appPill(a){
   return'<span class="app-pill off tone-'+status.tone+'" title="'+esc(name)+' has no link">'+inner+'</span>';
 }
 function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
-// The slot number is stamped by hand: a seeded tilt per slot and branch, so it never re-rolls on refresh.
-function stampTilt(s){var h=hashText("stamp:"+s.slot+":"+(s.branch||"")),m=1.5+(h%1000)/1000*3.5;return((h>>>10)&1?m:-m).toFixed(1)}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
-  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno" style="--stamp-tilt:'+stampTilt(s)+'deg"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
+  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
       ((s.apps||[]).length&&!s.recovery?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
