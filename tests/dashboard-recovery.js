@@ -381,6 +381,7 @@ test("favicon: unknown is a blank icon, known states keep theme art", () => {
   vm.createContext(ctx);
   const fn = vm.runInContext("(function(){return {" + FAVICON.replace(/[,\s]*$/, "") + "}})().favicon", ctx);
   fn("unknown"); assert.strictEqual(icon.href, "data:,");
+  fn("busy"); assert.strictEqual(icon.href, "data:,");
   fn("ok"); assert.strictEqual(icon.href, "data:image/svg+xml," + encodeURIComponent("<svg-ok/>"));
   fn("warn"); assert.strictEqual(icon.href, "data:image/svg+xml," + encodeURIComponent("<svg-theme/>"));
   fn("unknown"); assert.strictEqual(icon.href, "data:,");
@@ -429,6 +430,70 @@ test("each session offers to switch the backend to its branch, except the one al
   assert(post, "the switch posts to /api/slot/backend");
   assert.deepStrictEqual(JSON.parse(post.init.body), { branch: "feat/a" });
   assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Switching backend/);
+});
+
+test("a backend switch keeps a busy headline through changing probes, then shows the final result", async () => {
+  const snap = snapshot([]);
+  snap.backend.relation = "behind 1";
+  const p = page({ fetch: (url, init) => init && init.method === "POST" ? new Promise(() => {}) : jsonResponse(snap) });
+  await p.poll();
+  p.run("runAction('attach','feat/a')");
+  assert.match(p.html("backend"), /Switching…/);
+  assert.strictEqual(p.run("window.QA_ROLLUP"), "busy");
+  assert.strictEqual(p.run("pageHealth()"), "busy");
+  assert.strictEqual(p.sandbox.document.title, "Overseer · 0 sessions");
+
+  snap.actions = { action: "attach", target: "feat/a", state: "running", output: [] };
+  for (const [overall, unitState, probe, expected] of [
+    ["degraded", "activating", "failed", "starting"],
+    ["healthy", "active", "ready", "ready"],
+    ["degraded", "active", "failed", "failed"],
+  ]) {
+    snap.backend.overall = overall;
+    snap.backend.services = { functions: { unitState, probe, status: probe } };
+    await p.poll();
+    assert.match(p.html("backend"), /Switching…/);
+    assert.match(p.html("backend"), new RegExp("functions</span><span>" + expected));
+    assert.doesNotMatch(p.html("backend"), /class="rollup tone-(?:ok|broken|down)"/);
+    assert.doesNotMatch(p.get("backend").className, /err/);
+    assert.strictEqual(p.run("window.QA_ROLLUP"), "busy");
+    assert.strictEqual(p.run("pageHealth()"), "busy");
+    assert.strictEqual(p.favicons[p.favicons.length - 1], "busy");
+    assert.deepStrictEqual(plain(p.run("radioMessages(data,failure,actionError)").filter(m => m.key.startsWith("backend:")).map(m => m.key)), []);
+  }
+
+  snap.actions = { action: "attach", target: "feat/a", state: "ok", output: [] };
+  await p.poll();
+  assert.match(p.html("backend"), /DEGRADED|degraded/);
+  assert.doesNotMatch(p.html("backend"), /Switching…/);
+  assert.match(p.get("backend").className, /err/);
+  assert.strictEqual(p.run("window.QA_ROLLUP"), "broken");
+  assert.strictEqual(p.run("pageHealth()"), "bad");
+
+  snap.actions = { action: "attach", target: "feat/a", state: "failed", exitCode: 1, output: [] };
+  await p.poll();
+  assert.match(p.html("backend"), /Switch backend to feat\/a failed/);
+  assert(p.run("radioMessages(data,failure,actionError)").some(m => m.key === "action:failed:attach:feat/a"));
+
+  snap.actions = { action: "attach", target: "feat/a", state: "ok", output: [] };
+  snap.backend.overall = "healthy";
+  snap.backend.services.functions = { unitState: "active", probe: "ready", status: "ready" };
+  await p.poll();
+  assert.match(p.html("backend"), /healthy/);
+  assert.doesNotMatch(p.get("backend").className, /err/);
+  assert.strictEqual(p.run("window.QA_ROLLUP"), "ok");
+});
+
+test("switch to develop enters the busy state before its POST returns", async () => {
+  const snap = snapshot([]);
+  snap.backend.branch = "feat/a";
+  const p = page({ fetch: (url, init) => init && init.method === "POST" ? new Promise(() => {}) : jsonResponse(snap) });
+  await p.poll();
+  p.run("runAction('update')");
+  assert.strictEqual(p.calls[p.calls.length - 1].url, "/api/backend/update");
+  assert.strictEqual(p.run("data.actions.action"), "update");
+  assert.strictEqual(p.run("pageHealth()"), "busy");
+  assert.match(p.html("backend"), /Switching…/);
 });
 
 (async () => {

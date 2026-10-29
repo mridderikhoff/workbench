@@ -198,7 +198,7 @@ html[data-wordmark-floor] .mark::before{display:none}
 .backend .rollup .state{position:relative;gap:10px;margin:2px 0 8px 4px;padding:6px 16px 7px 11px;font:800 31px/1 var(--serif);letter-spacing:.07em;text-transform:uppercase;color:var(--stamp-ok);background:transparent;border:3px solid currentColor;border-radius:8px;
 box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;transform:rotate(-.8deg);-webkit-mask:var(--desk-grit,none) 0 0/150px repeat;mask:var(--desk-grit,none) 0 0/150px repeat}
 .backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
-.backend .rollup:not(.tone-ok) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
+.backend .rollup:not(.tone-ok):not(.tone-busy) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
 .backend .rollup.tone-warn .state{color:var(--warn);background:none}
 .backend .backend-branch{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;max-width:100%;font:13px/1.35 var(--mono);color:var(--muted)}
 .backend .backend-branch-value{min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text)}
@@ -852,7 +852,7 @@ var THEMES = {
         // as a problem stamp, at desktop and phone widths. 31px stays the cap for short words on wide cards.
         D + ' .backend .rollup{container-type:inline-size;width:100%}',
         D + ' .backend .rollup .state{max-width:calc(100% - 8px);font-size:clamp(17px,calc((100cqi - 78px) / (var(--stamp-chars,7) * 1.04)),31px);letter-spacing:.05em}',
-        D + ' .backend .rollup:not(.tone-ok) .state{max-width:calc((100% - 8px) / 1.08)}',
+        D + ' .backend .rollup:not(.tone-ok):not(.tone-busy) .state{max-width:calc((100% - 8px) / 1.08)}',
         D + ' .backend{background:radial-gradient(circle at calc(100% - 19px) 19px,var(--desk-floor) 0 3.6px,#e4c06a 4.2px,#9d742a 6.2px,#3c2a0c 7.4px,transparent 8px),var(--stock)}',
         // Seams are saddle-stitched: a pressed groove with angled waxed-thread stitches, instead of a drawn dashed line.
         D + '{--stitch-seam:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%277%27%3E%3Crect y=%273%27 width=%2712%27 height=%271.2%27 fill=%27%23000%27 fill-opacity=%27.42%27/%3E%3Crect y=%274.2%27 width=%2712%27 height=%27.6%27 fill=%27%23fff%27 fill-opacity=%27.07%27/%3E%3Ccircle cx=%271.4%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Ccircle cx=%279.6%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Cg transform=%27rotate(-9 5.5 3.5)%27%3E%3Crect x=%271.8%27 y=%272.5%27 width=%277.4%27 height=%272%27 rx=%271%27 fill=%27%238f7450%27/%3E%3Crect x=%272.6%27 y=%272.7%27 width=%275.6%27 height=%27.6%27 rx=%27.3%27 fill=%27%23e6d2a6%27 fill-opacity=%27.4%27/%3E%3C/g%3E%3C/svg%3E\")}',
@@ -1116,7 +1116,7 @@ THEMES.neon = (function () {
       N + ' .backend .rollup .title{letter-spacing:.2em}',
       // The backend rollup is an LED readout sunk into the plate.
       N + ' .backend .rollup .state{align-self:stretch;transform:none;-webkit-mask:none;mask:none;margin:2px 0 6px;padding:13px 14px 12px;border:0;border-radius:6px;background:' + scan + ',var(--led-bg);box-shadow:inset 0 2px 7px #000,inset 0 0 0 1px rgba(255,255,255,.07),0 1px 0 var(--emb-hi);font:700 28px/1 var(--mono);letter-spacing:.12em;color:var(--led-ok);text-shadow:0 0 10px var(--led-ok-glow)}',
-      N + ' .backend .rollup:not(.tone-ok) .state{color:var(--led-bad);text-shadow:0 0 10px var(--led-bad-glow);transform:none;background:' + scan + ',var(--led-bg)}',
+      N + ' .backend .rollup:not(.tone-ok):not(.tone-busy) .state{color:var(--led-bad);text-shadow:0 0 10px var(--led-bad-glow);transform:none;background:' + scan + ',var(--led-bg)}',
       N + ' .backend .rollup.tone-warn .state{color:var(--led-warn)}',
       // App pills are backlit keycaps: a lit face, a dark key wall below it, and an LED glow behind the status glyph.
       N + ' .app-pill{--pill-pad:7px 15px 8px 12px;--led:var(--tag-ok);--tag-shape:inset(0 round 7px);--tag-face:linear-gradient(180deg,var(--cap-hi),var(--tag) 55%);--tag-mount:radial-gradient(circle at 21px 50%,color-mix(in srgb,var(--led) 42%,transparent) 0,transparent 15px);font-family:var(--mono);font-size:14px}',
@@ -1827,8 +1827,8 @@ var QA_THEME = (function () {
     buttonHover: function () { return active.theme.buttonHover || "seep" },
     favicon: function (state) {
       var icons = active.theme.favicons, icon = document.querySelector('link[rel="icon"]');
-      // An unknown state (no status yet) is a blank icon, never a theme's healthy art.
-      var svg = state === "unknown" ? null : icons && icons[state] || active.theme.favicon;
+      // Unknown and switching states use a blank icon rather than a theme's healthy art.
+      var svg = state === "unknown" || state === "busy" ? null : icons && icons[state] || active.theme.favicon;
       if (icon && icon.dataset.state !== state) { icon.href = svg == null ? "data:," : "data:image/svg+xml," + encodeURIComponent(svg); icon.dataset.state = state }
     },
     copy: function (key, fallback) { var copy = active.theme.copy; return copy && copy[key] || fallback }
@@ -2302,6 +2302,7 @@ function serviceTone(s){
 }
 function worstTone(tones){return tones.reduce(function(worst,t){return(TONE_RANK[t]||0)>(TONE_RANK[worst]||0)?t:worst},"ok")}
 function backendTone(b){
+  if(backendSwitching())return"busy";
   var services=b.services||{},names=Object.keys(services);
   if(!names.length){var t=tone(b.overall);return t==="ok"?"ok":t==="warn"?"warn":t==="bad"||t==="attn"?"down":"unknown"}
   return worstTone(names.map(function(n){return serviceTone(services[n])}));
@@ -2325,6 +2326,7 @@ function startTime(iso){
 var LOADING_SESSIONS="Loading saved sessions…",CHECKING_BACKEND="Checking backend status…",STATUS_RETRYING="Status unavailable, retrying.";
 function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
+function backendSwitching(){var a=currentAction();return!!(a&&a.state==="running"&&(a.action==="attach"||a.action==="update"))}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
 var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Start fresh"};
 function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
@@ -2369,10 +2371,10 @@ function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===heal
 // Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
 function renderBackend(b){
   if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
-  var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),healthy=backendHealthy(b),open=detailsOpen(healthy),rollup=backendTone(b);
-  var actions=(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
-  var h=(healthy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
-    '<span class="state" style="--stamp-chars:'+Math.max(6,String(b.overall||"unknown").length)+'">'+dot(rollup)+esc(String(b.overall||"unknown").replace(/-/g," "))+'</span>'+
+  var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),busy=backendSwitching(),healthy=backendHealthy(b),open=detailsOpen(busy?false:healthy),rollup=backendTone(b),state=busy?"Switching…":String(b.overall||"unknown").replace(/-/g," ");
+  var actions=busy?"":(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
+  var h=(healthy||busy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
+    '<span class="state" style="--stamp-chars:'+Math.max(6,state.length)+'">'+dot(rollup)+esc(state)+'</span>'+
     '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span></div>'+
     ((switching||behind)?'<div class="rel">'+updateButton(b.relation||"",switching)+'</div>':"")+
     (actions?'<div class="acts">'+actions+'</div>':"")+
@@ -2385,10 +2387,10 @@ function renderBackend(b){
     var svcs=b.services||{};
     h+=(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
     Object.keys(svcs).forEach(function(n){
-      var s=svcs[n],t=serviceTone(s),attn=!!s.needsAttention||/attention/i.test(s.status||"");
+      var s=svcs[n],t=serviceTone(s),attn=!!s.needsAttention||/attention/i.test(s.status||""),status=(s.probe!=="ready"&&(s.unitState==="activating"||s.unitState==="reloading"))?"starting":s.status||s.probe||s.unitState;
       var restartable=t==="down"||t==="broken"||t==="attn";
       h+='<div class="svc tone-'+(t||"unknown")+(attn?" attn":"")+'">'+dot(t)+
-        '<span class="name">'+esc(n)+'</span><span>'+esc(s.status||s.probe||s.unitState)+'</span>'+
+        '<span class="name">'+esc(n)+'</span><span>'+esc(status)+'</span>'+
         (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+
         (restartable?'<button type="button" class="act svc-restart" data-restart="'+esc(n)+'" aria-label="Restart '+esc(n)+'" title="Restart '+esc(n)+' (wt backend restart '+esc(n)+')"'+(isRunning()?" disabled":"")+'>Restart</button>':"")+'</div>';
     });
@@ -2534,13 +2536,14 @@ function setHtml(element,html){if(element.__html===html)return false;element.__h
 function setClass(element,cls){if(element.className!==cls)element.className=cls}
 function radioMessages(snapshot,fetchFailure,requestFailure){
   var out=[],backend=snapshot&&snapshot.backend,services=backend&&backend.services||{},names=Object.keys(services),slots=sortedSlots(snapshot&&snapshot.slots||[]),action=snapshot&&snapshot.actions;
+  var switching=!!(action&&action.state==="running"&&(action.action==="attach"||action.action==="update"));
   function add(key,tone,subject,text){out.push({key:key,tone:tone,subject:subject,text:text})}
   function listed(items){return items.slice(0,3).join(", ")+(items.length>3?", and "+(items.length-3)+" more":"")}
   function serviceNames(want){return names.filter(function(name){return serviceTone(services[name])===want})}
   if(!snapshot&&!fetchFailure)add("loading","unknown","Status",LOADING_SESSIONS+" "+CHECKING_BACKEND);
   if(fetchFailure)add("failure",snapshot?"down":"unknown","Status",snapshot?"Status unavailable: "+fetchFailure+". Showing the last data.":"Status unavailable, retrying: "+fetchFailure+".");
   if(requestFailure)add("request","down","Backend","Request failed: "+requestFailure+".");
-  if(backend){
+  if(backend&&!switching){
     if(backendTone(backend)==="down"&&names.length){var down=serviceNames("down");add("backend:down","down","Backend","Backend is down."+(down.length?" Not running: "+listed(down)+".":""))}
     ["attn","broken"].forEach(function(t){var group=serviceNames(t);if(group.length)add("backend:"+t,t,"Backend",t==="attn"?"Backend needs attention: "+listed(group)+".":"Backend services running but not ready: "+listed(group)+".")});
   }
@@ -2551,11 +2554,11 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
   if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"busy",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
   if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Start fresh.");
-  if(backend){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
+  if(backend&&!switching){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
-  if(backend&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
+  if(backend&&!switching&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
   if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
-  else if(backend&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
+  else if(backend&&!switching&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
     if(!out.some(function(message){return message.key.indexOf("backend:")===0}))add("backend:unknown","unknown","Backend",names.length?"Backend readiness is unknown.":"No backend service data.");
   }
   var unknownApps=live.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
@@ -2645,7 +2648,7 @@ function render(){
   var oldLog=document.getElementById("action-output"),active=document.activeElement;
   var detailsFocus=active&&active.hasAttribute&&active.hasAttribute("data-toggle"),outputFocus=active&&active.hasAttribute&&active.hasAttribute("data-output"),copyFocus=active&&active.hasAttribute&&active.hasAttribute("data-copy-output");
   var outputScroll=oldLog&&!oldLog.hidden?{top:oldLog.scrollTop,left:oldLog.scrollLeft,follow:oldLog.scrollHeight-oldLog.scrollTop-oldLog.clientHeight<4}:null;
-  setClass(backendBox,"card backend"+(backend?(backendHealthy(backend)?"":" err"):" muted"));
+  setClass(backendBox,"card backend"+(backend?(backendHealthy(backend)||backendSwitching()?"":" err"):" muted"));
   var backendChanged=setHtml(backendBox,renderBackend(backend));
   updateInlineOutput(outputScroll);
   if(backendChanged&&(detailsFocus||outputFocus||copyFocus)){
@@ -2677,7 +2680,7 @@ function render(){
   if(window.QA_BRUSH)changedCards.forEach(function(card){QA_BRUSH.decorate(card)});
   updateAgo();
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
-  var unhealthy=failure||(backend&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
+  var unhealthy=failure||(backend&&!backendSwitching()&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
   var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+liveSlots.length+" session"+(liveSlots.length===1?"":"s");
   if(document.title!==title)document.title=title;
@@ -2706,7 +2709,7 @@ function runAction(name,branch,service){
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
-  if((branch||service)&&data){data.actions={action:service?"restart":name,target:service||branch,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
+  if(data){data.actions={action:service?"restart":name,target:service||branch||null,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
   var request=branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
@@ -2880,7 +2883,7 @@ document.addEventListener("click",function(e){
     if(messages.length>1){var index=messages.findIndex(function(message){return message.key===radioView.key});radioView={key:messages[(index+step+messages.length)%messages.length].key,index:(index+step+messages.length)%messages.length};renderRadio()}
   }
   else if(t.hasAttribute("data-toggle")){
-    var healthy=!data||!data.backend||backendHealthy(data.backend);
+    var healthy=!data||!data.backend||!backendSwitching()&&backendHealthy(data.backend);
     detailsChoice={healthy:healthy,open:!detailsOpen(healthy)};
     try{sessionStorage.setItem("qaDashboardBackendDetails",JSON.stringify(detailsChoice))}catch(e){}
     render();var again=document.querySelector("[data-toggle]");if(again){again.classList.add("turned");again.focus()}
@@ -2917,6 +2920,7 @@ function pageHealth(){
     tones.push(a.httpReady&&a.build&&a.build.state==="building"?"ok":appStatus(a).tone);
   })});
   var worst=worstTone(tones);
+  if(worst==="ok"&&backendSwitching())return"busy";
   return worst==="unknown"?"unknown":worst==="broken"||worst==="attn"?"bad":worst==="down"?"down":worst==="warn"?"warn":"ok";
 }
 var reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)"),faviconTimer=null,faviconDim=false;
@@ -3956,10 +3960,11 @@ class ActionRunner:
             run["output"].append(line)
 
     def _finish(self, run, state, exit_code):
-        with self.lock:
-            run.update(state=state, exitCode=exit_code, endedAt=now_iso())
+        # Publish completion only after the next status read is forced to refresh.
         if self.on_finish:
             self.on_finish()
+        with self.lock:
+            run.update(state=state, exitCode=exit_code, endedAt=now_iso())
 
     def _run(self, run):
         try:
@@ -4135,7 +4140,9 @@ def make_handler(source, runner, port):
                 self.send(200, render_html(), "text/html; charset=utf-8")
             elif path == "/api/status":
                 try:
-                    self.send(200, json.dumps(dict(source.get(), actions=runner.snapshot())), "application/json")
+                    # A running action may pair with a snapshot from mid-switch; a completed one must not.
+                    action = runner.snapshot()
+                    self.send(200, json.dumps(dict(source.get(), actions=action)), "application/json")
                 except Exception as error:  # report any failure as a 502 to the page
                     self.send(502, json.dumps({"error": str(error) or type(error).__name__}), "application/json")
             elif path == "/api/actions":
