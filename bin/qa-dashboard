@@ -208,9 +208,9 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .meta code{font-size:12px}
 .backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
-.backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
-.backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
-.backend button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
+:is(.backend,.slot-card) button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
+:is(.backend,.slot-card) button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
+:is(.backend,.slot-card) button.act.quiet{font-size:13px;font-weight:500;color:var(--muted);border:0;padding:1px 0;background-color:transparent}
 /* The update button is a real key: a raised face on a wall, with a badge saying how far behind develop the backend is.
    Each theme supplies the material (--key-*, --badge-*); hover lifts it, press pushes it into the card. */
 .backend .update-btn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px 9px;max-width:100%;min-height:34px;margin:2px 0 4px;padding:4px 5px 4px 13px;border:1.5px solid transparent;border-radius:6px;
@@ -512,7 +512,9 @@ main::before{transform:none}
 @media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
-.slot-card .slot-backend{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:8px;font:13px/1.35 var(--mono);color:var(--muted)}
+.slot-card .slot-backend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px;font:13px/1.35 var(--mono);color:var(--muted)}
+.slot-card .slot-backend button.act{gap:7px;padding:5px 12px 4px}
+.slot-card .slot-backend button.act svg{width:16px;height:16px;flex:none}
 </style>
 <script>
 "use strict";
@@ -571,7 +573,7 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 busy is a loader for an action in progress (elements .busy-a/.busy-b/.busy-c step in turn, .busy-spin turns),
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle; awake (optional) has a .glyph-pupil group that follows
                 the cursor while a ready app pill is hovered
-  actionIcons   {copy, terminal, stop, backend, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
+  actionIcons   {stop, backend, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
                 the selected option in a select list, drawn as a mask in --picker-check (sized by --check-size, default 14px)
   settingsIcon  SVG string for the settings button; chevron (optional) the details toggle arrow (12-unit box)
   wordmarkStroke  optional false: no brush underline under the wordmark (Horror: the eye already drips onto it)
@@ -812,8 +814,6 @@ var THEMES = {
       unknown: inkIcon('<path d="M12 4.4a7.6 7.6 0 1 1-7.4 6" stroke-width="2.3"/><circle cx="5.4" cy="7.6" r=".9" fill="currentColor" stroke="none"/>')
     },
     actionIcons: {
-      copy: inkIcon('<rect x="8.5" y="8.5" width="11" height="12" rx="1.5" stroke-width="2"/><path d="M5 15.5V5.6A1.6 1.6 0 0 1 6.6 4h9" stroke-width="1.8"/>'),
-      terminal: inkIcon('<rect x="3" y="4.5" width="18" height="15" rx="1.5" stroke-width="2"/><path d="m7 10 3 2.5L7 15M12.5 15.5h4.5" stroke-width="2.1"/>'),
       // A stop sign: a brush-inked octagon (the stroke overshoots where the brush lifted) with a heavy bar struck across it.
       stop: inkIcon('<path d="M8.3 2.6h7.6l5.5 5.6v7.6l-5.6 5.6H8.2l-5.6-5.6V8.1L8 2.7l1.1-.3" stroke-width="2.1"/><path d="M7.2 12.2c3-.5 6.6-.6 9.7-.2" stroke-width="3"/>'),
       // The backend: two brush-inked server units, each with a lamp and a vent slot; the top one's stroke runs past its corner.
@@ -1068,10 +1068,8 @@ THEMES.neon = (function () {
       unknown: bitIcon(BITS.unknown), awake: bitIcon(BITS.reticle, BITS.pupil),
       // busy: a pixel spinner, a ring of blocks with a fading tail, turned a quarter at a time so the pixels stay crisp.
       busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><g class="busy-spin"><path d="M9.5 2h5v5h-5z"/><path d="M17 4.5h4.5V9H17z" fill-opacity=".9"/><path d="M17 9.5h5v5h-5z" fill-opacity=".8"/><path d="M17 15h4.5v4.5H17z" fill-opacity=".72"/><path d="M9.5 17h5v5h-5z" fill-opacity=".64"/><path d="M2.5 15H7v4.5H2.5z" fill-opacity=".58"/><path d="M2 9.5h5v5H2z" fill-opacity=".54"/><path d="M2.5 4.5H7V9H2.5z" fill-opacity=".5"/></g></svg>'},
-    // Pixel action icons: the copy sheets, the terminal window, a stop sign and the backend's two server units.
+    // Pixel action icons: a stop sign and the backend's two server units.
     actionIcons: {
-      copy: plate('<path d="M3 2h12v3H6v12H3zM8 6h13v16H8zm3 3v10h7V9z"/>'),
-      terminal: plate('<path d="M2 3h20v18H2zm3 3v12h14V6zM7 8l4 4-4 4-2-2 2-2-2-2zM12 15h5v2h-5z"/>'),
       stop: plate('<path d="M8 1h8v2h2v2h2v2h2v10h-2v2h-2v2h-2v2H8v-2H6v-2H4v-2H2V7h2V5h2V3h2zM9 4v2H7v2H5v8h2v2h2v2h6v-2h2v-2h2V8h-2V6h-2V4z"/><path d="M7 10h10v4H7z"/>'),
       backend: plate('<path d="M2 2h20v9H2zm3 3v3h3V5zm5 1v2h9V6zM2 13h20v9H2zm3 3v3h3v-3zm5 1v2h9v-2z"/>'),
       // A chunky pixel tick.
@@ -1273,8 +1271,6 @@ THEMES.terminal = (function () {
       // busy: a DOS progress bar, [▓▒░] in brackets; the lit block steps along it.
       busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><path d="M1 6h4v2H3v8h2v2H1zM23 6h-4v2h2v8h-2v2h4z"/><path class="busy-a" d="M5 9h4v6H5z"/><path class="busy-b" d="M10 9h4v6h-4z" fill-opacity=".6"/><path class="busy-c" d="M15 9h4v6h-4z" fill-opacity=".32"/></svg>'},
     actionIcons: {
-      copy: bitIcon(["######....", "#....#....", "#..#######", "#..#.....#", "#..#.....#", "####.....#", "...#.....#", "...#.....#", "...#######", ".........."]),
-      terminal: bitIcon(["##########", "##########", "#........#", "#.#......#", "#..#.....#", "#.#..###.#", "#........#", "##########"]),
       // A stop sign in blocks: a solid octagon with a bar knocked out of it.
       stop: bitIcon(["...######...", "..########..", ".##########.", "############", "############", "##........##", "##........##", "############", "############", ".##########.", "..########..", "...######..."]),
       // The backend in blocks: two server units, each with a lamp and a vent.
@@ -1402,11 +1398,11 @@ THEMES.terminal = (function () {
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,:is(.backend,.slot-card) button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
@@ -1416,8 +1412,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.icon{width:30px;height:28px}',
         T + ' .slot-card button.icon svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
-        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
-        T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
+        T + ' .slot-card button.icon:disabled,' + T + ' :is(.backend,.slot-card) button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' :is(.backend,.slot-card) button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
         T + ' .settings .segmented{gap:6px;padding:4px 4px 7px}',
@@ -1840,7 +1836,7 @@ var QA_THEME = (function () {
 // (a leak), and WCAG contrast failures for text and paired inks in both schemes. A clean run logs one summary line per check.
 (function themeCheck() {
   if (!/^(1|true)$/.test(new URLSearchParams(location.search).get("debug") || "")) return;
-  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["copy", "terminal", "stop", "backend", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
+  var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["stop", "backend", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
   var problems = [], seen = {};
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
@@ -2497,16 +2493,13 @@ function appPill(a){
   if(url)return'<a class="app-pill off tone-'+status.tone+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
   return'<span class="app-pill off tone-'+status.tone+'" title="'+esc(name)+' has no link">'+inner+'</span>';
 }
-function copyButton(text,label,icon){return'<button type="button" class="icon" data-copy="'+esc(text)+'" aria-label="'+label+'" title="'+label+'">'+QA_THEME.icon(icon)+'</button>'}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
-  var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s),attachLabel=here?"Update backend to this commit":"Switch backend to this branch";
+  var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
-    (s.branch?'<span class="tools">'+copyButton(s.branch,"Copy branch","copy")+copyButton("~/.claude/bin/wt logs "+s.branch,"Copy wt logs command","terminal")+
-      (s.branch!=="develop"&&here!=="current"&&!switching?'<button type="button" class="icon backend-switch" data-attach="'+esc(s.branch)+'" aria-label="'+attachLabel+'" title="'+attachLabel+' (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'</button>':"")+
-      ((s.apps||[]).length&&!s.recovery?'<button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button>':"")+'<span class="copied" role="status"></span></span>':"")+
+    (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
@@ -2517,8 +2510,10 @@ function renderSlot(s){
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
   if(switching)h+='<div class="stopping-note" role="status">Switching backend&hellip;</div>';
-  else if(here)h+='<div class="slot-backend">'+dot(here==="current"?"ok":here==="different"?"warn":"unknown")+'<span>'+
-    (here==="current"?"Backend on this branch":here==="different"?"Backend on another commit":"Backend commit unknown")+'</span></div>';
+  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here?dot(here==="current"?"ok":here==="different"?"warn":"unknown")+'<span>'+
+    (here==="current"?"Backend on this branch":here==="different"?"Backend on another commit":"Backend commit unknown")+'</span>':"")+
+    (here!=="current"?'<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+
+      QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>':"")+'</div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
@@ -2876,7 +2871,7 @@ document.getElementById("recovery-fresh").addEventListener("click",function(){
   runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy],[data-copy-output],[data-toggle],[data-stop],[data-attach],[data-restart],[data-output],[data-radio]");
+  var t=e.target.closest("[data-action],[data-copy-output],[data-toggle],[data-stop],[data-attach],[data-restart],[data-output],[data-radio]");
   if(!t||t.disabled)return;
   if(t.hasAttribute("data-radio")){
     var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
@@ -2888,7 +2883,6 @@ document.addEventListener("click",function(e){
     try{sessionStorage.setItem("qaDashboardBackendDetails",JSON.stringify(detailsChoice))}catch(e){}
     render();var again=document.querySelector("[data-toggle]");if(again){again.classList.add("turned");again.focus()}
   }
-  else if(t.hasAttribute("data-copy"))copyText(t.getAttribute("data-copy"),t);
   else if(t.hasAttribute("data-copy-output"))copyText((currentAction()&&currentAction().output||[]).join("\n"),t);
   else if(t.hasAttribute("data-stop")){
     var branch=t.getAttribute("data-stop");
