@@ -512,8 +512,8 @@ main::before{transform:none}
 @media (max-width:559px){html:root .slots .slotno{position:relative;top:auto;right:auto;display:inline-flex;margin:0 0 8px}html:root .slots .slot-card .head{padding-right:0}}
 .slot-card.stopping{opacity:.55;transition:opacity var(--dur,.2s) var(--ease,ease)}
 .slot-card .stopping-note{margin-top:6px;font:600 13px var(--mono);color:var(--muted)}
-.slot-card .slot-backend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px;font:13px/1.35 var(--mono);color:var(--muted)}
-.slot-card .slot-backend button.act{gap:7px;padding:5px 12px 4px}
+.slot-card .slot-backend{display:inline-flex;align-items:center;gap:6px;min-height:36px;font:13px/1.35 var(--mono);color:var(--muted)}
+.slot-card .slot-backend button.act{gap:7px;min-height:32px;padding:5px 12px 4px;margin-bottom:4px}
 .slot-card .slot-backend button.act svg{width:16px;height:16px;flex:none}
 </style>
 <script>
@@ -2503,6 +2503,10 @@ function renderSlot(s){
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
   if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
+  // The backend switch sits with the app pills: a button, or a note when the backend already runs this branch's head.
+  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?dot("ok")+'<span>Backend on this branch</span>':
+    '<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
+      'Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>')+'</span>';
   h+='</div>';
   if(s.head)h+='<div class="muted small head-line" title="'+esc(s.head.subject||"")+'"><code>'+esc(s.head.sha)+'</code>'+
     ' &middot; committed '+agoSpan(s.head.committedAt)+' ago'+
@@ -2510,10 +2514,6 @@ function renderSlot(s){
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
   if(switching)h+='<div class="stopping-note" role="status">Switching backend&hellip;</div>';
-  else if(s.branch&&s.branch!=="develop")h+='<div class="slot-backend">'+(here?dot(here==="current"?"ok":here==="different"?"warn":"unknown")+'<span>'+
-    (here==="current"?"Backend on this branch":here==="different"?"Backend on another commit":"Backend commit unknown")+'</span>':"")+
-    (here!=="current"?'<button type="button" class="act" data-attach="'+esc(s.branch)+'" title="Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+
-      QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>':"")+'</div>';
   if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
