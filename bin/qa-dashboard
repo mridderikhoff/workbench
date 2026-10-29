@@ -1165,17 +1165,17 @@ THEMES.neon = (function () {
 THEMES.terminal = (function () {
   var T = 'html[data-theme="terminal"]';
   /* ---------- marks: tiny ASCII faces for status, blocky DOS icons for actions ---------- */
-  var EYE = {"^": [".....", "..#..", ".#.#.", "#...#", ".....", "....."], o: [".....", ".....", ".###.", "#...#", "#...#", ".###."],
-    O: [".###.", "#...#", "#...#", "#...#", "#...#", ".###."], ">": ["#....", ".##..", "...##", ".##..", "#....", "....."], "<": ["....#", "..##.", "##...", "..##.", "....#", "....."],
-    "?": [".###.", "#...#", "...#.", "..#..", ".....", "..#.."], z: [".....", ".....", "####.", "..#..", ".#...", "####."], Z: ["#####", "...#.", "..#..", ".#...", "#....", "#####"]};
+  // Each eye is 3x4 cells, so the whole face is 7 cells wide: about 2px a cell at pill size, which stays crisp.
+  var EYE = {"^": ["...", ".#.", "#.#", "..."], o: ["...", "###", "#.#", "###"], O: ["###", "#.#", "#.#", "###"],
+    ">": ["#..", ".#.", "#..", "..."], "<": ["..#", ".#.", "..#", "..."], "?": ["##.", "..#", ".#.", ".#."], "-": ["...", "...", "###", "..."]};
   function tiny(left, right, mouth) {
     var rows = [];
-    for (var y = 0; y < 6; y++) rows.push(EYE[left][y] + ".." + EYE[right][y]);
-    rows.push("............"); rows.push(mouth === false ? "............" : "....####....");
+    for (var y = 0; y < 4; y++) rows.push(EYE[left][y] + "." + EYE[right][y]);
+    rows.push("......."); rows.push(mouth === false ? "......." : "..###..");
     return rows;
   }
-  var TINY = {ok: tiny("^", "^"), warn: tiny("o", "O"), broken: tiny(">", "<"), down: tiny("z", "Z", false), attn: tiny("O", "O"), unknown: tiny("?", "?"),
-    awake: tiny("O", "O"), pupil: ["............", "............", "..#......#..", "..#......#..", "............", "............", "............", "............"]};
+  var TINY = {ok: tiny("^", "^"), warn: tiny("o", "O"), broken: tiny(">", "<"), down: tiny("-", "-", false), attn: tiny("O", "O"), unknown: tiny("?", "?"),
+    awake: tiny("O", "O"), pupil: [".......", ".#...#.", ".#...#.", ".......", ".......", "......."]};
   function screenFavicon(rows, ink, led) {
     return bitFavicon(rows, ink, "<rect width='64' height='64' rx='10' fill='#d8cfb8'/><rect x='5' y='5' width='54' height='43' rx='6' fill='#0a140d'/><rect x='5' y='53' width='38' height='3' rx='1.5' fill='#a89c80'/><circle cx='53' cy='55' r='3.2' fill='" + led + "'/>", 10, 8, 44);
   }
