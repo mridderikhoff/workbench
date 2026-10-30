@@ -1419,7 +1419,8 @@ THEMES.clear = (function () {
       // The rollup is a small segment LCD in a printed bezel; a problem lights its backlight red with white text.
       C + ' .backend .rollup .state{align-self:stretch;transform:none;-webkit-mask:none;mask:none;margin:2px 0 8px;padding:12px 14px 11px;border:0;border-radius:6px;' +
         'background:linear-gradient(125deg,rgba(255,255,255,.18),transparent 40%),repeating-linear-gradient(90deg,rgba(0,0,0,.04) 0 1px,transparent 1px 3px),var(--screen);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 4px var(--surround),0 0 0 5px rgba(0,0,0,.35),0 1px 0 5px rgba(255,255,255,.2);' +
-        'font:italic 800 27px/1 var(--serif);letter-spacing:.08em;color:var(--screen-ink);text-shadow:1.5px 1.6px 0 var(--lcd-shadow)}',
+        'font:italic 800 25px/1 var(--serif);letter-spacing:.05em;white-space:nowrap;overflow:hidden;color:var(--screen-ink);text-shadow:1.5px 1.6px 0 var(--lcd-shadow)}',
+      C + ' .backend .rollup.tone-busy .state{font-size:20px;letter-spacing:.03em}',
       C + ' .backend .rollup:not(.tone-ok):not(.tone-busy) .state{transform:none;margin-bottom:8px;color:var(--lcd-bad);background:linear-gradient(125deg,rgba(255,255,255,.18),transparent 40%),repeating-linear-gradient(90deg,rgba(0,0,0,.04) 0 1px,transparent 1px 3px),var(--screen)}',
       C + ' .backend .rollup.tone-warn:not(.tone-busy) .state{color:var(--lcd-warn)}',
       C + ' .backend .rollup:is(.tone-down,.tone-broken,.tone-attn):not(.tone-ok) .state{background:linear-gradient(125deg,rgba(255,255,255,.2),transparent 40%),var(--bad);color:var(--bad-ink);text-shadow:none;transform:none}',
