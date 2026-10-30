@@ -1034,6 +1034,7 @@ serve_remove_slot() {
       if [ "${WT_DRY_RUN:-0}" = 1 ]; then
         echo "dry-run    kc-redirects remove $SERVE_KC"
       else
+        echo "keycloak   removing saved login addresses (up to 60 seconds)"
         timeout --kill-after=5 60 "$(dirname "$0")/kc-redirects" remove $SERVE_KC >/dev/null 2>&1 || echo 'keycloak   could not remove named addresses' >&2
       fi
     fi
@@ -1325,8 +1326,10 @@ recover_forget_locked() {
   local slot token fp branch forgotten=0 kept=0 result
   for token in "$@"; do
     slot=${token%%:*}; fp=${token#*:}
+    echo "recover    checking saved session in slot $slot"
     if recover_check_token "$slot" "$fp" forget; then
       branch="$SERVE_BRANCH"
+      echo "recover    clearing slot $slot $branch"
       if serve_remove_slot "$slot"; then result=forgotten; ((forgotten+=1));
       else result='kept: removal failed'; ((kept+=1)); fi
     else
@@ -1380,7 +1383,10 @@ PY_RECOVER
       local -a REC_TOKENS=()
       recover_token_check "$@" || return $?
       for slot in {2..9}; do [ -z "${REC_TOKENS[$slot]:-}" ] || tokens+=("${REC_TOKENS[$slot]}"); done
-      if [ "$action" = forget ]; then serve_with_lock recover_forget_locked "${tokens[@]}"; return $?; fi
+      if [ "$action" = forget ]; then
+        echo 'recover    waiting for the session lock'
+        serve_with_lock recover_forget_locked "${tokens[@]}"; return $?
+      fi
       pre=$(serve_with_lock recover_precheck "${tokens[@]}") || return 1
       if [ "${pre##*|}" = 1 ]; then
         cmd_backend ensure; backend_rc=$?

@@ -1,10 +1,15 @@
 # Recovering saved sessions
 
-After a machine restart, Overseer offers **Resume sessions** and **Start fresh** for saved
+After a machine restart, Overseer offers **Resume sessions** and **Clear saved sessions** for saved
 sessions whose frontends are fully stopped. Resume starts the checked sessions with their
-saved apps. Start fresh forgets all listed sessions and their unit files, and attempts to
+saved apps. Clear saved sessions forgets all listed sessions and their unit files, and attempts to
 remove their named sign-in addresses. Both act on one click, with no confirmation, and keep
 branches and worktrees. Stopping a running session still asks first.
+
+The picker becomes a progress card as soon as either action starts. It shows elapsed time
+and live command output, including login-address cleanup waits. Completion stays visible;
+failed actions restore the picker so remaining sessions can be retried. Clearing saved
+sessions does not start the backend. Resume starts it when the selected apps need it.
 
 Before the first status arrives, the page says it is loading saved sessions and checking the
 backend. That means checking, not an empty list or a lost session. If the first request fails,
@@ -37,7 +42,7 @@ numbers and fingerprints, never commands, branches, paths, or apps to execute.
 - Resume ensures the shared backend once when needed, outside the serve lock. Each selected
   slot is then validated and started under its own lock hold, in slot order. The start is pinned
   to that slot and uses its saved apps. It runs no unrelated pruning or orphan cleanup.
-- Start fresh validates each listed record under one lock hold before removing its stopped
+- Clear saved sessions validates each listed record under one lock hold before removing its stopped
   registration. Running and changed sessions are kept. It does not delete git worktrees or branches.
 - A failed session does not prevent attempts on the remaining selected sessions. Results remain
   in the existing action output. A partially started session becomes a normal session card.

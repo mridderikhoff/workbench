@@ -455,6 +455,10 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .recovery-actions{justify-content:flex-start;margin-top:10px}
 .recovery-actions button:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}
 .recovery-status{margin-top:10px;display:flex;align-items:center;gap:6px;font-family:var(--sans,inherit)}
+.recovery-progress{margin-top:10px}
+.recovery-progress[hidden],.recovery-picker[hidden]{display:none}
+.recovery-progress .recovery-elapsed{margin-top:10px;color:var(--muted)}
+.recovery-progress .recovery-output{margin:8px 0 0;max-height:12em;overflow:auto;padding:10px 12px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
 .confirm-dialog{max-width:440px}
 /* Logs keep their lines and scroll sideways inside the backend card. */
 .output-log{display:block;width:calc(100% - 12px);min-width:0;max-height:16em;margin:7px 0 0 12px;overflow:auto;padding:10px 12px;border:0;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre;word-break:normal;overflow-wrap:normal;tab-size:4}
@@ -2241,9 +2245,9 @@ var QA_DESK=(function(){
 <div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div>
 <section id="radio" class="radio" aria-label="Radio" tabindex="-1"><div class="radio-obj" aria-hidden="true"><i class="plate"></i><i class="tube"></i><i class="fit a"></i><i class="fit b"></i><i class="static"></i></div><p class="radio-tag"><span class="radio-glyph"></span><span class="radio-subject">Status</span></p><p class="radio-line" aria-hidden="true"></p><p class="radio-said sr-only" role="status" aria-atomic="true"></p><div class="radio-foot"><span class="radio-meter" role="img" hidden></span><span class="radio-count" hidden></span><span class="radio-nav" hidden><button type="button" class="icon prev" data-radio="prev" aria-label="Previous message" title="Previous message"></button><button type="button" class="icon next" data-radio="next" aria-label="Next message" title="Next message"></button></span></div></section>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
-<main><section id="recovery" class="recovery" aria-labelledby="recovery-title" hidden><h2 id="recovery-title">Saved sessions are stopped</h2><p class="recovery-note">These sessions were saved before the last restart and are not running now.</p>
+<main><section id="recovery" class="recovery" aria-labelledby="recovery-title" hidden><h2 id="recovery-title" tabindex="-1">Saved sessions are stopped</h2><div id="recovery-picker" class="recovery-picker"><p class="recovery-note">These sessions were saved before the last restart and are not running now.</p>
 <fieldset class="recovery-list"><legend>Resume these</legend><div id="recovery-rows"></div></fieldset>
-<div class="confirm-actions recovery-actions"><button type="button" id="recovery-resume" disabled>Resume sessions</button><button type="button" id="recovery-fresh">Start fresh</button></div><p id="recovery-status" class="recovery-status small" hidden></p></section>
+<div class="confirm-actions recovery-actions"><button type="button" id="recovery-resume" disabled>Resume sessions</button><button type="button" id="recovery-fresh">Clear saved sessions</button></div><p class="small">Clearing saved sessions forgets their records. It does not start the backend.</p></div><div id="recovery-progress" class="recovery-progress" role="status" aria-live="polite" aria-atomic="false" hidden><p id="recovery-description"></p><p id="recovery-elapsed" class="recovery-elapsed small"></p><pre id="recovery-output" class="recovery-output" aria-label="Latest recovery output"></pre></div><p id="recovery-status" class="recovery-status small" role="status" aria-live="polite" hidden></p></section>
 <h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
@@ -2328,7 +2332,7 @@ function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 function backendSwitching(){var a=currentAction();return!!(a&&a.state==="running"&&(a.action==="attach"||a.action==="update"))}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Start fresh"};
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Clear saved sessions"};
 function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
@@ -2553,7 +2557,7 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
   if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"busy",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
-  if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Start fresh.");
+  if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Clear saved sessions.");
   if(backend&&!switching){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
   if(backend&&!switching&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
@@ -2794,7 +2798,7 @@ stopDialog.addEventListener("close",function(){
   if(opener)opener.focus();
   stopOpener=null;
 });
-var recoveryRequest=false;
+var recoveryRequest=false,recoveryActionTimer=null,recoveryActionPending=false,recoveryStatusPending=false;
 // Saved sessions from before the restart. wt decides which slots qualify (slots[].recovery); the page only lists them.
 var recoveryBox=document.getElementById("recovery"),recoveryRows=document.getElementById("recovery-rows"),recoveryPicks={};
 function recoveryCandidates(){return((data&&data.slots)||[]).filter(function(s){return s.recovery&&s.recovery.fingerprint}).sort(function(a,b){return a.slot-b.slot})}
@@ -2802,7 +2806,7 @@ function recoveryPairs(list){return list.map(function(s){return{slot:s.slot,fing
 function recoveryRow(s){
   var apps=(s.apps||[]).map(function(a){return APP_NAMES[a.app]||a.app}).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
     body='<span class="branch">'+esc(s.branch||"(no branch)")+'</span><span class="small">'+esc(apps)+'</span>'+(leaf?'<span class="small" title="'+esc(s.worktree)+'">'+esc(leaf)+'</span>':"");
-  if(!s.recovery.resumable)return'<div class="recovery-row"><span class="recovery-pad"></span><div class="recovery-plain">'+body+'<span class="why">'+dot("warn")+" Can&rsquo;t resume: "+esc(s.recovery.reason||"not available")+'. Start fresh forgets it.</span></div></div>';
+  if(!s.recovery.resumable)return'<div class="recovery-row"><span class="recovery-pad"></span><div class="recovery-plain">'+body+'<span class="why">'+dot("warn")+" Can&rsquo;t resume: "+esc(s.recovery.reason||"not available")+'. Clear saved sessions forgets it.</span></div></div>';
   var pick=recoveryPicks[s.slot];
   return'<div class="recovery-row"><input type="checkbox" id="recovery-pick-'+s.slot+'" data-slot="'+s.slot+'"'+(pick&&!pick.checked?"":" checked")+'><label for="recovery-pick-'+s.slot+'">'+body+'</label></div>';
 }
@@ -2826,19 +2830,50 @@ function renderRecovery(){
   var kept={};
   list.forEach(function(s){var old=recoveryPicks[s.slot];kept[s.slot]=old&&old.fingerprint===s.recovery.fingerprint?old:{fingerprint:s.recovery.fingerprint,checked:true}});
   recoveryPicks=kept;
-  recoveryBox.hidden=!list.length;
+  var a=currentAction(),recoveryAction=a&&(a.action==="resume"||a.action==="forget")?a:null;
+  var running=!!(recoveryAction&&recoveryAction.state==="running"&&!actionError),complete=!!(recoveryAction&&recoveryAction.state==="ok"&&(!list.length||recoveryStatusPending)&&!actionError);
+  var failed=!!(recoveryRequest&&actionError)||!!(recoveryAction&&recoveryAction.state==="failed");
+  recoveryBox.hidden=!list.length&&!running&&!complete&&!failed;
+  recoveryBox.setAttribute("aria-busy",running?"true":"false");
+  document.getElementById("recovery-picker").hidden=running||complete;
+  document.getElementById("recovery-progress").hidden=!running&&!complete;
+  var title=document.getElementById("recovery-title");
+  setText(title,running?(a.action==="forget"?"Clearing saved sessions…":"Resuming sessions…"):complete?(a.action==="forget"?"Saved sessions cleared":"Sessions resumed"):"Saved sessions are stopped");
+  if(running||complete){
+    setText(document.getElementById("recovery-description"),a.action==="forget"?(running?"Forgetting saved session records. This does not start the backend.":"Saved session records were cleared. The backend was not started."):(running?"Starting the selected sessions and checking the backend needed by their apps.":"The selected sessions were resumed."));
+    setText(document.getElementById("recovery-elapsed"),running?"Elapsed "+agoText(a.startedAt):"");
+    var output=a.output||[];
+    setText(document.getElementById("recovery-output"),output.length?output.slice(-8).map(String).join("\n"):running?"Checking for output…":"Finished.");
+  }
   // The rows are rebuilt only when what they show changes, so polling never costs a checkbox its keyboard focus.
   var rowsHtml=list.map(recoveryRow).join("");
   if(recoveryRows.__html!==rowsHtml){recoveryRows.__html=rowsHtml;recoveryRows.innerHTML=rowsHtml}
   updateRecoveryButtons(list);
-  var status=document.getElementById("recovery-status"),a=currentAction(),line="",tone="";
-  if(a&&(a.action==="resume"||a.action==="forget")){var l=actionLine(a);line=l.text+". Details are on the Backend card.";tone=l.tone}
-  if(recoveryRequest&&actionError){line=actionError;tone="down"}
+  var status=document.getElementById("recovery-status"),line="",tone="";
+  if(failed){line=actionError||actionLine(recoveryAction).text;tone="down"}
+  else if(complete){line=actionLine(a).text;tone="ok"}
+  else if(recoveryAction&&recoveryAction.state==="ok"&&list.length){line=actionLine(a).text;tone="ok"}
+  if(failed&&recoveryAction&&recoveryAction.output&&recoveryAction.output.length)line+=". Latest output: "+String(recoveryAction.output[recoveryAction.output.length-1]);
   status.hidden=!line;setHtml(status,line?dot(tone)+esc(line):"");
   if(focusKey){
     var cur=document.activeElement;
-    if(!cur||!recoveryBox.contains(cur)||cur.disabled||recoveryBox.hidden){var target=recoveryFocusTarget(focusKey);if(target)target.focus()}
+    if(running||complete){if(cur!==title)title.focus()}
+    else if(!cur||!recoveryBox.contains(cur)||cur.disabled||recoveryBox.hidden||failed&&cur===title){var target=recoveryFocusTarget(focusKey);if(target)target.focus()}
   }
+  if(running)queueRecoveryActionPoll();else{clearTimeout(recoveryActionTimer);recoveryActionTimer=null}
+}
+function queueRecoveryActionPoll(){
+  if(INITIAL||recoveryActionTimer||recoveryActionPending)return;
+  recoveryActionTimer=setTimeout(function(){
+    recoveryActionTimer=null;recoveryActionPending=true;
+    fetch("/api/actions",{cache:"no-store"}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error("HTTP "+r.status);return j})}).then(function(j){
+      var current=currentAction(),next=j&&j.actions;
+      if(current&&current.state==="running"&&plainObject(next)&&Array.isArray(next.output||[])&&next.action===current.action&&next.startedAt===current.startedAt){
+        if(next.state!=="running")recoveryStatusPending=true;
+        data.actions=next;render();
+      }
+    }).catch(function(){}).then(function(){recoveryActionPending=false;if(isRunning()&&currentAction()&&(currentAction().action==="resume"||currentAction().action==="forget"))queueRecoveryActionPoll()});
+  },1000);
 }
 function checkedRecovery(list){return list.filter(function(s){return s.recovery.resumable&&recoveryPicks[s.slot]&&recoveryPicks[s.slot].checked})}
 function updateRecoveryButtons(list){
@@ -2848,6 +2883,7 @@ function updateRecoveryButtons(list){
 }
 function runRecovery(action,pairs){
   actionError=null;recoveryRequest=true;
+  recoveryStatusPending=false;
   outputOpen=false;
   var before=data&&data.actions;
   if(data){data.actions={action:action,target:null,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
@@ -3032,12 +3068,21 @@ function poll(){
       if(!validSnapshot(j))throw new Error("Unreadable status response");
       return j;
     });
-  }).then(function(j){var wasRunning=isRunning();data=j;lastOk=new Date();failure=null;render();justFinished=wasRunning&&!isRunning()})
+  }).then(function(j){
+    var wasRunning=isRunning(),previous=currentAction(),incoming=j.actions;
+    // The independent action request can finish before an older status response arrives.
+    if(previous&&(previous.action==="resume"||previous.action==="forget")&&incoming&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt){
+      if(previous.state!=="running"&&incoming.state==="running")j.actions=previous;
+      else if(previous.state==="running"&&incoming.state==="running"&&Array.isArray(previous.output)&&Array.isArray(incoming.output)&&incoming.output.length<=previous.output.length)j.actions=previous;
+    }
+    recoveryStatusPending=!!(previous&&(previous.action==="resume"||previous.action==="forget")&&previous.state==="ok"&&incoming&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt&&incoming.state==="running");
+    data=j;lastOk=new Date();failure=null;render();justFinished=wasRunning&&!isRunning();
+  })
     .catch(function(e){failure=e.message;render()})
     .then(function(){schedule(isRunning()?1000:justFinished?1200:5000);justFinished=false});
 }
 // Only text that actually changed is written, so an idle second touches no layout.
-setInterval(function(){if(document.hidden)return;setText(document.getElementById("updated"),updatedText());updateAgo()},1000);
+setInterval(function(){if(document.hidden)return;setText(document.getElementById("updated"),updatedText());updateAgo();var a=currentAction();if(a&&(a.action==="resume"||a.action==="forget")&&a.state==="running")setText(document.getElementById("recovery-elapsed"),"Elapsed "+agoText(a.startedAt))},1000);
 if(INITIAL){data=INITIAL;lastOk=INITIAL.generatedAt?new Date(INITIAL.generatedAt):null}
 render();buttonFx(document);
 if(!INITIAL)poll();

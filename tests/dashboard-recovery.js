@@ -35,9 +35,9 @@ class El {
   appendChild(c) { this.children.push(c); return c }
   insertBefore(c, ref) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); const j = ref ? this.children.indexOf(ref) : -1; this.children.splice(j < 0 ? this.children.length : j, 0, c); c.parent = this; return c }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this) }
-  contains(c) { return c === this || this.children.includes(c) }
+  contains(c) { return c === this || this.children.includes(c) || this.id === "recovery" && c && c.id.startsWith("recovery-") }
   closest() { return null }
-  focus() {}
+  focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this }
   getBoundingClientRect() { return { left: 0, right: 0, top: 0, bottom: 0 } }
   showModal() { this.open = true }
   close() { this.open = false }
@@ -46,8 +46,8 @@ class El {
 // A fresh page: stubs for the browser, the app script run for real, and a recorded fetch.
 function page(opts) {
   opts = opts || {};
-  const els = {}, calls = [], timers = [];
-  const get = id => els[id] || (els[id] = new El(id));
+  const els = {}, calls = [], timers = [], timerFns = [];
+  const get = id => els[id] || (els[id] = Object.assign(new El(id), { ownerDocument: doc }));
   const doc = new El("document");
   Object.assign(doc, {
     body: new El("body"), documentElement: new El("html"), activeElement: null, hidden: false, visibilityState: "visible",
@@ -60,7 +60,7 @@ function page(opts) {
     localStorage: { getItem: k => k === "qaDashboardTenant" && opts.tenant || null, setItem() {} }, sessionStorage: { getItem: () => null, setItem() {} },
     location: { search: "" }, QA_PERF: null,
     setInterval: () => 0, clearInterval() {}, clearTimeout() {},
-    setTimeout: (fn, ms) => { timers.push(ms); return timers.length },
+    setTimeout: (fn, ms) => { timers.push(ms); timerFns.push(fn); return timers.length },
     // The page's theme object is a separate script; the stub records favicon states and keeps nothing healthy by default.
     QA_THEME: { glyph: t => "[" + t + "]", icon: () => "", copy: (k, f) => f, id: () => "t", isDark: () => false, sceneId: () => "desk", current: () => ({}), buttonHover: () => "none", favicon: s => favicons.push(s) },
     fetch: (url, init) => { calls.push({ url, init }); return opts.fetch(url, init) },
@@ -74,7 +74,7 @@ function page(opts) {
   vm.runInContext("function stub(){}; var QA_BRUSH=undefined;", sandbox);
   vm.runInContext(APP.replace("if(!INITIAL)poll();", ""), sandbox);
   return {
-    sandbox, els, calls, timers, favicons, get,
+    sandbox, els, calls, timers, timerFns, favicons, get,
     run: code => vm.runInContext(code, sandbox),
     poll: () => vm.runInContext("poll()", sandbox),
     text: id => els[id] && els[id].textContent,
@@ -346,6 +346,85 @@ test("Resume and Start fresh act directly with their payloads; a second click is
   assert.strictEqual(q.run("typeof freshDialog + typeof samePairs"), "undefinedundefined");
   assert.strictEqual(q.run("recoveryBox.hidden"), false);
   assert.strictEqual(q.run("isRunning()"), true);
+});
+
+test("recovery replaces the picker immediately, shows live output, and keeps its result after candidates vanish", async () => {
+  const snap = recoverySnapshot();
+  let action = null;
+  let resolvePost;
+  const p = page({ fetch: (url, init) => {
+    if (url === "/api/recovery/forget") return new Promise(resolve => { resolvePost = resolve });
+    if (url === "/api/actions") return jsonResponse({ actions: action });
+    return jsonResponse(snap);
+  } });
+  await p.poll();
+  p.get("recovery-fresh").focus();
+  p.get("recovery-fresh").fire("click");
+  assert.strictEqual(p.text("recovery-title"), "Clearing saved sessions…");
+  assert.strictEqual(p.get("recovery-picker").hidden, true);
+  assert.strictEqual(p.get("recovery-progress").hidden, false);
+  assert.strictEqual(p.get("recovery").getAttribute("aria-busy"), "true");
+  assert.strictEqual(p.sandbox.document.activeElement.id, "recovery-title");
+  assert.match(p.text("recovery-description"), /does not start the backend/);
+  assert.match(p.text("recovery-output"), /Checking for output/);
+  action = { action: "forget", state: "running", startedAt: p.run("data.actions.startedAt"), output: ["checking Keycloak redirects", "removing saved record <b>unsafe</b>"] };
+  resolvePost({ ok: true, status: 202, json: () => Promise.resolve({ actions: action }) });
+  await new Promise(done => setImmediate(done));
+  const timer = p.run("recoveryActionTimer");
+  p.timerFns[timer - 1]();
+  await new Promise(done => setImmediate(done));
+  assert.strictEqual(p.text("recovery-output"), "checking Keycloak redirects\nremoving saved record <b>unsafe</b>");
+  assert.doesNotMatch(p.html("recovery-output"), /unsafe/, "output is assigned as text, not HTML");
+  assert(p.calls.some(c => c.url === "/api/actions"));
+  action = { ...action, state: "ok", endedAt: new Date().toISOString() };
+  snap.actions = action; snap.slots = [];
+  await p.poll();
+  assert.strictEqual(p.get("recovery").hidden, false);
+  assert.strictEqual(p.text("recovery-title"), "Saved sessions cleared");
+  assert.strictEqual(p.get("recovery-progress").hidden, false);
+  assert.match(p.text("recovery-description"), /backend was not started/);
+});
+
+test("failed recovery restores the picker, reports output, and allows retry", async () => {
+  const snap = recoverySnapshot();
+  const p = page({ fetch: (url, init) => init && init.method === "POST" ? jsonResponse({ error: "sessions changed", actions: null }, false, 409) : jsonResponse(snap) });
+  await p.poll();
+  p.get("recovery-resume").fire("click");
+  await new Promise(done => setImmediate(done));
+  assert.strictEqual(p.get("recovery-picker").hidden, false);
+  assert.strictEqual(p.get("recovery-progress").hidden, true);
+  assert.match(p.html("recovery-status"), /sessions changed/);
+  assert.strictEqual(p.get("recovery-fresh").disabled, false);
+  p.get("recovery-fresh").fire("click");
+  assert.strictEqual(p.calls.filter(c => c.init && c.init.method === "POST").length, 2);
+  assert(p.run("recoveryActionTimer"), "the retry starts its own action poll");
+});
+
+test("a recovery failure from status shows its last output and leaves actions available", async () => {
+  const snap = recoverySnapshot();
+  const p = page({ fetch: () => jsonResponse(snap) });
+  await p.poll();
+  snap.actions = { action: "resume", state: "failed", exitCode: 1, output: ["could not start ri <unsafe>"] };
+  await p.poll();
+  assert.strictEqual(p.get("recovery-picker").hidden, false);
+  assert.match(p.html("recovery-status"), /could not start ri &lt;unsafe&gt;/);
+  assert.strictEqual(p.get("recovery-resume").disabled, false);
+  p.run('data.actions=null;actionError="backend unavailable";recoveryRequest=false;render()');
+  assert.strictEqual(p.get("recovery").hidden, false);
+  assert.strictEqual(p.get("recovery-status").hidden, true, "an unrelated backend error stays out of recovery");
+});
+
+test("a finished action from the fast endpoint survives an older status response", async () => {
+  const snap = recoverySnapshot();
+  const p = page({ fetch: url => jsonResponse(snap) });
+  await p.poll();
+  const startedAt = new Date().toISOString();
+  p.run('data.actions={action:"resume",state:"ok",startedAt:' + JSON.stringify(startedAt) + ',output:["done"]};render()');
+  snap.actions = { action: "resume", state: "running", startedAt, output: [] };
+  await p.poll();
+  assert.strictEqual(p.run("data.actions.state"), "ok");
+  assert.deepStrictEqual(plain(p.run("data.actions.output")), ["done"]);
+  assert.strictEqual(p.get("recovery-progress").hidden, false, "stale candidates do not reopen the picker");
 });
 
 test("no saved sessions and no data: Start fresh does nothing", async () => {
