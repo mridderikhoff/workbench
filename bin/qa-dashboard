@@ -2619,8 +2619,12 @@ function actionLine(a){
   if(a.state==="ok")return{text:verb+" finished at "+clock(a.endedAt),tone:"ok"};
   return{text:verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt),tone:"down"};
 }
+function obsoleteBackendAction(a,b){
+  return!!(a&&a.state!=="running"&&b&&backendHealthy(b)&&/^(ensure|heal|restart|attach|update|stop)$/.test(a.action));
+}
 function renderActionResult(){
   var a=currentAction();
+  if(obsoleteBackendAction(a,data&&data.backend))a=null;
   if(!a&&!actionError)return"";
   var h='<div class="action-result" aria-live="polite">';
   if(a){
@@ -2878,7 +2882,7 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
     if(backendTone(backend)==="down"&&names.length){var down=serviceNames("down");add("backend:down","down","Backend","Backend is down."+(down.length?" Not running: "+listed(down)+".":""))}
     ["attn","broken"].forEach(function(t){var group=serviceNames(t);if(group.length)add("backend:"+t,t,"Backend",t==="attn"?"Backend needs attention: "+listed(group)+".":"Backend services running but not ready: "+listed(group)+".")});
   }
-  if(action&&action.state!=="running"&&action.state!=="ok")add("action:failed:"+action.action+":"+(action.target||""),"down",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
+  if(action&&action.state!=="running"&&action.state!=="ok"&&!obsoleteBackendAction(action,backend))add("action:failed:"+action.action+":"+(action.target||""),"down",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
   var saved=slots.filter(function(slot){return slot.recovery}),live=slots.filter(function(slot){return!slot.recovery});
   live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
