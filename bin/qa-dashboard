@@ -1467,9 +1467,18 @@ THEMES.clear = (function () {
       C + ' .module .led.tone-warn{--led:#ffb020;--led-core:#fff4da;--led-spill:rgba(255,176,32,.55)}',
       C + ' .module .led.tone-bad{--led:#ff3a3a;--led-core:#fff0ee;--led-spill:rgba(255,58,58,.6)}',
       // A flat flex cable runs down the board's left channel from a connector under the LED.
-      C + ' .module .lamps{z-index:-1;left:19px;top:44px;bottom:30px;width:10px;border-radius:1px;opacity:.86;' +
-        'background:linear-gradient(180deg,#f2f2ee 0 5px,#2a2b30 5px 8px,transparent 8px calc(100% - 6px),#2a2b30 calc(100% - 6px)),repeating-linear-gradient(90deg,rgba(120,60,8,.8) 0 .7px,transparent .7px 2px),linear-gradient(90deg,#a85a0c,#e8a24a 45%,#c97a22 80%,#9a520a);' +
+      C + ' .module .lamps{display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:11px 0 9px;left:19px;top:44px;bottom:30px;width:10px;border-radius:1px;' +
+        'background:linear-gradient(var(--shell),var(--shell)),linear-gradient(180deg,#f2f2ee 0 5px,#2a2b30 5px 8px,transparent 8px calc(100% - 6px),#2a2b30 calc(100% - 6px)),repeating-linear-gradient(90deg,rgba(120,60,8,.8) 0 .7px,transparent .7px 2px),linear-gradient(90deg,#a85a0c,#e8a24a 45%,#c97a22 80%,#9a520a);' +
         'box-shadow:0 0 0 .5px rgba(0,0,0,.4),2px 2px 3px rgba(0,0,0,.35)}',
+      // A row of 0603 LEDs along the cable mirrors the session: dark while all is well, steady amber for a warning, red for a
+      // problem, and an amber chase down the cable while something starts (steady amber under reduced motion).
+      C + ' .module .lamps>b{position:relative;display:block;width:5px;height:2.6px;border-radius:1px;background:#4a2a10;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}',
+      C + ' .module .lamps:is(.tone-warn,.busy)>b{background:#ffb020;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,176,32,.65)}',
+      C + ' .module .lamps.tone-bad>b{background:#ff4a3a;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,60,50,.7)}',
+      C + ' .module .lamps>b::after{content:"";position:absolute;inset:-.5px;border-radius:inherit;background:#fff2c8;box-shadow:0 0 7px 2px rgba(255,190,60,.9);opacity:0}',
+      '@media (prefers-reduced-motion:no-preference){' + C + ' .module .lamps.busy:not(.tone-bad)>b{background:#5a3412;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}' +
+        C + ' .module .lamps.busy:not(.tone-bad)>b::after{animation:clear-chase 1.5s linear infinite;animation-delay:calc(var(--i) * 50ms)}}',
+      '@keyframes clear-chase{0%{opacity:1}10%{opacity:.3}18%,100%{opacity:0}}',
       // Screws in clear bosses at the module's corners.
       C + ' .module .fastener{width:18px;height:18px;background:var(--screw) center/100% 100% no-repeat;transform:rotate(var(--turn,0deg))}',
       C + ' .module .fastener.tl{left:-4px;top:-4px}', C + ' .module .fastener.tr{right:-4px;top:-4px}', C + ' .module .fastener.bl{left:-4px;bottom:-4px}', C + ' .module .fastener.br{right:-4px;bottom:-4px}',
