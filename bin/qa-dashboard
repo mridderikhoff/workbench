@@ -1286,7 +1286,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#ece4cf",
         "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
-        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--crt-rim": "rgba(51,255,102,.14)", "--crt-spill": "rgba(51,255,102,.07)", "--power-glass": "#5a2a0c", "--power-glass-hi": "#8a4a1a", "--power-glass-lo": "#241005", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--tray-floor": "#2a2620", "--tray-lip": "#b8ae94", "--tray-ink": "#efe7d2", "--tray-bad": "#ff8f80", "--tray-warn": "#ffc23d", "--crt-rim": "rgba(51,255,102,.14)", "--crt-spill": "rgba(51,255,102,.07)", "--power-glass": "#5a2a0c", "--power-glass-hi": "#8a4a1a", "--power-glass-lo": "#241005", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
         "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
@@ -1322,7 +1322,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#141513",
         "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
-        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--crt-rim": "rgba(51,255,102,.24)", "--crt-spill": "rgba(51,255,102,.11)", "--power-glass": "#4e230a", "--power-glass-hi": "#7d4216", "--power-glass-lo": "#1c0b03", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--tray-floor": "#141210", "--tray-lip": "#4a443a", "--tray-ink": "#efe7d2", "--tray-bad": "#ff8f80", "--tray-warn": "#ffc23d", "--crt-rim": "rgba(51,255,102,.24)", "--crt-spill": "rgba(51,255,102,.11)", "--power-glass": "#4e230a", "--power-glass-hi": "#7d4216", "--power-glass-lo": "#1c0b03", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
         "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
         "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
         "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
@@ -1743,7 +1743,28 @@ THEMES.terminal = (function () {
         // when the backend runs a branch other than develop), and the last action on a small display, with the session lamps'
         // amber chase beside it while the action runs.
         T + ' .backend .backend-branch,' + T + ' .backend .meta{display:none}',
-        T + ' .backend .svc-lamps{display:flex;flex-wrap:wrap;gap:8px 14px;margin:2px 0 10px}',
+        // Show details and Show output open a slide-out tray, like a drawer pulled from a slot in the panel: the slot's lip
+        // shades the tray's top edge, and the tray floor is darker and recessed, so what it holds reads as inside the machine.
+        // Closed, only the status screen shows the services' overall state; opened, the service list slides out on the tray
+        // as rows of lamp, name, state and the Restart key. The tray slides out once when its key is pressed (transform and
+        // opacity, under 250ms); reduced motion opens it instantly.
+        T + ' .backend .svc-lamps:not([hidden]){display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 0 2px}',
+        T + ' .backend .svc-lamps.open,' + T + ' .backend .output-log{position:relative;margin:14px 0 4px;padding:12px 12px 10px;border-radius:0 0 5px 5px;background:var(--tray-floor);' +
+          'box-shadow:inset 0 9px 8px -6px rgba(0,0,0,.75),inset 0 0 0 1px rgba(0,0,0,.45),0 -4px 0 -1px var(--tray-lip),0 -5px 0 -1px rgba(0,0,0,.55),0 1px 0 var(--mould-hi)}',
+        T + ' .backend .svc-lamps.open{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;--panel-ink:var(--tray-ink);--panel-lo:rgba(0,0,0,.6);--panel-hi:rgba(255,255,255,.06)}',
+        T + ' .backend .svc-lamps.open .svc-lamp>i{grid-column:1}',
+        T + ' .backend .svc-lamps.open .svc-lamp{display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:4px 8px}',
+        T + ' .backend .svc-lamps.open .svc-lamp-name{grid-column:2}',
+        T + ' .backend .svc-lamps.open .svc-lamp-state{grid-column:3;justify-self:end}',
+        T + ' .backend .svc-lamps.open :is(.svc-lamp-restarts,.svc-restart){grid-column:2/-1}',
+        T + ' .backend .svc-lamp-state{color:var(--panel-ink);font-weight:600}',
+        T + ' .backend .svc-lamp.lamp-bad .svc-lamp-state{color:var(--tray-bad)}',
+        T + ' .backend .svc-lamp.lamp-warn .svc-lamp-state{color:var(--tray-warn)}',
+        T + ' .backend .svc-lamp-restarts{font-size:13px;color:var(--tray-ink);opacity:.8}',
+        T + ' .backend .svc-lamps .svc-restart{justify-self:start;margin:2px 0 4px;padding:3px 10px;font-size:12.5px}',
+        T + ' .backend .output-log{width:auto;margin-left:0;border-radius:0 0 5px 5px;color:var(--screen-ink);background:var(--screen)}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' .backend .toggle.turned[aria-expanded="true"]~.svc-lamps.open,' + T + ' .backend .output-disclosure:has(.output-toggle.turned[aria-expanded="true"]) .output-log{animation:tray-out .2s var(--ease-out) both}}',
+        '@keyframes tray-out{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}',
         T + ' .backend .svc-lamp{display:inline-flex;align-items:center;gap:6px;font:13px/1.2 var(--mono);color:var(--panel-ink);--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
         T + ' .backend .svc-lamp>i{flex:none;width:14px;height:14px;background:radial-gradient(circle at 42% 36%,rgba(255,255,255,.8) 0 .8px,transparent 1.6px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.6px 3.4px,var(--lamp-lo) 4.1px,#050505 4.4px 5.2px,var(--panel-lo) 5.3px,transparent 5.9px),' +
           'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
@@ -1779,6 +1800,8 @@ THEMES.terminal = (function () {
       light: {surface: {ramp: ["#8a6440", "#9c7449", "#ad8454", "#bd9462"], seam: "#6b4a2c"}, blotter: {ramp: ["#5d6a5b", "#677464", "#717e6e"]},
         stock: {ramp: ["#d6ceb7", "#ddd5bf", "#e3dcc8"]}}},
     copy: {emptyTitle: "No sessions running"},
+    // The backend's services are one list of lamps that opens in place into rows with their state and Restart key.
+    serviceLamps: true,
     // Embossed tape sets each letter on its own small seeded baseline.
     branchLetters: BRANCH_LABEL === "dymo"
   };
@@ -2231,7 +2254,7 @@ var QA_THEME = (function () {
     // Text on the CRT screen (Terminal's wordmark).
     ["--screen-ink", "--screen"], ["--radio-alert", "--radio-plate"],
     // Terminal panels: the engraved placard core, legends on the panel, tray and stop plate, and the off and down key legends.
-    ["--panel-muted", "--panel"], ["--bl-ok", "--tag"], ["--bl-warn", "--tag"], ["--bl-bad", "--tag"], ["--bl-ok", "--btn-face"],
+    ["--panel-muted", "--panel"], ["--tray-ink", "--tray-floor"], ["--tray-bad", "--tray-floor"], ["--tray-warn", "--tray-floor"], ["--bl-ok", "--tag"], ["--bl-warn", "--tag"], ["--bl-bad", "--tag"], ["--bl-ok", "--btn-face"],
     // Problem tag text and mark use their own on-colours; the sentence uses the plate's red ink.
     ["--radio-problem-tag-ink", "--radio-tag"], ["--radio-problem-tag-glyph", "--radio-tag", 3],
     ["--radio-glyph-bad", "--radio-plate", 3], ["--glyph-ok", "--radio-plate", 3],
@@ -2725,30 +2748,38 @@ function serviceLampList(b){
   var svcs=(b&&b.services)||{};
   return Object.keys(svcs).map(function(n){return{name:n,lamp:SERVICE_LAMP[serviceTone(svcs[n])]||"off",state:String(serviceState(svcs[n]))}});
 }
-function serviceLamps(b){
-  var list=serviceLampList(b);
-  if(!list.length)return"";
-  return'<span class="svc-lamps" role="list" aria-label="Backend services">'+list.map(function(l){
-    return'<span class="svc-lamp lamp-'+l.lamp+'" role="listitem" title="'+esc(l.name+": "+l.state)+'"><i aria-hidden="true"></i><span class="svc-lamp-name">'+esc(l.name)+'</span><span class="sr-only">: '+esc(l.state)+'</span></span>'}).join("")+'</span>';
+// The service list as lamps (a theme with serviceLamps), shown only while the details are open: rows of lamp, name, state
+// and its Restart key. Closed, the status screen is the overview and the list is not rendered.
+function serviceLamps(b,open){
+  if(!open)return'<div id="backend-services" class="svc-lamps" hidden></div>';
+  var list=serviceLampList(b),svcs=(b&&b.services)||{};
+  return'<div id="backend-services" class="svc-lamps'+(open?" open":"")+'" role="list" aria-label="Backend services">'+list.map(function(l){
+    var s=svcs[l.name]||{},restartable=l.lamp==="bad";
+    return'<div class="svc-lamp lamp-'+l.lamp+'" role="listitem" title="'+esc(l.name+": "+l.state)+'"><i aria-hidden="true"></i><span class="svc-lamp-name">'+esc(l.name)+'</span>'+
+      (open||l.lamp!=="ok"?'<span class="svc-lamp-state"><span class="sr-only">: </span>'+esc(l.state)+'</span>':'<span class="sr-only">: '+esc(l.state)+'</span>')+
+      (open&&s.restartCount?'<span class="svc-lamp-restarts">restarts '+esc(s.restartCount)+'</span>':"")+
+      (open&&restartable?'<button type="button" class="act svc-restart" data-restart="'+esc(l.name)+'" aria-label="Restart '+esc(l.name)+'" title="Restart '+esc(l.name)+' (wt backend restart '+esc(l.name)+')"'+(isRunning()?" disabled":"")+'>Restart</button>':"")+'</div>'}).join("")+'</div>';
 }
 function renderBackend(b){
   if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
   var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),busy=backendSwitching(),healthy=backendHealthy(b),open=detailsOpen(busy?false:healthy),rollup=backendTone(b),state=busy?"Switching…":String(b.overall||"unknown").replace(/-/g," ");
   var actions=busy?"":(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
+  var lamps=!!(QA_THEME.current()||{}).serviceLamps;
   var h=(healthy||busy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
     '<span class="state" style="--stamp-chars:'+Math.max(6,state.length)+'">'+dot(rollup)+esc(state)+'</span>'+
     '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span>'+
-    // A theme can show the services as a row of labelled lamps and the branch and commit on a small screen instead.
-    serviceLamps(b)+'<span class="backend-screen'+(branch==="develop"?"":" off-develop")+'" title="'+esc("Backend branch "+(branch||"unverified")+(b.sha?", commit "+b.sha:""))+'">'+
+    // A theme can show the branch and commit on a small screen instead.
+    '<span class="backend-screen'+(branch==="develop"?"":" off-develop")+'" title="'+esc("Backend branch "+(branch||"unverified")+(b.sha?", commit "+b.sha:""))+'">'+
       '<span class="backend-screen-branch">'+esc(branch||"unverified")+'</span> &middot; <code>'+esc(b.sha||"?")+'</code></span></div>'+
     ((switching||behind)?'<div class="rel">'+updateButton(b.relation||"",switching)+'</div>':"")+
     (actions?'<div class="acts">'+actions+'</div>':"")+
     '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span></div></div>'+
-    '<div class="backend-disclosure"><button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-details">'+
+    '<div class="backend-disclosure"><button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="'+(lamps?"backend-services":"backend-details")+'">'+
     '<span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span>'+
-    '<span>'+(open?"Hide":"Show")+' details</span></button>'+
-    '<div id="backend-details" class="backend-details"'+(open?"":" hidden")+'>';
-  if(open){
+    '<span>'+(open?"Hide":"Show")+' details</span></button>'+(lamps?serviceLamps(b,open):"")+
+    '<div id="backend-details" class="backend-details"'+(open&&(!lamps||b.dirty)?"":" hidden")+'>';
+  if(open&&lamps)h+=(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
+  else if(open){
     var svcs=b.services||{};
     h+=(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
     Object.keys(svcs).forEach(function(n){
