@@ -220,10 +220,14 @@ Terminal is the default for a first visit; a stored choice always wins (a stored
   the cursor, and it blinks, winks, glances and smiles with irregular timing. Its CRT keeps the refresh band, flashes and static warble.
   Eye and Blip can be selected in any theme. Horror gives Blip ink horns, and Blip has no drips in any theme. Putty plastic panels have moulded edges and vent slots,
   with a felt pad on a wooden desk, pressing keycaps, LED legends and embossed label tape.
+  The slots in use read as "3/8" on a small mechanical odometer, red only when every slot is taken; Stop is a small amber power key.
   Phosphor green `#33ff66` and amber `#ffb000` appear only on dark glass or in dark mode; light mode
   uses dark inks on putty. Problems are a clear red.
 - **Horror**: candlelit horror. Card stock with foxing on a leather blotter over black velvet, a red
   wax seal, masking tape, halftone candles and smoky fog; brush-ink glyphs and blood-red ink.
+  A session's status is the thread of a saddle-stitched seam down its folio, sealed with wax at the top: dark when healthy, gold
+  for a warning, red for a problem, and a needle running down it while loading. The backend's screens are tooled leather labels
+  and its details an aged paper slip; the slots gauge is a brass pocket watch and Stop a brass stud.
   The Update button is a manila tag with the behind count stamped on it in sepia.
 - **Clear Plastic**: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the
   PSP, the iMac G3). Every panel is a tinted, frosted shell over a real circuit board, seen soft and dimmed

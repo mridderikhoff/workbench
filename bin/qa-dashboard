@@ -607,8 +607,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
   name          label in the theme picker
   artPitch      shared halftone dot pitch in CSS px for the character and screened props (all themes use 4.5)
   css           {light:{...}, dark:{...}} custom properties merged over BASE (every engine key, with defaults). REQUIRED_KEYS
-                have no useful default. Each theme's deskCss may read extra keys of its own (Horror's --margin-ink, --foil-*, --patch-*
-                and --tooled, Clear Plastic's --shell-*, --frost* and --cap-*). --foil-hi, --foil-mid and --foil-lo are contrast-checked against --desk-card.
+                have no useful default. Each theme's deskCss may read extra keys of its own (Horror's --margin-ink, --foil-*, --patch-*,
+                --tooled, --seam-*, --wax-*, --screen-bad and --stop-blood, Clear Plastic's --shell-*, --frost* and --cap-*). --foil-hi, --foil-mid and --foil-lo are contrast-checked against --desk-card.
                 text and UI: --text, --muted, --inset, --border, --rule, --ok, --bad, --warn, --idle, --glyph-ok, --glyph-bad,
                   --accent (links), --hl (problem background), --banner, --banner-text, --shade, --dim (modal backdrop)
                 paired inks: every solid fill has its on-colour, named <fill>-ink (or <fill>-text): --ok-ink, --warn-ink,
@@ -634,7 +634,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                   drive the six last-action lamps;
                   --details-floor/edge/lip/ink/warn/bad paint the service and output tray;
                   --screen-face/rim/ink/warn paint the backend branch and last-action screens;
-                  --gauge-face/rim/ink/alert paint the slots dial, with the plain count kept for accessibility;
+                  --gauge-face/rim/ink/alert paint the slots dial, with the plain count kept for accessibility; the dial
+                  carries the total in data-of and .full when every slot is taken;
                   --stop-face/hover/rim/wall/ink/radius and --start-face/rim/wall/ink paint the action keys.
                 New features add shared markup, behaviour, and BASE tokens. A theme supplies materials and art,
                 never a flag that forks structure or copies feature logic.
@@ -807,7 +808,7 @@ var THEMES = {
     wordmarkStroke: false,
     artPitch: 4.5,
     css: {
-      light: {"--module-face": "transparent", "--module-edge": "var(--folio-foil-mid)", "--fastener-face": "var(--folio-foil-mid)", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "var(--inset)", "--details-edge": "var(--patch-edge)", "--details-lip": "var(--foil-mid)", "--details-ink": "var(--text)", "--details-warn": "var(--warn)", "--details-bad": "var(--bad)", "--screen-face": "var(--inset)", "--screen-rim": "var(--foil-mid)", "--screen-ink": "var(--text)", "--screen-warn": "var(--warn)", "--gauge-face": "var(--tag)", "--gauge-rim": "var(--folio-foil-mid)", "--gauge-ink": "var(--tag-ink)", "--gauge-alert": "var(--bad)", "--stop-face": "var(--patch)", "--stop-hover": "var(--patch)", "--stop-rim": "var(--foil-mid)", "--stop-wall": "var(--patch-edge)", "--stop-ink": "var(--patch-ink)", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
+      light: {"--module-face": "transparent", "--module-edge": "transparent", "--fastener-face": "transparent", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "#e4d2aa", "--details-edge": "#8a7048", "--details-lip": "#a08758", "--details-ink": "#24170c", "--details-warn": "#5e3a00", "--details-bad": "#8f0014", "--screen-face": "#2a1411", "--screen-rim": "var(--folio-foil-lo)", "--screen-ink": "#ecdfc6", "--screen-warn": "var(--folio-warn)", "--screen-bad": "var(--folio-bad)", "--gauge-face": "#1f0f0c", "--gauge-rim": "#b88a3a", "--gauge-ink": "#f6dc94", "--gauge-alert": "var(--folio-bad)", "--stop-face": "#c9a04c", "--stop-hover": "#e6c46e", "--stop-rim": "#6e4c12", "--stop-wall": "#2e1e06", "--stop-ink": "#3a2606", "--stop-radius": "50%", "--stop-blood": "#9a0414", "--seam-ok": "#1a0a08", "--seam-sheen": "rgba(255,220,180,.3)", "--seam-warn": "#e2bc62", "--seam-bad": "#ff4a5a", "--seam-lit": "#ffe49a", "--seam-glow": "rgba(255,196,80,.75)", "--seam-groove": "rgba(0,0,0,.5)", "--seam-lip": "rgba(255,226,190,.09)", "--wax-ok": "#4a1210", "--wax-warn": "#c8943c", "--wax-bad": "#d4122a", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
         "--border": "#cdb994", "--rule": "#a8001a", "--ok": "#1b6e3e", "--bad": "#a8001a", "--warn": "#704500",
         "--idle": "#867460", "--glyph-ok": "#7d6b58", "--glyph-bad": "#a8001a", "--accent": "#a8001a", "--brush": "#e0061f", "--brush-deep": "#8a0313", "--seep": "#a8001a", "--seep-ink": "#ffffff", "--hl": "#f6d9d3", "--banner": "#a8001a",
         "--banner-text": "#fff", "--shade": "rgba(80,50,20,.10)", "--desk-floor": "#3a2c21", "--desk-card": "#f1e6cc", "--desk-card2": "#e2d3b1", "--edge-hi": "rgba(255,255,255,.75)", "--edge-line": "rgba(120,86,40,.2)",
@@ -831,7 +832,7 @@ var THEMES = {
         "--folio-foil-hi": "#fbe7a6", "--folio-foil-mid": "#e2bc62", "--folio-foil-lo": "#c4953c", "--folio-foil-rim": "rgba(0,0,0,.92)", "--folio-foil-lip": "rgba(255,226,170,.17)",
         "--folio-tooled": "0 -1px 0 rgba(0,0,0,.9),0 1px 0 rgba(255,232,200,.17)", "--folio-ok": "#6fdc98", "--folio-bad": "#ff8a90", "--folio-warn": "#e8b35a",
         "--folio-stitch": stitchBorder("#c9a46a", "rgba(255,236,196,.4)", "rgba(0,0,0,.7)", "rgba(255,230,200,.1)")},
-      dark: {"--module-face": "transparent", "--module-edge": "var(--folio-foil-mid)", "--fastener-face": "var(--folio-foil-mid)", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "var(--inset)", "--details-edge": "var(--patch-edge)", "--details-lip": "var(--foil-mid)", "--details-ink": "var(--text)", "--details-warn": "var(--warn)", "--details-bad": "var(--bad)", "--screen-face": "var(--inset)", "--screen-rim": "var(--foil-mid)", "--screen-ink": "var(--text)", "--screen-warn": "var(--warn)", "--gauge-face": "var(--tag)", "--gauge-rim": "var(--folio-foil-mid)", "--gauge-ink": "var(--tag-ink)", "--gauge-alert": "var(--bad)", "--stop-face": "var(--patch)", "--stop-hover": "var(--patch)", "--stop-rim": "var(--foil-mid)", "--stop-wall": "var(--patch-edge)", "--stop-ink": "var(--patch-ink)", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
+      dark: {"--module-face": "transparent", "--module-edge": "transparent", "--fastener-face": "transparent", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "#e4d2aa", "--details-edge": "#8a7048", "--details-lip": "#a08758", "--details-ink": "#24170c", "--details-warn": "#5e3a00", "--details-bad": "#8f0014", "--screen-face": "#2a1411", "--screen-rim": "var(--folio-foil-lo)", "--screen-ink": "#ecdfc6", "--screen-warn": "var(--folio-warn)", "--screen-bad": "var(--folio-bad)", "--gauge-face": "#1f0f0c", "--gauge-rim": "#b88a3a", "--gauge-ink": "#f6dc94", "--gauge-alert": "var(--folio-bad)", "--stop-face": "#c9a04c", "--stop-hover": "#e6c46e", "--stop-rim": "#6e4c12", "--stop-wall": "#2e1e06", "--stop-ink": "#3a2606", "--stop-radius": "50%", "--stop-blood": "#9a0414", "--seam-ok": "#1a0a08", "--seam-sheen": "rgba(255,220,180,.3)", "--seam-warn": "#e2bc62", "--seam-bad": "#ff4a5a", "--seam-lit": "#ffe49a", "--seam-glow": "rgba(255,196,80,.75)", "--seam-groove": "rgba(0,0,0,.5)", "--seam-lip": "rgba(255,226,190,.09)", "--wax-ok": "#4a1210", "--wax-warn": "#c8943c", "--wax-bad": "#d4122a", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
         "--border": "#3b2320", "--rule": "#6e0a12", "--ok": "#5fd18a", "--bad": "#ff5c68", "--warn": "#e0a948",
         "--idle": "#8a7b6c", "--glyph-ok": "#a39482", "--glyph-bad": "#ff3348", "--accent": "#ff5c68", "--brush": "#e0061f", "--brush-deep": "#7a0310", "--seep": "#9a0414", "--seep-ink": "#f4ead5", "--hl": "#3a1214", "--banner": "#8f0414",
         "--banner-text": "#f4ead5", "--shade": "rgba(0,0,0,.55)", "--desk-floor": "#070403", "--desk-card": "#1e1613", "--desk-card2": "#17100d", "--edge-hi": "rgba(255,232,200,.08)", "--edge-line": "rgba(0,0,0,.4)",
@@ -923,6 +924,15 @@ var THEMES = {
     },
     deskCss: (function () {
       var D = 'html[data-theme="horror"]';
+      // The sewing needle that runs down a loading seam (eye at the top, tip ahead), and the stop mark as a mask for the stud's engraving.
+      var needle = svgAsset('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="28" viewBox="0 0 10 28"><path d="M5 27.6 6.4 10V3.4a1.4 1.4 0 0 0-2.8 0V10z" fill="#ddd6ca" stroke="#1a0d08" stroke-width=".8" stroke-linejoin="round"/>' +
+        '<rect x="4.4" y="2.6" width="1.2" height="4.4" rx=".6" fill="#1a0d08"/><path d="M4.5 9.5v11" stroke="#fff" stroke-opacity=".75" stroke-width=".6"/></svg>');
+      var stopMark = svgAsset('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 2.6h7.6l5.5 5.6v7.6l-5.6 5.6H8.2l-5.6-5.6V8.1L8 2.7l1.1-.3" stroke-width="2.1"/><path d="M7.2 12.2c3-.5 6.6-.6 9.7-.2" stroke-width="3"/></svg>');
+      // One slanted saddle stitch per 7.6px of seam, as a mask tile.
+      var stitches = svgAsset('<svg xmlns="http://www.w3.org/2000/svg" width="6" height="7.6" viewBox="0 0 6 7.6"><rect x="1.9" y="1.1" width="2.2" height="5.4" rx="1.1" transform="rotate(-22 3 3.8)"/></svg>');
+      // The pocket watch's crown and bow, above the case.
+      var crown = svgAsset('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 16 15"><path d="M3.2 8.2C2 3.4 4.6 1 8 1s6 2.4 4.8 7.2" fill="none" stroke="#2a1a06" stroke-width="3.4"/><path d="M3.2 8.2C2 3.4 4.6 1 8 1s6 2.4 4.8 7.2" fill="none" stroke="#d6a94e" stroke-width="2"/>' +
+        '<rect x="4" y="7.6" width="8" height="7" rx="1.5" fill="#2a1a06"/><path d="M5 8.4h6v5.6H5z" fill="#c99a40"/><path d="M6 8.4v5.6M8 8.4v5.6M10 8.4v5.6" stroke="#6a4a14" stroke-width=".8"/><path d="M5 8.6h6" stroke="#f4dc94" stroke-width=".8"/></svg>');
       return [
         // Light: a warm, irregular candle pool on the desk and a dark falloff at the edges.
         D + ' #desk .desk-light{background:radial-gradient(58vmax 46vmax at 24% 30%,var(--pool) 0,transparent 72%),radial-gradient(130vmax 95vmax at 50% 42%,transparent 32%,var(--desk-vignette) 100%)}',
@@ -1016,7 +1026,6 @@ var THEMES = {
         D + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle)::before{content:"";position:absolute;inset:2px;z-index:2;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--patch-stitch) 8 / 4px round}',
         D + ' .slot-card button.icon:not(.stop){width:32px;height:32px}',
         D + ' .slot-card button.icon:not(.stop) svg{width:18px;height:18px}',
-        D + ' .slot-card .icon.stop svg{width:19px;height:19px}',
         D + ' #settings-open svg{width:21px;height:21px}',
         D + ' .backend .toggle{min-height:32px;padding:6px 13px 6px 11px;color:var(--patch-ink)}',
         D + ' .backend .toggle .chev{color:var(--patch-ink)}',
@@ -1027,6 +1036,86 @@ var THEMES = {
           'box-shadow:inset 0 2px 4px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.2),0 1px 0 var(--emb-hi)}',
         D + ' #settings-open:active{transform:translateY(2px) rotate(-8deg)}',
         D + ' .slot-card button.icon:not(.stop):disabled{opacity:.55}',
+        // Each session's status is the thread of a saddle-stitched seam down the folio's left edge, sewn into a pressed groove and
+        // sealed with wax at the top: dark thread (barely there) when healthy, gold for a warning and red for a problem, ending in
+        // one drop. While the session loads, a needle runs down the seam with a short lit stretch of thread behind its eye; reduced
+        // motion parks it with a steady gold stretch. The shared lamp column and annunciator carry it; only opacity and transform move.
+        // The groove is pressed into the module; the column itself is the thread, cut into slanted stitches by a mask, so the lit
+        // stretch (the shared chase lamps) lights whole stitches. The needle and the drop sit on the module, outside that mask.
+        D + ' .module{background:linear-gradient(90deg,transparent 1px,var(--seam-groove) 1px 4.5px,var(--seam-lip) 4.5px 5.5px,transparent 5.5px) 11px 32px/6px calc(100% - 47px) no-repeat}',
+        D + ' .module .lamps{left:11px;top:32px;bottom:15px;width:6px;background:linear-gradient(90deg,transparent 30%,var(--seam-sheen) 42% 52%,transparent 64%),var(--seam-ok);-webkit-mask:' + stitches + ' 0 0/6px 7.6px repeat-y;mask:' + stitches + ' 0 0/6px 7.6px repeat-y}',
+        D + ' .module .lamps.tone-warn:not(.busy){background-color:var(--seam-warn)}',
+        D + ' .module .lamps.tone-bad{background-color:var(--seam-bad)}',
+        D + ' .module .lamps.tone-off{display:none}',
+        D + ' .module .lamps>b,' + D + ' .module .lamps:is(.tone-warn,.tone-bad,.busy)>b{flex:1 1 0;width:100%;height:auto;border-radius:0;background:none;box-shadow:none}',
+        D + ' .module .lamps>b::after,' + D + ' .backend .action-lamps>b::after{border-radius:0;background:var(--seam-lit);box-shadow:0 0 4px 1px var(--seam-glow)}',
+        D + ' .module:has(.lamps.tone-bad)::after{content:"";position:absolute;left:11px;bottom:6px;width:6px;height:8px;background:var(--seam-bad);border-radius:50% 50% 50% 50%/40% 40% 60% 60%}',
+        D + ' .module:has(.lamps.busy:not(.tone-bad))::before{content:"";position:absolute;left:9px;top:28.5px;z-index:1;width:10px;height:calc(100% - 47px);pointer-events:none;' +
+          'background:' + needle + ' 50% 0/10px 28px no-repeat;filter:drop-shadow(0 0 3px var(--seam-glow));transform:translateY(30%)}',
+        D + ' .slot-card .module .lamps.busy:not(.tone-bad)>b:is(:nth-child(6),:nth-child(7),:nth-child(8),:nth-child(9),:nth-child(10))::after{opacity:1}',
+        '@keyframes horror-seam-run{0%,10%{opacity:1}10.1%,16.6%{opacity:.45}16.7%,100%{opacity:0}}',
+        '@keyframes horror-needle{from{transform:translateY(0)}to{transform:translateY(100%)}}',
+        '@media (prefers-reduced-motion:no-preference){' + D + ' .module .lamps.busy:not(.tone-bad)>b::after{animation-name:horror-seam-run}' +
+          D + ' .module:has(.lamps.busy:not(.tone-bad))::before{animation:horror-needle var(--lamp-chase-duration) steps(30,end) infinite}' +
+          D + '[data-page-hidden="true"] .module::before{animation-play-state:paused}}',
+        D + ' .module .led{left:7px;top:12px;width:14px;height:14px;border-radius:47% 53% 44% 56%/55% 45% 55% 45%;' +
+          'background:radial-gradient(circle at 36% 30%,rgba(255,240,220,.45) 0,transparent 32%),radial-gradient(circle,transparent 0 3.2px,rgba(0,0,0,.4) 3.6px 4.6px,transparent 5px),var(--wax-ok);' +
+          'box-shadow:inset 0 -1px 1.5px rgba(0,0,0,.45),0 1px 1.5px rgba(0,0,0,.7)}',
+        D + ' .module .led.tone-warn{background-color:var(--wax-warn)}',
+        D + ' .module .led.tone-bad{background-color:var(--wax-bad)}',
+        D + ' .module .led.tone-off{background:none;box-shadow:none}',
+        // The seam carries the problem, so the folio drops the blood strike the backend card still uses.
+        D + ' .slot-card .card-drip{display:none}',
+        // Stop is a domed brass stud pressed into the folio with the stop mark engraved in it. Hover floods the engraving with blood
+        // (the theme's seep, cut to the mark) and the stud gives a little; a press sinks it.
+        D + ' .slot-card .tools{min-width:0;min-height:0}',
+        D + ' .slot-card .tools button.icon.stop{width:30px;height:30px;padding:0;border:0;color:var(--stop-ink);' +
+          'background:radial-gradient(circle at 36% 30%,rgba(255,248,220,.7) 0,rgba(255,248,220,0) 34%),radial-gradient(circle,var(--stop-hover) 0,var(--stop-face) 52%,var(--stop-rim) 90%,var(--stop-wall) 100%);' +
+          'box-shadow:0 0 0 1.5px var(--stop-wall),0 0 0 3.5px rgba(0,0,0,.32),0 2px 0 1.5px var(--stop-wall),0 4px 5px -1px var(--contact)}',
+        D + ' .slot-card .tools button.icon.stop>svg{width:18px;height:18px;filter:drop-shadow(0 .8px 0 rgba(255,240,200,.6))}',
+        D + ' .slot-card .tools button.icon.stop>.bfx{display:none}',
+        D + ' .slot-card .tools button.icon.stop::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--stop-blood);' +
+          '-webkit-mask:' + stopMark + ' center/18px no-repeat;mask:' + stopMark + ' center/18px no-repeat;opacity:0;transition:opacity var(--dur) var(--ease)}',
+        D + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1px);' +
+          'background:radial-gradient(circle at 36% 30%,rgba(255,248,220,.7) 0,rgba(255,248,220,0) 34%),radial-gradient(circle,var(--stop-hover) 0,var(--stop-face) 52%,var(--stop-rim) 90%,var(--stop-wall) 100%);' +
+          'box-shadow:0 0 0 1.5px var(--stop-wall),0 0 0 3.5px rgba(0,0,0,.32),0 1px 0 1.5px var(--stop-wall),0 2px 3px -1px var(--contact)}',
+        D + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{opacity:1}',
+        D + ' .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(2px);box-shadow:0 0 0 1.5px var(--stop-wall),0 0 0 3.5px rgba(0,0,0,.32),inset 0 1px 2px rgba(0,0,0,.4)}',
+        D + ' .slot-card .tools button.icon.stop:focus-visible{box-shadow:0 0 0 1.5px var(--stop-wall),var(--ring)}',
+        // The backend's branch and last-action screens are tooled leather labels set into the card: dark leather inside a gold-foil
+        // double fillet, with bone ink blind-tooled into it. The running action is a running stitch whose lit thread travels along it.
+        D + ' .backend :is(.backend-screen,.action-result){position:relative;padding:10px 14px;border-radius:4px;color:var(--screen-ink);text-shadow:var(--folio-tooled);' +
+          'background:radial-gradient(120% 100% at 24% 0,rgba(255,206,160,.1),transparent 62%),linear-gradient(rgba(20,6,4,.4),rgba(20,6,4,.4)),var(--screen-face) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
+          'box-shadow:inset 0 1px 3px rgba(0,0,0,.65),inset 0 -1px 0 rgba(255,220,180,.08),0 1px 0 var(--emb-hi),0 0 0 1px rgba(0,0,0,.35)}',
+        D + ' .backend :is(.backend-screen,.action-result)::before{content:"";position:absolute;inset:3px;pointer-events:none;border:3px double var(--screen-rim);border-radius:2px;opacity:.9}',
+        D + ' .backend .action-result>span.tone-down,' + D + ' .backend .action-result>.error{color:var(--screen-bad)}',
+        D + ' .backend .action-lamps.busy{gap:2px;width:46px;height:10px}',
+        D + ' .backend .action-lamps.busy>b{width:6px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--screen-ink) 30%,transparent);transform:rotate(-8deg)}',
+        // The services and the action output come out as an aged paper slip, ruled with a red margin in the ledger's ink, each
+        // service marked by a blot of ink: sepia when healthy, an amber ring for a warning, a blood blot with a drop for a problem.
+        D + ' .backend :is(.svc-lamps.open,.output-log){border-radius:2px;color:var(--details-ink);text-shadow:none;' +
+          'background:radial-gradient(90% 70% at 88% 92%,rgba(150,100,40,.18),transparent 70%),linear-gradient(color-mix(in srgb,var(--details-floor) 62%,transparent),color-mix(in srgb,var(--details-floor) 62%,transparent)),var(--details-floor) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
+          'box-shadow:inset 0 0 0 1px rgba(120,86,40,.28),inset 0 0 16px rgba(150,100,40,.22),0 1px 0 var(--details-lip),0 2px 0 var(--details-edge),0 5px 6px -2px var(--contact)}',
+        D + ' .backend .svc-lamps.open::before{content:"";position:absolute;left:29px;top:0;bottom:0;width:1px;pointer-events:none;background:var(--margin-ink)}',
+        D + ' .backend .svc-lamp>i{position:relative;width:11px;height:11px;border-radius:52% 48% 55% 45%/48% 55% 45% 52%;background:color-mix(in srgb,var(--details-ink) 55%,transparent);box-shadow:none}',
+        D + ' .backend .svc-lamp.lamp-warn>i{background:none;box-shadow:inset 0 0 0 2.5px var(--details-warn)}',
+        D + ' .backend .svc-lamp.lamp-bad>i{background:var(--details-bad)}',
+        D + ' .backend .svc-lamp.lamp-bad>i::after{content:"";position:absolute;left:4px;top:9px;width:3.5px;height:5px;border-radius:50% 50% 50% 50%/30% 30% 70% 70%;background:var(--details-bad)}',
+        // The slots gauge is a brass pocket watch lying on the card: a dark leather dial with gold-foil ticks and hand, the crown and
+        // bow on top, and the count printed plainly under the pivot. The last stretch turns red only when every slot is taken.
+        D + ' .sessions-title .slot-gauge:not([hidden]){width:58px;height:58px;margin:-6px 4px -10px 0;border:5px solid transparent;border-radius:50%;color:var(--gauge-ink);' +
+          'background:radial-gradient(circle at 38% 28%,rgba(255,226,180,.14),transparent 58%) padding-box,linear-gradient(rgba(10,3,2,.3),rgba(10,3,2,.3)) padding-box,var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px) padding-box,' +
+          'linear-gradient(var(--gauge-face),var(--gauge-face)) padding-box,conic-gradient(from 200deg,#f4dc94,#b88a3a 16%,#6a4a14 32%,#e8c470 50%,#8a6420 68%,#f4dc94 84%,#b88a3a) border-box;' +
+          'box-shadow:inset 0 0 0 1px #2a1a06,inset 0 2px 5px rgba(0,0,0,.75),0 0 0 1px #2a1a06,0 3px 5px -1px var(--contact)}',
+        D + ' .sessions-title .slot-gauge:not([hidden])::before{content:"";position:absolute;left:50%;top:-19px;width:16px;height:15px;margin-left:-8px;background:' + crown + ' center/100% 100% no-repeat}',
+        D + ' .slot-gauge .gauge-ticks line{stroke:var(--gauge-ink);stroke-width:1.3}',
+        D + ' .slot-gauge .gauge-red{display:none;stroke:var(--gauge-alert);stroke-width:2.4}',
+        D + ' .slot-gauge.full .gauge-red{display:inline}',
+        D + ' .slot-gauge .gauge-needle{width:3px;height:16px;margin:-14px 0 0 -1.5px;transform-origin:50% 14px;border-radius:1.5px 1.5px 1px 1px;background:linear-gradient(90deg,#8a6420,#f6dc94 50%,#8a6420);box-shadow:0 0 0 .6px rgba(0,0,0,.75)}',
+        D + ' .slot-gauge .gauge-needle::after{left:-1.5px;top:11px;background:radial-gradient(circle at 35% 30%,#f6dc94,#8a6420 70%,#2a1a06);box-shadow:0 0 0 .6px rgba(0,0,0,.7)}',
+        D + ' .slot-gauge .gauge-n{left:0;right:50%;bottom:3px;text-align:right;font:700 13px/1 var(--serif);font-variant-numeric:lining-nums tabular-nums;color:var(--gauge-ink);-webkit-text-fill-color:currentColor;text-shadow:0 1px 0 #000}',
+        D + ' .sessions-title .slot-gauge:not([hidden])::after{content:"/" attr(data-of);position:absolute;left:50%;bottom:3px;font:700 13px/1 var(--serif);font-variant-numeric:lining-nums tabular-nums;color:var(--gauge-ink);-webkit-text-fill-color:currentColor;text-shadow:0 1px 0 #000}',
+        D + ' .slot-gauge.full .gauge-n,' + D + ' .sessions-title .slot-gauge.full::after{color:var(--gauge-alert)}',
         D + '{--check-size:19px}'
       ].join("\n");
     })(),
@@ -2024,20 +2113,20 @@ THEMES.terminal = (function () {
         // The stop control is a recessed power key with an amber glass lens.
 
 
-          T + ' .slot-card .tools{width:40px;height:40px;padding:0;border-radius:4px;background:linear-gradient(145deg,#f1efe8,#b9b5aa 45%,#7d796f);' +
+          T + ' .slot-card .tools{width:30px;height:30px;min-width:0;min-height:0;padding:0;border-radius:3px;background:linear-gradient(145deg,#f1efe8,#b9b5aa 45%,#7d796f);' +
             'box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),inset 1px 1px 0 1px rgba(255,255,255,.55),0 1px 0 var(--mould-hi),0 2px 3px -1px var(--contact)}',
-          T + ' .slot-card .tools button.icon.stop{width:28px;height:28px;padding:0;border:0;border-radius:2px;color:transparent;' +
-            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%),radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%);' +
-            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 2px #2a2620,0 0 0 3px rgba(0,0,0,.4)}',
+          T + ' .slot-card .tools button.icon.stop{width:24px;height:24px;padding:0;border:2px solid #2a2620;border-radius:2px;color:transparent;' +
+            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%) padding-box,radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%) padding-box;' +
+            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 1px rgba(0,0,0,.4)}',
           T + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:none;' +
-            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%),radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%);' +
-            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 2px #2a2620,0 0 0 3px rgba(0,0,0,.4)}',
-          T + ' .slot-card .tools button.icon.stop>svg{display:none}',
+            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%) padding-box,radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%) padding-box;' +
+            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 1px rgba(0,0,0,.4)}',
+          T + ' .slot-card .tools button.icon.stop>:is(svg,.bfx){display:none}',
           T + ' .slot-card .tools button.icon.stop::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease);' +
             'background:linear-gradient(160deg,rgba(255,255,255,.4) 0 16%,transparent 34%),radial-gradient(80% 80% at 50% 55%,#ffe0a3 0,#ff9a2e 38%,#e25c08 72%,#8a2c02 100%);' +
-            'box-shadow:inset 0 0 0 1px rgba(80,20,0,.6),inset 0 2px 3px rgba(80,20,0,.4),0 0 10px 3px rgba(255,140,40,.55),0 0 22px 6px rgba(255,120,30,.25)}',
+            'box-shadow:inset 0 0 0 1px rgba(80,20,0,.6),inset 0 2px 3px rgba(80,20,0,.4),0 0 7px 2px rgba(255,140,40,.55),0 0 15px 4px rgba(255,120,30,.25)}',
           T + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{opacity:1}',
-          T + ' .slot-card .tools button.icon.stop:focus-visible{box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 0 0 2px #2a2620,var(--ring)}',
+          T + ' .slot-card .tools button.icon.stop:focus-visible{box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),var(--ring)}',
           T + ' .slot-card .tools button.icon.stop:active:not(:disabled){transform:scale(.92);transition-duration:calc(var(--dur-fast) / 3)}',
           T + ' .slot-card .tools button.icon.stop:disabled{opacity:1;filter:brightness(.55) saturate(.6)}',
 
@@ -2118,20 +2207,19 @@ THEMES.terminal = (function () {
         // Slot numbers are an asset tag: black label tape with SLOT printed on it and the number in a small phosphor readout. Never tilted.
         T + ' .slotno{top:17px;right:34px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
           'font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:none}',
-        // The slot gauge, Pip-Boy style: a small round dial under glass in a satin bezel with tick marks, a red last stretch, a
-        // needle showing sessions in use out of the task slots, and the count printed on the face. The needle settles with a
-        // small overshoot when the count changes (transform only); reduced motion makes it instant.
-        T + ' .sessions-title .slot-gauge:not([hidden]){display:block;position:relative;flex:none;width:56px;height:56px;margin:-6px 4px -8px 0;border-radius:50%;' +
-          'background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.55),transparent 34%),radial-gradient(circle,#f3ecd8 0 60%,#d9cfb4 72%,#b8ad90 74%) padding-box,linear-gradient(145deg,#f1efe8,#a9a598 50%,#5f5b52) border-box;' +
-          'border:4px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.5),inset 0 1px 3px rgba(0,0,0,.4),0 2px 4px -1px var(--contact)}',
-        T + ' .slot-gauge svg{position:absolute;inset:0;width:100%;height:100%}',
-        T + ' .slot-gauge .gauge-ticks line{stroke:#2a2620;stroke-width:1.2}',
-        T + ' .slot-gauge .gauge-red{fill:none;stroke:#b3261e;stroke-width:2.2}',
-        T + ' .slot-gauge .gauge-needle{position:absolute;left:50%;top:50%;width:2px;height:19px;margin:-17px 0 0 -1px;border-radius:1px;background:#c2261a;box-shadow:0 1px 1px rgba(0,0,0,.35);transform-origin:50% 17px;' +
-          'transition:transform var(--dur) cubic-bezier(.34,1.6,.5,1)}',
-        T + ' .slot-gauge .gauge-needle::after{content:"";position:absolute;left:-2px;top:13px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8a857a,#2a2620)}',
-        T + ' .slot-gauge .gauge-n{position:absolute;left:0;right:0;bottom:5px;text-align:center;font:700 13px/1 var(--mono);color:#1d1a14;letter-spacing:0;text-shadow:none}',
-        T + ' .slot-gauge::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;background:linear-gradient(150deg,rgba(255,255,255,.35) 0 20%,transparent 38%)}',
+        // The slots in use read as a mechanical odometer in a satin plate: the count and the total on black drum wheels with the
+        // slash printed on the plate between them, so it reads "3/8" at a glance. A small dial needed decoding at this size. The
+        // count turns red only when every slot is taken.
+        T + ' .sessions-title .slot-gauge:not([hidden]){display:inline-flex;align-items:center;position:relative;flex:none;width:auto;height:auto;margin:-3px 2px -3px 0;padding:4px 5px;border:0;border-radius:4px;' +
+          'background:linear-gradient(145deg,#f1efe8,#b9b5aa 45%,#7d796f);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),inset 1px 1px 0 1px rgba(255,255,255,.55),0 1px 0 var(--mould-hi),0 2px 3px -1px var(--contact)}',
+        T + ' .slot-gauge :is(svg,.gauge-needle){display:none}',
+        T + ' .slot-gauge .gauge-n,' + T + ' .sessions-title .slot-gauge:not([hidden])::after{position:relative;inset:auto;display:block;min-width:20px;padding:6px 4px 5px;border-radius:2px;text-align:center;' +
+          'font:700 19px/1 var(--mono);letter-spacing:0;color:#f3ecd8;-webkit-text-fill-color:currentColor;text-shadow:0 -1px 0 #000;' +
+          'background:linear-gradient(180deg,#000 0,#2c2a25 24%,#1c1b17 50%,#2c2a25 76%,#000 100%);box-shadow:inset 0 0 0 1px #000,inset 0 3px 3px -2px rgba(0,0,0,.8),inset 0 -3px 3px -2px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.5)}',
+        T + ' .slot-gauge .gauge-n{order:1}',
+        T + ' .sessions-title .slot-gauge:not([hidden])::before{content:"/";order:2;padding:0 3px;font:700 17px/1 var(--mono);color:#1d1a14;-webkit-text-fill-color:currentColor;text-shadow:0 1px 0 rgba(255,255,255,.45)}',
+        T + ' .sessions-title .slot-gauge:not([hidden])::after{content:attr(data-of);order:3}',
+        T + ' .slot-gauge.full .gauge-n{color:#ff6a55;text-shadow:0 0 6px rgba(255,80,60,.55)}',
         T + ' .sessions-title .sessions-count{align-self:center;min-width:28px;padding:4px 7px 3px;border:2px solid var(--dymo);border-radius:3px;background:var(--screen);color:var(--screen-ink);' +
           'font:700 13px/1 var(--mono);letter-spacing:0;text-align:center;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000,0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25)}',
         T + ' .slotno-k{display:flex;align-items:center;padding:5px 7px 4px 9px}',
@@ -3427,6 +3515,8 @@ function updateSlotGauge(used){
   gauge.setAttribute("aria-label",used+" of "+total+" slots in use");
   gauge.title=used+" of "+total+" slots in use";
   gauge.querySelector(".gauge-n").textContent=String(used);
+  gauge.setAttribute("data-of",String(total));
+  gauge.classList.toggle("full",used>=total);
   var needle=gauge.querySelector(".gauge-needle");
   if(gauge.__key===undefined)needle.style.transition="none";
   needle.style.transform="rotate("+(-120+240*shown/total)+"deg)";
