@@ -1661,6 +1661,8 @@ THEMES.y2k = (function () {
       // Legends are pad-printed: one flat ink on the cap's face, crisp, with no shadow or glow even when the cap is lit.
       // Every legend is heavy and full-strength, the start time and state included, so a key reads at a glance in any shell colour.
       C + ' .slot-card .app-pill{font-weight:700}',
+      // The switch LED in each key's window already carries the status, so the printed shape beside the name is dropped.
+      C + ' .slot-card :is(.app-pill,.app-start) .dot{display:none}',
       C + ' .slot-card .app-pill :is(.port,.since){font:700 13.5px/1.2 var(--mono);letter-spacing:0}',
       C + ' .slot-card .app-pill .build-failed{font-size:13.5px}',
       C + ' :is(.backend,.slot-backend) .update-btn,' + C + ' .backend :is(.toggle,button.act:not(.quiet)),' + C + ' .settings .done,' + C + ' .confirm-actions button,' + C + ' .recovery-actions button{font-weight:800}',
