@@ -43,11 +43,13 @@ worktree_paths() {
 branch_at() { git -C "$1" symbolic-ref --quiet --short HEAD 2>/dev/null || echo DETACHED; }
 
 path_for_branch() {
-  local wanted="$1" path
-  for path in $(worktree_paths); do
-    [ "$(branch_at "$path")" = "$wanted" ] && { echo "$path"; return 0; }
-  done
-  return 1
+  local wanted="$1" context
+  context=$(wt_git_context) || return 1
+  git -C "$context" worktree list --porcelain | WT_LOOKUP_BRANCH="$wanted" awk '
+    /^worktree / { path = substr($0, 10) }
+    !found && $0 == "branch refs/heads/" ENVIRON["WT_LOOKUP_BRANCH"] { print path; found = 1 }
+    END { if (!found) exit 1 }
+  '
 }
 
 # The shared checkout, as opposed to any linked worktree: its git-dir and
@@ -885,10 +887,28 @@ recover_scan() {
 
 serve_slot_live() {
   local slot="$1" port
-  for port in $((5173 + 10 * slot)) $((5174 + 10 * slot)) $((5175 + 10 * slot)); do
-    port_listening "$port" && return 0
-  done
-  return 1
+  if [ "${WT_STUB_PORTS+x}" ]; then
+    for port in $((5173 + 10 * slot)) $((5174 + 10 * slot)) $((5175 + 10 * slot)); do
+      port_listening "$port" && return 0
+    done
+    return 1
+  fi
+  python3 - "$slot" <<'PY_PORTS'
+import socket
+import sys
+from concurrent.futures import ThreadPoolExecutor
+
+def listening(port):
+    try:
+        with socket.create_connection(('127.0.0.1', port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+ports = [base + 10 * int(sys.argv[1]) for base in (5173, 5174, 5175)]
+with ThreadPoolExecutor(max_workers=3) as pool:
+    sys.exit(0 if any(pool.map(listening, ports)) else 1)
+PY_PORTS
 }
 
 serve_prune_stale() {
