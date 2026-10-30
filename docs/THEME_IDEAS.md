@@ -35,8 +35,7 @@ A cosy, non-horror theme: the owl keeps the "overseer" idea without the creepine
 
 Late-90s and Y2K see-through electronics: Game Boy Color, PS1 and PSP clear shells, iMac G3, clear VHS
 and MiniDisc. The appeal is seeing the real circuitry and hardware inside the device; the coloured
-shell is secondary. Whether it replaces Neon (whose smoked acrylic modules are halfway there) or
-sits beside it is undecided.
+shell is secondary. It replaces Neon, whose smoked acrylic modules are halfway there.
 
 - **Panels:** clear or tinted shells over a visible circuit board: copper traces, chips, capacitors,
   screw posts, ribbon cables to the keys, and the board's shadow on the inside of the shell.
