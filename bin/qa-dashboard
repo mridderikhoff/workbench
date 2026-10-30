@@ -1231,7 +1231,7 @@ THEMES.terminal = (function () {
     return slots.concat(heads).join(",");
   }
   // Looks picked by one word each: the branch label ("silk", "dymo" or "screen") and the stop key ("key" or "round").
-  var BRANCH_LABEL = "screen", STOP_STYLE = "round";
+  var BRANCH_LABEL = "screen", STOP_STYLE = "key";
   return {
     name: "Terminal",
     radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
@@ -1268,7 +1268,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#ece4cf",
         "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
-        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
         "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
@@ -1304,7 +1304,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#141513",
         "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
-        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
         "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
         "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
         "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
@@ -1514,7 +1514,7 @@ THEMES.terminal = (function () {
         //   silk:   the name silkscreened straight onto the plastic in bold paint ink, between two thin printed corner brackets.
         //   dymo:   embossed label-maker tape: glossy red vinyl, whitened letters raised with a small irregular baseline, a
         //           sheen, square-cut ends and the right end lifting off the panel.
-        //   screen: a small display like the commit screen, the name in amber phosphor on dark glass in the same bezel.
+        //   screen: a small display like the commit screen, the name in full green phosphor, larger and bolder than the commit line.
         T + ' .slot-card .head{flex-wrap:nowrap;gap:4px 16px;padding-right:7.6em;margin-bottom:0;padding-bottom:0;align-items:center}',
         T + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;--brush:var(--plate-lit);--brush-deep:var(--plate-lit-deep)}',
         T + ' .slot-card .branch .brush{top:calc(100% + 3px);left:4px;filter:drop-shadow(0 0 2px var(--plate-lit))}',
@@ -1535,15 +1535,15 @@ THEMES.terminal = (function () {
           T + ' .slot-card .branch .brush{filter:none}'
         ],
         screen: [
-          T + ' .slot-card .branch{margin:6px;padding:6px 12px 5px;border-radius:3px;font:700 17px/20px var(--mono);letter-spacing:.06em;color:var(--screen-warn);text-shadow:0 0 6px rgba(255,176,0,.45);' +
+          T + ' .slot-card .branch{margin:6px;padding:6px 12px 5px;border-radius:3px;font:700 18px/20px var(--mono);letter-spacing:.05em;color:var(--screen-ink);text-shadow:0 0 1px var(--screen-ink),0 0 7px var(--screen-glow);' +
             'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
             'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
           T + ' .slot-card .branch .brush{top:calc(100% + 9px)}'
         ]
       }[BRANCH_LABEL]).concat([
-        // The stop control is a real key: STOP_STYLE picks a red keycap in the console's key language ("key") or a chunky round
-        // push-button standing proud of a satin bezel ring ("round"). Both are muted oxblood at rest, quieter than an error,
-        // with a printed stop square; hover presses the cap and backlights the square, a press bottoms it out. One button: a
+        // The stop control is a real key: STOP_STYLE picks a putty keycap identical to the app keys with only its stop square
+        // printed in oxblood ("key"), or a chunky red round push-button standing proud of a satin bezel ring ("round"). Hover
+        // presses the cap and backlights the square red, and a press bottoms it out. One button: a
         // click opens the usual confirmation, and it dims while another action runs or there is nothing to stop.
         T + ' .slot-card .tools{flex:none;position:relative;display:grid;place-items:center;width:auto;padding:0 0 4px;background:none;box-shadow:none}',
         T + ' #slots .slot-card .tools button.icon.stop{position:relative;padding:0;color:var(--stop-ink);--legend-lit:var(--stop-lit);--legend-glow:var(--stop-glow);--legend-halo:var(--stop-lit);--legend-wash:none;' +
@@ -1554,7 +1554,8 @@ THEMES.terminal = (function () {
         T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.5}'
       ]).concat({
         key: [
-          T + ' #slots .slot-card .tools button.icon.stop{width:38px;height:34px;border-radius:5px;' +
+          T + ' #slots .slot-card .tools button.icon.stop{width:38px;height:34px;border-radius:5px;--stop-hi:var(--cap-hi);--stop-face:var(--tag);--stop-wall:var(--cap-wall-color);--stop-rim:var(--btn-hi);' +
+            '--stop-ink:var(--stop-print);--stop-lit:var(--stop-print-lit);--stop-glow-c:var(--bl-bad-glow);' +
             'box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 4px 0 var(--stop-wall),0 5px 5px -1px var(--contact)}',
           T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(2px);box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 2px 0 var(--stop-wall),0 3px 3px -1px var(--contact)}',
           T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 2px 0 var(--stop-wall)}',
