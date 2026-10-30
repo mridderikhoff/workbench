@@ -192,6 +192,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   report before/after numbers for any visual change.
 
 ### 8. Pluggable themes
+- Features, structure and behaviour are shared by every theme. Add a feature in shared markup and logic, with CSS tokens for its materials; never branch on the theme to add or remove a control, status detail or interaction.
+- A theme supplies materials only: colours, type, textures, glyphs, character art and board tiles. Shared components have complete default styles from `BASE` tokens; a new theme should touch only its registry entry.
 - Everything themeable lives in **one registry section** (`THEMES`): colours for dark and light,
   fonts, favicon variants, logo source art, palettes, status glyphs, settings icon, the desk
   (materials and props), desk art and CSS, brushstroke presets, the pill and button hover effects

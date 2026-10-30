@@ -62,7 +62,7 @@ function page(opts) {
     setInterval: () => 0, clearInterval() {}, clearTimeout() {},
     setTimeout: (fn, ms) => { timers.push(ms); timerFns.push(fn); return timers.length },
     // The page's theme object is a separate script; the stub records favicon states and keeps nothing healthy by default.
-    QA_THEME: { glyph: t => "[" + t + "]", icon: () => "", copy: (k, f) => f, id: () => "t", isDark: () => false, sceneId: () => "desk", current: () => ({}), buttonHover: () => "none", favicon: s => favicons.push(s) },
+    QA_THEME: { glyph: t => "[" + t + "]", icon: name => name === "stop" ? '<svg class="theme-stop"></svg>' : "", copy: (k, f) => f, id: () => opts.themeId || "t", isDark: () => false, sceneId: () => "desk", current: () => opts.theme || ({}), buttonHover: () => "none", favicon: s => favicons.push(s) },
     fetch: (url, init) => { calls.push({ url, init }); return opts.fetch(url, init) },
   };
   sandbox.window = sandbox;
@@ -94,6 +94,48 @@ const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
+test("shared component materials live in both theme maps, and keycap rules leave Stop alone", () => {
+  const sections = {
+    horror: between("  horror: {", "THEMES.clear = (function () {"),
+    clear: between("THEMES.clear = (function () {", "THEMES.terminal = (function () {"),
+    terminal: between("THEMES.terminal = (function () {", "/* ===== end THEMES"),
+  };
+  const shared = {
+    horror: ["module-face", "module-edge", "fastener-face", "lamp-off", "lamp-ok", "lamp-warn", "lamp-bad",
+      "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
+      "screen-face", "screen-rim", "screen-ink", "screen-warn", "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert",
+      "stop-face", "stop-hover", "stop-rim", "stop-wall", "stop-ink", "start-face", "start-rim", "start-wall", "start-ink"],
+    clear: ["screen-face", "screen-rim", "screen-warn", "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert",
+      "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
+      "lamp-chase-duration", "lamp-chase-step", "start-face", "start-rim", "start-wall", "start-ink"],
+    terminal: ["screen-face", "screen-rim", "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
+      "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert", "start-face", "start-rim", "start-wall", "start-ink"],
+  };
+  for (const [theme, section] of Object.entries(sections)) {
+    const css = section.indexOf("    css: {\n      light: {");
+    const dark = section.indexOf("\n      dark: {", css);
+    const end = section.indexOf("\n    fonts:", dark);
+    assert(css >= 0 && dark > css && end > dark, theme + " has both CSS maps");
+    const lightMap = section.slice(css, dark), darkMap = section.slice(dark, end);
+    for (const token of shared[theme]) {
+      const key = '"--' + token + '":';
+      assert(lightMap.includes(key), theme + " light is missing " + key);
+      assert(darkMap.includes(key), theme + " dark is missing " + key);
+    }
+    // Root theme selector declarations lose to the BASE-merged :root dark selector.
+    const prefix = { horror: "D", clear: "C", terminal: "T" }[theme];
+    const rootBlocks = section.match(new RegExp("\\b" + prefix + " \\+ '\\{[\\s\\S]*?\\}'", "g")) || [];
+    for (const block of rootBlocks) {
+      for (const token of shared[theme]) {
+        assert(!block.includes("--" + token + ":"), theme + " declares --" + token + " in a root theme selector");
+      }
+    }
+  }
+  for (const theme of ["horror", "terminal"]) {
+    assert.doesNotMatch(sections[theme], /\.slot-card button\.icon(?!:not\(\.stop\))/, theme + " keycap styles must exclude Stop");
+  }
+});
+
 test("start keys cover only the managed apps, and app pills follow their order with others after", () => {
   const p = page({ fetch: () => new Promise(() => {}) });
   assert.deepStrictEqual(plain(p.run("SERVE_APPS")), ["ri", "ds-demo"]);
@@ -118,6 +160,43 @@ test("the slot gauge capacity comes from the task slot range, without the QA tre
   assert.strictEqual(p.run("slotCapacity({taskSlots:[2,9],offset:1})"), 8);
   assert.strictEqual(p.run("slotCapacity({taskSlots:[2,9],offset:4})"), 7);
   assert.strictEqual(p.run("slotCapacity({})"), null);
+});
+
+test("every theme renders the same backend tray, screens, slot gauge and unlabeled stop art", async () => {
+  for (const themeId of ["terminal", "clear", "horror"]) {
+    const snap = snapshot([{ slot: 2, branch: "feature/a", apps: [{ app: "ri", httpReady: true }] }]);
+    Object.assign(snap.backend, {
+      branch: "feature/a", sha: "abc123", taskSlots: [2, 9], offset: 9,
+      overall: "down", services: { api: { status: "down", unitState: "failed", restartCount: 2 } },
+    });
+    snap.actions = { action: "heal", state: "running", startedAt: "2026-01-01T00:00:00Z", output: ["working"] };
+    const p = page({ themeId, theme: {}, fetch: () => jsonResponse(snap) });
+    await p.poll();
+    const backend = p.html("backend"), slot = cards(p);
+    assert.match(backend, /class="backend-screen off-develop"[^>]*>.*class="backend-screen-branch">feature\/a<\/span>/, themeId);
+    assert.doesNotMatch(backend, /class="backend-branch"|class="meta"/, themeId);
+    assert.match(backend, /class="action-result"[^>]*>.*class="action-lamps[^\"]* busy"/, themeId);
+    assert.match(backend, /data-toggle="services" aria-expanded="true" aria-controls="backend-services"/, themeId);
+    assert.match(backend, /id="backend-services" class="svc-lamps open" role="list"/, themeId);
+    assert.match(backend, /class="svc-lamp lamp-bad"[^>]*role="listitem"[^>]*>.*class="svc-lamp-name">api<\/span>.*class="svc-lamp-state">.*down.*restarts 2.*data-restart="api"/, themeId);
+    assert.doesNotMatch(backend, /class="svc tone-/, themeId);
+    assert.match(backend, /data-output aria-expanded="false" aria-controls="action-output"/, themeId);
+    assert.match(backend, /id="action-output" class="output-log"[^>]* hidden/, themeId);
+    p.run("outputOpen=true");
+    const openOutput = p.run("renderActionResult()");
+    assert.match(openOutput, /data-output aria-expanded="true" aria-controls="action-output"/, themeId);
+    assert.match(openOutput, /id="action-output" class="output-log"[^>]*><\/pre>/, themeId);
+    assert.match(slot, /class="module"[^>]*>.*class="led tone-ok".*class="lamps tone-ok"/, themeId);
+    assert.match(slot, /class="tools"><button[^>]*class="icon stop"[^>]*aria-label="Stop servers"[^>]*><svg class="theme-stop"><\/svg><\/button>/, themeId);
+    assert.doesNotMatch(slot, />STOP<|class="stop"[^>]*>\s*STOP\s*</, themeId);
+    assert.strictEqual(p.text("sessions-count"), "1", themeId + " retains the plain count");
+    assert.strictEqual(p.get("slot-gauge").getAttribute("aria-label"), "1 of 7 slots in use", themeId);
+
+    p.run("detailsChoice={healthy:false,open:false}");
+    const closed = p.run("renderBackend(data.backend)");
+    assert.match(closed, /data-toggle="services" aria-expanded="false" aria-controls="backend-services"/, themeId);
+    assert.match(closed, /id="backend-services"[^>]* hidden/, themeId);
+  }
 });
 
 test("the session LED shows the worst app status; only a session with no apps is off", () => {
@@ -567,7 +646,7 @@ test("a backend switch keeps a busy headline through changing probes, then shows
     snap.backend.services = { functions: { unitState, probe, status: probe } };
     await p.poll();
     assert.match(p.html("backend"), /Switching…/);
-    assert.match(p.html("backend"), new RegExp("functions</span><span>" + expected));
+    assert.match(p.html("backend"), new RegExp('functions</span><span class="svc-lamp-state"><span class="sr-only">: </span>' + expected));
     assert.doesNotMatch(p.html("backend"), /class="rollup tone-(?:ok|broken|down)"/);
     assert.doesNotMatch(p.get("backend").className, /err/);
     assert.strictEqual(p.run("window.QA_ROLLUP"), "busy");

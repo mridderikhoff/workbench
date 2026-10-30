@@ -12,6 +12,7 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
    Blip the CRT face, later an owl) is the masthead. Blip is the global default and the
    Settings > Overseer pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, clear shells over circuit boards,
    a CRT and putty plastic). Every pixel of the theme answers "what is this made of?"
+   Features and interactions use shared markup and logic in every theme. Add a shared component with `BASE` tokens for its materials; a theme changes the tokens, textures or art, never whether the feature exists.
 2. **Materials over gradients.** Inscryption's candlelit table, NieR's warm paper UI. Surfaces get
    real texture, light falloff and contact shadows; nothing is a flat colour or a generic gradient.
 3. **Marks match the material.** On leather: gold-foil hot-stamping for titles, blind tooling for

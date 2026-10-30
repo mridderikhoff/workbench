@@ -144,7 +144,14 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .sessions-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 2px;font:700 27px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);margin-bottom:14px}
 .sessions-count{font:600 13px/1 var(--mono);letter-spacing:.04em;color:var(--muted);padding:5px 9px 4px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);text-shadow:none}
 .sessions-title[hidden],.slots[hidden]{display:none}
-.slot-gauge{display:none}
+.sessions-title:has(.slot-gauge:not([hidden])) .sessions-count{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.slot-gauge:not([hidden]){display:block;position:relative;flex:none;width:48px;height:48px;margin:-4px 0 -6px;border:3px solid var(--gauge-rim);border-radius:50%;background:var(--gauge-face);box-shadow:var(--sunk);color:var(--gauge-ink)}
+.slot-gauge svg{position:absolute;inset:0;width:100%;height:100%}
+.slot-gauge .gauge-ticks line{stroke:var(--gauge-ink);stroke-width:1.2}
+.slot-gauge .gauge-red{fill:none;stroke:var(--gauge-alert);stroke-width:2.2}
+.slot-gauge .gauge-needle{position:absolute;left:50%;top:50%;width:2px;height:19px;margin:-17px 0 0 -1px;border-radius:1px;background:var(--gauge-alert);transform-origin:50% 17px;transition:transform var(--dur) var(--ease-out)}
+.slot-gauge .gauge-needle::after{content:"";position:absolute;left:-2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--gauge-rim)}
+.slot-gauge .gauge-n{position:absolute;left:0;right:0;bottom:3px;text-align:center;font:700 13px/1 var(--mono);color:var(--gauge-ink)}
 .slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
@@ -168,13 +175,27 @@ position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-ra
 .head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-bottom:6px}
 .title{font:600 19px/1.25 var(--serif);letter-spacing:.04em;font-variant:small-caps}
 .branch{position:relative;font:600 22px/1.25 var(--serif);overflow-wrap:anywhere;text-shadow:var(--emboss)}
-.slot-card{position:relative}
+.slot-card{position:relative;isolation:isolate}
 .slot-card .head{padding-right:4.5em;align-items:center;padding-bottom:6px}
 /* The slot label is attached to its session: "slot" and the number are separate spans, so a theme can set them as two fields. */
 .slotno{position:absolute;top:16px;right:16px;display:inline-flex;align-items:baseline;gap:.35em;padding:3px 8px 2px;border-radius:3px;font:13px/1.2 var(--mono);color:var(--muted);background:var(--inset);box-shadow:var(--sunk);white-space:nowrap}
 .slotno-v{font-weight:700;color:var(--text)}
-/* The session object's decorative parts (an LED and screws); a theme that builds its sessions as hardware shows them. */
-.module{display:none}
+/* Every session has the same status module. Themes paint its board, lenses and fasteners. */
+.module{display:block;position:absolute;inset:5px;z-index:-1;pointer-events:none;border-radius:var(--item-radius);background:var(--module-face);box-shadow:inset 0 0 0 1px var(--module-edge)}
+.module>i{position:absolute;display:block}
+.module .led{left:9px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--lamp-off);box-shadow:0 0 0 1px var(--module-edge)}
+.module .led.tone-ok{background:var(--lamp-ok)}.module .led.tone-warn{background:var(--lamp-warn)}.module .led.tone-bad{background:var(--lamp-bad)}
+.module .lamps{display:flex;flex-direction:column;justify-content:space-between;left:9px;top:29px;bottom:12px;width:5px}
+.module .lamps>b,.action-lamps>b{position:relative;display:block;flex:none;width:5px;height:4px;border-radius:2px;background:var(--lamp-off)}
+.module .lamps.tone-warn:not(.busy)>b,.module .lamps.busy:not(.tone-bad)>b{background:var(--lamp-warn)}
+.module .lamps.tone-bad>b{background:var(--lamp-bad)}
+.module .lamps>b::after,.action-lamps>b::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--lamp-warn);opacity:0;box-shadow:0 0 5px var(--lamp-warn)}
+html .slot-card .module .lamps.busy:not(.tone-bad)>b:nth-child(7)::after,html .backend .action-lamps.busy>b:nth-child(3)::after{opacity:1}
+@media (prefers-reduced-motion:no-preference){.module .lamps.busy:not(.tone-bad)>b::after,.action-lamps.busy>b::after{animation:shared-lamp-chase var(--lamp-chase-duration) steps(1,end) infinite;animation-delay:calc(var(--i) * var(--lamp-chase-step) - var(--lamp-chase-duration))}.action-lamps.busy>b::after{animation-name:shared-action-chase;animation-duration:var(--action-chase-duration);animation-delay:calc(var(--i) * var(--action-chase-step) - var(--action-chase-duration))}html[data-page-hidden="true"] :is(.module .lamps,.action-lamps)>b::after{animation-play-state:paused}}
+@keyframes shared-lamp-chase{0%,3.3%{opacity:1}3.4%,6.6%{opacity:.35}6.7%,100%{opacity:0}}
+@keyframes shared-action-chase{0%,16.6%{opacity:1}16.7%,33.3%{opacity:.35}33.4%,100%{opacity:0}}
+.module .fastener{width:5px;height:5px;border-radius:50%;background:var(--fastener-face);box-shadow:0 0 0 1px var(--module-edge)}
+.module .fastener.tl{left:4px;top:4px}.module .fastener.tr{right:4px;top:4px}.module .fastener.bl{left:4px;bottom:4px}.module .fastener.br{right:4px;bottom:4px}
 .hint{margin:12px 0 0;padding:14px 0 0;border-top:1px dashed var(--edge-lo2);font-size:13.5px;text-align:center}
 /* The eye card is the masthead: halftone eye, wordmark, freshness and Settings, taped to the desk at a slight tilt. */
 .eye-card{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;padding:28px 22px 16px;margin:8px 6px 0;transform:rotate(var(--eye-tilt,-1.4deg))}
@@ -190,7 +211,7 @@ html[data-deckle="1"] .desk-obj .fold{display:block}
 /* The stage holds the character's canvas and the wordmark. It is invisible to layout unless a theme frames it (Terminal's CRT).
    The canvas size and how far the wordmark tucks under it come from the character (--stage-*, set before first paint). */
 .stage{display:contents}
-.stage-fx{display:none}
+.stage-fx{position:absolute;inset:0;pointer-events:none}
 .eye-card canvas{position:relative;display:block;width:var(--stage-w,200px);height:var(--stage-h,230px);margin:0 auto calc(var(--stage-overlap,22px) * -1);flex:none}
 .masthead-title{position:relative;margin:0 0 var(--stage-room,0px);font:inherit}
 .mark{position:relative;display:inline-block;padding:0 4px 14px;font:700 31px/1.1 var(--serif);letter-spacing:var(--word-spacing,.07em);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);cursor:pointer}
@@ -216,14 +237,16 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .rollup .state .dot{width:28px;height:28px;color:currentColor}
 .backend .rollup:not(.tone-ok):not(.tone-busy) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
 .backend .rollup.tone-warn .state{color:var(--warn);background:none}
-.backend .backend-branch{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;max-width:100%;font:13px/1.35 var(--mono);color:var(--muted)}
-.svc-lamps,.backend-screen,.action-lamps{display:none}
-.backend .backend-branch-value{min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text)}
+.backend .backend-screen,.backend .action-result{display:flex;align-items:center;gap:8px;max-width:100%;margin:8px 0;padding:7px 10px;border-radius:3px;font:13px/1.35 var(--mono);color:var(--screen-ink);background:var(--screen-face);box-shadow:inset 0 0 0 1px var(--screen-rim)}
+.backend .backend-screen{display:block;align-self:flex-start;min-width:0;overflow-wrap:anywhere}
+.backend .backend-screen-branch{font-weight:700;color:var(--screen-ink)}
+.backend .backend-screen.off-develop .backend-screen-branch{color:var(--screen-warn)}
+.backend .backend-screen code{color:inherit;background:none;padding:0}
+.backend .action-result{flex-wrap:nowrap}.backend .action-result>span{min-width:0}.backend .action-result .dot{color:inherit}
+.backend .action-result>span{color:var(--screen-ink)}.backend .action-result>span.tone-down,.backend .action-result>.error{color:var(--details-bad)}
+.backend .action-lamps.busy{display:flex;flex:none;gap:2px;align-items:center;width:42px;height:14px}.backend .action-lamps.busy>b{background:var(--lamp-off)}
 .backend .rel{display:inline-flex;align-items:center;min-width:0;max-width:100%}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
-.backend .meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px 12px;width:100%;margin-top:2px;padding-top:7px;border-top:1px dashed var(--edge-lo2);font:12px var(--mono);color:var(--muted)}
-.backend .meta code{font-size:12px}
-.backend .meta .link{font-size:12px;padding:0;color:var(--muted)}
 .backend .pill.rel{padding:0;border:0;box-shadow:none;background:transparent;font-size:12px;color:var(--muted)}
 .backend button.act:not(.quiet){border:0;border-radius:4px;background-color:var(--btn-face);color:var(--btn-ink);box-shadow:inset 0 1px 0 var(--btn-hi),0 3px 0 var(--btn-edge),0 5px 6px -2px var(--contact);padding:4px 12px;margin-bottom:3px}
 .backend button.act:not(.quiet):active{transform:translateY(3px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge)}
@@ -256,23 +279,24 @@ background:var(--key-face) padding-box,var(--key-rim) border-box;box-shadow:inse
 .backend .output-toggle{min-height:26px;font-size:12.5px}
 .backend .output-copy{font-size:13px}
 .backend-details{margin:6px 0 0 12px;padding:6px 0 0 9px;border-left:1px dashed var(--edge-lo2)}
-.backend-details[hidden],.output-log[hidden]{display:none}
+.backend-details[hidden],.output-log[hidden],.svc-lamps[hidden]{display:none}
 .backend-details .pill{display:inline-block;margin-bottom:4px}
-.backend .action-result{margin:12px 0 0;padding-top:9px;border-top:1px dashed var(--edge-lo2)}
-.backend .svc{display:grid;grid-template-columns:18px 6.5em minmax(0,1fr);gap:1px 8px;align-items:center}
-.backend .svc>*{min-width:0}
-.backend .svc .name{min-width:0}
-.backend .svc .small{grid-column:3}
-/* Restart sits on its own line under a down, broken or attention service, in the theme's small action button. */
-.backend .svc .svc-restart{grid-column:3;justify-self:start;margin:3px 0 5px;padding:3px 10px;font-size:12.5px}
+.backend .action-result{margin:12px 0 0}
+/* Details and action output use the same slide-out tray in every theme. */
+.backend .svc-lamps.open,.backend .output-log{position:relative;margin:12px 0 4px;padding:12px;border-radius:0 0 5px 5px;background:var(--details-floor);color:var(--details-ink);box-shadow:inset 0 3px 5px var(--well),0 -3px 0 -1px var(--details-lip),inset 0 0 0 1px var(--details-edge)}
+.backend .svc-lamps.open{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.backend .svc-lamp{display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:4px 8px;font:13px/1.2 var(--mono);color:var(--details-ink)}
+.backend .svc-lamp>i{grid-column:1;width:12px;height:12px;border-radius:50%;background:var(--lamp-off);box-shadow:inset 0 0 0 2px var(--details-edge)}
+.backend .svc-lamp.lamp-ok>i{background:var(--lamp-ok)}.backend .svc-lamp.lamp-warn>i{background:var(--lamp-warn)}.backend .svc-lamp.lamp-bad>i{background:var(--lamp-bad)}
+.backend .svc-lamp-name{grid-column:2}.backend .svc-lamp-state{grid-column:3;justify-self:end}
+.backend .svc-lamp.lamp-warn .svc-lamp-state{color:var(--details-warn)}.backend .svc-lamp.lamp-bad .svc-lamp-state{color:var(--details-bad)}
+.backend .svc-lamp-restarts,.backend .svc-restart{grid-column:2/-1}.backend .svc-lamp-restarts{opacity:.8}.backend .svc-lamps .svc-restart{justify-self:start;margin:2px 0 4px;padding:3px 10px;font-size:12.5px}
+@media (prefers-reduced-motion:no-preference){.backend .toggle.turned[aria-expanded="true"]~.svc-lamps.open,.backend .output-disclosure:has(.output-toggle.turned[aria-expanded="true"]) .output-log{animation:shared-tray-out var(--dur) var(--ease-out) both}}
+@keyframes shared-tray-out{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media (min-width:1280px){.backend .head>.rel{align-self:flex-start}.backend-details{margin-top:10px;padding-top:8px}}
 .tools{display:inline-flex;flex-wrap:wrap;gap:6px}
 .muted{color:var(--muted)}.small{font-size:13px;font-family:var(--mono);overflow-wrap:anywhere}
 code{font-family:var(--mono);font-size:13.5px}
-.svc{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:2px 6px;border-radius:0;border-left:3px solid transparent}
-.svc.attn{background:var(--hl);border-left-color:var(--bad);font-weight:600}
-.svc>*{flex-shrink:0;max-width:100%}
-.svc .name{min-width:7em;font-family:var(--mono);font-size:14px}
 button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:3px}
 .dot{display:inline-flex;width:18px;height:18px;flex:none;color:var(--idle)}
 .dot svg{display:block;width:100%;height:100%}
@@ -291,7 +315,7 @@ button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(-
 @keyframes busy-spin{to{transform:rotate(360deg)}}
 .dot.ok{color:var(--glyph-ok)}.dot.warn{color:var(--warn)}.dot.attn,.dot.down{color:var(--glyph-bad)}
 .tone-ok{color:var(--muted)}
-.svc.tone-broken,.svc.tone-down,.svc.tone-attn,.state.tone-broken,.state.tone-down,.state.tone-attn{color:var(--glyph-bad);font-weight:600}
+.state.tone-broken,.state.tone-down,.state.tone-attn{color:var(--glyph-bad);font-weight:600}
 .dot.broken{color:var(--glyph-bad);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--glyph-bad) 55%,transparent))}
 /* App pills are tags: a face, a darker body edge and a mount (eyelet or LED) cut to one shape. The hover ink is clipped to it too. */
 .apps{display:flex;flex-wrap:wrap;gap:12px 14px;margin:9px 0 11px}
@@ -480,8 +504,8 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .recovery-progress .recovery-output{margin:8px 0 0;max-height:12em;overflow:auto;padding:10px 12px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
 .confirm-dialog{max-width:440px}
 /* Logs keep their lines and scroll sideways inside the backend card. */
-.output-log{display:block;width:calc(100% - 12px);min-width:0;max-height:16em;margin:7px 0 0 12px;overflow:auto;padding:10px 12px;border:0;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre;word-break:normal;overflow-wrap:normal;tab-size:4}
-.output-log:focus-visible{box-shadow:var(--ring),var(--sunk)}
+.output-log{display:block;width:100%;min-width:0;max-height:16em;overflow:auto;border:0;font:13px/1.5 var(--mono);white-space:pre;word-break:normal;overflow-wrap:normal;tab-size:4}
+.output-log:focus-visible{box-shadow:var(--ring),inset 0 0 0 1px var(--details-edge)}
 .confirm-dialog form{display:grid;gap:16px}
 .confirm-dialog h2{font-size:24px}
 .confirm-dialog p{margin:0;font-size:16px;overflow-wrap:anywhere}
@@ -548,6 +572,17 @@ button.act.app-start{gap:6px;min-height:30px;align-self:center;padding:3px 11px 
 .app-start .dot.wake,.app-start .bfx-text .dot.sleep{display:none}
 .app-start .bfx-text .dot.wake{display:inline-flex}
 .app-start.busy{cursor:progress}
+/* Shared controls: every theme paints these keys with its own material tokens and icon art. */
+.slot-card .tools{display:grid;place-items:center;flex:none;min-width:36px;min-height:36px}
+.slot-card .tools button.icon.stop{display:grid;place-items:center;width:34px;height:34px;padding:5px;border:1px solid var(--stop-rim);border-radius:var(--stop-radius);background:var(--stop-face);color:var(--stop-ink);box-shadow:0 2px 0 var(--stop-wall);transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}
+.slot-card .tools button.icon.stop>svg{width:20px;height:20px}
+.slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){background:var(--stop-hover);transform:translateY(1px);box-shadow:0 1px 0 var(--stop-wall)}
+.slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(2px);box-shadow:none}
+.slot-card .tools button.icon.stop:focus-visible{outline:none;box-shadow:var(--ring),0 1px 0 var(--stop-wall)}
+.slot-card .tools button.icon.stop:disabled{opacity:.55}
+button.act.app-start{background:var(--start-face);border-color:var(--start-rim);color:var(--start-ink);box-shadow:0 2px 0 var(--start-wall)}
+button.act.app-start:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1px);box-shadow:0 1px 0 var(--start-wall)}
+button.act.app-start:active:not(:disabled){transform:translateY(2px);box-shadow:none}
 </style>
 <script>
 "use strict";
@@ -593,6 +628,16 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
                 sessions: the tray in the Sessions card (--tray, --tray-radius, --tray-shadow; none by default, so sessions lie on the card) and each session on it (--item-face,
                   --item-radius, --item-shadow; --item-card is its solid colour, the contrast reference and focus-ring inner colour;
                   --item-text and --item-muted are the inks inside it)
+                shared components (all markup and state logic are theme-independent):
+                  --module-face/edge, --fastener-face paint the session module; --lamp-off/ok/warn/bad and
+                  --lamp-chase-duration/step paint its LED and 30-lamp column; --action-chase-duration/step
+                  drive the six last-action lamps;
+                  --details-floor/edge/lip/ink/warn/bad paint the service and output tray;
+                  --screen-face/rim/ink/warn paint the backend branch and last-action screens;
+                  --gauge-face/rim/ink/alert paint the slots dial, with the plain count kept for accessibility;
+                  --stop-face/hover/rim/wall/ink/radius and --start-face/rim/wall/ink paint the action keys.
+                New features add shared markup, behaviour, and BASE tokens. A theme supplies materials and art,
+                never a flag that forks structure or copies feature logic.
                 select popups: --picker-face, --picker-radius, --picker-hl, --picker-hl-ink, --picker-hl-shadow, --picker-check,
                   --picker-hl-check
   shells        optional {id: {name, light: {...}, dark: {...}}}: the theme comes in colours, picked in Settings > Shell colour
@@ -735,6 +780,14 @@ var BASE = (function () {
     "--tray": "transparent", "--tray-radius": "0", "--tray-shadow": "none",
     "--item-card": "var(--desk-card)", "--item-face": "var(--stock)", "--item-text": "var(--text)", "--item-muted": "var(--muted)", "--item-radius": "5px",
     "--item-shadow": "inset 0 1px 0 var(--edge-hi),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 2px 0 var(--edge-lo2),0 5px 7px -3px var(--contact)",
+    "--module-face": "transparent", "--module-edge": "var(--edge-line)", "--fastener-face": "var(--edge-lo)",
+    "--lamp-off": "var(--idle)", "--lamp-ok": "var(--glyph-ok)", "--lamp-warn": "var(--warn)", "--lamp-bad": "var(--bad)",
+    "--lamp-chase-duration": "2.4s", "--lamp-chase-step": "80ms", "--action-chase-duration": "1.2s", "--action-chase-step": "200ms",
+    "--details-floor": "var(--inset)", "--details-edge": "var(--border)", "--details-lip": "var(--edge-lo2)", "--details-ink": "var(--text)", "--details-warn": "var(--warn)", "--details-bad": "var(--bad)",
+    "--screen-face": "var(--inset)", "--screen-rim": "var(--border)", "--screen-ink": "var(--text)", "--screen-warn": "var(--warn)",
+    "--gauge-face": "var(--inset)", "--gauge-rim": "var(--edge-lo2)", "--gauge-ink": "var(--text)", "--gauge-alert": "var(--bad)",
+    "--stop-face": "var(--btn-face)", "--stop-hover": "var(--stop-face)", "--stop-rim": "var(--border)", "--stop-wall": "var(--edge-lo2)", "--stop-ink": "var(--btn-ink)", "--stop-radius": "5px",
+    "--start-face": "var(--inset)", "--start-rim": "var(--border)", "--start-wall": "var(--edge-lo2)", "--start-ink": "var(--muted)",
     "--hover-fill": "color-mix(in srgb,var(--text) 8%,transparent)", "--line-soft": "color-mix(in srgb,var(--text) 22%,transparent)"};
   function scheme(own) { var out = {}; Object.keys(shared).forEach(function (k) { out[k] = shared[k] }); Object.keys(own).forEach(function (k) { out[k] = own[k] }); return out }
   return {
@@ -754,7 +807,7 @@ var THEMES = {
     wordmarkStroke: false,
     artPitch: 4.5,
     css: {
-      light: {"--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
+      light: {"--module-face": "transparent", "--module-edge": "var(--folio-foil-mid)", "--fastener-face": "var(--folio-foil-mid)", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "var(--inset)", "--details-edge": "var(--patch-edge)", "--details-lip": "var(--foil-mid)", "--details-ink": "var(--text)", "--details-warn": "var(--warn)", "--details-bad": "var(--bad)", "--screen-face": "var(--inset)", "--screen-rim": "var(--foil-mid)", "--screen-ink": "var(--text)", "--screen-warn": "var(--warn)", "--gauge-face": "var(--tag)", "--gauge-rim": "var(--folio-foil-mid)", "--gauge-ink": "var(--tag-ink)", "--gauge-alert": "var(--bad)", "--stop-face": "var(--patch)", "--stop-hover": "var(--patch)", "--stop-rim": "var(--foil-mid)", "--stop-wall": "var(--patch-edge)", "--stop-ink": "var(--patch-ink)", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#e9dcc2", "--text": "#23170f", "--muted": "#46372a",
         "--border": "#cdb994", "--rule": "#a8001a", "--ok": "#1b6e3e", "--bad": "#a8001a", "--warn": "#704500",
         "--idle": "#867460", "--glyph-ok": "#7d6b58", "--glyph-bad": "#a8001a", "--accent": "#a8001a", "--brush": "#e0061f", "--brush-deep": "#8a0313", "--seep": "#a8001a", "--seep-ink": "#ffffff", "--hl": "#f6d9d3", "--banner": "#a8001a",
         "--banner-text": "#fff", "--shade": "rgba(80,50,20,.10)", "--desk-floor": "#3a2c21", "--desk-card": "#f1e6cc", "--desk-card2": "#e2d3b1", "--edge-hi": "rgba(255,255,255,.75)", "--edge-line": "rgba(120,86,40,.2)",
@@ -778,7 +831,7 @@ var THEMES = {
         "--folio-foil-hi": "#fbe7a6", "--folio-foil-mid": "#e2bc62", "--folio-foil-lo": "#c4953c", "--folio-foil-rim": "rgba(0,0,0,.92)", "--folio-foil-lip": "rgba(255,226,170,.17)",
         "--folio-tooled": "0 -1px 0 rgba(0,0,0,.9),0 1px 0 rgba(255,232,200,.17)", "--folio-ok": "#6fdc98", "--folio-bad": "#ff8a90", "--folio-warn": "#e8b35a",
         "--folio-stitch": stitchBorder("#c9a46a", "rgba(255,236,196,.4)", "rgba(0,0,0,.7)", "rgba(255,230,200,.1)")},
-      dark: {"--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
+      dark: {"--module-face": "transparent", "--module-edge": "var(--folio-foil-mid)", "--fastener-face": "var(--folio-foil-mid)", "--lamp-off": "var(--item-muted)", "--lamp-ok": "var(--folio-ok)", "--lamp-warn": "var(--folio-warn)", "--lamp-bad": "var(--folio-bad)", "--details-floor": "var(--inset)", "--details-edge": "var(--patch-edge)", "--details-lip": "var(--foil-mid)", "--details-ink": "var(--text)", "--details-warn": "var(--warn)", "--details-bad": "var(--bad)", "--screen-face": "var(--inset)", "--screen-rim": "var(--foil-mid)", "--screen-ink": "var(--text)", "--screen-warn": "var(--warn)", "--gauge-face": "var(--tag)", "--gauge-rim": "var(--folio-foil-mid)", "--gauge-ink": "var(--tag-ink)", "--gauge-alert": "var(--bad)", "--stop-face": "var(--patch)", "--stop-hover": "var(--patch)", "--stop-rim": "var(--foil-mid)", "--stop-wall": "var(--patch-edge)", "--stop-ink": "var(--patch-ink)", "--start-face": "var(--patch)", "--start-rim": "var(--folio-foil-mid)", "--start-wall": "var(--patch-edge)", "--start-ink": "var(--patch-ink)", "--inset": "#120b0b", "--text": "#ecdfc6", "--muted": "#c2b29c",
         "--border": "#3b2320", "--rule": "#6e0a12", "--ok": "#5fd18a", "--bad": "#ff5c68", "--warn": "#e0a948",
         "--idle": "#8a7b6c", "--glyph-ok": "#a39482", "--glyph-bad": "#ff3348", "--accent": "#ff5c68", "--brush": "#e0061f", "--brush-deep": "#7a0310", "--seep": "#9a0414", "--seep-ink": "#f4ead5", "--hl": "#3a1214", "--banner": "#8f0414",
         "--banner-text": "#f4ead5", "--shade": "rgba(0,0,0,.55)", "--desk-floor": "#070403", "--desk-card": "#1e1613", "--desk-card2": "#17100d", "--edge-hi": "rgba(255,232,200,.08)", "--edge-line": "rgba(0,0,0,.4)",
@@ -891,7 +944,7 @@ var THEMES = {
         D + ' .backend{background:radial-gradient(circle at calc(100% - 19px) 19px,var(--desk-floor) 0 3.6px,#e4c06a 4.2px,#9d742a 6.2px,#3c2a0c 7.4px,transparent 8px),var(--stock)}',
         // Seams are saddle-stitched: a pressed groove with angled waxed-thread stitches, instead of a drawn dashed line.
         D + '{--stitch-seam:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%277%27%3E%3Crect y=%273%27 width=%2712%27 height=%271.2%27 fill=%27%23000%27 fill-opacity=%27.42%27/%3E%3Crect y=%274.2%27 width=%2712%27 height=%27.6%27 fill=%27%23fff%27 fill-opacity=%27.07%27/%3E%3Ccircle cx=%271.4%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Ccircle cx=%279.6%27 cy=%273.5%27 r=%27.9%27 fill=%27%23000%27 fill-opacity=%27.6%27/%3E%3Cg transform=%27rotate(-9 5.5 3.5)%27%3E%3Crect x=%271.8%27 y=%272.5%27 width=%277.4%27 height=%272%27 rx=%271%27 fill=%27%238f7450%27/%3E%3Crect x=%272.6%27 y=%272.7%27 width=%275.6%27 height=%27.6%27 rx=%27.3%27 fill=%27%23e6d2a6%27 fill-opacity=%27.4%27/%3E%3C/g%3E%3C/svg%3E\")}',
-        D + ' :is(.hint,.masthead-tools,.backend .meta,.backend .action-result,.backend-details,.settings-actions,.confirm-actions){border-top:0;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
+        D + ' :is(.hint,.masthead-tools,.backend-details,.settings-actions,.confirm-actions){border-top:0;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
         D + ' .settings-rule{border:0;height:7px;background:var(--stitch-seam) 0 0/12px 7px repeat-x}',
         // Tags: a luggage-tag cut with a brass eyelet; a stopped tag has lost its brass.
         D + ' .app-pill{--tag-shape:polygon(13px 0,100% 0,100% 100%,13px 100%,0 calc(100% - 11px),0 11px);--tag-face:var(--tag) var(--desk-tag,none) 0 0/var(--desk-tag-size,320px);' +
@@ -918,7 +971,7 @@ var THEMES = {
         D + '{--item-radius:6px 5px 6px 4px;' +
           '--item-face:radial-gradient(120% 90% at 22% 0,var(--folio-sheen),transparent 62%),linear-gradient(var(--folio-tint),var(--folio-tint)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
           '--item-shadow:inset 0 1px 0 rgba(255,220,180,.12),inset 0 -2px 3px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.45),0 1px 0 #1a0806,0 2px 0 #120403,0 7px 9px -4px var(--contact)}',
-        D + ' .slots>.card{--foil-hi:var(--folio-foil-hi);--foil-mid:var(--folio-foil-mid);--foil-lo:var(--folio-foil-lo);--foil-rim:var(--folio-foil-rim);--foil-lip:var(--folio-foil-lip);--tooled:var(--folio-tooled);--ok:var(--folio-ok);--bad:var(--folio-bad);--warn:var(--folio-warn)}',
+        D + ' .slots>.card{padding-left:34px;--foil-hi:var(--folio-foil-hi);--foil-mid:var(--folio-foil-mid);--foil-lo:var(--folio-foil-lo);--foil-rim:var(--folio-foil-rim);--foil-lip:var(--folio-foil-lip);--tooled:var(--folio-tooled);--ok:var(--folio-ok);--bad:var(--folio-bad);--warn:var(--folio-warn)}',
         D + ' .slots>.card::before{content:"";position:absolute;inset:5px;pointer-events:none;border:4px solid transparent;border-radius:4px;border-image:var(--folio-stitch) 8 / 4px round;opacity:.8}',
         // Slot numbers are a dark leather patch saddle-stitched onto the folio in gold thread, set at a seeded tilt, with the
         // number in gold foil. The patch keeps its own inks in both schemes, like the folio it sits on.
@@ -955,25 +1008,25 @@ var THEMES = {
           'filter:drop-shadow(0 -1px 0 var(--foil-rim)) drop-shadow(0 1px 0 var(--foil-lip))}',
         D + ' .slot-card .branch{background-size:100% 1.25em}',
         // Secondary text is blind-tooled: pressed into the stock with no ink, so the top edge falls into shade and the lower edge catches light.
-        D + ' :is(.slot-card .head-line,.slot-card>.muted.small,.backend .rollup .title,#updated,.backend .meta>span,.slot-card .stopping-note){text-shadow:var(--tooled)}',
+        D + ' :is(.slot-card .head-line,.slot-card>.muted.small,.backend .rollup .title,#updated,.slot-card .stopping-note){text-shadow:var(--tooled)}',
         // Small buttons on the cards are leather patches saddle-stitched on, the same stitch as the seams; a press pushes them into the card.
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle){color:var(--patch-ink);border:0;border-radius:7px 6px 7px 6px/6px 7px 6px 7px;text-shadow:var(--patch-press);' +
+        D + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle){color:var(--patch-ink);border:0;border-radius:7px 6px 7px 6px/6px 7px 6px 7px;text-shadow:var(--patch-press);' +
           'background:radial-gradient(130% 100% at 34% 12%,var(--patch-hi),transparent 64%),linear-gradient(var(--patch-tint),var(--patch-tint)),var(--desk-blotter-color,var(--patch)) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
           'box-shadow:inset 0 1px 0 var(--patch-hi),inset 0 -1.5px 0 rgba(0,0,0,.3),0 1px 0 var(--patch-edge),0 2px 0 var(--patch-edge),0 3px 4px -1px var(--contact)}',
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle)::before{content:"";position:absolute;inset:2px;z-index:2;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--patch-stitch) 8 / 4px round}',
-        D + ' .slot-card button.icon{width:32px;height:32px}',
-        D + ' .slot-card button.icon svg{width:18px;height:18px}',
+        D + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle)::before{content:"";position:absolute;inset:2px;z-index:2;pointer-events:none;border:4px solid transparent;border-radius:inherit;border-image:var(--patch-stitch) 8 / 4px round}',
+        D + ' .slot-card button.icon:not(.stop){width:32px;height:32px}',
+        D + ' .slot-card button.icon:not(.stop) svg{width:18px;height:18px}',
         D + ' .slot-card .icon.stop svg{width:19px;height:19px}',
         D + ' #settings-open svg{width:21px;height:21px}',
         D + ' .backend .toggle{min-height:32px;padding:6px 13px 6px 11px;color:var(--patch-ink)}',
         D + ' .backend .toggle .chev{color:var(--patch-ink)}',
         D + ' .backend .output-toggle{min-height:28px;padding:5px 12px 5px 10px;font-size:13px}',
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):focus-visible{box-shadow:var(--ring),0 3px 4px -1px var(--contact)}',
-        D + ' :is(.slot-card button.icon,.backend .toggle):hover:not(:disabled){transform:translateY(-1px)}',
-        D + ' :is(.slot-card button.icon,#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"]{transform:translateY(2px);' +
+        D + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle):focus-visible{box-shadow:var(--ring),0 3px 4px -1px var(--contact)}',
+        D + ' :is(.slot-card button.icon:not(.stop),.backend .toggle):hover:not(:disabled){transform:translateY(-1px)}',
+        D + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle):active:not(:disabled),' + D + ' :is(#settings-open,.backend .toggle)[aria-expanded="true"]{transform:translateY(2px);' +
           'box-shadow:inset 0 2px 4px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.2),0 1px 0 var(--emb-hi)}',
         D + ' #settings-open:active{transform:translateY(2px) rotate(-8deg)}',
-        D + ' .slot-card button.icon:disabled{opacity:.55}',
+        D + ' .slot-card button.icon:not(.stop):disabled{opacity:.55}',
         D + '{--check-size:19px}'
       ].join("\n");
     })(),
@@ -1258,7 +1311,7 @@ THEMES.clear = (function () {
         C + '[data-scene="radio"] .radio-tag{border-radius:999px;padding:3px 12px;box-shadow:none;letter-spacing:.06em;text-transform:uppercase}' + C + '[data-scene="radio"] .radio-obj .fit{display:none}'},
     artPitch: 4.5,
     css: {
-      light: {"--inset": "#e2e7ed", "--text": "#13161c", "--muted": "#3e4452", "--border": "#b4bdc9", "--rule": "#b4bdc9", "--ok": "#0d6b3a", "--bad": "#b4121e", "--warn": "#7a4300",
+      light: {"--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#e2e7ed", "--text": "#13161c", "--muted": "#3e4452", "--border": "#b4bdc9", "--rule": "#b4bdc9", "--ok": "#0d6b3a", "--bad": "#b4121e", "--warn": "#7a4300",
         "--idle": "#5d6472", "--glyph-ok": "#23744a", "--glyph-bad": "#b4121e", "--accent": "#1c4fa6", "--accent-ink": "#ffffff", "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff",
         "--hl": "#f8d8db", "--banner": "#b4121e", "--banner-text": "#ffffff", "--shade": "rgba(30,40,60,.1)", "--dim": "rgba(14,20,30,.5)",
         "--brush": "#d8ad4c", "--brush-deep": "#a57a24", "--drip": "#ff4040", "--seep": "#13161c", "--seep-ink": "#ffffff", "--danger": "#c8141f", "--danger-ink": "#ffffff",
@@ -1282,7 +1335,7 @@ THEMES.clear = (function () {
         "--screen": "#a6b188", "--screen-ink": "#1b2513", "--lcd-hi": "rgba(255,255,255,.22)", "--lcd-muted": "#2b3920", "--lcd-warn": "#5a3000", "--lcd-bad": "#7a0a10", "--lcd-shadow": "rgba(27,37,19,.2)", "--lcd-off": "#7b8466",
         "--surround": "#3a3e4a", "--surround-hi": "rgba(255,255,255,.14)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
         "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#3c404a", "--veil": "rgba(255,255,255,.2)", "--veil-text": "rgba(247,245,252,.64)"},
-      dark: {"--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
+      dark: {"--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
         "--idle": "#8792a3", "--glyph-ok": "#7fcf9f", "--glyph-bad": "#ff5c5c", "--accent": "#84b8ff", "--accent-ink": "#0b1220", "--ok-ink": "#0b1220", "--warn-ink": "#1a1206", "--bad-ink": "#1a0606",
         "--hl": "#3a161a", "--banner": "#b3202a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(3,5,9,.72)",
         "--brush": "#d8ad4c", "--brush-deep": "#a57a24", "--drip": "#ff4040", "--seep": "#e9edf4", "--seep-ink": "#0b1220", "--danger": "#cc222c", "--danger-ink": "#ffffff",
@@ -1424,8 +1477,6 @@ THEMES.clear = (function () {
       C + ' .backend .rollup:not(.tone-ok):not(.tone-busy) .state{transform:none;margin-bottom:8px;color:var(--lcd-bad);background:linear-gradient(125deg,rgba(255,255,255,.18),transparent 40%),repeating-linear-gradient(90deg,rgba(0,0,0,.04) 0 1px,transparent 1px 3px),var(--screen)}',
       C + ' .backend .rollup.tone-warn:not(.tone-busy) .state{color:var(--lcd-warn)}',
       C + ' .backend .rollup:is(.tone-down,.tone-broken,.tone-attn):not(.tone-ok) .state{background:linear-gradient(125deg,rgba(255,255,255,.2),transparent 40%),var(--bad);color:var(--bad-ink);text-shadow:none;transform:none}',
-      C + ' .backend .meta{border-top:1px solid color-mix(in srgb,var(--text) 14%,transparent)}',
-      C + ' .backend .action-result{border-top:1px solid color-mix(in srgb,var(--text) 14%,transparent)}',
       C + ' .backend-details{border-left:2px solid color-mix(in srgb,var(--text) 14%,transparent)}',
       // The output log and the recovery output are the same LCD glass.
       C + ' :is(.output-log,.recovery-progress .recovery-output){background:linear-gradient(125deg,rgba(255,255,255,.16),transparent 40%),var(--screen);color:var(--screen-ink);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 3px var(--surround),0 1px 0 3px rgba(255,255,255,.2)}',
@@ -1489,9 +1540,7 @@ THEMES.clear = (function () {
       C + ' .module .lamps:is(.tone-warn,.busy)>b{background:#ffb020;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,176,32,.65)}',
       C + ' .module .lamps.tone-bad>b{background:#ff4a3a;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,60,50,.7)}',
       C + ' .module .lamps>b::after{content:"";position:absolute;inset:-.5px;border-radius:inherit;background:#fff2c8;box-shadow:0 0 7px 2px rgba(255,190,60,.9);opacity:0}',
-      '@media (prefers-reduced-motion:no-preference){' + C + ' .module .lamps.busy:not(.tone-bad)>b{background:#5a3412;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}' +
-        C + ' .module .lamps.busy:not(.tone-bad)>b::after{animation:clear-chase 1.5s linear infinite;animation-delay:calc(var(--i) * 50ms)}}',
-      '@keyframes clear-chase{0%{opacity:1}10%{opacity:.3}18%,100%{opacity:0}}',
+      C + ' .module .lamps.busy:not(.tone-bad)>b{background:#5a3412;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}',
       // Screws in clear bosses at the module's corners.
       C + ' .module .fastener{width:18px;height:18px;background:var(--screw) center/100% 100% no-repeat;transform:rotate(var(--turn,0deg))}',
       C + ' .module .fastener.tl{left:-4px;top:-4px}', C + ' .module .fastener.tr{right:-4px;top:-4px}', C + ' .module .fastener.bl{left:-4px;bottom:-4px}', C + ' .module .fastener.br{right:-4px;bottom:-4px}',
@@ -1512,22 +1561,21 @@ THEMES.clear = (function () {
       C + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;padding:5px 13px 5px;border-radius:9px;' +
         'background:' + FROST + ';box-shadow:' + FROST_EDGE + ';font:700 18px/22px var(--serif);letter-spacing:.01em;text-shadow:none}',
       C + ' .slot-card .branch .brush{top:calc(100% + 3px);left:8px}',
-      // Stop: the red dome button with STOP printed above it.
-      C + ' .slot-card .tools{flex:none;position:relative;display:grid;justify-items:center;align-content:start;width:62px;padding-top:22px;background:none;box-shadow:none}',
-      C + ' .slot-card .tools::after{content:"STOP" / "";position:absolute;left:4px;right:4px;top:0;padding:3px 0 2px;border-radius:999px;background:var(--print);text-align:center;font:700 13px/1 var(--serif);letter-spacing:.1em;color:var(--print-ink);box-shadow:0 1px 0 rgba(255,255,255,.25)}',
-      C + ' #slots .slot-card .tools button.icon.stop{position:relative;width:46px;height:46px;padding:0;border-radius:50%;overflow:visible;background:none;box-shadow:none;transform:none}',
-      C + ' #slots .slot-card .tools button.icon.stop>svg{display:block;width:46px;height:46px;overflow:visible}',
-      C + ' #slots .slot-card .tools button.icon.stop>.bfx{display:none}',
-      C + ' #slots .slot-card .tools button.icon.stop:is(:hover,:focus-visible,:active,.fx-settled,:disabled){background:none;box-shadow:none;transform:none}',
+      // Stop: the red dome button; its accessible name is on the button.
+      C + ' .slot-card .tools{flex:none;position:relative;display:grid;justify-items:center;align-content:start;width:62px;padding-top:0;background:none;box-shadow:none}',
+      C + ' .slot-card .tools button.icon.stop{position:relative;width:46px;height:46px;padding:0;border-radius:50%;overflow:visible;background:none;box-shadow:none;transform:none}',
+      C + ' .slot-card .tools button.icon.stop>svg{display:block;width:46px;height:46px;overflow:visible}',
+      C + ' .slot-card .tools button.icon.stop>.bfx{display:none}',
+      C + ' .slot-card .tools button.icon.stop:is(:hover,:focus-visible,:active,.fx-settled,:disabled){background:none;box-shadow:none;transform:none}',
       C + ' .clear-stop .lens{transform-box:view-box;transform-origin:22px 22px;transition:transform var(--dur-fast) var(--ease-out)}',
       C + ' .clear-stop :is(.lit,.on){opacity:0;transition:opacity var(--dur-fast) var(--ease)}',
-      C + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) :is(.lit,.on){opacity:1}',
+      C + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) :is(.lit,.on){opacity:1}',
       C + ' .clear-stop .cast{transform-box:view-box;transform-origin:22px 24px;transition:transform var(--dur-fast) var(--ease-out),opacity var(--dur-fast) var(--ease-out)}',
-      C + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible) .lens{transform:translateY(1px)}',
-      C + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled) .lens{transform:translateY(3.2px) scale(.98);transition-duration:calc(var(--dur-fast) / 3)}',
-      C + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled) .cast{transform:scale(.9);opacity:.5}',
-      C + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring)}',
-      C + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.55}',
+      C + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible) .lens{transform:translateY(1px)}',
+      C + ' .slot-card .tools button.icon.stop:active:not(:disabled) .lens{transform:translateY(3.2px) scale(.98);transition-duration:calc(var(--dur-fast) / 3)}',
+      C + ' .slot-card .tools button.icon.stop:active:not(:disabled) .cast{transform:scale(.9);opacity:.5}',
+      C + ' .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring)}',
+      C + ' .slot-card .tools button.icon.stop:disabled{opacity:.55}',
       C + ' .slotno{top:20px;right:30px}',
       /* --- app keys --- */
       // Each app is a clear keycap on the board: the switch and its LED show through a clear window at the left, and the legend is
@@ -1606,8 +1654,8 @@ THEMES.clear = (function () {
       C + ' .slot-card button.act.app-start:disabled:not(.busy){opacity:.6}',
       // The backend switch is a clear capsule key; it stays down while the backend already runs this branch.
       C + ' .slot-card .slot-backend{align-self:center}',
-      C + ' #slots .slot-card .slot-backend .update-btn{min-height:36px;border-radius:999px;padding:4px 14px}',
-      C + ' #slots .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
+      C + ' .slot-card .slot-backend .update-btn{min-height:36px;border-radius:999px;padding:4px 14px}',
+      C + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
       // The commit display: a small LCD in a printed bezel. Hash in bold, uncommitted changes in the LCD's dark amber.
       C + ' .slot-card .head-line{justify-self:start;max-width:calc(100% - 10px);margin:6px 5px 5px;padding:6px 11px 5px;border-radius:4px;font:13px/1.35 var(--mono);color:var(--screen-ink);--warn:var(--lcd-warn);' +
         'background:linear-gradient(125deg,rgba(255,255,255,.18),transparent 40%),repeating-linear-gradient(90deg,rgba(0,0,0,.035) 0 1px,transparent 1px 3px),var(--screen);' +
@@ -1687,15 +1735,12 @@ THEMES.terminal = (function () {
     });
     return cross.concat(heads).join(",");
   }
-  // Looks picked by one word each: the branch label ("silk", "dymo" or "screen") and the stop control ("power", "key" or
-  // "round").
-  var BRANCH_LABEL = "screen", STOP_STYLE = "power";
   return {
     name: "Terminal",
     radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
     artPitch: 4.5,
     css: {
-      light: {"--inset": "#cfc7b0", "--text": "#1d1a14", "--muted": "#4a4334", "--border": "#b3a98f", "--rule": "#8f856c", "--ok": "#175c2c", "--bad": "#a3160c", "--warn": "#774400",
+      light: {"--screen-face": "var(--mfd-glass)", "--screen-rim": "var(--mfd-bezel)", "--details-floor": "var(--tray-floor)", "--details-edge": "var(--groove)", "--details-lip": "var(--tray-lip)", "--details-ink": "var(--tray-ink)", "--details-warn": "var(--tray-warn)", "--details-bad": "var(--tray-bad)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--bezel)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--bad)", "--start-face": "var(--tag)", "--start-rim": "var(--cap-wall-color)", "--start-wall": "var(--cap-wall-color)", "--start-ink": "var(--tag-off-ink)", "--inset": "#cfc7b0", "--text": "#1d1a14", "--muted": "#4a4334", "--border": "#b3a98f", "--rule": "#8f856c", "--ok": "#175c2c", "--bad": "#a3160c", "--warn": "#774400",
         "--idle": "#7d745e", "--glyph-ok": "#6b624c", "--glyph-bad": "#a3160c", "--accent": "#7a4200", "--accent-ink": "#fff4dc", "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff",
         "--hl": "#f2d2c8", "--banner": "#a3160c", "--banner-text": "#ffffff", "--shade": "rgba(60,50,30,.12)", "--dim": "rgba(30,22,12,.5)",
         "--brush": "#2a6b3a", "--brush-deep": "#1d1a14", "--drip": "#a3160c", "--seep": "#0a140d", "--seep-ink": "#33ff66", "--danger": "#a3160c", "--danger-ink": "#ffffff",
@@ -1731,7 +1776,7 @@ THEMES.terminal = (function () {
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
         "--screw": "#bdb398", "--screw-hi": "rgba(255,255,255,.9)", "--screw-lo": "#8f866d", "--screw-slot": "#4a4334"},
-      dark: {"--inset": "#24211c", "--text": "#efe7d2", "--muted": "#c7bca3", "--border": "#4d473c", "--rule": "#5a5446", "--ok": "#4fe07a", "--bad": "#ff7a6a", "--warn": "#ffb000",
+      dark: {"--screen-face": "var(--mfd-glass)", "--screen-rim": "var(--mfd-bezel)", "--details-floor": "var(--tray-floor)", "--details-edge": "var(--groove)", "--details-lip": "var(--tray-lip)", "--details-ink": "var(--tray-ink)", "--details-warn": "var(--tray-warn)", "--details-bad": "var(--tray-bad)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--bezel)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--bad)", "--start-face": "var(--tag)", "--start-rim": "var(--cap-wall-color)", "--start-wall": "var(--cap-wall-color)", "--start-ink": "var(--tag-off-ink)", "--inset": "#24211c", "--text": "#efe7d2", "--muted": "#c7bca3", "--border": "#4d473c", "--rule": "#5a5446", "--ok": "#4fe07a", "--bad": "#ff7a6a", "--warn": "#ffb000",
         "--idle": "#8f8775", "--glyph-ok": "#a89e86", "--glyph-bad": "#ff5a48", "--accent": "#ffb000", "--accent-ink": "#1a1206", "--ok-ink": "#0a140d", "--warn-ink": "#1a1206", "--bad-ink": "#1a0806",
         "--hl": "#4a1d18", "--banner": "#b3261e", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(4,3,2,.72)",
         "--brush": "#33ff66", "--brush-deep": "#178a3a", "--drip": "#ff5a48", "--seep": "#0a140d", "--seep-ink": "#33ff66", "--danger": "#ff6a5a", "--danger-ink": "#1a0806",
@@ -1944,13 +1989,6 @@ THEMES.terminal = (function () {
         T + ' :is(.module .lamps,.action-lamps)>b{position:relative;flex:none;width:14px;height:14px;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.4px,var(--lamp-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),' +
           'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
         T + ' :is(.module .lamps,.action-lamps)>b::after{content:"";position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-amber-hi) 0,var(--lamp-amber) 2.4px,var(--lamp-amber-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),radial-gradient(circle,var(--lamp-amber-glow) 0,transparent 7px)}',
-        T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b:nth-child(7)::after{opacity:1}',
-        '@media (prefers-reduced-motion:no-preference){' + T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b::after,' + T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b:nth-child(7)::after{opacity:0;animation:lamp-chase 2.4s steps(1,end) infinite;animation-delay:calc(var(--i) * 80ms - 2.4s)}' +
-          T + '[data-page-hidden="true"] :is(.module .lamps,.action-lamps)>b::after{animation-play-state:paused}}',
-        '@media (prefers-reduced-motion:no-preference){' + T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b::after,' + T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b:nth-child(3)::after{animation-name:lamp-chase-6;animation-duration:1.2s;animation-delay:calc(var(--i) * 200ms - 1.2s)}}',
-        T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b:nth-child(3)::after{opacity:1}',
-        '@keyframes lamp-chase-6{0%,16.6%{opacity:1}16.7%,33.3%{opacity:.35}33.4%,100%{opacity:0}}',
-        '@keyframes lamp-chase{0%,3.3%{opacity:1}3.4%,6.6%{opacity:.35}6.7%,100%{opacity:0}}',
         // Case screws: a domed silver cross-head pan screw with a dark ring where it meets the panel, its cross at a seeded angle.
         T + ' .module .fastener{width:10px;height:10px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.95) 0 .6px,transparent 1.8px),radial-gradient(circle at 40% 36%,var(--screw-hi),var(--screw) 55%,var(--screw-lo));' +
           'box-shadow:inset 0 -1px 1px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.5),0 0 0 1.5px var(--groove),0 1px 0 1.5px var(--mould-hi)}',
@@ -1972,86 +2010,37 @@ THEMES.terminal = (function () {
         T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
         // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
         T + ' .slot-card .card-drip{display:none}',
-        // The branch label. BRANCH_LABEL picks one of three looks; all keep the name upright, end a long name in an ellipsis
-        // (the title has it in full) and print the hover underline just below the label.
-        //   silk:   the name silkscreened straight onto the plastic in bold paint ink, between two thin printed corner brackets.
-        //   dymo:   embossed label-maker tape: glossy red vinyl, whitened letters raised with a small irregular baseline, a
-        //           sheen, square-cut ends and the right end lifting off the panel.
-        //   screen: a small display like the commit screen, the name in full green phosphor, larger and bolder than the commit line.
+        // The shared branch label is printed on Terminal's small display.
         T + ' .slot-card .head{flex-wrap:nowrap;gap:4px 16px;padding-right:7.6em;margin-bottom:0;padding-bottom:0;align-items:center}',
         T + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;--brush:var(--plate-lit);--brush-deep:var(--plate-lit-deep)}',
         T + ' .slot-card .branch .brush{top:calc(100% + 3px);left:4px;filter:drop-shadow(0 0 2px var(--plate-lit))}',
-      ].concat({
-        silk: [
-          T + ' .slot-card .branch{padding:4px 12px 5px;font:800 19px/22px var(--mono);letter-spacing:.05em;color:var(--panel-ink);text-shadow:0 0 .5px var(--panel-ink),0 1px 0 var(--mould-hi);' +
-            'background:linear-gradient(var(--panel-ink),var(--panel-ink)) 0 0/7px 1.5px,linear-gradient(var(--panel-ink),var(--panel-ink)) 0 0/1.5px 7px,' +
-            'linear-gradient(var(--panel-ink),var(--panel-ink)) 100% 100%/7px 1.5px,linear-gradient(var(--panel-ink),var(--panel-ink)) 100% 100%/1.5px 7px;background-repeat:no-repeat}'
-        ],
-        dymo: [
-          T + ' .slot-card .branch{padding:5px 15px 5px 13px;font:700 17px/20px var(--mono);letter-spacing:.08em;color:#fbf6ee;' +
-            'border-radius:1px 2px 2px 1px;' +
-            'text-shadow:0 -1px 0 rgba(255,255,255,.55),0 1px 0 rgba(60,0,0,.85),0 2px 1px rgba(60,0,0,.45);' +
-            'background:linear-gradient(180deg,rgba(255,255,255,.28) 0,rgba(255,255,255,.08) 22%,transparent 46%,rgba(0,0,0,.08) 72%,rgba(0,0,0,.3) 100%),' +
-            'linear-gradient(98deg,transparent 22%,rgba(255,255,255,.14) 36%,transparent 50%),linear-gradient(90deg,transparent 88%,rgba(0,0,0,.18)),var(--tape);' +
-            'filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)) drop-shadow(3px 3px 2px rgba(0,0,0,.18))}',
-          T + ' .slot-card .branch .ch{position:relative;top:var(--j,0px);opacity:var(--o,1)}',
-          T + ' .slot-card .branch .brush{filter:none}'
-        ],
-        screen: [
+      ].concat([
+
           T + ' .slot-card .branch{margin:6px;padding:6px 12px 5px;border-radius:3px;font:700 18px/20px var(--mono);letter-spacing:.05em;color:var(--screen-ink);text-shadow:0 0 1px var(--screen-ink),0 0 7px var(--screen-glow);' +
             'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
             'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
-          T + ' .slot-card .branch .brush{top:calc(100% + 9px)}'
-        ]
-      }[BRANCH_LABEL]).concat([
-        // The stop control is a real key: STOP_STYLE picks the terminal's power button ("power": a square recessed push-button
-        // in a metal bezel with an amber glass lens, dark at rest and glowing warm orange on hover), a putty keycap identical to
-        // the app keys with only its stop square printed in oxblood ("key"), or a chunky red round push-button ("round"). Hover
-        // presses the cap and backlights the square red, and a press bottoms it out. One button: a
-        // click opens the usual confirmation, and it dims while another action runs or there is nothing to stop.
-        T + ' .slot-card .tools{flex:none;position:relative;display:grid;place-items:center;width:auto;padding:0 0 4px;background:none;box-shadow:none}',
-        T + ' #slots .slot-card .tools button.icon.stop{position:relative;padding:0;color:var(--stop-ink);--legend-lit:var(--stop-lit);--legend-glow:var(--stop-glow);--legend-halo:var(--stop-lit);--legend-wash:none;' +
-          'background:radial-gradient(120% 90% at 50% 26%,var(--stop-hi) 0,var(--stop-face) 72%);transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}',
-        T + ' #slots .slot-card .tools button.icon.stop svg{width:11px;height:11px}',
-        T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))>svg{color:var(--stop-lit);filter:drop-shadow(0 0 3px var(--stop-glow-c))}',
-        T + ' #slots .slot-card .tools button.icon.stop>.bfx{display:none}',
-        T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.5}'
-      ]).concat({
-        key: [
-          T + ' #slots .slot-card .tools button.icon.stop{width:38px;height:34px;border-radius:5px;--stop-hi:var(--cap-hi);--stop-face:var(--tag);--stop-wall:var(--cap-wall-color);--stop-rim:var(--btn-hi);' +
-            '--stop-ink:var(--stop-print);--stop-lit:var(--stop-print-lit);--stop-glow-c:var(--bl-bad-glow);' +
-            'box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 4px 0 var(--stop-wall),0 5px 5px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(2px);box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 2px 0 var(--stop-wall),0 3px 3px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 2px 0 var(--stop-wall)}',
-          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 1px 2px rgba(0,0,0,.35),0 0 0 var(--stop-wall)}',
-          T + ' #slots .slot-card .tools button.icon.stop:disabled{transform:translateY(3px);box-shadow:0 1px 0 var(--stop-wall)}'
-        ],
-        round: [
-          T + ' .slot-card .tools{width:52px;height:52px;border-radius:50%;padding:0;background:radial-gradient(circle at 38% 30%,#eceae2,#a9a598 55%,#6c685d);box-shadow:0 0 0 1px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.6),0 2px 3px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop{width:36px;height:36px;border-radius:50%;margin-top:-5px;' +
-            'background:radial-gradient(circle at 50% 46%,var(--stop-face) 0 52%,var(--stop-hi) 74%,var(--stop-face) 100%);' +
-            'box-shadow:inset 0 1px 0 var(--stop-rim),0 5px 0 var(--stop-wall),0 6px 0 #2a0503,0 7px 5px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(2px);box-shadow:inset 0 1px 0 var(--stop-rim),0 3px 0 var(--stop-wall),0 4px 0 #2a0503,0 5px 4px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 3px 0 var(--stop-wall)}',
-          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(5px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 0 0 var(--stop-wall),0 1px 0 #2a0503}',
-          T + ' #slots .slot-card .tools button.icon.stop:disabled{transform:translateY(3px);box-shadow:0 2px 0 var(--stop-wall),0 3px 0 #2a0503}'
-        ],
-        power: [
+          T + ' .slot-card .branch .brush{top:calc(100% + 9px)}',
+
+        // The stop control is a recessed power key with an amber glass lens.
+
+
           T + ' .slot-card .tools{width:40px;height:40px;padding:0;border-radius:4px;background:linear-gradient(145deg,#f1efe8,#b9b5aa 45%,#7d796f);' +
             'box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),inset 1px 1px 0 1px rgba(255,255,255,.55),0 1px 0 var(--mould-hi),0 2px 3px -1px var(--contact)}',
-          T + ' #slots .slot-card .tools button.icon.stop{width:28px;height:28px;border-radius:2px;color:transparent;' +
+          T + ' .slot-card .tools button.icon.stop{width:28px;height:28px;padding:0;border:0;border-radius:2px;color:transparent;' +
             'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%),radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%);' +
             'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 2px #2a2620,0 0 0 3px rgba(0,0,0,.4)}',
-          T + ' #slots .slot-card .tools button.icon.stop>svg{display:none}',
-          T + ' #slots .slot-card .tools button.icon.stop::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease);' +
+          T + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:none;' +
+            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%),radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%);' +
+            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 2px #2a2620,0 0 0 3px rgba(0,0,0,.4)}',
+          T + ' .slot-card .tools button.icon.stop>svg{display:none}',
+          T + ' .slot-card .tools button.icon.stop::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease);' +
             'background:linear-gradient(160deg,rgba(255,255,255,.4) 0 16%,transparent 34%),radial-gradient(80% 80% at 50% 55%,#ffe0a3 0,#ff9a2e 38%,#e25c08 72%,#8a2c02 100%);' +
             'box-shadow:inset 0 0 0 1px rgba(80,20,0,.6),inset 0 2px 3px rgba(80,20,0,.4),0 0 10px 3px rgba(255,140,40,.55),0 0 22px 6px rgba(255,120,30,.25)}',
-          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{opacity:1}',
-          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 0 0 2px #2a2620,var(--ring)}',
-          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:scale(.92);transition-duration:calc(var(--dur-fast) / 3)}',
-          T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:1;filter:brightness(.55) saturate(.6)}'
-        ]
-      }[STOP_STYLE]).concat([
+          T + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{opacity:1}',
+          T + ' .slot-card .tools button.icon.stop:focus-visible{box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 0 0 2px #2a2620,var(--ring)}',
+          T + ' .slot-card .tools button.icon.stop:active:not(:disabled){transform:scale(.92);transition-duration:calc(var(--dur-fast) / 3)}',
+          T + ' .slot-card .tools button.icon.stop:disabled{opacity:1;filter:brightness(.55) saturate(.6)}',
+
         // The app keys are the console's putty keycaps sitting straight on the panel: one cap per app with its status face,
         // name and start time on one line. A configured app's key latches down (its wall shrinks and a collar shadow rings it),
         // so it sits lower than an off app's key, which stands at full height; a press clicks in with a little overshoot.
@@ -2132,7 +2121,6 @@ THEMES.terminal = (function () {
         // The slot gauge, Pip-Boy style: a small round dial under glass in a satin bezel with tick marks, a red last stretch, a
         // needle showing sessions in use out of the task slots, and the count printed on the face. The needle settles with a
         // small overshoot when the count changes (transform only); reduced motion makes it instant.
-        T + ' .sessions-title:has(.slot-gauge:not([hidden])) .sessions-count{display:none}',
         T + ' .sessions-title .slot-gauge:not([hidden]){display:block;position:relative;flex:none;width:56px;height:56px;margin:-6px 4px -8px 0;border-radius:50%;' +
           'background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.55),transparent 34%),radial-gradient(circle,#f3ecd8 0 60%,#d9cfb4 72%,#b8ad90 74%) padding-box,linear-gradient(145deg,#f1efe8,#a9a598 50%,#5f5b52) border-box;' +
           'border:4px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.5),inset 0 1px 3px rgba(0,0,0,.4),0 2px 4px -1px var(--contact)}',
@@ -2150,21 +2138,21 @@ THEMES.terminal = (function () {
         T + ' .slotno-v{display:flex;align-items:center;justify-content:center;min-width:24px;margin:2px 2px 2px 0;padding:4px 6px 3px;border-radius:2px;background:var(--screen);color:var(--screen-ink);font-size:13px;letter-spacing:0;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon,#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
         T + ' .output-log{background:var(--screen);color:var(--screen-ink);text-shadow:0 0 5px var(--screen-glow);box-shadow:inset 0 2px 8px #000,0 0 0 3px var(--bezel),0 1px 0 3px var(--emb-hi)}',
         T + ' #settings-open{width:36px;height:30px}',
         T + ' #settings-open svg{width:21px;height:21px}',
-        T + ' .slot-card button.icon{width:30px;height:28px}',
-        T + ' .slot-card button.icon svg{width:18px;height:18px}',
+        T + ' .slot-card button.icon:not(.stop){width:30px;height:28px}',
+        T + ' .slot-card button.icon:not(.stop) svg{width:18px;height:18px}',
         T + ' .slot-card .tools{gap:8px}',
-        T + ' .slot-card button.icon:disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
+        T + ' .slot-card button.icon:not(.stop):disabled,' + T + ' .backend button.act:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}',
         T + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}',
         T + ' .confirm-actions #stop-cancel{background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);color:var(--btn-ink)}',
         T + ' .confirm-actions .danger{--legend-lit:var(--danger-ink);--legend-glow:var(--danger-glow);background:var(--danger);color:var(--danger-ink)}',
@@ -2182,49 +2170,30 @@ THEMES.terminal = (function () {
         // The backend panel's instruments: a row of labelled service lamps, the branch and commit on a small display (amber
         // when the backend runs a branch other than develop), and the last action on a small display, with the session lamps'
         // amber chase beside it while the action runs.
-        T + ' .backend .backend-branch,' + T + ' .backend .meta{display:none}',
         // Show details and Show output open a slide-out tray, like a drawer pulled from a slot in the panel: the slot's lip
         // shades the tray's top edge, and the tray floor is darker and recessed, so what it holds reads as inside the machine.
         // Closed, only the status screen shows the services' overall state; opened, the service list slides out on the tray
         // as rows of lamp, name, state and the Restart key. The tray slides out once when its key is pressed (transform and
         // opacity, under 250ms); reduced motion opens it instantly.
-        T + ' .backend .svc-lamps:not([hidden]){display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 0 2px}',
         T + ' .backend .svc-lamps.open,' + T + ' .backend .output-log{position:relative;margin:14px 0 4px;padding:12px 12px 10px;border-radius:0 0 5px 5px;background:var(--tray-floor);' +
           'box-shadow:inset 0 9px 8px -6px rgba(0,0,0,.75),inset 0 0 0 1px rgba(0,0,0,.45),0 -4px 0 -1px var(--tray-lip),0 -5px 0 -1px rgba(0,0,0,.55),0 1px 0 var(--mould-hi)}',
-        T + ' .backend .svc-lamps.open{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;--panel-ink:var(--tray-ink);--panel-lo:rgba(0,0,0,.6);--panel-hi:rgba(255,255,255,.06)}',
-        T + ' .backend .svc-lamps.open .svc-lamp>i{grid-column:1}',
-        T + ' .backend .svc-lamps.open .svc-lamp{display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:4px 8px}',
-        T + ' .backend .svc-lamps.open .svc-lamp-name{grid-column:2}',
-        T + ' .backend .svc-lamps.open .svc-lamp-state{grid-column:3;justify-self:end}',
-        T + ' .backend .svc-lamps.open :is(.svc-lamp-restarts,.svc-restart){grid-column:2/-1}',
-        T + ' .backend .svc-lamp-state{color:var(--panel-ink);font-weight:600}',
-        T + ' .backend .svc-lamp.lamp-bad .svc-lamp-state{color:var(--tray-bad)}',
-        T + ' .backend .svc-lamp.lamp-warn .svc-lamp-state{color:var(--tray-warn)}',
-        T + ' .backend .svc-lamp-restarts{font-size:13px;color:var(--tray-ink);opacity:.8}',
-        T + ' .backend .svc-lamps .svc-restart{justify-self:start;margin:2px 0 4px;padding:3px 10px;font-size:12.5px}',
+        T + ' .backend .svc-lamp-state{font-weight:600}',
         T + ' .backend .output-log{width:auto;margin-left:0;border-radius:0 0 5px 5px;color:var(--screen-ink);background:var(--screen)}',
-        '@media (prefers-reduced-motion:no-preference){' + T + ' .backend .toggle.turned[aria-expanded="true"]~.svc-lamps.open,' + T + ' .backend .output-disclosure:has(.output-toggle.turned[aria-expanded="true"]) .output-log{animation:tray-out .2s var(--ease-out) both}}',
-        '@keyframes tray-out{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}',
-        T + ' .backend .svc-lamp{display:inline-flex;align-items:center;gap:6px;font:13px/1.2 var(--mono);color:var(--panel-ink);--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
+        T + ' .backend .svc-lamp{color:var(--tray-ink);--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
         T + ' .backend .svc-lamp>i{flex:none;width:14px;height:14px;background:radial-gradient(circle at 42% 36%,rgba(255,255,255,.8) 0 .8px,transparent 1.6px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.6px 3.4px,var(--lamp-lo) 4.1px,#050505 4.4px 5.2px,var(--panel-lo) 5.3px,transparent 5.9px),' +
           'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
         T + ' .backend .svc-lamp.lamp-ok{--lamp:#3fe46f;--lamp-hi:#eaffef;--lamp-lo:#178a3a;--lamp-glow:rgba(51,255,102,.45)}',
         T + ' .backend .svc-lamp.lamp-warn{--lamp:var(--lamp-amber);--lamp-hi:var(--lamp-amber-hi);--lamp-lo:var(--lamp-amber-lo);--lamp-glow:var(--lamp-amber-glow)}',
         T + ' .backend .svc-lamp.lamp-bad{--lamp:var(--lamp-on);--lamp-hi:var(--lamp-on-hi);--lamp-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
-        T + ' .backend :is(.backend-screen,.action-result){display:flex;align-items:center;gap:8px;max-width:calc(100% - 12px);margin:6px 6px 8px;padding:6px 11px 5px;border-radius:3px;border-top:0;' +
-          'font:13px/1.35 var(--mono);color:var(--mfd-ink);text-shadow:0 0 4px var(--mfd-glow);background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
+        T + ' .backend :is(.backend-screen,.action-result){max-width:calc(100% - 12px);margin:6px 6px 8px;padding:6px 11px 5px;border-top:0;' +
+          'color:var(--mfd-ink);text-shadow:0 0 4px var(--mfd-glow);background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
           'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
-        T + ' .backend .backend-screen{display:block;align-self:flex-start;min-width:0;overflow-wrap:anywhere}',
-        T + ' .backend .backend-screen-branch{font-weight:700;color:var(--screen-ink)}',
         T + ' .backend .backend-screen.off-develop .backend-screen-branch{color:var(--screen-warn);text-shadow:0 0 5px rgba(255,176,0,.45)}',
-        T + ' .backend .backend-screen code{color:var(--mfd-ink);background:none;padding:0;font-size:13px}',
-        T + ' .backend .action-result{margin-top:14px;flex-wrap:nowrap}',
-        T + ' .backend .action-result>span{min-width:0}',
+        T + ' .backend .action-result{margin-top:14px}',
         T + ' .backend .action-lamps.busy+span .dot{display:none}',
         T + ' .backend .action-result>span{color:var(--mfd-ink)}',
         T + ' .backend .action-result .tone-ok{color:var(--screen-ink)}',
         T + ' .backend .action-result :is(.tone-down,.error){color:#ff8f80}',
-        T + ' .backend .action-result .dot{color:inherit}',
         T + ' .backend .action-lamps.busy{display:flex;flex:none;flex-direction:row;width:84px;height:14px;overflow:hidden;margin:0 2px 0 -4px;--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent;--panel-lo:rgba(0,0,0,.6);--panel-hi:rgba(255,255,255,.06)}',
         T + ' .backend .toggle .chev{color:currentColor}',
         T + ' :is(.backend,.slot-backend) .update-btn .behind-badge{background:var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 50%,transparent);box-shadow:inset 0 1px 3px #000}',
@@ -2240,10 +2209,6 @@ THEMES.terminal = (function () {
       light: {surface: {ramp: ["#8a6440", "#9c7449", "#ad8454", "#bd9462"], seam: "#6b4a2c"}, blotter: {ramp: ["#5d6a5b", "#677464", "#717e6e"]},
         stock: {ramp: ["#d6ceb7", "#ddd5bf", "#e3dcc8"]}}},
     copy: {emptyTitle: "No sessions running"},
-    // The backend's services are one list of lamps that opens in place into rows with their state and Restart key.
-    serviceLamps: true,
-    // Embossed tape sets each letter on its own small seeded baseline.
-    branchLetters: BRANCH_LABEL === "dymo"
   };
 })();
 /* ===== end THEMES ================================================================= */
@@ -2668,6 +2633,10 @@ var QA_THEME = (function () {
   if (!/^(1|true)$/.test(new URLSearchParams(location.search).get("debug") || "")) return;
   var ICONS = {statusGlyphs: ["ok", "warn", "broken", "down", "attn", "unknown", "busy"], actionIcons: ["stop", "backend", "check"], favicons: ["ok", "warn", "bad", "badDim", "down"]};
   var problems = [], seen = {};
+  // Shared components are checked through their BASE token contract, not by requiring each theme to define them.
+  ["--module-face", "--lamp-ok", "--lamp-chase-duration", "--details-floor", "--screen-face", "--gauge-face", "--stop-face", "--start-face"].forEach(function (key) {
+    if (!BASE.light[key] || !BASE.dark[key]) problems.push("shared component is missing BASE " + key);
+  });
   Object.keys(THEMES).forEach(function (id) {
     var theme = THEMES[id];
     ["light", "dark"].forEach(function (scheme) { REQUIRED_KEYS.forEach(function (key) { if (!(theme.css[scheme] || {})[key]) problems.push(id + " " + scheme + " is missing " + key) }) });
@@ -2732,7 +2701,7 @@ var QA_THEME = (function () {
     ["--item-text", "--item-card"], ["--item-muted", "--item-card"], ["--focus-outer", "--item-card", 3],
     ["--folio-foil-hi", "--item-card"], ["--folio-foil-mid", "--item-card"], ["--folio-foil-lo", "--item-card"], ["--folio-ok", "--item-card"], ["--folio-bad", "--item-card"], ["--folio-warn", "--item-card"]];
   // Decorative inks (the index card's margin line) are not text; a few inks sit on a fill with another name.
-  var DECOR = {"--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag", "--radio-problem-tag-ink": "--radio-tag", "--mfd-ink": "--mfd-glass"};
+  var DECOR = {"--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag", "--radio-problem-tag-ink": "--radio-tag", "--mfd-ink": "--mfd-glass", "--details-ink": "--details-floor"};
   var failures = [], checked = 0, table = [];
   Object.keys(THEMES).forEach(function (id) { ["light", "dark"].forEach(function (scheme) {
     var map = QA_THEME.merged(THEMES[id], scheme), pairs = PAIRS.slice();
@@ -3219,9 +3188,8 @@ function serviceLampList(b){
   var svcs=(b&&b.services)||{};
   return Object.keys(svcs).map(function(n){return{name:n,lamp:SERVICE_LAMP[serviceTone(svcs[n])]||"off",state:String(serviceState(svcs[n]))}});
 }
-// The service list as lamps (a theme with serviceLamps), shown only while the details are open: rows of lamp, name, state
-// and its Restart key. Closed, the status screen is the overview and the list is not rendered.
-function serviceLamps(b,open){
+// The shared details tray contains one service list. Closed, it has no rendered rows.
+function renderServiceTray(b,open){
   if(!open)return'<div id="backend-services" class="svc-lamps" hidden></div>';
   var list=serviceLampList(b),svcs=(b&&b.services)||{};
   return'<div id="backend-services" class="svc-lamps'+(open?" open":"")+'" role="list" aria-label="Backend services">'+list.map(function(l){
@@ -3235,34 +3203,17 @@ function renderBackend(b){
   if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
   var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),busy=backendSwitching(),healthy=backendHealthy(b),open=detailsOpen(busy?false:healthy),rollup=backendTone(b),state=busy?"Switching…":String(b.overall||"unknown").replace(/-/g," ");
   var actions=busy?"":(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
-  var lamps=!!(QA_THEME.current()||{}).serviceLamps;
   var h=(healthy||busy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
     '<span class="state" style="--stamp-chars:'+Math.max(6,state.length)+'">'+dot(rollup)+esc(state)+'</span>'+
-    '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span>'+
-    // A theme can show the branch and commit on a small screen instead.
     '<span class="backend-screen'+(branch==="develop"?"":" off-develop")+'" title="'+esc("Backend branch "+(branch||"unverified")+(b.sha?", commit "+b.sha:""))+'">'+
       '<span class="backend-screen-branch">'+esc(branch||"unverified")+'</span> &middot; <code>'+esc(b.sha||"?")+'</code></span></div>'+
     ((switching||behind)?'<div class="rel">'+updateButton(b.relation||"",switching)+'</div>':"")+
     (actions?'<div class="acts">'+actions+'</div>':"")+
-    '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span></div></div>'+
-    '<div class="backend-disclosure"><button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="'+(lamps?"backend-services":"backend-details")+'">'+
+    '</div><div class="backend-disclosure"><button type="button" class="toggle" data-toggle="services" aria-expanded="'+open+'" aria-controls="backend-services">'+
     '<span class="chev" aria-hidden="true">'+QA_THEME.icon("chevron")+'</span>'+
-    '<span>'+(open?"Hide":"Show")+' details</span></button>'+(lamps?serviceLamps(b,open):"")+
-    '<div id="backend-details" class="backend-details"'+(open&&(!lamps||b.dirty)?"":" hidden")+'>';
-  if(open&&lamps)h+=(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
-  else if(open){
-    var svcs=b.services||{};
-    h+=(b.dirty?'<span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span>':"");
-    Object.keys(svcs).forEach(function(n){
-      var s=svcs[n],t=serviceTone(s),attn=!!s.needsAttention||/attention/i.test(s.status||""),status=(s.probe!=="ready"&&(s.unitState==="activating"||s.unitState==="reloading"))?"starting":s.status||s.probe||s.unitState;
-      var restartable=t==="down"||t==="broken"||t==="attn";
-      h+='<div class="svc tone-'+(t||"unknown")+(attn?" attn":"")+'">'+dot(t)+
-        '<span class="name">'+esc(n)+'</span><span>'+esc(status)+'</span>'+
-        (s.restartCount?'<span class="muted small">restarts '+esc(s.restartCount)+'</span>':"")+
-        (restartable?'<button type="button" class="act svc-restart" data-restart="'+esc(n)+'" aria-label="Restart '+esc(n)+'" title="Restart '+esc(n)+' (wt backend restart '+esc(n)+')"'+(isRunning()?" disabled":"")+'>Restart</button>':"")+'</div>';
-    });
-  }
-  return h+'</div></div>'+renderActionResult()+'</div>';
+    '<span>'+(open?"Hide":"Show")+' details</span></button>'+renderServiceTray(b,open)+
+    (open&&b.dirty?'<div class="backend-details"><span class="pill" style="color:var(--warn)">dirty: '+esc(b.dirty)+'</span></div>':"");
+  return h+'</div>'+renderActionResult()+'</div>';
 }
 function appUrl(a){
   var url=a.url||"";
@@ -3417,20 +3368,12 @@ function startKey(s,app){
   return'<button type="button" class="act app-start'+(busy?" busy":"")+'" data-start-app="'+esc(app)+'" data-start-branch="'+esc(s.branch)+'" aria-label="Start '+esc(name)+' for '+esc(s.branch)+'"'+
     ' title="Start '+esc(name)+' (wt serve '+esc(s.branch)+' '+esc(app)+')"'+(busy?' aria-disabled="true"':isRunning()?" disabled":"")+'>'+face+'<span class="app-name">'+esc(name)+'</span><span class="pill-low start-off" aria-hidden="true">'+(busy?"starting":"off")+'</span>'+(busy?'<span class="sr-only"> starting</span>':"")+'</button>';
 }
-// A theme with branchLetters sets each letter of the branch on its own span with a small baseline offset and ink variation,
-// seeded by the name so it never changes between polls.
-function branchLabel(name){
-  if(!(QA_THEME.current()||{}).branchLetters)return esc(name);
-  var seed=hashText(name);
-  return Array.prototype.map.call(String(name),function(ch,i){var bits=(seed>>>(i%27))^(i*2654435761>>>7);
-    return'<span class="ch" style="--j:'+((bits&3)-1.5)*0.4+'px;--o:'+(0.88+(bits>>>2&3)*0.04)+'">'+esc(ch)+'</span>'}).join("");
-}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
   var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
-    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+branchLabel(s.branch||"(no branch)")+'</span>'+
+    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   var startable=startableApps(s);
@@ -3460,8 +3403,7 @@ function updatedText(){
   if(!lastOk)return"not loaded";
   return"updated at "+lastOk.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
 }
-// The slot gauge: an analog dial showing sessions in use out of the task slots wt allocates (backend.taskSlots, without the
-// QA tree's own slot when it falls inside that range). Only a theme that styles .slot-gauge shows it; it replaces the count.
+// The shared slot gauge shows sessions in use out of task slots; the count remains as fallback text.
 function slotCapacity(backend){
   var range=backend&&backend.taskSlots;
   if(!Array.isArray(range)||range.length!==2||!(range[1]>=range[0]))return null;
