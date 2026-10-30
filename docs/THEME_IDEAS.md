@@ -31,6 +31,26 @@ A cosy, non-horror theme: the owl keeps the "overseer" idea without the creepine
 - **Halftone fit:** feathers and big round eyes read well as dots; keep the eye discs large so the
   pupils stay crisp at the 4.5px pitch.
 
+## Clear Plastic (next, after Terminal)
+
+Late-90s and Y2K see-through electronics: Game Boy Color, PS1 and PSP clear shells, iMac G3, clear VHS
+and MiniDisc. The appeal is seeing the real circuitry and hardware inside the device; the coloured
+shell is secondary. Whether it replaces Neon (whose smoked acrylic modules are halfway there) or
+sits beside it is undecided.
+
+- **Panels:** clear or tinted shells over a visible circuit board: copper traces, chips, capacitors,
+  screw posts, ribbon cables to the keys, and the board's shadow on the inside of the shell.
+- **The insides mirror real state** (no decoration that pretends): each running app is a chip on its
+  session's board and its trace to the key carries a faint pulse while starting; status LEDs are
+  surface-mount parts glowing up through the plastic; a stopped app is an empty socket.
+- **Keys:** clear caps with the switch visible underneath, like a clear PS1 controller.
+- **Screen:** the character on a Game Boy-style LCD in a printed screen surround.
+- **Legibility:** text sits on frosted or pad-printed areas of the shell (like a Game Boy Color's
+  screen surround and printed labels), never over busy circuitry.
+- **Shell colours** as a Settings pick: clear, smoke, atomic purple, tangerine.
+- **Bar:** the board, parts and plastic must match the rendering quality of Terminal's LEDs and CRT
+  (soft volumetric shading, lens highlights, real contact shadows), not flat clip art.
+
 ## Considered and parked
 
 - **Kit-Cat clock cat:** eyes follow you and the tail swings. Charming, but a regular swing is the
