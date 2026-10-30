@@ -42,7 +42,7 @@ It earns its place when you compare branches or run tasks in parallel.
 | `bin/qa-dashboard` | The Overseer status page (Python standard library only). |
 | `bin/overseer-systemctl` | Service control that delegates to `systemctl` on Linux and launchd on macOS. |
 | `bin/kc-redirects` | Adds and removes Keycloak sign-in addresses for served frontends (used by `wt serve`). |
-| `bin/t3-post` | Posts a user message into a running T3 Code thread (see [Posting to a T3 thread](#posting-to-a-t3-thread)). |
+| `bin/t3-thread` | Posts to, spawns, settles and identifies T3 Code threads (see [Managing T3 threads](#managing-t3-threads)). `bin/t3-post` is a wrapper for `t3-thread post`. |
 | `bin/wt-qa-runtime.py` | Reconciles the managed QA runtime after an explicit `wt qa` attach. |
 | `scripts/codex-run`, `scripts/codex-digest` | Launch Codex CLI runs and summarise their progress; see `scripts/README.md`. |
 | `hooks/` | Claude Code PreToolUse hooks: keep edits inside worktrees, block risky file reads, QA guards, Herdr tab names. |
@@ -107,16 +107,31 @@ which this repository does not create. Keycloak admin credentials stay in `~/.ke
 outside git. The unit `PATH` assumes `fnm` and `pnpm` under `~/.local`; if yours live elsewhere, add the
 tool directories to the affected units.
 
-### Posting to a T3 thread
+### Managing T3 threads
 
 ```bash
-~/.claude/bin/t3-post <thread-id> --file message.md     # or pipe the text on stdin
-~/.claude/bin/t3-post <thread-id> --dry-run < message.md   # print the command, send nothing
+t=~/.claude/bin/t3-thread
+$t post <thread-id> --file message.md        # or pipe the text on stdin
+$t self                                      # print this agent's own thread id (--cwd DIR)
+$t spawn --from <thread-id> --file first.md [--title T] [--model M] [--new-worktree [--base-branch B]]
+$t settle <thread-id>
 ```
 
-It mints a 5-minute token, reads the thread's model and modes, sends the message as a new turn, and
-revokes the token. `T3_ORIGIN` overrides the server address. It refuses empty text and deleted or
-archived threads. A real post messages a live agent, so use `--dry-run` when testing.
+`post`, `spawn` and `settle` accept `--dry-run`, which prints the command and sends nothing. Each mints a
+5-minute token and revokes it afterwards. `T3_ORIGIN` overrides the server address.
+
+- `post` sends the message as a new turn, with the thread's model and modes. It refuses empty text and
+  deleted or archived threads.
+- `self` reads T3's state database (read-only) and prints the live, unsettled thread whose worktree is the
+  git toplevel of the current directory. With several, it prints the most recently used and warns on
+  stderr; with none, it exits 1.
+- `spawn` starts a thread in the same project with the file as its first message, copying the source's
+  worktree, branch, model and modes. `--new-worktree` has T3 prepare a fresh worktree from `--base-branch`
+  (default `develop`), as the web client does. It prints `thread=<id> status=<http>`, then waits up to 20s
+  for the thread to appear.
+- `settle` marks a thread settled.
+
+A real post or spawn starts a live agent, so use `--dry-run` when testing.
 
 ### Repairing one backend service
 
