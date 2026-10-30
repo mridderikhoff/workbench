@@ -549,6 +549,34 @@ test("a finished action from the fast endpoint survives an older status response
   assert.strictEqual(p.get("recovery-progress").hidden, false, "stale candidates do not reopen the picker");
 });
 
+test("a failed action keeps its output against older status snapshots", async () => {
+  const snap = recoverySnapshot();
+  const p = page({ fetch: () => jsonResponse(snap) });
+  await p.poll();
+  const startedAt = "2026-01-01T00:00:00Z";
+  p.run('data.actions={action:"resume",state:"failed",startedAt:' + JSON.stringify(startedAt) + ',output:["first","failure"]};render()');
+  snap.actions = { action: "resume", state: "failed", startedAt, output: ["first"] };
+  await p.poll();
+  assert.strictEqual(p.run("data.actions.state"), "failed");
+  assert.deepStrictEqual(plain(p.run("data.actions.output")), ["first", "failure"]);
+  snap.actions = { action: "resume", state: "running", startedAt, output: [] };
+  await p.poll();
+  assert.strictEqual(p.run("data.actions.state"), "failed");
+  assert.deepStrictEqual(plain(p.run("data.actions.output")), ["first", "failure"]);
+});
+
+test("a newer action replaces a finished action", async () => {
+  const snap = recoverySnapshot();
+  const p = page({ fetch: () => jsonResponse(snap) });
+  await p.poll();
+  p.run('data.actions={action:"resume",state:"ok",startedAt:"2026-01-01T00:00:00Z",output:["done"]};render()');
+  snap.actions = { action: "resume", state: "running", startedAt: "2026-01-01T00:01:00Z", output: [] };
+  await p.poll();
+  assert.strictEqual(p.run("data.actions.state"), "running");
+  assert.strictEqual(p.run("data.actions.startedAt"), "2026-01-01T00:01:00Z");
+  assert.deepStrictEqual(plain(p.run("data.actions.output")), []);
+});
+
 test("no saved sessions and no data: Start fresh does nothing", async () => {
   const posts = [];
   const p = page({ fetch: (url, init) => { if (init && init.method === "POST") posts.push(url); return new Promise(() => {}) } });

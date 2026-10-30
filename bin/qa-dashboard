@@ -4183,10 +4183,12 @@ function poll(){
       return j;
     });
   }).then(function(j){
+    j=Object.assign({},j);
     var wasRunning=isRunning(),previous=currentAction(),incoming=j.actions;
     // The independent action request can finish before an older status response arrives.
-    if(previous&&(previous.action==="resume"||previous.action==="forget")&&incoming&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt){
-      if(previous.state!=="running"&&incoming.state==="running")j.actions=previous;
+    if(previous&&incoming&&previous.startedAt&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt){
+      var shorterOutput=Array.isArray(previous.output)&&Array.isArray(incoming.output)&&incoming.output.length<previous.output.length;
+      if(previous.state!=="running"&&(incoming.state==="running"||shorterOutput))j.actions=previous;
       else if(previous.state==="running"&&incoming.state==="running"&&Array.isArray(previous.output)&&Array.isArray(incoming.output)&&incoming.output.length<=previous.output.length)j.actions=previous;
     }
     recoveryStatusPending=!!(previous&&(previous.action==="resume"||previous.action==="forget")&&previous.state==="ok"&&incoming&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt&&incoming.state==="running");
