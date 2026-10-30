@@ -1230,26 +1230,8 @@ THEMES.terminal = (function () {
     });
     return slots.concat(heads).join(",");
   }
-  // The stop control: a panel-mount illuminated push-button, rendered like the panel's LED lenses. A round cutout in the
-  // panel (shaded top left, catching light bottom right), a satin threaded ring, and a domed red lens with a fine texture and
-  // a soft highlight. The lens is unlit at rest; .on (the lit lens) and .lit (its glow on the panel) show on hover or focus,
-  // and .lens is the part that presses in. Gradients are shared by id across copies.
-  var STOP_LAMP = '<svg class="stop-lamp" viewBox="0 0 44 44" aria-hidden="true" focusable="false"><defs>' +
-    '<radialGradient id="sl-cut" cx=".42" cy=".4" r=".62"><stop offset=".78" stop-color="#000" stop-opacity=".55"/><stop offset=".92" stop-color="#000" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>' +
-    '<linearGradient id="sl-catch" x1="0" y1="0" x2="1" y2="1"><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".5"/></linearGradient>' +
-    '<radialGradient id="sl-ring" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ece7da"/><stop offset=".55" stop-color="#aaa495"/><stop offset="1" stop-color="#5f5a4f"/></radialGradient>' +
-    '<radialGradient id="sl-lens" cx=".42" cy=".36" r=".7"><stop offset="0" stop-color="#ffc0b2"/><stop offset=".28" stop-color="#ff5a40"/><stop offset=".72" stop-color="#c41a0d"/><stop offset="1" stop-color="#5e0803"/></radialGradient>' +
-    '<radialGradient id="sl-dark" cx=".42" cy=".36" r=".7"><stop offset="0" stop-color="#7a2a24"/><stop offset=".3" stop-color="#55150f"/><stop offset=".72" stop-color="#360a07"/><stop offset="1" stop-color="#1a0403"/></radialGradient>' +
-    '<radialGradient id="sl-glow"><stop offset=".55" stop-color="#ff4a30" stop-opacity=".32"/><stop offset="1" stop-color="#ff4a30" stop-opacity="0"/></radialGradient>' +
-    '<radialGradient id="sl-soft"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
-    '<pattern id="sl-texture" width="2.4" height="2.4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r=".55" fill="#fff" fill-opacity=".16"/></pattern></defs>' +
-    '<circle cx="22" cy="22" r="21" fill="url(#sl-glow)" class="lit"/>' +
-    '<circle cx="22" cy="22" r="17" fill="#0e0c0a"/><circle cx="22" cy="22" r="17" fill="url(#sl-cut)"/><circle cx="22" cy="22" r="17" fill="none" stroke="url(#sl-catch)" stroke-width="1.2"/>' +
-    '<circle cx="22" cy="22" r="14.4" fill="url(#sl-ring)"/><circle cx="22" cy="22" r="14.4" fill="none" stroke="#000" stroke-opacity=".4" stroke-width=".8"/>' +
-    '<circle cx="22" cy="22" r="12.6" fill="none" stroke="#000" stroke-opacity=".18" stroke-width=".6" stroke-dasharray=".8 1.2"/>' +
-    '<circle cx="22" cy="22" r="10.6" fill="#1a0604"/>' +
-    '<g class="lens"><circle cx="22" cy="22" r="9.8" fill="url(#sl-dark)"/><circle cx="22" cy="22" r="9.8" fill="url(#sl-lens)" class="on"/><circle cx="22" cy="22" r="9.8" fill="url(#sl-texture)"/>' +
-    '<ellipse cx="19" cy="18.2" rx="4.4" ry="2.8" fill="url(#sl-soft)"/><circle cx="22" cy="22" r="9.8" fill="none" stroke="#000" stroke-opacity=".4" stroke-width=".8"/></g></svg>';
+  // Looks picked by one word each: the branch label ("silk", "dymo" or "screen") and the stop key ("key" or "round").
+  var BRANCH_LABEL = "screen", STOP_STYLE = "round";
   return {
     name: "Terminal",
     radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
@@ -1286,7 +1268,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#ece4cf",
         "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
-        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
         "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
@@ -1322,7 +1304,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#141513",
         "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
-        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
         "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
         "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
         "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
@@ -1357,7 +1339,8 @@ THEMES.terminal = (function () {
       busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><path d="M1 6h4v2H3v8h2v2H1zM23 6h-4v2h2v8h-2v2h4z"/><path class="busy-a" d="M5 9h4v6H5z"/><path class="busy-b" d="M10 9h4v6h-4z" fill-opacity=".6"/><path class="busy-c" d="M15 9h4v6h-4z" fill-opacity=".32"/></svg>'},
     actionIcons: {
       // The illuminated stop push-button the session card shows.
-      stop: STOP_LAMP,
+      // The stop key's printed symbol: a stop square in blocks.
+      stop: bitIcon(["########", "########", "########", "########", "########", "########", "########", "########"]),
       // The backend in blocks: two server units, each with a lamp and a vent.
       backend: bitIcon(["##########", "#.##.....#", "#.##.###.#", "##########", "..........", "##########", "#.##.###.#", "#.##.....#", "##########"]),
       // The code page 437 check mark (the square-root sign), in blocks.
@@ -1526,33 +1509,69 @@ THEMES.terminal = (function () {
         T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
         // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
         T + ' .slot-card .card-drip{display:none}',
-        // The branch is a strip of embossed label-maker tape stuck on the panel, the same glossy black tape as the slot tag:
-        // raised white letters (lit along their tops, shaded below, whitest where the plastic stretched), square-cut ends, a
-        // sheen across the tape and a thin shadow on the panel. The text sits optically centred on the tape. A long name ends
-        // in an ellipsis (the title has it in full); the hover underline lights up on the panel just below the tape.
-        T + ' .slot-card .head{flex-wrap:nowrap;gap:4px 14px;padding-right:7.6em;margin-bottom:0;padding-bottom:0}',
-        T + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;padding:5.5px 12px 4.5px;border-radius:1px;' +
-          'font:700 17px/20px var(--mono);letter-spacing:.06em;color:var(--dymo-ink);text-shadow:0 -.5px 0 rgba(255,255,255,.75),0 1px 0 rgba(0,0,0,.85),0 1.5px 1px rgba(0,0,0,.5);--brush:var(--plate-lit);--brush-deep:var(--plate-lit-deep);' +
-          'background:linear-gradient(180deg,rgba(255,255,255,.16) 0,rgba(255,255,255,.05) 18%,transparent 45%,rgba(255,255,255,.03) 70%,rgba(0,0,0,.25) 100%),' +
-          'linear-gradient(100deg,transparent 30%,rgba(255,255,255,.07) 44%,transparent 58%),repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px),var(--dymo);' +
-          'box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.6),0 1px 1px rgba(0,0,0,.45),0 2px 3px -1px var(--contact)}',
+        // The branch label. BRANCH_LABEL picks one of three looks; all keep the name upright, end a long name in an ellipsis
+        // (the title has it in full) and print the hover underline just below the label.
+        //   silk:   the name silkscreened straight onto the plastic in bold paint ink, between two thin printed corner brackets.
+        //   dymo:   embossed label-maker tape: glossy red vinyl, whitened letters raised with a small irregular baseline, a
+        //           sheen, square-cut ends and the right end lifting off the panel.
+        //   screen: a small display like the commit screen, the name in amber phosphor on dark glass in the same bezel.
+        T + ' .slot-card .head{flex-wrap:nowrap;gap:4px 16px;padding-right:7.6em;margin-bottom:0;padding-bottom:0;align-items:center}',
+        T + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;--brush:var(--plate-lit);--brush-deep:var(--plate-lit-deep)}',
         T + ' .slot-card .branch .brush{top:calc(100% + 3px);left:4px;filter:drop-shadow(0 0 2px var(--plate-lit))}',
-        // The stop control is a panel-mount illuminated push-button (the theme's stop icon): a domed red lens with a fine
-        // texture and a soft highlight, held by a satin threaded ring in a round cutout in the panel, under an engraved STOP
-        // legend. At rest the lens is unlit, a deep oxblood; hover and focus light it and a press pushes it in a little. One real
-        // button; a click opens the usual confirmation, and it dims further while another action runs.
-        T + ' .slot-card .tools{flex:none;position:relative;display:grid;justify-items:center;align-content:start;width:60px;padding-top:19px;background:none;box-shadow:none}',
-        T + ' .slot-card .tools::after{content:"STOP" / "";position:absolute;left:0;right:0;top:2px;text-align:center;font:700 13px/1 var(--mono);letter-spacing:.12em;color:var(--panel-ink);text-shadow:var(--legend-through)}',
-        T + ' #slots .slot-card .tools button.icon.stop{position:relative;width:50px;height:50px;padding:0;border-radius:50%;overflow:visible;background:none;box-shadow:none;transform:none}',
-        T + ' #slots .slot-card .tools button.icon.stop>svg{display:block;width:50px;height:50px;overflow:visible}',
+      ].concat({
+        silk: [
+          T + ' .slot-card .branch{padding:4px 12px 5px;font:800 19px/22px var(--mono);letter-spacing:.05em;color:var(--panel-ink);text-shadow:0 0 .5px var(--panel-ink),0 1px 0 var(--mould-hi);' +
+            'background:linear-gradient(var(--panel-ink),var(--panel-ink)) 0 0/7px 1.5px,linear-gradient(var(--panel-ink),var(--panel-ink)) 0 0/1.5px 7px,' +
+            'linear-gradient(var(--panel-ink),var(--panel-ink)) 100% 100%/7px 1.5px,linear-gradient(var(--panel-ink),var(--panel-ink)) 100% 100%/1.5px 7px;background-repeat:no-repeat}'
+        ],
+        dymo: [
+          T + ' .slot-card .branch{padding:5px 15px 5px 13px;font:700 17px/20px var(--mono);letter-spacing:.08em;color:#fbf6ee;' +
+            'border-radius:1px 2px 2px 1px;' +
+            'text-shadow:0 -1px 0 rgba(255,255,255,.55),0 1px 0 rgba(60,0,0,.85),0 2px 1px rgba(60,0,0,.45);' +
+            'background:linear-gradient(180deg,rgba(255,255,255,.28) 0,rgba(255,255,255,.08) 22%,transparent 46%,rgba(0,0,0,.08) 72%,rgba(0,0,0,.3) 100%),' +
+            'linear-gradient(98deg,transparent 22%,rgba(255,255,255,.14) 36%,transparent 50%),linear-gradient(90deg,transparent 88%,rgba(0,0,0,.18)),var(--tape);' +
+            'filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)) drop-shadow(3px 3px 2px rgba(0,0,0,.18))}',
+          T + ' .slot-card .branch .ch{position:relative;top:var(--j,0px);opacity:var(--o,1)}',
+          T + ' .slot-card .branch .brush{filter:none}'
+        ],
+        screen: [
+          T + ' .slot-card .branch{margin:6px;padding:6px 12px 5px;border-radius:3px;font:700 17px/20px var(--mono);letter-spacing:.06em;color:var(--screen-warn);text-shadow:0 0 6px rgba(255,176,0,.45);' +
+            'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
+            'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
+          T + ' .slot-card .branch .brush{top:calc(100% + 9px)}'
+        ]
+      }[BRANCH_LABEL]).concat([
+        // The stop control is a real key: STOP_STYLE picks a red keycap in the console's key language ("key") or a chunky round
+        // push-button standing proud of a satin bezel ring ("round"). Both are muted oxblood at rest, quieter than an error,
+        // with a printed stop square; hover presses the cap and backlights the square, a press bottoms it out. One button: a
+        // click opens the usual confirmation, and it dims while another action runs or there is nothing to stop.
+        T + ' .slot-card .tools{flex:none;position:relative;display:grid;place-items:center;width:auto;padding:0 0 4px;background:none;box-shadow:none}',
+        T + ' #slots .slot-card .tools button.icon.stop{position:relative;padding:0;color:var(--stop-ink);--legend-lit:var(--stop-lit);--legend-glow:var(--stop-glow);--legend-halo:var(--stop-lit);--legend-wash:none;' +
+          'background:radial-gradient(120% 90% at 50% 26%,var(--stop-hi) 0,var(--stop-face) 72%);transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}',
+        T + ' #slots .slot-card .tools button.icon.stop svg{width:11px;height:11px}',
+        T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))>svg{color:var(--stop-lit);filter:drop-shadow(0 0 3px var(--stop-glow-c))}',
         T + ' #slots .slot-card .tools button.icon.stop>.bfx{display:none}',
-        T + ' #slots .slot-card .tools button.icon.stop:is(:hover,:focus-visible,:active,.fx-settled,:disabled){background:none;box-shadow:none;transform:none}',
-        T + ' .stop-lamp .lens{transform-box:view-box;transform-origin:22px 22px;transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' .stop-lamp :is(.lit,.on){opacity:0;transition:opacity var(--dur-fast) var(--ease)}',
-        T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) :is(.lit,.on){opacity:1}',
-        T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled) .lens{transform:scale(.94);transition-duration:calc(var(--dur-fast) / 3)}',
-        T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring)}',
-        T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.55}',
+        T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.5}'
+      ]).concat({
+        key: [
+          T + ' #slots .slot-card .tools button.icon.stop{width:38px;height:34px;border-radius:5px;' +
+            'box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 4px 0 var(--stop-wall),0 5px 5px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(2px);box-shadow:inset 0 1px 0 var(--stop-rim),inset 0 -1px 0 rgba(0,0,0,.25),0 2px 0 var(--stop-wall),0 3px 3px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 2px 0 var(--stop-wall)}',
+          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 1px 2px rgba(0,0,0,.35),0 0 0 var(--stop-wall)}',
+          T + ' #slots .slot-card .tools button.icon.stop:disabled{transform:translateY(3px);box-shadow:0 1px 0 var(--stop-wall)}'
+        ],
+        round: [
+          T + ' .slot-card .tools{width:52px;height:52px;border-radius:50%;padding:0;background:radial-gradient(circle at 38% 30%,#eceae2,#a9a598 55%,#6c685d);box-shadow:0 0 0 1px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.6),0 2px 3px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop{width:36px;height:36px;border-radius:50%;margin-top:-5px;' +
+            'background:radial-gradient(circle at 50% 46%,var(--stop-face) 0 52%,var(--stop-hi) 74%,var(--stop-face) 100%);' +
+            'box-shadow:inset 0 1px 0 var(--stop-rim),0 5px 0 var(--stop-wall),0 6px 0 #2a0503,0 7px 5px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(2px);box-shadow:inset 0 1px 0 var(--stop-rim),0 3px 0 var(--stop-wall),0 4px 0 #2a0503,0 5px 4px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 3px 0 var(--stop-wall)}',
+          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(5px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 0 0 var(--stop-wall),0 1px 0 #2a0503}',
+          T + ' #slots .slot-card .tools button.icon.stop:disabled{transform:translateY(3px);box-shadow:0 2px 0 var(--stop-wall),0 3px 0 #2a0503}'
+        ]
+      }[STOP_STYLE]).concat([
         // The app keys are the console's putty keycaps sitting straight on the panel: one cap per app with its status face,
         // name and start time on one line. A configured app's key latches down (its wall shrinks and a collar shadow rings it),
         // so it sits lower than an off app's key, which stands at full height; a press clicks in with a little overshoot.
@@ -1667,7 +1686,7 @@ THEMES.terminal = (function () {
         T + ' .sessions-title,' + T + ' .settings h2{letter-spacing:.12em}',
         T + ' .settings select::picker(select){outline:1.5px solid var(--groove);outline-offset:-6px}',
         T + ' .settings option{font:14px/1.3 var(--mono);letter-spacing:.04em}'
-      ].join("\n");
+      ]).join("\n");
     })(),
     // A wooden desk with a felt pad and putty plastic panels. No props: the floppies and the mug did not share the character's art.
     desk: {seed: 41, surface: "wood", blotter: "velvet", stock: "plastic",
@@ -1675,7 +1694,9 @@ THEMES.terminal = (function () {
         stock: {ramp: ["#322e27", "#36322a", "#3b372e"]}},
       light: {surface: {ramp: ["#8a6440", "#9c7449", "#ad8454", "#bd9462"], seam: "#6b4a2c"}, blotter: {ramp: ["#5d6a5b", "#677464", "#717e6e"]},
         stock: {ramp: ["#d6ceb7", "#ddd5bf", "#e3dcc8"]}}},
-    copy: {emptyTitle: "No sessions running"}
+    copy: {emptyTitle: "No sessions running"},
+    // Embossed tape sets each letter on its own small seeded baseline.
+    branchLetters: BRANCH_LABEL === "dymo"
   };
 })();
 /* ===== end THEMES ================================================================= */
@@ -2772,12 +2793,20 @@ function startKey(s,app){
   return'<button type="button" class="act app-start'+(busy?" busy":"")+'" data-start-app="'+esc(app)+'" data-start-branch="'+esc(s.branch)+'" aria-label="Start '+esc(name)+' for '+esc(s.branch)+'"'+
     ' title="Start '+esc(name)+' (wt serve '+esc(s.branch)+' '+esc(app)+')"'+(busy?' aria-disabled="true"':isRunning()?" disabled":"")+'>'+face+'<span class="app-name">'+esc(name)+'</span><span class="pill-low start-off" aria-hidden="true">'+(busy?"starting":"off")+'</span>'+(busy?'<span class="sr-only"> starting</span>':"")+'</button>';
 }
+// A theme with branchLetters sets each letter of the branch on its own span with a small baseline offset and ink variation,
+// seeded by the name so it never changes between polls.
+function branchLabel(name){
+  if(!(QA_THEME.current()||{}).branchLetters)return esc(name);
+  var seed=hashText(name);
+  return Array.prototype.map.call(String(name),function(ch,i){var bits=(seed>>>(i%27))^(i*2654435761>>>7);
+    return'<span class="ch" style="--j:'+((bits&3)-1.5)*0.4+'px;--o:'+(0.88+(bits>>>2&3)*0.04)+'">'+esc(ch)+'</span>'}).join("");
+}
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
   var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
-    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+
+    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+branchLabel(s.branch||"(no branch)")+'</span>'+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
