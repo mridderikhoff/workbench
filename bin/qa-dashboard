@@ -1548,13 +1548,13 @@ THEMES.terminal = (function () {
         // inset lamp at the left of each cap, built like the column LEDs, shows the status: green ready, amber starting,
         // rebuilding or busy, red failed or down, and dark when the app is off.
         T + ' .slot-card .apps{justify-self:start;max-width:100%;margin:14px 0 14px;padding:0;gap:14px 14px;background:none;box-shadow:none}',
-        T + ' .slot-card :is(.app-pill,.app-start){--led:var(--cap-led-off);--led-glow:transparent}',
-        T + ' .slot-card :is(.app-pill,button.act.app-start){--pill-pad:7px 15px 9px 27px;' +
-          '--led-lamp:radial-gradient(circle at 13px 50%,rgba(255,255,255,.85) 0 .6px,transparent 1.4px),radial-gradient(circle at 14px 50%,var(--led) 0 2.6px,#1a1410 3.2px 3.9px,var(--cap-shade) 4.4px,transparent 4.9px),radial-gradient(circle at 14px 50%,var(--led-glow),transparent 9px)}',
-        T + ' .slot-card .app-pill{--led:#3fe46f;--led-glow:rgba(51,255,102,.45);--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);transform:translateY(3px)}',
-        T + ' .slot-card .app-pill.tone-warn{--led:#ffb81a;--led-glow:rgba(255,176,0,.45)}',
-        T + ' .slot-card .app-pill:is(.off:not(.tone-warn),.failed){--led:#ff4a36;--led-glow:rgba(255,70,50,.5)}',
-        T + ' .slot-card .app-pill.failed{--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--led:#ffe2dc;--led-glow:rgba(255,255,255,.4)}',
+        T + ' .slot-card :is(.app-pill,.app-start){--led:var(--cap-led-off);--led-core:#5a3a30;--led-edge:#1f120e;--led-glow:transparent}',
+        T + ' .slot-card :is(.app-pill,button.act.app-start){--pill-pad:7px 15px 9px 29px;' +
+          '--led-lamp:radial-gradient(circle at 13px calc(50% - 1px),rgba(255,255,255,.75) 0 1px,transparent 1.8px),radial-gradient(circle at 14px 50%,var(--led-core) 0 1.2px,var(--led) 2.4px 3.6px,var(--led-edge) 4.2px,#1a1410 4.6px 5.2px,transparent 5.7px),radial-gradient(circle at 14px 50%,var(--led-glow),transparent 10px)}',
+        T + ' .slot-card .app-pill{--led:#3fe46f;--led-core:#eaffef;--led-edge:#178a3a;--led-glow:rgba(51,255,102,.5);--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);transform:translateY(3px)}',
+        T + ' .slot-card .app-pill.tone-warn{--led:#ffb81a;--led-core:#fff3d6;--led-edge:#a86b00;--led-glow:rgba(255,176,0,.5)}',
+        T + ' .slot-card .app-pill:is(.off:not(.tone-warn),.failed){--led:#ff4a36;--led-core:#ffe0d8;--led-edge:#a3160c;--led-glow:rgba(255,70,50,.55)}',
+        T + ' .slot-card .app-pill.failed{--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--led:#ffd8d0;--led-core:#ffffff;--led-edge:#8f1208;--led-glow:rgba(255,255,255,.45)}',
         T + ' .slot-card .app-pill.off::before{background:var(--led-lamp),var(--tag-off)}',
         T + ' .slot-card .app-pill::after,' + T + ' .slot-card .app-pill.off::after{inset:-1px -1px -2px;box-shadow:0 0 0 1.5px var(--collar),0 2px 2px -1px var(--contact)}',
         T + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3px)}',
@@ -1563,7 +1563,7 @@ THEMES.terminal = (function () {
         T + ' .slot-card a.app-pill:active::after{transform:scaleY(.8)}',
         // Off keys (start keys): a full-height putty cap with a lowercase name, the sleeping face and a dark lamp, no time.
         // Hover pre-presses it and wakes the face; a press clicks it in, and it stays in, lamp amber, reading starting.
-        T + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin:0 0 3px;padding:7px 15px 8px 27px;border:0;border-radius:5px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
+        T + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin:0 0 3px;padding:7px 15px 8px 29px;border:0;border-radius:5px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
           'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag-off) 70%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--cap-wall-color),0 4px 5px -1px var(--contact);' +
           '--legend-lit:var(--legend-cap-lit);--legend-glow:var(--legend-glow-lit,none);--legend-halo:var(--korry-lit);--legend-wash:none;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}',
@@ -1576,7 +1576,7 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--cap-wall-color),0 2px 3px -1px var(--contact)}',
         T + ' .slot-card button.act.app-start:not(.busy):focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--cap-wall-color)}',
         T + ' .slot-card button.act.app-start:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
-        T + ' .slot-card button.act.app-start.busy{--led:#ffb81a;--led-glow:rgba(255,176,0,.45);transform:translateY(3px);color:var(--tag-ink);' +
+        T + ' .slot-card button.act.app-start.busy{--led:#ffb81a;--led-core:#fff3d6;--led-edge:#a86b00;--led-glow:rgba(255,176,0,.5);transform:translateY(3px);color:var(--tag-ink);' +
           'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);box-shadow:inset 0 1px 2px var(--cap-shade),0 1px 0 var(--cap-wall-color),0 0 0 1.5px var(--collar)}',
         T + ' .slot-card button.act.app-start.busy:focus-visible{box-shadow:var(--ring),0 0 0 1.5px var(--collar)}',
         T + ' .slot-card .app-start.busy .start-off{display:inline-flex;font-size:14px;color:var(--tag-warn)}',
@@ -1586,6 +1586,15 @@ THEMES.terminal = (function () {
         T + ' .slot-card .slot-backend{align-self:center}',
         T + ' .slot-card .slot-backend .update-btn{min-height:36px;margin:0 0 3px}',
         T + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
+        // Saved sessions after a restart: a panel of the same moulded plastic as the sessions, above them in the case. Its
+        // progress output is the CRT's phosphor glass, like the backend log.
+        T + ' .recovery{position:relative;margin:4px 0 24px;padding:20px 22px 18px;border:0;border-radius:7px;--text:var(--panel-ink);--muted:var(--panel-muted);' +
+          'background:linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);outline:1px solid var(--groove);outline-offset:-6px;' +
+          'box-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 3px var(--contact)}',
+        T + ' .recovery-progress .recovery-output{padding:10px 13px;border-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--screen);color:var(--screen-ink);text-shadow:0 0 5px var(--screen-glow);' +
+          'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--mould-hi);margin:14px 6px 6px}',
+        T + ' .recovery-progress .recovery-elapsed{font:13px/1.3 var(--mono)}',
+        T + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:12px;padding-top:16px}',
         // The commit display: a small screen in a thick bezel. The hash is green, the rest white, and uncommitted changes amber.
         T + ' .slot-card .head-line{justify-self:start;max-width:calc(100% - 12px);margin:6px;padding:6px 11px 5px;border-radius:3px;font:13px/1.35 var(--mono);color:var(--mfd-ink);--warn:var(--screen-warn);' +
           'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);text-shadow:0 0 4px var(--mfd-glow);' +
