@@ -1139,9 +1139,9 @@ var THEMES = {
 };
 // Y2K: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the PSP, the iMac G3). Every panel is a
 // clear shell with a real circuit board inside: green solder mask for the sessions and the handheld, a black motherboard for the
-// cases. Text sits on frosted or pad-printed parts of the shell, never on the busy board. The insides mirror real state: a running
-// app is a chip beside its key, a stopped one an empty socket, an app that is not served a bare footprint, and status LEDs glow up
-// through the plastic. The character is on a Game Boy-style reflective LCD. The shell colour is its own Settings pick.
+// cases. Text sits on frosted or pad-printed parts of the shell, never on the busy board. Status LEDs glow through each app
+// key; the circuit boards stay in the background. The character is on a Game Boy-style reflective LCD.
+// The shell colour is its own Settings pick.
 THEMES.y2k = (function () {
   var C = 'html[data-theme="y2k"]';
   /* ---------- the boards: pre-rendered SVG tiles (no live filters) ---------- */
@@ -1313,23 +1313,6 @@ THEMES.y2k = (function () {
   }
   var GREEN = {mask: "#1b5437", mask2: "#21613f", trace: "#2b7748", traceHi: "#5fae6e", silk: "#eef0e6"};
   var BLACK = {mask: "#15171b", mask2: "#1b1e23", trace: "#272b32", traceHi: "#3e454f", silk: "#d9dce0"};
-  /* ---------- the parts that mirror state: a chip per running app, a socket per stopped one, a footprint per unserved one ---------- */
-  // Each sprite is 32x22: the part on the left and its trace running right to the key's edge at mid height.
-  function sprite(body) {
-    return ('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="44" viewBox="0 0 32 22">' + defs("s") +
-      '<rect width="32" height="22" rx="3" fill="' + GREEN.mask + '"/><rect width="32" height="22" rx="3" fill="url(#ssheen)"/>' +
-      '<path d="M19 11H32" stroke="' + GREEN.trace + '" stroke-width="2"/><path d="M19 11H32" stroke="' + GREEN.traceHi + '" stroke-width=".7" transform="translate(0 -.5)"/>' + body + '</svg>');
-  }
-  function chipSprite(part) { return sprite(rect(1, 2.5, 18, 17, 1, "none", ' stroke="' + GREEN.silk + '" stroke-opacity=".55" stroke-width=".5"') + ic("s", 2.5, 6, 15, 10, 2, 4, part, "")) }
-  // An empty DIP socket: a black frame round a bare hole with gold leaf contacts down both sides, and the pin-1 notch.
-  var SOCKET = sprite(rect(1, 2.5, 18, 17, 1, "none", ' stroke="' + GREEN.silk + '" stroke-opacity=".55" stroke-width=".5"') + shadow(2, 3.5, 16, 15, 1.2) +
-    rect(2, 3.5, 16, 15, 1.2, "#1a1b1f") + rect(2.3, 3.6, 15.4, .6, .3, "#fff", ' fill-opacity=".18"') + rect(6.2, 7, 7.6, 8, 0.6, GREEN.mask, ' stroke="#000" stroke-opacity=".7" stroke-width=".8"') +
-    [0, 1, 2, 3].map(function (i) { return rect(3.3, 5.4 + i * 3.4, 1.8, 1.5, 0.3, "url(#sgold)") + rect(14.9, 5.4 + i * 3.4, 1.8, 1.5, 0.3, "url(#sgold)") }).join("") +
-    '<path d="M8.7 3.5a1.3 1.3 0 0 0 2.6 0" fill="#0b0b0d"/>');
-  // A footprint with no part: bare gold pads in two rows, the silkscreen outline and the pin-1 dot.
-  var FOOTPRINT = sprite(rect(1, 2.5, 18, 17, 1, "none", ' stroke="' + GREEN.silk + '" stroke-opacity=".7" stroke-width=".6" stroke-dasharray="1.6 1"') +
-    [0, 1, 2, 3].map(function (i) { return rect(3.4 + i * 3.6, 4.2, 2, 3.4, 0.3, "url(#sgold)") + rect(3.4 + i * 3.6, 14.4, 2, 3.4, 0.3, "url(#sgold)") }).join("") +
-    '<circle cx="2.6" cy="19.2" r=".8" fill="' + GREEN.silk + '" fill-opacity=".8"/>');
   // The switch under each keycap: a clear housing with a cross stem, seen through the cap's window.
   var STEM = art("stem", '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 18 18">' +
     '<rect x="1" y="1" width="16" height="16" rx="2.6" fill="#fff" fill-opacity=".12" stroke="#fff" stroke-opacity=".55" stroke-width=".7"/><rect x="1.8" y="1.8" width="14.4" height="14.4" rx="2" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".5"/>' +
@@ -1430,7 +1413,7 @@ THEMES.y2k = (function () {
   }
 
   var CAP = DOME + ",linear-gradient(var(--cap-frost),var(--cap-frost))";
-  var CAP_UP = cap(0), CAP_HALF = cap(1.5), CAP_DOWN = cap(3), CAP_BOTTOM = cap(4);
+  var CAP_UP = cap(0), CAP_HALF = cap(1), CAP_DOWN = cap(3), CAP_BOTTOM = cap(4);
   // A latching key (a running app, a chosen option) stays down in its well, shaded inside by the well's rim.
   function latched(t) { var well = +(2 - t).toFixed(1) + "px"; return "inset 0 2px 4px var(--cap-shade),0 1px 2px var(--key-cast),0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 5.5px var(--key-collar)" }
   // The family, after the Switch backend pill: primary actions are wide pills, latching keys squarer rounded caps, and small
@@ -1444,10 +1427,10 @@ THEMES.y2k = (function () {
   }
 
   var UTIL = "radial-gradient(95% 80% at 50% 0,var(--cap-gloss) 0,transparent 70%),linear-gradient(var(--util-face),var(--util-face))";
-  // The backlight a key's LED throws through the cap on hover: a bloom from the switch and the cap's edges lighting up.
-  var WASH_KEY = "radial-gradient(70% 140% at 14px 50%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 35%,transparent) 45%,transparent 80%)";
-  var WASH_BUTTON = "radial-gradient(80% 120% at 50% 100%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 30%,transparent) 50%,transparent 85%)";
-  var LIT_EDGE = "inset 0 0 0 1.5px color-mix(in srgb,var(--key-led) 85%,#fff),inset 0 0 9px var(--key-glow)";
+    // Hover: the same cap a touch brighter along its top (the light catching the dome as it comes up under a finger), and on a
+  // key a soft glow from the LED in its window. No flood of colour, no outline: depth and legend stay as they are.
+  var LIFT = "radial-gradient(110% 80% at 50% 0,var(--cap-lift) 0,transparent 70%)";
+  var LIFT_KEY = "radial-gradient(16px 16px at 14px 50%,color-mix(in srgb,var(--led) 40%,transparent) 0,transparent 100%)," + LIFT;
   // An SMD LED glowing up through the plastic: a bright die, the coloured lens, and its spill on the board.
   var deskCss = null;
   function led(x) { return "radial-gradient(circle at " + x + ",var(--led-core) 0 1.3px,var(--led) 2.4px 3.4px,color-mix(in srgb,var(--led) 40%,transparent) 4.6px,var(--led-spill) 6px,transparent 12px)" }
@@ -1481,7 +1464,7 @@ THEMES.y2k = (function () {
         "--focus-outer": "#1c4fa6", "--item-card": "#eef1f5",
         "--legend-lit": "#0a1a2e", "--legend-lit-bad": "#b4121e",
         "--frost": "rgba(240,243,247,.9)", "--frost-hi": "rgba(255,255,255,.6)", "--frost-rim": "rgba(255,255,255,.75)", "--frost-drop": "rgba(10,20,30,.28)",
-        "--cap-frost": "color-mix(in srgb,var(--key-led) 16%,#f3f4f7)", "--cap-gloss": "rgba(255,255,255,.75)", "--cap-rim": "rgba(255,255,255,.8)", "--cap-shade": "rgba(30,50,80,.16)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 62%,#4c5262)", "--cap-lower": "rgba(40,50,90,.13)", "--key-cast": "rgba(40,18,90,.5)", "--key-well": "rgba(60,26,120,.34)", "--key-collar": "rgba(255,255,255,.55)", "--key-collar-edge": "rgba(60,26,120,.24)", "--cap-wall-lo": "#717f93",
+        "--cap-lift": "rgba(255,255,255,.5)", "--cap-frost": "color-mix(in srgb,var(--key-led) 16%,#f3f4f7)", "--cap-gloss": "rgba(255,255,255,.75)", "--cap-rim": "rgba(255,255,255,.8)", "--cap-shade": "rgba(30,50,80,.16)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 62%,#4c5262)", "--cap-lower": "rgba(40,50,90,.13)", "--key-cast": "rgba(40,18,90,.5)", "--key-well": "rgba(60,26,120,.34)", "--key-collar": "rgba(255,255,255,.55)", "--key-collar-edge": "rgba(60,26,120,.24)", "--cap-wall-lo": "#717f93",
         "--cap-clear": "rgba(230,240,255,.18)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#a6b188", "--screen-ink": "#1b2513", "--lcd-hi": "rgba(255,255,255,.22)", "--lcd-muted": "#2b3920", "--lcd-warn": "#5a3000", "--lcd-bad": "#7a0a10", "--lcd-shadow": "rgba(27,37,19,.2)", "--lcd-off": "#7b8466",
         "--surround": "#3a3e4a", "--surround-hi": "rgba(255,255,255,.14)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
@@ -1508,7 +1491,7 @@ THEMES.y2k = (function () {
         "--focus-outer": "#84b8ff", "--item-card": "#161b23",
         "--legend-lit": "#ffffff", "--legend-lit-bad": "#ff8080",
         "--frost": "rgba(20,25,33,.9)", "--frost-hi": "rgba(255,255,255,.06)", "--frost-rim": "rgba(200,220,255,.16)", "--frost-drop": "rgba(0,0,0,.5)",
-        "--cap-frost": "color-mix(in srgb,var(--key-led) 20%,#1b1d26)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 55%,#000)", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
+        "--cap-lift": "rgba(255,255,255,.13)", "--cap-frost": "color-mix(in srgb,var(--key-led) 20%,#1b1d26)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 55%,#000)", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
         "--cap-clear": "rgba(160,185,220,.08)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#8f9a74", "--screen-ink": "#141c0d", "--lcd-hi": "rgba(255,255,255,.12)", "--lcd-muted": "#222e17", "--lcd-warn": "#472500", "--lcd-bad": "#5e060b", "--lcd-shadow": "rgba(20,28,13,.22)", "--lcd-off": "#5d654c",
         "--surround": "#30333d", "--surround-hi": "rgba(255,255,255,.1)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
@@ -1554,9 +1537,8 @@ THEMES.y2k = (function () {
     // Built on first use, so the boards are drawn only when this theme is applied.
     get deskCss() { if (deskCss) return deskCss; setTimeout(bake, 0); return deskCss = [
       // Art shared by the rules below, scheme-independent, so it sits on body rather than in the token maps. Boards are
-      // pre-rendered SVG tiles; each session shows its own patch of the board.
-      C + ' body{--pcb-module:' + art("pcb-module", board("m", 480, 220, 7, GREEN, false, 1.1), 480, 220) + ';--pcb-case:' + art("pcb-case", board("k", 400, 300, 11, BLACK, true, 2.2), 400, 300) + ';--stem:' + STEM + ';--seam-case:' + seam(16) + ';--seam-module:' + seam(14) + ';' +
-        '--chip:' + art("chip", chipSprite("SN74LS"), 32, 22) + ';--chip-ri:' + art("chip-ri", chipSprite("RI-4201"), 32, 22) + ';--chip-strategy:' + art("chip-strategy", chipSprite("ST-6502"), 32, 22) + ';--chip-ds-demo:' + art("chip-ds-demo", chipSprite("DS-555"), 32, 22) + ';--socket:' + art("socket", SOCKET, 32, 22) + ';--footprint:' + art("footprint", FOOTPRINT, 32, 22) + '}',
+      // pre-rendered SVG tiles behind the frost; each session shows its own patch of the board.
+      C + ' body{--pcb-module:' + art("pcb-module", board("m", 480, 220, 7, GREEN, false, 1.1), 480, 220) + ';--pcb-case:' + art("pcb-case", board("k", 400, 300, 11, BLACK, true, 2.2), 400, 300) + ';--stem:' + STEM + ';--seam-case:' + seam(16) + ';--seam-module:' + seam(14) + '}',
       // Lighting: a softbox off to the top left over a pale bench, and a cool blue studio light in the dark.
       // The bench is a flat colour under one static light: a softbox pool and the falloff to the edges in a single layer. Only the
       // mat carries a texture, so nothing full-page and tiled repaints behind the cases.
@@ -1590,7 +1572,7 @@ THEMES.y2k = (function () {
       C + ' .slotno-v{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:3px 6px;border-radius:999px;background:var(--screen);color:var(--screen-ink);box-shadow:inset 0 1px 2px rgba(0,0,0,.45);font:700 13px/1 var(--mono);letter-spacing:0}',
       C + ' .hint{border-top:0;margin:16px 0 0;padding:9px 14px;border-radius:10px;background:' + FROST + ';box-shadow:' + FROST_EDGE + ';color:var(--muted)}',
       /* --- the handheld: the eye card --- */
-      C + ' .eye-card{--eye-tilt:-1.2deg;padding:20px 14px 16px}',
+      C + ' .eye-card{--eye-tilt:0deg;padding:20px 14px 16px}',
       C + ' .desk-obj .paper{--obj-radius:16px 16px 46px 16px;background:' + SPEC + ',' + FILL + ';box-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent)}',
       C + ' .desk-obj .shadow{inset:8px 4px 2px;border-radius:16px 16px 46px 16px;box-shadow:0 6px 5px -1px var(--contact),0 22px 40px -16px var(--lift)}',
       // The board shows through the shell round the screen.
@@ -1639,9 +1621,9 @@ THEMES.y2k = (function () {
       // The output log and the recovery output are the same LCD glass.
       C + ' :is(.output-log,.recovery-progress .recovery-output){background:linear-gradient(125deg,rgba(255,255,255,.16),transparent 40%),var(--screen);color:var(--screen-ink);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 3px var(--surround),0 1px 0 3px rgba(255,255,255,.2)}',
       C + ' .recovery-progress .recovery-output{margin:12px 4px 4px}',
-      /* --- keys: solid plastic caps standing proud of the shell, each in a moulded well; hover lights the LED under it --- */
+      /* --- keys: solid plastic caps standing proud of the shell, each in a moulded well; hover gently catches the light --- */
       C + ' ' + KEYS + '{border:0;border-radius:999px;color:var(--btn-ink);background:' + CAP + ';box-shadow:' + CAP_UP + ';transition:transform var(--dur-fast) var(--ease-out)}',
-      C + ' ' + KEYS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:' + CAP_HALF + '}',
+      C + ' ' + KEYS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1px);box-shadow:' + CAP_HALF + '}',
       C + ' ' + KEYS + ':active:not(:disabled),' + C + ' .backend .toggle[aria-expanded="true"]{transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
       C + ' ' + KEYS + ':active:not(:disabled){transform:translateY(4px);box-shadow:' + CAP_BOTTOM + '}',
       C + ' ' + KEYS + ':focus-visible,' + C + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),' + CAP_HALF + '}',
@@ -1651,13 +1633,16 @@ THEMES.y2k = (function () {
       C + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:' + latched(3) + '}',
       // Small utilities: slim muted capsules that stay low; expanded, a toggle stays pressed in.
       C + ' ' + UTILS + '{min-height:26px;border-radius:999px;color:var(--util-ink);background:' + UTIL + ';box-shadow:' + util(0) + '}',
-      C + ' ' + UTILS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(.75px);box-shadow:' + util(.75) + '}',
+      C + ' ' + UTILS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1px);box-shadow:' + util(1) + '}',
       C + ' ' + UTILS + ':active:not(:disabled),' + C + ' .backend .toggle[aria-expanded="true"]{transform:translateY(1.5px);box-shadow:' + util(1.5) + '}',
-      C + ' ' + UTILS + ':focus-visible{box-shadow:var(--ring),' + util(.75) + '}',
+      C + ' ' + UTILS + ':focus-visible{box-shadow:var(--ring),' + util(1) + '}',
       C + ' ' + UTILS + ':disabled{opacity:.6;transform:translateY(1.5px);box-shadow:' + util(1.5) + '}',
       C + ' .bfx{border-radius:inherit}',
-      C + '[data-button-hover="press"] .bfx{--legend-wash:' + WASH_BUTTON + '}',
-      C + '[data-button-hover="press"] .bfx-fill{box-shadow:' + LIT_EDGE + '}',
+      // Every hover layer is cut to its cap's own radius, so nothing inside it shows square corners.
+      C + ' :is(.bfx,.bfx-fill,.pill-fx,.press-text){border-radius:inherit}',
+      C + '[data-button-hover="press"] .bfx{--legend-wash:' + LIFT + ';--fx-ink:var(--btn-ink)}',
+      C + ' ' + UTILS + '>.bfx{--fx-ink:var(--util-ink)}',
+      C + '[data-button-hover="press"] .bfx-fill{box-shadow:none}',
       // Legends are pad-printed: one flat ink on the cap's face, crisp, with no shadow or glow even when the cap is lit.
       // Every legend is heavy and full-strength, the start time and state included, so a key reads at a glance in any shell colour.
       C + ' .slot-card .app-pill{font-weight:700}',
@@ -1763,10 +1748,9 @@ THEMES.y2k = (function () {
       C + ' .slotno{top:20px;right:30px}',
       /* --- app keys --- */
       // Each app is a latching key: a solid cap, squarer than the pills, with the switch and its LED seen through a clear window
-      // at the left and the legend printed on its face. A running app latches down in its well; one that is off stands raised. Beside the key, on the board, is the app's part: a chip when it runs (its trace to the key carries a
-      // faint pulse while it starts), an empty socket when it is stopped, and a bare footprint when the session does not serve it.
+      // at the left and the legend printed on its face. A running app latches down in its well; one that is off stands raised.
       C + ' .slot-card .apps{justify-self:start;max-width:100%;margin:18px 0 18px;padding:0;gap:22px 20px;background:none;box-shadow:none}',
-      C + ' .slot-card :is(.app-pill,.app-start){--led:#24302a;--led-core:#3a463f;--led-spill:transparent;margin-left:32px}',
+      C + ' .slot-card :is(.app-pill,.app-start){--led:#24302a;--led-core:#3a463f;--led-spill:transparent}',
       C + ' .slot-card .app-pill{--pill-pad:7px 14px 8px 32px;--tag-shape:inset(0 round 10px);font-family:var(--mono);font-size:14px;transform:translateY(3px)}',
       C + ' .slot-card .app-pill::before{clip-path:none;border-radius:10px;' +
         'background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,' +
@@ -1778,25 +1762,12 @@ THEMES.y2k = (function () {
       C + ' .slot-card .app-pill.off::before{background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,' +
         'linear-gradient(90deg,transparent 0 28px,var(--cap-rim) 28px 29px,transparent 29px),linear-gradient(90deg,var(--cap-clear) 0 28px,var(--cap-frost) 28px);box-shadow:' + CAP_UP + '}',
       C + ' .slot-card .app-pill.off{transform:none}',
-      // The part beside the key: drawn on the board, so it stays put while the key moves.
-      C + ' .slot-card :is(.app-pill,button.act.app-start)::after{content:"";position:absolute;inset:auto;left:-33px;top:50%;width:33px;height:22px;margin-top:-11px;z-index:-2;clip-path:none;pointer-events:none;border-radius:3px;' +
-        'background:linear-gradient(var(--shell),var(--shell)),var(--part) 0 0/32px 22px no-repeat;transition:transform var(--dur-fast) var(--ease-out)}',
-      C + ' .slot-card .app-pill[data-app="ri"],' + C + ' .slot-card .app-start[data-start-app="ri"]{--chip-own:var(--chip-ri)}',
-      C + ' .slot-card .app-pill[data-app="strategy"],' + C + ' .slot-card .app-start[data-start-app="strategy"]{--chip-own:var(--chip-strategy)}',
-      C + ' .slot-card .app-pill[data-app="ds-demo"],' + C + ' .slot-card .app-start[data-start-app="ds-demo"]{--chip-own:var(--chip-ds-demo)}',
-      C + ' .slot-card .app-pill{--part:var(--chip-own,var(--chip))}',
-      C + ' .slot-card .app-pill.off:not(.tone-warn){--part:var(--socket)}',
-      C + ' .slot-card .app-start{--part:var(--footprint)}',
-      C + ' .slot-card .app-start.busy{--part:var(--chip-own,var(--chip))}',
+      // Keys are not wired to the board: the board is only the background behind the frost.
+      C + ' .slot-card :is(.app-pill,button.act.app-start)::after{display:none}',
       // LEDs under the keys: green ready, amber starting or rebuilding, red failed or down, dark when off.
       C + ' .slot-card .app-pill.tone-ok{--led:#2fd06a;--led-core:#eaffef;--led-spill:rgba(60,230,120,.22)}',
       C + ' .slot-card :is(.app-pill.tone-warn,.app-start.busy){--led:#ffb020;--led-core:#fff4da;--led-spill:rgba(255,176,32,.3)}',
       C + ' .slot-card .app-pill:is(.tone-down,.tone-broken,.tone-attn,.failed){--led:#ff3a3a;--led-core:#fff0ee;--led-spill:rgba(255,58,58,.35)}',
-      // The pulse along a starting app's trace: a faint bright bead runs from the chip to the key now and then (still under reduced motion).
-      C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{content:"";position:absolute;left:-13px;top:50%;width:6px;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none;' +
-        'background:radial-gradient(closest-side,#fff8d8,rgba(255,200,80,.85) 50%,rgba(255,176,32,0));opacity:.85}',
-      '@media (prefers-reduced-motion:no-preference){' + C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{animation:y2k-pulse 2.3s linear infinite}}',
-      '@keyframes y2k-pulse{0%{transform:none;opacity:0}6%{opacity:.95}30%{transform:translateX(7px);opacity:0}100%{transform:translateX(7px);opacity:0}}',
       // A failed build is the loudest key: a red translucent cap (a red clear button) with white legends and its LED blazing, its edge lit.
       C + ' .slot-card .app-pill.failed{--tag-ink:#ffffff;--tag-muted:#ffffff;--tag-bad:#ffffff;--glyph-bad:#ffffff;--legend-lit-bad:#ffffff;--legend-wash-bad:none;--legend-glow-bad:none;--legend-halo-bad:rgba(255,200,200,.9);color:#ffffff;transform:translateY(3px)}',
       C + ' .slot-card .app-pill.failed::before{background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,linear-gradient(90deg,rgba(220,30,40,.55) 0 28px,#c8141f 28px);' +
@@ -1804,34 +1775,31 @@ THEMES.y2k = (function () {
       C + ' .slot-card .app-pill.failed .dot{filter:none}',
       // The press: a ready key sits seated; hover pushes it a little further and lights it, a click bottoms it out.
       C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3.5px)}',
-      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:translateY(-.5px)}',
       C + ' .slot-card a.app-pill:active{transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3)}',
-      C + ' .slot-card a.app-pill:active::after{transform:translateY(-1px)}',
-      C + ' .slot-card a.app-pill.off:active::after{transform:translateY(-4px)}',
-      C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible){transform:translateY(1.5px)}',
-      C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible)::after{transform:translateY(-1.5px)}',
-      // The backlight (the press layer): the LED under the switch floods the cap with the shell's light and lights its edges.
-      C + ' .slot-card .press-text{--legend-wash:' + WASH_KEY + ';border-radius:10px;box-shadow:' + LIT_EDGE + '}',
-      C + ' .slot-card a.app-pill.failed .press-text{background:radial-gradient(70% 140% at 14px 50%,rgba(255,200,200,.55),transparent 80%);box-shadow:inset 0 0 0 1.5px #ffd0d0,inset 0 0 10px rgba(255,170,170,.7)}',
-      // Start keys: a raised, solid latching key with a lowercase name and the sleeping mark, its LED dark, a bare footprint beside it.
-      // Hover pre-presses it and lights it; a press clicks it in, and it stays in, LED amber, reading starting, as a chip drops in.
+      C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible){transform:translateY(1px)}',
+      // The press layer adds a soft LED glow and top highlight without an outline or colour wash.
+      C + ' .slot-card .pill-fx{border-radius:10px}',
+      C + ' .slot-card .press-text{--legend-wash:' + LIFT_KEY + ';--fx-ink:var(--tag-ink);box-shadow:none}',
+      // The legend copy keeps each part's own ink, so hovering never changes a colour.
+      C + ' .slot-card .press-text :is(.port,.since){color:var(--muted)}',
+      C + ' .slot-card .press-text .dot{color:var(--glyph-ok)}',
+      C + ' .slot-card a.app-pill.failed .press-text{background:' + LIFT_KEY + ';box-shadow:none}',
+      // Start keys: a raised, solid latching key with a lowercase name and the sleeping mark, its LED dark.
+      // Hover pre-presses it; a press clicks it in, and it stays in, LED amber, reading starting.
       C + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin-bottom:0;padding:7px 15px 8px 32px;border:0;border-radius:10px;font:14px/1.2 var(--mono);color:var(--btn-ink);' +
         'background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,linear-gradient(90deg,transparent 0 28px,var(--cap-rim) 28px 29px,transparent 29px),linear-gradient(90deg,var(--cap-clear) 0 28px,var(--cap-frost) 28px);' +
-        'box-shadow:' + CAP_UP + ';--legend-wash:' + WASH_KEY + ';transition:transform var(--dur-fast) var(--ease-out)}',
+        'box-shadow:' + CAP_UP + ';--legend-wash:' + LIFT_KEY + ';transition:transform var(--dur-fast) var(--ease-out)}',
       C + ' .slot-card .app-start .app-name{font-weight:700;text-transform:lowercase;letter-spacing:.02em}',
       C + ' .slot-card .app-start .dot{width:18px;height:18px}',
       C + ' .slot-card .app-start .dot.sleep{color:var(--tag-off-ink)}',
       C + ' .slot-card .app-start .dot.wake,' + C + ' .slot-card .app-start .bfx-text .dot.sleep{display:none}',
       C + ' .slot-card .app-start .bfx-text .dot.wake{display:inline-flex}',
       C + ' .slot-card .app-start .start-off{display:none}',
-      C + ' .slot-card button.act.app-start .bfx-fill{border-radius:10px;background:' + WASH_KEY + '}',
-      C + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1.5px);box-shadow:' + CAP_HALF + '}',
-      C + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{transform:translateY(-1.5px)}',
+      C + ' .slot-card button.act.app-start .bfx-fill{background:' + LIFT_KEY + '}',
+      C + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1px);box-shadow:' + CAP_HALF + '}',
       C + ' .slot-card button.act.app-start:not(.busy):focus-visible{box-shadow:var(--ring),' + CAP_HALF + '}',
       C + ' .slot-card button.act.app-start:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:' + CAP_BOTTOM + '}',
-      C + ' .slot-card button.act.app-start:active:not(:disabled)::after{transform:translateY(-4px)}',
       C + ' .slot-card button.act.app-start.busy{transform:translateY(3px);color:var(--tag-ink);box-shadow:' + CAP_DOWN + '}',
-      C + ' .slot-card button.act.app-start.busy::after{transform:translateY(-3px)}',
       C + ' .slot-card button.act.app-start.busy:focus-visible{box-shadow:var(--ring),' + CAP_DOWN + '}',
       C + ' .slot-card .app-start.busy .start-off{display:inline-flex;font-size:14px;color:var(--tag-warn)}',
       C + ' .slot-card .app-start.busy .dot.busy{color:var(--tag-warn)}',
@@ -1853,10 +1821,7 @@ THEMES.y2k = (function () {
       C + ' .recovery-row{border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent)}',
       C + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:10px;padding-top:16px}',
       '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' .slots>.card{padding:20px 14px 18px 46px}}',
-      // On a phone the part beside each key shrinks, so the keys keep their width.
-      '@media (max-width:559px){' + C + ' .slot-card :is(.app-pill,.app-start){margin-left:24px}' + C + ' .slot-card .app-pill{max-width:calc(100% - 24px);flex-wrap:wrap;row-gap:1px}' +
-        C + ' .slot-card :is(.app-pill,button.act.app-start)::after{left:-25px;width:25px;height:17px;margin-top:-8.5px;background-size:100% 100%,25px 17px}' +
-        C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{left:-10px;width:5px}}',
+      '@media (max-width:559px){' + C + ' .slot-card .app-pill{max-width:100%;flex-wrap:wrap;row-gap:1px}}',
       '@media (max-width:559px){' + C + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
         C + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + C + ' .slot-card .head-line{white-space:normal}' + C + ' .slot-card>.muted.small:not(.head-line){margin:8px 0 0}' + C + ' .slot-card .head{padding-right:0}}',
       // Modules seat on load, about 50ms apart: each drops into the case with a small settle (only a new session seats).
