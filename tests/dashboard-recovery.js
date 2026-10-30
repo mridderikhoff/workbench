@@ -96,8 +96,8 @@ const test = (name, fn) => tests.push([name, fn]);
 
 test("shared component materials live in both theme maps, and keycap rules leave Stop alone", () => {
   const sections = {
-    horror: between("  horror: {", "THEMES.clear = (function () {"),
-    clear: between("THEMES.clear = (function () {", "THEMES.terminal = (function () {"),
+    horror: between("  horror: {", "THEMES.y2k = (function () {"),
+    y2k: between("THEMES.y2k = (function () {", "THEMES.terminal = (function () {"),
     terminal: between("THEMES.terminal = (function () {", "/* ===== end THEMES"),
   };
   const shared = {
@@ -105,9 +105,9 @@ test("shared component materials live in both theme maps, and keycap rules leave
       "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
       "screen-face", "screen-rim", "screen-ink", "screen-warn", "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert",
       "stop-face", "stop-hover", "stop-rim", "stop-wall", "stop-ink", "start-face", "start-rim", "start-wall", "start-ink"],
-    clear: ["screen-face", "screen-rim", "screen-warn", "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert",
+    y2k: ["screen-face", "screen-rim", "screen-warn", "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert",
       "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
-      "lamp-chase-duration", "lamp-chase-step", "start-face", "start-rim", "start-wall", "start-ink"],
+      "lamp-chase-duration", "lamp-chase-step", "start-face", "start-rim", "start-wall", "start-ink", "item-radius", "item-face", "item-shadow"],
     terminal: ["screen-face", "screen-rim", "details-floor", "details-edge", "details-lip", "details-ink", "details-warn", "details-bad",
       "gauge-face", "gauge-rim", "gauge-ink", "gauge-alert", "start-face", "start-rim", "start-wall", "start-ink"],
   };
@@ -123,7 +123,7 @@ test("shared component materials live in both theme maps, and keycap rules leave
       assert(darkMap.includes(key), theme + " dark is missing " + key);
     }
     // Root theme selector declarations lose to the BASE-merged :root dark selector.
-    const prefix = { horror: "D", clear: "C", terminal: "T" }[theme];
+    const prefix = { horror: "D", y2k: "C", terminal: "T" }[theme];
     const rootBlocks = section.match(new RegExp("\\b" + prefix + " \\+ '\\{[\\s\\S]*?\\}'", "g")) || [];
     for (const block of rootBlocks) {
       for (const token of shared[theme]) {
@@ -134,6 +134,14 @@ test("shared component materials live in both theme maps, and keycap rules leave
   for (const theme of ["horror", "terminal"]) {
     assert.doesNotMatch(sections[theme], /\.slot-card button\.icon(?!:not\(\.stop\))/, theme + " keycap styles must exclude Stop");
   }
+});
+
+test("stored Neon and Clear Plastic picks open Y2K, and Y2K draws no screws", () => {
+  const renamed = vm.runInNewContext("(" + SRC.match(/RENAMED = (\{[^}]*\})/)[1] + ")");
+  assert.deepStrictEqual(plain(renamed), { blood: "horror", neon: "y2k", clear: "y2k" });
+  const y2k = between("THEMES.y2k = (function () {", "THEMES.terminal = (function () {");
+  assert.doesNotMatch(y2k, /--screw|SCREW/, "Game Boys have no screws on the face");
+  assert.match(y2k, /\.module \.fastener\{display:none\}/, "the shared fasteners stay hidden");
 });
 
 test("start keys cover only the managed apps, and app pills follow their order with others after", () => {
@@ -163,7 +171,7 @@ test("the slot gauge capacity comes from the task slot range, without the QA tre
 });
 
 test("every theme renders the same backend tray, screens, slot gauge and unlabeled stop art", async () => {
-  for (const themeId of ["terminal", "clear", "horror"]) {
+  for (const themeId of ["terminal", "y2k", "horror"]) {
     const snap = snapshot([{ slot: 2, branch: "feature/a", apps: [{ app: "ri", httpReady: true }] }]);
     Object.assign(snap.backend, {
       branch: "feature/a", sha: "abc123", taskSlots: [2, 9], offset: 9,

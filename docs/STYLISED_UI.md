@@ -22,11 +22,10 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
    into the same dots. Props that don't share the language get cut (the floppy disk and the mug went).
 5. **Style first, then tune legibility.** Persona 5's menus were unreadable at first and were tuned
    until they weren't. Status text stays upright, plain and AA; decoration can tilt, bleed and drip.
-6. **A forced palette, with one meaning per colour.** Horror: blood red on bone and black. Clear
-   Plastic: the board's green and gold, the shell's colour for light, red for problems. Terminal: phosphor green and amber, red for problems. A
+6. **A forced palette, with one meaning per colour.** Horror: blood red on bone and black. Y2K: the board's green and gold, the shell's colour for light, red for problems. Terminal: phosphor green and amber, red for problems. A
    colour never means two things.
 7. **Each theme has a signature hover.** Horror: the blood seep (an uneven wet band in the bottom
-   third, one drop with a cooldown). Clear Plastic: the LED under a clear key lights up through the cap. Terminal keycaps: the key
+   third, one drop with a cooldown). Y2K: the LED under a key lights up through the cap. Terminal keycaps: the key
    presses down and its legend lights up as if backlit. Apply the signature everywhere it makes
    sense (buttons, options, toggles), but match the object: a keycap is pressed, not filled.
    Hover plays once, on arrival: a click or a poll that rebuilds the hovered element must not replay
@@ -54,7 +53,7 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 
 | Moment | Technique | Notes |
 |---|---|---|
-| Page load | Cards stagger in; CRT turn-on line (Terminal); LCD power-on fade and modules seating into the case (Clear Plastic) | Under 400ms total |
+| Page load | Cards stagger in; CRT turn-on line (Terminal); LCD power-on fade and modules seating into the case (Y2K) | Under 400ms total |
 | Hover | The theme's signature hover; a foil sheen on stamped titles | Readable mid-animation |
 | Confirm / cancel | Hit-stop then thump or stamp; spring back on cancel | Visual only |
 | Dialog opens | It arrives like an object: dealt like a card, slid out, or the CRT warms up | Same materials as the cards |

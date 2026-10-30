@@ -156,7 +156,7 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
 /* The problem marker down the left edge of a problem card (the backend card when unhealthy, a session with a failed build).
-   This only places it; each theme draws its own in deskCss (Horror: a blood strike with a drop; Clear Plastic: the shell's rim lit red;
+   This only places it; each theme draws its own in deskCss (Horror: a blood strike with a drop; Y2K: the shell's rim lit red;
    Terminal: an inverse-video block gutter). A theme without one shows none, and the card's rim still signals the problem. */
 .card-drip{position:absolute;left:0;top:0;width:6px;height:100%;pointer-events:none}
 .slot-card .card-drip{left:7px;top:18px;height:calc(100% - 36px)}
@@ -334,7 +334,7 @@ a.app-pill:hover,a.app-pill:focus-visible{transform:translateY(-2px) rotate(-.6d
 a.app-pill:active{transform:translateY(1px) scale(.97)}
 /* A failed build is loud: a thick rim in the problem ink, the tag knocked askew, and the failure text in heavy type beside its
    glyph (shape and words, not only colour). Themes add their own alarm on top (Horror: a scorched, torn tag with glowing eyes;
-   Terminal: inverse video with a blinking cursor; Clear Plastic: a red clear cap with its LED blazing). The session card gets a red rim too. */
+   Terminal: inverse video with a blinking cursor; Y2K: a red clear cap with its LED blazing). The session card gets a red rim too. */
 .app-pill.failed{--tag-rim:var(--tag-bad);transform:rotate(-1.4deg)}
 .app-pill.failed::after{inset:-2.5px -2.5px -4.5px}
 .app-pill.failed .build-failed{font-weight:800}
@@ -600,15 +600,15 @@ var QA_PERF=(function(){
 })();
 /* ===== THEMES =====================================================================
 Overseer has two layouts, Desk and Radio (Radio is behind QA_FEATURES.radioScene). A theme supplies its whole visual world.
-Themes: Terminal (the default when nothing is stored), Horror and Clear Plastic. A stored pick always wins; the old ids
-"blood" and "neon" map to "horror" and "clear". How to add a theme: add one entry to THEMES below. Its css merges over BASE, so it lists only what differs.
+Themes: Terminal (the default when nothing is stored), Horror and Y2K. A stored pick always wins; the old ids
+"blood" maps to "horror", and "neon" and "clear" map to "y2k". How to add a theme: add one entry to THEMES below. Its css merges over BASE, so it lists only what differs.
 On ?debug=1 a startup check logs any required key, icon or art a theme is missing, any icon it shares with another theme,
 and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in both schemes.
   name          label in the theme picker
   artPitch      shared halftone dot pitch in CSS px for the character and screened props (all themes use 4.5)
   css           {light:{...}, dark:{...}} custom properties merged over BASE (every engine key, with defaults). REQUIRED_KEYS
                 have no useful default. Each theme's deskCss may read extra keys of its own (Horror's --margin-ink, --foil-*, --patch-*,
-                --tooled, --seam-*, --wax-*, --screen-bad and --stop-blood, Clear Plastic's --shell-*, --frost* and --cap-*). --foil-hi, --foil-mid and --foil-lo are contrast-checked against --desk-card.
+                --tooled, --seam-*, --wax-*, --screen-bad and --stop-blood, Y2K's --shell-*, --frost* and --cap-*). --foil-hi, --foil-mid and --foil-lo are contrast-checked against --desk-card.
                 text and UI: --text, --muted, --inset, --border, --rule, --ok, --bad, --warn, --idle, --glyph-ok, --glyph-bad,
                   --accent (links), --hl (problem background), --banner, --banner-text, --shade, --dim (modal backdrop)
                 paired inks: every solid fill has its on-colour, named <fill>-ink (or <fill>-text): --ok-ink, --warn-ink,
@@ -1137,13 +1137,13 @@ var THEMES = {
     copy: {emptyTitle: "No sessions running"}
   }
 };
-// Clear Plastic: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the PSP, the iMac G3). Every panel is a
+// Y2K: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the PSP, the iMac G3). Every panel is a
 // clear shell with a real circuit board inside: green solder mask for the sessions and the handheld, a black motherboard for the
 // cases. Text sits on frosted or pad-printed parts of the shell, never on the busy board. The insides mirror real state: a running
 // app is a chip beside its key, a stopped one an empty socket, an app that is not served a bare footprint, and status LEDs glow up
 // through the plastic. The character is on a Game Boy-style reflective LCD. The shell colour is its own Settings pick.
-THEMES.clear = (function () {
-  var C = 'html[data-theme="clear"]';
+THEMES.y2k = (function () {
+  var C = 'html[data-theme="y2k"]';
   /* ---------- the boards: pre-rendered SVG tiles (no live filters) ---------- */
   function rng(seed) { return function () { seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
   function f(n) { return +n.toFixed(1) }
@@ -1278,12 +1278,45 @@ THEMES.clear = (function () {
   }
   // A compact data URI for the art: attribute quotes become single quotes, and only what a url() needs is escaped.
   function asset(svg) { return 'url("data:image/svg+xml,' + svg.replace(/"/g, "'").replace(/[\r\n%#<>{}]/g, encodeURIComponent) + '")' }
+  // Tiled and repeated art is drawn as SVG, then baked once into PNGs at the device's pixel ratio the first time the theme is
+  // applied: the browser rasterises a PNG far faster than a big or many-times-repeated SVG on every repaint. The SVG stays as
+  // the first-paint fallback. art() registers a piece by its custom property name and display size in CSS px.
+  var ART = {}, baked = false;
+  function art(name, svg, w, h) { ART[name] = [svg, w, h]; return asset(svg) }
+  function bake() {
+    if (baked || typeof document === "undefined" || typeof Image === "undefined") return;
+    baked = true;
+    var scale = Math.min(2, Math.max(1, Math.ceil(window.devicePixelRatio || 1))), vars = [];
+    Promise.all(Object.keys(ART).map(function (name) {
+      var piece = ART[name];
+      return new Promise(function (done) {
+        var image = new Image();
+        image.onload = function () {
+          try {
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.round(piece[1] * scale); canvas.height = Math.round(piece[2] * scale);
+            canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+            vars.push("--" + name + ':url("' + canvas.toDataURL("image/png") + '")');
+          } catch (e) {}
+          done();
+        };
+        image.onerror = done;
+        image.src = "data:image/svg+xml," + encodeURIComponent(piece[0]);
+      });
+    })).then(function () {
+      if (!vars.length) return;
+      var style = document.createElement("style");
+      style.id = "y2k-baked";
+      style.textContent = C + " body{" + vars.join(";") + "}";
+      document.head.appendChild(style);
+    });
+  }
   var GREEN = {mask: "#1b5437", mask2: "#21613f", trace: "#2b7748", traceHi: "#5fae6e", silk: "#eef0e6"};
   var BLACK = {mask: "#15171b", mask2: "#1b1e23", trace: "#272b32", traceHi: "#3e454f", silk: "#d9dce0"};
   /* ---------- the parts that mirror state: a chip per running app, a socket per stopped one, a footprint per unserved one ---------- */
   // Each sprite is 32x22: the part on the left and its trace running right to the key's edge at mid height.
   function sprite(body) {
-    return asset('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="44" viewBox="0 0 32 22">' + defs("s") +
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="44" viewBox="0 0 32 22">' + defs("s") +
       '<rect width="32" height="22" rx="3" fill="' + GREEN.mask + '"/><rect width="32" height="22" rx="3" fill="url(#ssheen)"/>' +
       '<path d="M19 11H32" stroke="' + GREEN.trace + '" stroke-width="2"/><path d="M19 11H32" stroke="' + GREEN.traceHi + '" stroke-width=".7" transform="translate(0 -.5)"/>' + body + '</svg>');
   }
@@ -1297,21 +1330,19 @@ THEMES.clear = (function () {
   var FOOTPRINT = sprite(rect(1, 2.5, 18, 17, 1, "none", ' stroke="' + GREEN.silk + '" stroke-opacity=".7" stroke-width=".6" stroke-dasharray="1.6 1"') +
     [0, 1, 2, 3].map(function (i) { return rect(3.4 + i * 3.6, 4.2, 2, 3.4, 0.3, "url(#sgold)") + rect(3.4 + i * 3.6, 14.4, 2, 3.4, 0.3, "url(#sgold)") }).join("") +
     '<circle cx="2.6" cy="19.2" r=".8" fill="' + GREEN.silk + '" fill-opacity=".8"/>');
-  // The switch under each clear keycap: a clear housing with a cross stem, seen through the cap's window.
-  var STEM = asset('<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 18 18">' +
+  // The switch under each keycap: a clear housing with a cross stem, seen through the cap's window.
+  var STEM = art("stem", '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 18 18">' +
     '<rect x="1" y="1" width="16" height="16" rx="2.6" fill="#fff" fill-opacity=".12" stroke="#fff" stroke-opacity=".55" stroke-width=".7"/><rect x="1.8" y="1.8" width="14.4" height="14.4" rx="2" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".5"/>' +
     '<path d="M7.6 4h2.8v3.6H14v2.8h-3.6V14H7.6v-3.6H4V7.6h3.6z" fill="#fff" fill-opacity=".72" stroke="#fff" stroke-width=".6"/><path d="M7.6 4h2.8v3.6H14v2.8h-3.6V14H7.6v-3.6H4V7.6h3.6z" fill="none" stroke="#000" stroke-opacity=".35" stroke-width=".4" transform="translate(.5 .6)"/><path d="M7.9 4.4h1.2v3.5" stroke="#fff" stroke-opacity=".9" stroke-width=".5" fill="none"/>' +
-    '<rect x="2.6" y="2.6" width="3" height="1.4" rx=".5" fill="#fff" fill-opacity=".35"/><rect x="12.4" y="14" width="3" height="1.4" rx=".5" fill="#000" fill-opacity=".25"/></svg>');
-  // A screw in a clear boss: a Phillips pan head, the boss ring catching the light, and the boss walls going down to the board.
-  var SCREW = asset('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 22 22"><defs><radialGradient id="h" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#b9bfc6"/><stop offset="1" stop-color="#5d646c"/></radialGradient></defs>' +
-    '<circle cx="11" cy="11.6" r="10" fill="#000" fill-opacity=".18"/><circle cx="11" cy="11" r="9.6" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/><circle cx="11" cy="11" r="7.8" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1.2"/>' +
-    '<circle cx="11.3" cy="11.8" r="5.4" fill="#000" fill-opacity=".35"/><circle cx="11" cy="11" r="5.2" fill="url(#h)"/><path d="M11 7.9v6.2M7.9 11h6.2" stroke="#3a3f45" stroke-width="1.5" stroke-linecap="round"/><path d="M11.4 8.2v2.4M8.2 11.4h2.4" stroke="#fff" stroke-opacity=".5" stroke-width=".5"/>' +
-    '<path d="M4.2 6.6A8 8 0 0 1 8.4 3.4" stroke="#fff" stroke-opacity=".85" stroke-width=".9" fill="none" stroke-linecap="round"/></svg>');
-  // The LCD flex: an amber polyimide ribbon with copper conductors, folding under the screen surround onto a board connector.
-  var FLEX = asset('<svg xmlns="http://www.w3.org/2000/svg" width="168" height="44" viewBox="0 0 84 22"><defs><linearGradient id="k" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b8650f"/><stop offset=".2" stop-color="#e09a3a"/><stop offset=".5" stop-color="#f3b55a"/><stop offset=".8" stop-color="#d98a2a"/><stop offset="1" stop-color="#a95a0c"/></linearGradient></defs>' +
-    '<rect x="18" y="12" width="48" height="10" rx="1" fill="#000" fill-opacity=".3"/><rect x="16" y="11" width="52" height="9" rx="1" fill="#e9e7e1"/><rect x="16" y="11" width="52" height="2" rx="1" fill="#fff"/><rect x="17" y="17.5" width="50" height="2.5" fill="#2a2b30"/>' +
-    '<path d="M22 0h40v13H22z" fill="url(#k)" fill-opacity=".92"/>' + Array.apply(null, Array(18)).map(function (x, i) { return '<path d="M' + (24 + i * 2.1).toFixed(1) + ' 0v13" stroke="#8a4a0a" stroke-opacity=".75" stroke-width=".7"/>' }).join("") +
-    '<path d="M22 0h40v2.4H22z" fill="#fff" fill-opacity=".25"/><path d="M22 11h40v2H22z" fill="#000" fill-opacity=".18"/></svg>');
+    '<rect x="2.6" y="2.6" width="3" height="1.4" rx=".5" fill="#fff" fill-opacity=".35"/><rect x="12.4" y="14" width="3" height="1.4" rx=".5" fill="#000" fill-opacity=".25"/></svg>', 18, 18);
+  // The part line where the front and back shell halves meet (a Game Boy has no screws on its face): a 1px groove 6px in from
+  // the edge, with a 1px light line under it where the lower lip catches the light. Drawn once as a 9-slice border image.
+  function seam(radius) {
+    var box = 48, at = 6.5, side = box - 2 * at, round = Math.max(1, radius - 6);
+    return asset('<svg xmlns="http://www.w3.org/2000/svg" width="' + box + '" height="' + box + '" fill="none" stroke-width="1">' +
+      '<rect x="' + at + '" y="' + (at + 1) + '" width="' + side + '" height="' + side + '" rx="' + round + '" stroke="#fff" stroke-opacity=".26"/>' +
+      '<rect x="' + at + '" y="' + at + '" width="' + side + '" height="' + side + '" rx="' + round + '" stroke="#000" stroke-opacity=".46"/></svg>');
+  }
   /* ---------- marks: pad-printed controller symbols, rounded stroke icons ---------- */
   function pad(parts, box) { return '<svg viewBox="0 0 ' + (box || 24) + ' ' + (box || 24) + '" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' + parts + '</svg>' }
   var MARK = {ok: '<circle cx="12" cy="12" r="7.4"/>', warn: '<path d="M12 4.6 20.2 18.6H3.8Z"/>', broken: '<path d="M5.8 5.8 18.2 18.2M18.2 5.8 5.8 18.2"/>', down: '<rect x="5.2" y="5.2" width="13.6" height="13.6" rx="1.8"/>',
@@ -1324,21 +1355,26 @@ THEMES.clear = (function () {
       "<rect x='15' y='11' width='38' height='34' rx='2' fill='" + (lcd || "#a6b188") + "'/><circle cx='11' cy='26' r='2.6' fill='" + led + "'/>" +
       "<g transform='translate(18 12) scale(1.33)' fill='none' stroke='" + ink + "' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'>" + mark.split('"').join("'").replace("fill='currentColor'", "fill='" + ink + "'") + "</g></svg>";
   }
-  // The stop control: a clear red dome button (like a Game Boy Color's A and B) in a round hole in the shell, with a printed stop
-  // square and the rubber dome and carbon pad visible through it. .lit (a glow) and .on (the lens lit) show on hover or focus.
-  var STOP = '<svg class="clear-stop" viewBox="0 0 44 44" aria-hidden="true" focusable="false"><defs>' +
-    '<radialGradient id="cs-dome" cx=".4" cy=".34" r=".72"><stop offset="0" stop-color="#ffb3a8" stop-opacity=".95"/><stop offset=".35" stop-color="#ff4a4a" stop-opacity=".88"/><stop offset=".8" stop-color="#c8121c" stop-opacity=".92"/><stop offset="1" stop-color="#7a0910"/></radialGradient>' +
-    '<radialGradient id="cs-lit" cx=".45" cy=".45" r=".65"><stop offset="0" stop-color="#fff2ec"/><stop offset=".35" stop-color="#ff7a6e"/><stop offset="1" stop-color="#d0141e" stop-opacity=".9"/></radialGradient>' +
-    '<radialGradient id="cs-glow"><stop offset=".5" stop-color="#ff4040" stop-opacity=".42"/><stop offset="1" stop-color="#ff4040" stop-opacity="0"/></radialGradient>' +
-    '<linearGradient id="cs-hole" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset=".55" stop-color="#000" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient>' +
-    '<radialGradient id="cs-soft"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>' +
-    '<circle class="lit" cx="22" cy="22" r="21.5" fill="url(#cs-glow)"/>' +
-    '<circle cx="22" cy="22.6" r="20.6" fill="none" stroke="#fff" stroke-opacity=".42" stroke-width="2"/><circle cx="22" cy="22.6" r="21.6" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".8"/>' +
-    '<circle cx="22" cy="22.6" r="18.6" fill="#000" fill-opacity=".34"/><circle cx="22" cy="22.6" r="18.6" fill="none" stroke="url(#cs-hole)" stroke-width="2.2"/>' +
-    '<circle class="cast" cx="23" cy="25.8" r="15.6" fill="#000" fill-opacity=".45"/><g class="lens"><circle cx="22" cy="23.6" r="14.4" fill="#7a0910"/><circle cx="22" cy="24.4" r="14.2" fill="#3e0306"/><circle cx="22" cy="20.4" r="14.4" fill="#6a3a3c"/><circle cx="22" cy="20.4" r="7.4" fill="#141416"/><circle cx="22" cy="20.4" r="7.4" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width=".6"/>' +
-    '<circle cx="22" cy="20.4" r="14.4" fill="url(#cs-dome)"/><circle class="on" cx="22" cy="20.4" r="14.4" fill="url(#cs-lit)"/>' +
-    '<rect x="17.4" y="15.8" width="9.2" height="9.2" rx="1.4" fill="#fff" fill-opacity=".92"/>' +
-    '<circle cx="22" cy="20.4" r="14.4" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".7"/><ellipse cx="17.4" cy="13.4" rx="6" ry="3.4" fill="url(#cs-soft)" transform="rotate(-24 17.4 13.4)"/><circle cx="15.6" cy="13" r="1.2" fill="#fff"/></g></svg>';
+  // The stop control: a saturated red domed cap like a Game Boy Advance's A and B, standing in a moulded recessed ring with a
+  // collar, its side wall below the dome and its shadow cast into the well. Nothing is printed on it; the name is on the button.
+  // .lit (a glow round it) and .on (the cap lit from inside) show on hover or focus; .lens travels down on press.
+  var STOP = '<svg class="y2k-stop" viewBox="0 0 44 44" aria-hidden="true" focusable="false"><defs>' +
+    '<radialGradient id="ys-dome" cx=".38" cy=".3" r=".78"><stop offset="0" stop-color="#ff8f80"/><stop offset=".32" stop-color="#f02a2a"/><stop offset=".78" stop-color="#c00d18"/><stop offset="1" stop-color="#8a0610"/></radialGradient>' +
+    '<radialGradient id="ys-lit" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#ffd2c8"/><stop offset=".4" stop-color="#ff4a3e"/><stop offset="1" stop-color="#d6101c"/></radialGradient>' +
+    '<radialGradient id="ys-glow"><stop offset=".55" stop-color="#ff3030" stop-opacity=".45"/><stop offset="1" stop-color="#ff3030" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="ys-well" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".6" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity=".1"/></linearGradient>' +
+    '<linearGradient id="ys-lip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient>' +
+    '<radialGradient id="ys-spec" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>' +
+    '<circle class="lit" cx="22" cy="22" r="21.8" fill="url(#ys-glow)"/>' +
+    // the collar ring moulded round the hole, and the recessed well inside it
+    '<circle cx="22" cy="22.4" r="20.4" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.6"/><circle cx="22" cy="22.4" r="21.4" fill="none" stroke="#000" stroke-opacity=".28" stroke-width=".8"/>' +
+    '<circle cx="22" cy="22.4" r="18.8" fill="url(#ys-well)"/><circle cx="22" cy="22.4" r="18.8" fill="none" stroke="url(#ys-lip)" stroke-width="1.8"/>' +
+    '<ellipse class="cast" cx="22.6" cy="26.4" rx="15.4" ry="14.2" fill="#000" fill-opacity=".5"/>' +
+    // the cap: its side wall, then the domed top with a soft specular highlight
+    '<g class="lens"><circle cx="22" cy="23.8" r="14.6" fill="#6e040b"/><circle cx="22" cy="23" r="14.6" fill="#9c0812"/>' +
+    '<circle cx="22" cy="20.6" r="14.6" fill="url(#ys-dome)"/><circle class="on" cx="22" cy="20.6" r="14.6" fill="url(#ys-lit)"/>' +
+    '<circle cx="22" cy="20.6" r="14.1" fill="none" stroke="#ffb0a6" stroke-opacity=".45" stroke-width=".7"/>' +
+    '<ellipse cx="17.2" cy="13.8" rx="6.4" ry="3.6" fill="url(#ys-spec)" transform="rotate(-28 17.2 13.8)"/><circle cx="15.4" cy="13.4" r="1.1" fill="#fff" fill-opacity=".9"/></g></svg>';
   /* ---------- shells: one set of plastic variables per colour, picked in Settings ---------- */
   function shell(name, light, dark) { return {name: name, light: light, dark: dark} }
   function plastic(tint, wall, rim, hi, deep, led, glow, edge) { return {"--shell": tint, "--shell-base": tint, "--shell-wall": wall, "--shell-rim": rim, "--shell-hi": hi, "--shell-deep": deep, "--key-led": led, "--key-glow": glow, "--shell-glow": edge} }
@@ -1359,32 +1395,53 @@ THEMES.clear = (function () {
   // The frosted shell over a board: the board sits in a layer behind it, already softened (the blur is baked into its tile, since a
   // live backdrop blur made scrolling stutter), under the shell's tinted fill, a soft glow off one corner and a light rim. TEXT adds
   // a heavier veil where text sits straight on the shell.
-  var FILL = "radial-gradient(146% 88% at 15% 100%,var(--shell-glow) 0,transparent 70%),linear-gradient(var(--shell),var(--shell)),linear-gradient(var(--veil),var(--veil))";
+  // FILL always ends a background list, so the veil is its colour layer rather than one more gradient.
+  var FILL = "radial-gradient(146% 88% at 15% 100%,var(--shell-glow) 0,transparent 70%),linear-gradient(var(--shell),var(--shell)),var(--veil)";
   var TEXT = "linear-gradient(var(--veil-text),var(--veil-text))";
   // The shell's walls: a bright outer edge, the wall seen through the face (denser tint), a refraction line just inside it, the
   // lower wall in shade, then the thickness of the shell below and its contact shadow on the desk.
   var WALLS = "inset 0 0 0 1px var(--shell-rim),inset 0 0 0 6px var(--shell-wall),inset 1px 1.5px 0 6px var(--shell-hi),inset -1px -2px 0 6px var(--shell-deep),inset 0 0 0 8px color-mix(in srgb,var(--shell-wall) 40%,transparent)";
+  // Each session is a module of the shell: half its tint, the same walls, and its thickness and shadow below.
+  var ITEM_FACE = "linear-gradient(color-mix(in srgb,var(--shell) 50%,transparent),color-mix(in srgb,var(--shell) 50%,transparent))";
+  var ITEM_SHADOW = WALLS + ",0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 7px 8px -3px var(--contact)";
+  // The frosted light pipe: a rod lit from inside, brighter along one edge, under a sandblasted skin.
+  var PIPE = "background:linear-gradient(90deg,rgba(255,255,255,.42),rgba(255,255,255,.08) 45%,rgba(0,0,0,.14))";
+  // The part line is a border image over a zero-width border, so the inset wall shadows keep their place.
+  var SEAM = "border:0 solid transparent;border-image-width:20px;border-image-repeat:stretch;border-image-slice:20;border-image-source:";
   var EDGE = "0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 6px 5px -1px var(--contact),0 22px 40px -16px var(--lift)";
   // A frosted pad: sandblasted plastic (a fine stipple) with a soft top light, on the frost colour.
-  var GRAIN = asset('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">' + (function () { var r = rng(5), s = ""; for (var i = 0; i < 160; i++) s += '<circle cx="' + f(r() * 48) + '" cy="' + f(r() * 48) + '" r="' + f(0.35 + r() * 0.5) + '" fill="' + (r() < 0.5 ? "#fff" : "#000") + '" fill-opacity="' + f(0.03 + r() * 0.05) + '"/>'; return s })() + '</svg>');
+  var GRAIN = art("grain", '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">' + (function () { var r = rng(5), s = ""; for (var i = 0; i < 160; i++) s += '<circle cx="' + f(r() * 48) + '" cy="' + f(r() * 48) + '" r="' + f(0.35 + r() * 0.5) + '" fill="' + (r() < 0.5 ? "#fff" : "#000") + '" fill-opacity="' + f(0.03 + r() * 0.05) + '"/>'; return s })() + '</svg>', 48, 48);
   var FROST = "var(--grain) 0 0/48px 48px,linear-gradient(180deg,var(--frost-hi),transparent 55%),var(--frost)";
   var FROST_EDGE = "inset 0 0 0 1px var(--frost-rim),inset 0 1px 0 var(--frost-rim),0 1px 2px var(--frost-drop)";
-  // Keycaps: clear plastic with a frosted legend pad; the wall below is clear too, so it catches a line of light.
+  // Keycaps: solid plastic caps with a printed legend; the switch shows through a clear window at one end.
   var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn,.recovery-actions button)";
   // Keycaps stand proud of the shell like a Game Boy Advance's buttons: a domed top (a curved highlight, a darker lower half), a
   // side wall of the cap colour and a cast shadow, in a moulded well ringed by a lighter collar. cap(t) is the shadow stack for a
   // cap pushed t px down from fully proud: the wall and the shadow shrink as it sinks, and the well and collar are offset by -t,
   // so they stay put in the shell while the key travels (the key itself moves by transform).
-  var DOME = "radial-gradient(95% 75% at 50% 0,var(--cap-gloss) 0,transparent 72%),linear-gradient(180deg,transparent 48%,var(--cap-lower) 100%)";
+  var DOME = "linear-gradient(180deg,var(--cap-rim) 0 1px,transparent 1px),radial-gradient(95% 75% at 50% 0,var(--cap-gloss) 0,transparent 72%),linear-gradient(180deg,transparent 48%,var(--cap-lower) 100%)";
+  // Four shadows at most, since every key repaints them: the wall, the cast shadow, the well and its collar.
   function cap(t) {
     var wall = Math.max(0, 4 - t), well = +(2 - t).toFixed(1) + "px";
-    return "inset 0 0 0 1px var(--cap-rim),inset 0 2px 1px -1px var(--cap-gloss),inset 0 -3px 4px var(--cap-shade),0 0 12px var(--cap-glow,transparent),0 1px 0 var(--cap-rim)," +
-      (wall ? "0 " + wall + "px 0 var(--cap-wall),0 " + (wall + 1) + "px 0 var(--cap-wall-lo)," : "0 .5px 0 var(--cap-wall-lo),") +
-      "0 " + (wall + 4) + "px " + (wall + 5) + "px -1px var(--key-cast)," +
-      "0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 6px var(--key-collar),0 " + well + " 0 7px var(--key-collar-edge)";
+    return "0 " + (wall || .5) + "px 0 var(--cap-wall),0 " + (wall + 3) + "px " + (wall + 4) + "px -1px var(--key-cast)," +
+      "0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 5.5px var(--key-collar)";
   }
-  var CAP = DOME + ",var(--grain) 0 0/48px 48px,linear-gradient(var(--cap-frost),var(--cap-frost))";
+
+  var CAP = DOME + ",linear-gradient(var(--cap-frost),var(--cap-frost))";
   var CAP_UP = cap(0), CAP_HALF = cap(1.5), CAP_DOWN = cap(3), CAP_BOTTOM = cap(4);
+  // A latching key (a running app, a chosen option) stays down in its well, shaded inside by the well's rim.
+  function latched(t) { var well = +(2 - t).toFixed(1) + "px"; return "inset 0 2px 4px var(--cap-shade),0 1px 2px var(--key-cast),0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 5.5px var(--key-collar)" }
+  // The family, after the Switch backend pill: primary actions are wide pills, latching keys squarer rounded caps, and small
+  // utilities slim capsules like START and SELECT, low in a shallow well.
+  var PILLS = ":is(.settings .done,.confirm-actions button,.backend .acts button.act,:is(.backend,.slot-backend) .update-btn,.recovery-actions button)";
+  var LATCHES = ":is(.slot-card button.icon:not(.stop),.settings .segmented label)";
+  var UTILS = ":is(#settings-open,.backend .toggle,.backend button.act.svc-restart)";
+  function util(t) {
+    var wall = Math.max(0, 1.5 - t), well = +(1 - t).toFixed(2) + "px";
+    return "0 " + (wall || .5) + "px 0 var(--util-wall),0 " + (wall + 2) + "px 3px -1px var(--key-cast),0 " + well + " 0 2.5px var(--key-well),0 " + well + " 0 4px var(--key-collar)";
+  }
+
+  var UTIL = "radial-gradient(95% 80% at 50% 0,var(--cap-gloss) 0,transparent 70%),linear-gradient(var(--util-face),var(--util-face))";
   // The backlight a key's LED throws through the cap on hover: a bloom from the switch and the cap's edges lighting up.
   var WASH_KEY = "radial-gradient(70% 140% at 16px 50%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 35%,transparent) 45%,transparent 80%)";
   var WASH_BUTTON = "radial-gradient(80% 120% at 50% 100%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 30%,transparent) 50%,transparent 85%)";
@@ -1393,14 +1450,17 @@ THEMES.clear = (function () {
   var deskCss = null;
   function led(x) { return "radial-gradient(circle at " + x + ",var(--led-core) 0 1.3px,var(--led) 2.4px 3.4px,color-mix(in srgb,var(--led) 40%,transparent) 4.6px,var(--led-spill) 6px,transparent 12px)" }
   return {
-    name: "Clear Plastic",
+    name: "Y2K",
     shells: shells,
     radio: {reveal: "char", vars: {"--radio-plate": "var(--desk-card)", "--radio-plate-ink": "var(--text)", "--radio-alert": "var(--bad)", "--radio-tag": "var(--print)", "--radio-tag-ink": "var(--print-ink)", "--radio-glyph-bad": "var(--glyph-bad)", "--radio-problem-tag-ink": "var(--print-ink)", "--radio-problem-tag-glyph": "var(--print-ink)"},
       css: C + '[data-scene="radio"] .radio{--radio-edge:var(--shell-rim);border:0;border-radius:16px;background:' + FROST + ';box-shadow:' + WALLS + ',' + EDGE + '}' +
         C + '[data-scene="radio"] .radio-tag{border-radius:999px;padding:3px 12px;box-shadow:none;letter-spacing:.06em;text-transform:uppercase}' + C + '[data-scene="radio"] .radio-obj .fit{display:none}'},
     artPitch: 4.5,
     css: {
-      light: {"--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#e2e7ed", "--text": "#13161c", "--muted": "#3e4452", "--border": "#b4bdc9", "--rule": "#b4bdc9", "--ok": "#0d6b3a", "--bad": "#b4121e", "--warn": "#7a4300",
+      light: {"--item-radius": "14px", "--item-face": ITEM_FACE, "--item-shadow": ITEM_SHADOW,
+        "--pipe-off": "rgba(255,255,255,.4)", "--pipe-rib": "rgba(34,20,70,.5)", "--pipe-ok": "#2fd06a", "--pipe-warn": "#ffb020", "--pipe-bad": "#ff3a3a", "--pipe-ok-glow": "rgba(40,210,100,.5)", "--pipe-warn-glow": "rgba(255,170,20,.6)", "--pipe-bad-glow": "rgba(255,50,50,.6)",
+        "--util-face": "color-mix(in srgb,var(--key-led) 20%,#dfe2e8)", "--util-wall": "#9aa1ae", "--util-ink": "#13161c",
+        "--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#e2e7ed", "--text": "#13161c", "--muted": "#3e4452", "--border": "#b4bdc9", "--rule": "#b4bdc9", "--ok": "#0d6b3a", "--bad": "#b4121e", "--warn": "#7a4300",
         "--idle": "#5d6472", "--glyph-ok": "#23744a", "--glyph-bad": "#b4121e", "--accent": "#1c4fa6", "--accent-ink": "#ffffff", "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff",
         "--hl": "#f8d8db", "--banner": "#b4121e", "--banner-text": "#ffffff", "--shade": "rgba(30,40,60,.1)", "--dim": "rgba(14,20,30,.5)",
         "--brush": "#d8ad4c", "--brush-deep": "#a57a24", "--drip": "#ff4040", "--seep": "#13161c", "--seep-ink": "#ffffff", "--danger": "#c8141f", "--danger-ink": "#ffffff",
@@ -1419,12 +1479,15 @@ THEMES.clear = (function () {
         "--focus-outer": "#1c4fa6", "--item-card": "#eef1f5",
         "--legend-lit": "#0a1a2e", "--legend-lit-bad": "#b4121e",
         "--frost": "rgba(240,243,247,.9)", "--frost-hi": "rgba(255,255,255,.6)", "--frost-rim": "rgba(255,255,255,.75)", "--frost-drop": "rgba(10,20,30,.28)",
-        "--cap-frost": "rgba(238,242,246,.9)", "--cap-gloss": "rgba(255,255,255,.75)", "--cap-rim": "rgba(255,255,255,.8)", "--cap-shade": "rgba(30,50,80,.16)", "--cap-wall": "#aab7c8", "--cap-lower": "rgba(40,50,90,.13)", "--key-cast": "rgba(40,18,90,.5)", "--key-well": "rgba(60,26,120,.34)", "--key-collar": "rgba(255,255,255,.55)", "--key-collar-edge": "rgba(60,26,120,.24)", "--cap-wall-lo": "#717f93",
+        "--cap-frost": "color-mix(in srgb,var(--key-led) 16%,#f3f4f7)", "--cap-gloss": "rgba(255,255,255,.75)", "--cap-rim": "rgba(255,255,255,.8)", "--cap-shade": "rgba(30,50,80,.16)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 62%,#4c5262)", "--cap-lower": "rgba(40,50,90,.13)", "--key-cast": "rgba(40,18,90,.5)", "--key-well": "rgba(60,26,120,.34)", "--key-collar": "rgba(255,255,255,.55)", "--key-collar-edge": "rgba(60,26,120,.24)", "--cap-wall-lo": "#717f93",
         "--cap-clear": "rgba(230,240,255,.18)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#a6b188", "--screen-ink": "#1b2513", "--lcd-hi": "rgba(255,255,255,.22)", "--lcd-muted": "#2b3920", "--lcd-warn": "#5a3000", "--lcd-bad": "#7a0a10", "--lcd-shadow": "rgba(27,37,19,.2)", "--lcd-off": "#7b8466",
         "--surround": "#3a3e4a", "--surround-hi": "rgba(255,255,255,.14)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
         "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#3c404a", "--veil": "rgba(255,255,255,.2)", "--veil-text": "rgba(247,245,252,.64)"},
-      dark: {"--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
+      dark: {"--item-radius": "14px", "--item-face": ITEM_FACE, "--item-shadow": ITEM_SHADOW,
+        "--pipe-off": "rgba(225,220,255,.16)", "--pipe-rib": "rgba(0,0,0,.62)", "--pipe-ok": "#3ee07a", "--pipe-warn": "#ffb020", "--pipe-bad": "#ff3a3a", "--pipe-ok-glow": "rgba(62,224,122,.5)", "--pipe-warn-glow": "rgba(255,176,32,.6)", "--pipe-bad-glow": "rgba(255,58,58,.65)",
+        "--util-face": "color-mix(in srgb,var(--key-led) 16%,#2a2d37)", "--util-wall": "#111319", "--util-ink": "#edf1f7",
+        "--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
         "--idle": "#8792a3", "--glyph-ok": "#7fcf9f", "--glyph-bad": "#ff5c5c", "--accent": "#84b8ff", "--accent-ink": "#0b1220", "--ok-ink": "#0b1220", "--warn-ink": "#1a1206", "--bad-ink": "#1a0606",
         "--hl": "#3a161a", "--banner": "#b3202a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(3,5,9,.72)",
         "--brush": "#d8ad4c", "--brush-deep": "#a57a24", "--drip": "#ff4040", "--seep": "#e9edf4", "--seep-ink": "#0b1220", "--danger": "#cc222c", "--danger-ink": "#ffffff",
@@ -1443,7 +1506,7 @@ THEMES.clear = (function () {
         "--focus-outer": "#84b8ff", "--item-card": "#161b23",
         "--legend-lit": "#ffffff", "--legend-lit-bad": "#ff8080",
         "--frost": "rgba(20,25,33,.9)", "--frost-hi": "rgba(255,255,255,.06)", "--frost-rim": "rgba(200,220,255,.16)", "--frost-drop": "rgba(0,0,0,.5)",
-        "--cap-frost": "rgba(26,32,41,.9)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "#2c3242", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
+        "--cap-frost": "color-mix(in srgb,var(--key-led) 24%,#20232d)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 55%,#000)", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
         "--cap-clear": "rgba(160,185,220,.08)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#8f9a74", "--screen-ink": "#141c0d", "--lcd-hi": "rgba(255,255,255,.12)", "--lcd-muted": "#222e17", "--lcd-warn": "#472500", "--lcd-bad": "#5e060b", "--lcd-shadow": "rgba(20,28,13,.22)", "--lcd-off": "#5d654c",
         "--surround": "#30333d", "--surround-hi": "rgba(255,255,255,.1)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
@@ -1487,28 +1550,29 @@ THEMES.clear = (function () {
     pillHover: "press",
     buttonHover: "press",
     // Built on first use, so the boards are drawn only when this theme is applied.
-    get deskCss() { return deskCss || (deskCss = [
-      // Art shared by the rules below. Boards are pre-rendered SVG tiles; each session shows its own patch of the board.
-      C + '{--pcb-module:' + asset(board("m", 480, 220, 7, GREEN, false, 1.1)) + ';--pcb-case:' + asset(board("k", 400, 300, 11, BLACK, true, 2.2)) + ';--stem:' + STEM + ';--screw:' + SCREW + ';--flex:' + FLEX + ';--grain:' + GRAIN + ';' +
-        '--chip:' + chipSprite("SN74LS") + ';--chip-ri:' + chipSprite("RI-4201") + ';--chip-strategy:' + chipSprite("ST-6502") + ';--chip-ds-demo:' + chipSprite("DS-555") + ';--socket:' + SOCKET + ';--footprint:' + FOOTPRINT + '}',
+    get deskCss() { if (deskCss) return deskCss; setTimeout(bake, 0); return deskCss = [
+      // Art shared by the rules below, scheme-independent, so it sits on body rather than in the token maps. Boards are
+      // pre-rendered SVG tiles; each session shows its own patch of the board.
+      C + ' body{--pcb-module:' + art("pcb-module", board("m", 480, 220, 7, GREEN, false, 1.1), 480, 220) + ';--pcb-case:' + art("pcb-case", board("k", 400, 300, 11, BLACK, true, 2.2), 400, 300) + ';--stem:' + STEM + ';--seam-case:' + seam(16) + ';--seam-module:' + seam(14) + ';--grain:' + GRAIN + ';' +
+        '--chip:' + art("chip", chipSprite("SN74LS"), 32, 22) + ';--chip-ri:' + art("chip-ri", chipSprite("RI-4201"), 32, 22) + ';--chip-strategy:' + art("chip-strategy", chipSprite("ST-6502"), 32, 22) + ';--chip-ds-demo:' + art("chip-ds-demo", chipSprite("DS-555"), 32, 22) + ';--socket:' + art("socket", SOCKET, 32, 22) + ';--footprint:' + art("footprint", FOOTPRINT, 32, 22) + '}',
       // Lighting: a softbox off to the top left over a pale bench, and a cool blue studio light in the dark.
       C + ' #desk .desk-light{background:radial-gradient(60vmax 46vmax at 14% 6%,var(--pool) 0,transparent 70%),radial-gradient(52vmax 40vmax at 92% 10%,var(--pool-2) 0,transparent 70%),radial-gradient(130vmax 95vmax at 50% 42%,transparent 38%,var(--desk-vignette) 100%)}',
       C + ' #desk .desk-flicker{display:none}',
-      // The anti-static mat: rounded rubber with a bound edge and an earthing snap in the corner.
+      // The anti-static mat: rounded rubber with a bound edge.
       C + ' .page::before{border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.25),0 14px 34px -12px rgba(0,0,0,.5)}',
-      C + ' .page::after{content:"";position:absolute;right:30px;bottom:60px;width:16px;height:16px;z-index:-2;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 38% 32%,#fff 0,#c5cad1 35%,#6f767f 80%);box-shadow:0 0 0 3px rgba(0,0,0,.18),0 2px 3px rgba(0,0,0,.4)}',
       /* --- shells --- */
       // Every case is a clear shell: transparent, so the mat shows through its rim, with the shell's tint and specular sweep, thick
       // walls with a refraction line, and a board mounted inside it, floating over the back shell and casting a soft shadow on it.
-      C + ' :is(main,.backend,.settings){--obj-radius:16px;isolation:isolate;background:none;box-shadow:' + EDGE + '}',
+      // Each case paints in its own layer, so a repaint inside it does not re-rasterise the board and shell behind it.
+      C + ' :is(main,.backend,.settings){--obj-radius:16px;isolation:isolate;contain:paint;background:none;box-shadow:' + EDGE + '}',
       C + ' .settings{box-shadow:' + EDGE + ',0 60px 90px -30px var(--lift)}',
       C + ' #desk .desk-fog{display:none}',
       C + ' .settings::backdrop{background:var(--dim)}',
-      // The board inside each case, and the clear screw bosses at its corners.
-      C + ' :is(main,.backend,.settings)::before{content:"";display:block;position:absolute;inset:9px;z-index:-1;pointer-events:none;transform:none;border-radius:9px;' +
+      // The board inside each case. The shell layer carries the part line where its halves meet; there are no screws on the face.
+      C + ' :is(main,.backend,.settings)::before{content:"";display:block;position:absolute;inset:9px;z-index:-1;pointer-events:none;transform:translateZ(0);border-radius:9px;' +
         'background:var(--pcb-case) 0 0/400px 300px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 4px 9px -1px rgba(0,0,0,.55),0 10px 22px -8px rgba(0,0,0,.45)}',
-      C + ' :is(main,.backend,.settings)::after{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;z-index:-1;pointer-events:none;transform:none;border-radius:16px;box-shadow:' + WALLS + '}',
-      C + ' main::after{background:var(--screw) 3px 3px/22px 22px no-repeat,var(--screw) calc(100% - 3px) 3px/22px 22px no-repeat,var(--screw) 3px calc(100% - 3px)/22px 22px no-repeat,var(--screw) calc(100% - 3px) calc(100% - 3px)/22px 22px no-repeat,' + SPEC + ',' + FILL + '}',
+      C + ' :is(main,.backend,.settings)::after{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;z-index:-1;pointer-events:none;transform:translateZ(0);border-radius:16px;box-shadow:' + WALLS + ';' + SEAM + 'var(--seam-case)}',
+      C + ' main::after{background:' + SPEC + ',' + FILL + '}',
       // Text sits straight on the Backend and Settings shells, so their frost is heavier, except along the Backend's contacts.
       C + ' .backend::after{background:' + SPEC + ',' + TEXT + ' 0 0/100% calc(100% - 22px) no-repeat,' + FILL + '}',
       C + ' .settings::after{background:' + SPEC + ',' + TEXT + ',' + FILL + '}',
@@ -1524,9 +1588,9 @@ THEMES.clear = (function () {
       C + ' .eye-card{--eye-tilt:-1.2deg;padding:20px 14px 16px}',
       C + ' .desk-obj .paper{--obj-radius:16px 16px 46px 16px;background:' + SPEC + ',' + FILL + ';box-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent)}',
       C + ' .desk-obj .shadow{inset:8px 4px 2px;border-radius:16px 16px 46px 16px;box-shadow:0 6px 5px -1px var(--contact),0 22px 40px -16px var(--lift)}',
-      // The board shows through the shell round the screen; the LCD flex runs off its top edge and under the surround.
+      // The board shows through the shell round the screen.
       C + ' .desk-obj .sheet{display:block;inset:9px;transform:none;border-radius:10px 10px 38px 10px;background:var(--pcb-module) -150px -10px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 4px 9px -1px rgba(0,0,0,.55),0 10px 22px -8px rgba(0,0,0,.4)}',
-      C + ' .desk-obj .mount{z-index:-1;top:6px;width:84px;height:22px;margin-left:-42px;transform:none;background:var(--flex) center/100% 100% no-repeat}',
+      C + ' .desk-obj .mount{display:none}',
       C + ' .desk-obj :is(.badge,.fold){display:none}',
       // The screen surround is pad-printed on the shell, with two printed lines across the top and the power LED at the left; the
       // grey-green reflective LCD sits in it. Fixed layers over the glass: the pixel grid, a reflection, and a power-on fade.
@@ -1549,11 +1613,11 @@ THEMES.clear = (function () {
       C + ' .fx-on{opacity:0;background:var(--screen)}',
       '@media (prefers-reduced-motion:no-preference){' + C + ':not([data-logo-mode="static"]) .fx-on{animation:lcd-on .7s steps(5,end) .05s both}}',
       '@keyframes lcd-on{0%{opacity:1}40%{opacity:1}100%{opacity:0}}',
-      // Below the screen: the freshness label is pad-printed on the shell, and Settings is a clear capsule key.
+      // Below the screen: the freshness label is pad-printed on the shell, and Settings is a slim capsule key.
       C + ' .masthead-tools{margin-top:14px;padding:0 4px;border-top:0;gap:12px}',
       C + ' #updated{margin-right:auto;padding:5px 11px;border-radius:999px;background:' + FROST + ';box-shadow:' + FROST_EDGE + ';font:600 13px/1.2 var(--mono);color:var(--muted)}',
-      C + ' #settings-open{width:44px;height:30px;border-radius:999px;color:var(--btn-ink)}',
-      C + ' #settings-open svg{width:20px;height:20px}',
+      C + ' #settings-open{width:42px;height:26px}',
+      C + ' #settings-open svg{width:18px;height:18px}',
       /* --- the backend: a clear cartridge with a printed label over a black board, gold contacts along its bottom --- */
       C + ' .backend{padding:22px 22px 34px}',
       C + ' .backend::before{inset:9px 9px 6px;background:repeating-linear-gradient(90deg,#e6c46c 0 4px,#b48a32 4px 5px,transparent 5px 8px) 12px calc(100% - 3px)/calc(100% - 24px) 12px no-repeat,var(--pcb-case) -40px -120px/400px 300px}',
@@ -1570,26 +1634,37 @@ THEMES.clear = (function () {
       // The output log and the recovery output are the same LCD glass.
       C + ' :is(.output-log,.recovery-progress .recovery-output){background:linear-gradient(125deg,rgba(255,255,255,.16),transparent 40%),var(--screen);color:var(--screen-ink);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 3px var(--surround),0 1px 0 3px rgba(255,255,255,.2)}',
       C + ' .recovery-progress .recovery-output{margin:12px 4px 4px}',
-      /* --- keys: every button is a clear keycap with a frosted legend; hover lights the LED under it --- */
-      C + ' ' + KEYS + '{border:0;border-radius:9px;color:var(--btn-ink);background:' + CAP + ';box-shadow:' + CAP_UP + ';transition:transform var(--dur-fast) var(--ease-out)}',
+      /* --- keys: solid plastic caps standing proud of the shell, each in a moulded well; hover lights the LED under it --- */
+      C + ' ' + KEYS + '{border:0;border-radius:999px;color:var(--btn-ink);background:' + CAP + ';box-shadow:' + CAP_UP + ';transition:transform var(--dur-fast) var(--ease-out)}',
       C + ' ' + KEYS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:' + CAP_HALF + '}',
-      C + ' ' + KEYS + ':active:not(:disabled),' + C + ' .backend .toggle[aria-expanded="true"],' + C + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
+      C + ' ' + KEYS + ':active:not(:disabled),' + C + ' .backend .toggle[aria-expanded="true"]{transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
       C + ' ' + KEYS + ':active:not(:disabled){transform:translateY(4px);box-shadow:' + CAP_BOTTOM + '}',
       C + ' ' + KEYS + ':focus-visible,' + C + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),' + CAP_HALF + '}',
       C + ' ' + KEYS + ':disabled{opacity:.6;transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
+      // Latching keys: squarer, so they read as a different part; a chosen option latches down.
+      C + ' ' + LATCHES + '{border-radius:10px}',
+      C + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:' + latched(3) + '}',
+      // Small utilities: slim muted capsules that stay low; expanded, a toggle stays pressed in.
+      C + ' ' + UTILS + '{min-height:26px;border-radius:999px;color:var(--util-ink);background:' + UTIL + ';box-shadow:' + util(0) + '}',
+      C + ' ' + UTILS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(.75px);box-shadow:' + util(.75) + '}',
+      C + ' ' + UTILS + ':active:not(:disabled),' + C + ' .backend .toggle[aria-expanded="true"]{transform:translateY(1.5px);box-shadow:' + util(1.5) + '}',
+      C + ' ' + UTILS + ':focus-visible{box-shadow:var(--ring),' + util(.75) + '}',
+      C + ' ' + UTILS + ':disabled{opacity:.6;transform:translateY(1.5px);box-shadow:' + util(1.5) + '}',
       C + ' .bfx{border-radius:inherit}',
       C + '[data-button-hover="press"] .bfx{--legend-wash:' + WASH_BUTTON + '}',
       C + '[data-button-hover="press"] .bfx-fill{box-shadow:' + LIT_EDGE + '}',
-      C + ' .bfx-text{text-shadow:0 0 6px var(--key-glow)}',
+      // Legends are pad-printed: one flat ink on the cap's face, crisp, with no shadow or glow even when the cap is lit.
+      C + ' :is(.bfx-text,.press-text){text-shadow:none}',
       C + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
       C + ' .confirm-actions .danger{--cap-frost:var(--danger);--cap-gloss:rgba(255,255,255,.4);--key-glow:rgba(255,120,120,.6);--key-led:#ffb3b3;color:var(--danger-ink)}',
       C + ' .confirm-actions .danger .bfx{--fx-ink:var(--danger-ink)}',
       C + ' :is(.backend,.slot-backend) .update-btn{min-height:34px;padding:4px 6px 4px 13px;font:700 14px/1 var(--serif);letter-spacing:.06em;text-transform:uppercase;color:var(--btn-ink)}',
       C + ' :is(.backend,.slot-backend) .update-btn .behind-badge{background:var(--badge-bg);color:var(--badge-ink);box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}',
-      C + ' .backend .toggle{min-height:30px;padding:5px 12px 4px 10px;font:700 14px/1 var(--serif);letter-spacing:.05em;text-transform:uppercase;color:var(--btn-ink)}',
-      C + ' .backend .output-toggle{min-height:28px;padding:4px 10px 3px 8px;font-size:14px}',
+      C + ' .backend .toggle{padding:5px 13px 4px 10px;font:700 14px/1 var(--serif);letter-spacing:.05em;text-transform:uppercase}',
+      C + ' .backend .output-toggle{padding:5px 12px 4px 9px}',
       C + ' .backend .toggle .chev{color:currentColor}',
-      C + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 12px 4px;font:700 14px/1.2 var(--serif);letter-spacing:.05em;text-transform:uppercase}',
+      C + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 14px 4px;font:700 14px/1.2 var(--serif);letter-spacing:.05em;text-transform:uppercase}',
+      C + ' .backend button.act.svc-restart{padding:4px 12px 3px}',
       C + ' .settings .segmented{gap:6px;padding:4px 4px 7px;border-radius:12px}',
       C + ' .settings .segmented label{min-width:0;padding:7px 4px;font:700 14px/1 var(--serif);letter-spacing:.02em;text-transform:none}',
       C + ' .settings .segmented label:has(input:checked) > .bfx .bfx-fill{opacity:1}',
@@ -1603,7 +1678,6 @@ THEMES.clear = (function () {
       /* --- sessions: each one a clear module with its own board --- */
       // The module is the shell (transparent, so the case's board shows through its rim). .module is its board, floating inside with
       // a shadow on the back shell; its ::before is the plastic over it. Each module shows a different patch of the board.
-      C + '{--item-radius:14px;--item-face:linear-gradient(color-mix(in srgb,var(--shell) 50%,transparent),color-mix(in srgb,var(--shell) 50%,transparent));--item-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 7px 8px -3px var(--contact)}',
       C + ' .slots{gap:18px}',
       C + ' .slots>.card{isolation:isolate;padding:22px 24px 20px 58px}',
       C + ' .slots>.card .module{display:block;position:absolute;inset:8px;z-index:-1;pointer-events:none;border-radius:8px;background:var(--pcb-module) var(--board-at,0 0)/480px 220px;' +
@@ -1611,28 +1685,37 @@ THEMES.clear = (function () {
       [[2, "-170px -60px"], [3, "-310px -120px"], [4, "-90px -150px"], [5, "-250px -20px"], [6, "-40px -100px"], [7, "-360px -170px"], [8, "-200px -90px"]].map(function (s) { return C + ' .slots>.card:nth-child(' + s[0] + ') .module{--board-at:' + s[1] + '}' }).join("\n"),
       C + ' .module::before{content:"";position:absolute;inset:0;border-radius:inherit;--shell:color-mix(in srgb,var(--shell-base) 78%,transparent);background:' + SPEC + ',' + FILL + ';box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--shell-rim) 35%,transparent)}',
       C + ' .module>i{position:absolute;display:block}',
-      // The status LED: an 0805 LED on the board whose light comes up through the plastic. Dark with no apps, a soft green when all
-      // is well, amber while something starts and red for a problem, from the session's worst app status.
-      C + ' .module .led{left:16px;top:22px;width:16px;height:10px;border-radius:2px;--led:#2a3a30;--led-core:#44524a;--led-spill:transparent;' +
-        'background:linear-gradient(90deg,#c9ced4 0 3px,transparent 3px 13px,#c9ced4 13px) 0 0/100% 100% no-repeat,radial-gradient(circle at 50% 50%,var(--led-core) 0 1.4px,var(--led) 3px,color-mix(in srgb,var(--led) 70%,#000) 5px),var(--led);' +
-        'box-shadow:0 0 0 .5px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.5),0 0 5px 1px var(--led-spill),0 0 18px 7px var(--led-spill),0 0 34px 12px color-mix(in srgb,var(--led-spill) 45%,transparent)}',
-      C + ' .module .led.tone-ok{--led:#2fd06a;--led-core:#eaffef;--led-spill:rgba(60,230,120,.35)}',
-      C + ' .module .led.tone-warn{--led:#ffb020;--led-core:#fff4da;--led-spill:rgba(255,176,32,.55)}',
-      C + ' .module .led.tone-bad{--led:#ff3a3a;--led-core:#fff0ee;--led-spill:rgba(255,58,58,.6)}',
-      // A flat flex cable runs down the board's left channel from a connector under the LED.
-      C + ' .module .lamps{display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:11px 0 9px;left:19px;top:44px;bottom:30px;width:10px;border-radius:1px;' +
-        'background:linear-gradient(var(--shell),var(--shell)),linear-gradient(180deg,#f2f2ee 0 5px,#2a2b30 5px 8px,transparent 8px calc(100% - 6px),#2a2b30 calc(100% - 6px)),repeating-linear-gradient(90deg,rgba(120,60,8,.8) 0 .7px,transparent .7px 2px),linear-gradient(90deg,#a85a0c,#e8a24a 45%,#c97a22 80%,#9a520a);' +
-        'box-shadow:0 0 0 .5px rgba(0,0,0,.4),2px 2px 3px rgba(0,0,0,.35)}',
-      // A row of 0603 LEDs along the cable mirrors the session: dark while all is well, steady amber for a warning, red for a
-      // problem, and an amber chase down the cable while something starts (steady amber under reduced motion).
-      C + ' .module .lamps>b{position:relative;display:block;width:5px;height:2.6px;border-radius:1px;background:#4a2a10;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}',
-      C + ' .module .lamps:is(.tone-warn,.busy)>b{background:#ffb020;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,176,32,.65)}',
-      C + ' .module .lamps.tone-bad>b{background:#ff4a3a;box-shadow:0 0 0 .4px rgba(0,0,0,.4),0 0 4px 1px rgba(255,60,50,.7)}',
-      C + ' .module .lamps>b::after{content:"";position:absolute;inset:-.5px;border-radius:inherit;background:#fff2c8;box-shadow:0 0 7px 2px rgba(255,190,60,.9);opacity:0}',
-      C + ' .module .lamps.busy:not(.tone-bad)>b{background:#5a3412;box-shadow:0 0 0 .4px rgba(0,0,0,.6)}',
-      // Screws in clear bosses at the module's corners.
-      C + ' .module .fastener{width:18px;height:18px;background:var(--screw) center/100% 100% no-repeat;transform:rotate(var(--turn,0deg))}',
-      C + ' .module .fastener.tl{left:-4px;top:-4px}', C + ' .module .fastener.tr{right:-4px;top:-4px}', C + ' .module .fastener.bl{left:-4px;bottom:-4px}', C + ' .module .fastener.br{right:-4px;bottom:-4px}',
+      // The status light pipe, after the GBA SP's power light pipe: a slim frosted bar moulded into the shell, split by dark ribs
+      // into a cap (the shared LED: green when all is well, amber while something starts, red for a problem) and three segments
+      // over the shared 30-lamp column, ten lamps to a segment. Unlit it is a milky tint; lit, one hue fills it and its glow
+      // bleeds into the frost round it. A warning or problem lights the whole column; while something starts, one lit segment
+      // steps down the bar (the first stays lit under reduced motion). Healthy is quiet: only the cap shows green.
+      C + ' .module :is(.led,.lamps){--pipe:var(--pipe-off);--pipe-glow:transparent;left:17px;width:9px;' +
+        'box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 0 1px var(--pipe-rib),0 0 7px 1px var(--pipe-glow),0 0 18px 5px color-mix(in srgb,var(--pipe-glow) 40%,transparent)}',
+      C + ' .module .led{top:18px;height:14px;border-radius:5px 5px 1.5px 1.5px;' + PIPE + ',radial-gradient(circle at 50% 42%,rgba(255,255,255,.55) 0 1px,transparent 4px),var(--pipe)}',
+      C + ' .module .led.tone-ok{--pipe:var(--pipe-ok);--pipe-glow:var(--pipe-ok-glow)}',
+      C + ' .module .led.tone-warn{--pipe:var(--pipe-warn);--pipe-glow:var(--pipe-warn-glow)}',
+      C + ' .module .led.tone-bad{--pipe:var(--pipe-bad);--pipe-glow:var(--pipe-bad-glow)}',
+      C + ' .module .lamps{display:flex;flex-direction:column;top:35px;bottom:22px;padding:0;border-radius:1.5px 1.5px 5px 5px;' + PIPE + ',var(--pipe)}',
+      C + ' .module .lamps::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;' +
+        'background:linear-gradient(var(--pipe-rib),var(--pipe-rib)) 0 calc(33.33% - 1px)/100% 2px no-repeat,linear-gradient(var(--pipe-rib),var(--pipe-rib)) 0 calc(66.67% + 1px)/100% 2px no-repeat}',
+      C + ' .module .lamps.tone-warn:not(.busy){--pipe:var(--pipe-warn);--pipe-glow:var(--pipe-warn-glow)}',
+      C + ' .module .lamps.tone-bad{--pipe:var(--pipe-bad);--pipe-glow:var(--pipe-bad-glow)}',
+      C + ' .module .lamps.busy:not(.tone-bad){--pipe:color-mix(in srgb,var(--pipe-warn) 28%,var(--pipe-off))}',
+      // The lamps are the bar's slices, unlit themselves; the first lamp of each ten carries its segment's light.
+      C + ' .slot-card .module .lamps.lamps>b{flex:1 1 0;width:auto;height:auto;border-radius:0;background:none;box-shadow:none}',
+      C + ' .slot-card .module .lamps.lamps>b::after{display:none}',
+      C + ' .slot-card .module .lamps.lamps>b:nth-child(10n+1)::after{display:block;inset:0 0 auto;height:1000%;border-radius:0;opacity:0;' + PIPE + ',var(--pipe-warn);box-shadow:0 0 8px 1px var(--pipe-warn-glow)}',
+      C + ' .slot-card .module .lamps.lamps>b:nth-child(1)::after{border-radius:1.5px 1.5px 0 0}',
+      C + ' .slot-card .module .lamps.lamps>b:nth-child(21)::after{border-radius:0 0 5px 5px}',
+      C + ' .slot-card .module .lamps.busy:not(.tone-bad)>b:nth-child(1)::after{opacity:1}',
+      '@media (prefers-reduced-motion:no-preference){' + C + ' .slot-card .module .lamps.busy:not(.tone-bad)>b::after{animation-name:y2k-pipe;animation-duration:var(--lamp-chase-duration);animation-delay:0s}' +
+        C + ' .slot-card .module .lamps.busy:not(.tone-bad)>b:nth-child(11)::after{animation-delay:calc(var(--lamp-chase-duration) * -2 / 3)}' +
+        C + ' .slot-card .module .lamps.busy:not(.tone-bad)>b:nth-child(21)::after{animation-delay:calc(var(--lamp-chase-duration) / -3)}}',
+      '@keyframes y2k-pipe{0%,33.2%{opacity:1}33.3%,100%{opacity:0}}',
+      // No screws on the face: the module's corner fasteners are not drawn, and its ::after is the shell's part line round the session.
+      C + ' .module .fastener{display:none}',
+      C + ' .module::after{content:"";position:absolute;inset:-8px;border-radius:14px;' + SEAM + 'var(--seam-module)}',
       // Layout on the module: the commit display and the worktree label share the bottom row.
       C + ' .slots>.slot-card{--focus-inner:var(--item-card)}',
       C + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read wt" "err err" "note note"}',
@@ -1656,10 +1739,10 @@ THEMES.clear = (function () {
       C + ' .slot-card .tools button.icon.stop>svg{display:block;width:46px;height:46px;overflow:visible}',
       C + ' .slot-card .tools button.icon.stop>.bfx{display:none}',
       C + ' .slot-card .tools button.icon.stop:is(:hover,:focus-visible,:active,.fx-settled,:disabled){background:none;box-shadow:none;transform:none}',
-      C + ' .clear-stop .lens{transform-box:view-box;transform-origin:22px 22px;transition:transform var(--dur-fast) var(--ease-out)}',
-      C + ' .clear-stop :is(.lit,.on){opacity:0;transition:opacity var(--dur-fast) var(--ease)}',
+      C + ' .y2k-stop .lens{transform-box:view-box;transform-origin:22px 22px;transition:transform var(--dur-fast) var(--ease-out)}',
+      C + ' .y2k-stop :is(.lit,.on){opacity:0;transition:opacity var(--dur-fast) var(--ease)}',
       C + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) :is(.lit,.on){opacity:1}',
-      C + ' .clear-stop .cast{transform-box:view-box;transform-origin:22px 24px;transition:transform var(--dur-fast) var(--ease-out),opacity var(--dur-fast) var(--ease-out)}',
+      C + ' .y2k-stop .cast{transform-box:view-box;transform-origin:22px 24px;transition:transform var(--dur-fast) var(--ease-out),opacity var(--dur-fast) var(--ease-out)}',
       C + ' .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible) .lens{transform:translateY(1px)}',
       C + ' .slot-card .tools button.icon.stop:active:not(:disabled) .lens{transform:translateY(3.2px) scale(.98);transition-duration:calc(var(--dur-fast) / 3)}',
       C + ' .slot-card .tools button.icon.stop:active:not(:disabled) .cast{transform:scale(.9);opacity:.5}',
@@ -1667,21 +1750,21 @@ THEMES.clear = (function () {
       C + ' .slot-card .tools button.icon.stop:disabled{opacity:.55}',
       C + ' .slotno{top:20px;right:30px}',
       /* --- app keys --- */
-      // Each app is a clear keycap on the board: the switch and its LED show through a clear window at the left, and the legend is
-      // printed on a frosted pad. Beside the key, on the board, is the app's part: a chip when it runs (its trace to the key carries a
+      // Each app is a latching key: a solid cap, squarer than the pills, with the switch and its LED seen through a clear window
+      // at the left and the legend printed on its face. A running app latches down in its well; one that is off stands raised. Beside the key, on the board, is the app's part: a chip when it runs (its trace to the key carries a
       // faint pulse while it starts), an empty socket when it is stopped, and a bare footprint when the session does not serve it.
       C + ' .slot-card .apps{justify-self:start;max-width:100%;margin:18px 0 18px;padding:0;gap:22px 20px;background:none;box-shadow:none}',
       C + ' .slot-card :is(.app-pill,.app-start){--led:#24302a;--led-core:#3a463f;--led-spill:transparent;margin-left:32px}',
-      C + ' .slot-card .app-pill{--pill-pad:7px 14px 8px 32px;--tag-shape:inset(0 round 9px);font-family:var(--mono);font-size:14px;transform:translateY(2px)}',
-      C + ' .slot-card .app-pill::before{clip-path:none;border-radius:9px;' +
+      C + ' .slot-card .app-pill{--pill-pad:7px 14px 8px 32px;--tag-shape:inset(0 round 10px);font-family:var(--mono);font-size:14px;transform:translateY(3px)}',
+      C + ' .slot-card .app-pill::before{clip-path:none;border-radius:10px;' +
         'background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,' +
-        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),var(--grain) 28px 0/48px 48px,linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);' +
-        'box-shadow:' + cap(2) + '}',
-      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::before{box-shadow:' + cap(3) + '}',
-      C + ' .slot-card a.app-pill:active::before{box-shadow:' + CAP_BOTTOM + '}',
+        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);' +
+        'box-shadow:' + latched(3) + '}',
+      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::before{box-shadow:' + latched(3.5) + '}',
+      C + ' .slot-card a.app-pill:active::before{box-shadow:' + latched(4) + '}',
       C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible)::before{box-shadow:' + CAP_HALF + '}',
       C + ' .slot-card .app-pill.off::before{background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,' +
-        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),var(--grain) 28px 0/48px 48px,linear-gradient(90deg,var(--cap-clear) 0 27px,var(--tag-off) 27px);box-shadow:' + CAP_UP + '}',
+        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);box-shadow:' + CAP_UP + '}',
       C + ' .slot-card .app-pill.off{transform:none}',
       // The part beside the key: drawn on the board, so it stays put while the key moves.
       C + ' .slot-card :is(.app-pill,button.act.app-start)::after{content:"";position:absolute;inset:auto;left:-33px;top:50%;width:33px;height:22px;margin-top:-11px;z-index:-2;clip-path:none;pointer-events:none;border-radius:3px;' +
@@ -1700,28 +1783,28 @@ THEMES.clear = (function () {
       // The pulse along a starting app's trace: a faint bright bead runs from the chip to the key now and then (still under reduced motion).
       C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{content:"";position:absolute;left:-13px;top:50%;width:6px;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none;' +
         'background:radial-gradient(closest-side,#fff8d8,rgba(255,200,80,.85) 50%,rgba(255,176,32,0));opacity:.85}',
-      '@media (prefers-reduced-motion:no-preference){' + C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{animation:clear-pulse 2.3s linear infinite}}',
-      '@keyframes clear-pulse{0%{transform:none;opacity:0}6%{opacity:.95}30%{transform:translateX(7px);opacity:0}100%{transform:translateX(7px);opacity:0}}',
+      '@media (prefers-reduced-motion:no-preference){' + C + ' .slot-card .app-pill.tone-warn .app-name::before,' + C + ' .slot-card .app-start.busy::before{animation:y2k-pulse 2.3s linear infinite}}',
+      '@keyframes y2k-pulse{0%{transform:none;opacity:0}6%{opacity:.95}30%{transform:translateX(7px);opacity:0}100%{transform:translateX(7px);opacity:0}}',
       // A failed build is the loudest key: a red translucent cap (a red clear button) with white legends and its LED blazing, its edge lit.
-      C + ' .slot-card .app-pill.failed{--tag-ink:#ffffff;--tag-muted:#ffffff;--tag-bad:#ffffff;--glyph-bad:#ffffff;--legend-lit-bad:#ffffff;--legend-wash-bad:none;--legend-glow-bad:0 0 6px rgba(255,190,190,.9);--legend-halo-bad:rgba(255,200,200,.9);color:#ffffff;transform:translateY(2px)}',
+      C + ' .slot-card .app-pill.failed{--tag-ink:#ffffff;--tag-muted:#ffffff;--tag-bad:#ffffff;--glyph-bad:#ffffff;--legend-lit-bad:#ffffff;--legend-wash-bad:none;--legend-glow-bad:none;--legend-halo-bad:rgba(255,200,200,.9);color:#ffffff;transform:translateY(3px)}',
       C + ' .slot-card .app-pill.failed::before{background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,linear-gradient(90deg,rgba(220,30,40,.55) 0 27px,#c8141f 27px);' +
-        '--cap-rim:#ff9a9a;--cap-wall:#8f0c15;--cap-wall-lo:#4a0308;--cap-glow:rgba(255,40,40,.55);--cap-gloss:rgba(255,255,255,.45);box-shadow:' + cap(2) + '}',
+        '--cap-rim:#ff9a9a;--cap-wall:#8f0c15;--cap-wall-lo:#4a0308;--cap-glow:rgba(255,40,40,.55);--cap-gloss:rgba(255,255,255,.45);box-shadow:' + latched(3) + '}',
       C + ' .slot-card .app-pill.failed .dot{filter:none}',
       // The press: a ready key sits seated; hover pushes it a little further and lights it, a click bottoms it out.
-      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3px)}',
-      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:translateY(-1px)}',
+      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3.5px)}',
+      C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:translateY(-.5px)}',
       C + ' .slot-card a.app-pill:active{transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3)}',
-      C + ' .slot-card a.app-pill:active::after{transform:translateY(-2px)}',
+      C + ' .slot-card a.app-pill:active::after{transform:translateY(-1px)}',
       C + ' .slot-card a.app-pill.off:active::after{transform:translateY(-4px)}',
       C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible){transform:translateY(1.5px)}',
       C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible)::after{transform:translateY(-1.5px)}',
       // The backlight (the press layer): the LED under the switch floods the cap with the shell's light and lights its edges.
-      C + ' .slot-card .press-text{--legend-wash:' + WASH_KEY + ';border-radius:9px;box-shadow:' + LIT_EDGE + ';text-shadow:0 0 7px var(--key-glow)}',
+      C + ' .slot-card .press-text{--legend-wash:' + WASH_KEY + ';border-radius:10px;box-shadow:' + LIT_EDGE + '}',
       C + ' .slot-card a.app-pill.failed .press-text{background:radial-gradient(70% 140% at 16px 50%,rgba(255,200,200,.55),transparent 80%);box-shadow:inset 0 0 0 1.5px #ffd0d0,inset 0 0 10px rgba(255,170,170,.7)}',
-      // Start keys: a full-height clear cap with a lowercase name and the sleeping mark, its LED dark, a bare footprint beside it.
+      // Start keys: a raised, solid latching key with a lowercase name and the sleeping mark, its LED dark, a bare footprint beside it.
       // Hover pre-presses it and lights it; a press clicks it in, and it stays in, LED amber, reading starting, as a chip drops in.
-      C + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin-bottom:0;padding:7px 15px 8px 32px;border:0;border-radius:9px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
-        'background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),var(--grain) 28px 0/48px 48px,linear-gradient(90deg,var(--cap-clear) 0 27px,var(--tag-off) 27px);' +
+      C + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin-bottom:0;padding:7px 15px 8px 32px;border:0;border-radius:10px;font:14px/1.2 var(--mono);color:var(--btn-ink);' +
+        'background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);' +
         'box-shadow:' + CAP_UP + ';--legend-wash:' + WASH_KEY + ';transition:transform var(--dur-fast) var(--ease-out)}',
       C + ' .slot-card .app-start .app-name{font-weight:500;text-transform:lowercase;letter-spacing:.02em}',
       C + ' .slot-card .app-start .dot{width:18px;height:18px}',
@@ -1729,7 +1812,7 @@ THEMES.clear = (function () {
       C + ' .slot-card .app-start .dot.wake,' + C + ' .slot-card .app-start .bfx-text .dot.sleep{display:none}',
       C + ' .slot-card .app-start .bfx-text .dot.wake{display:inline-flex}',
       C + ' .slot-card .app-start .start-off{display:none}',
-      C + ' .slot-card button.act.app-start .bfx-fill{border-radius:9px;background:' + WASH_KEY + '}',
+      C + ' .slot-card button.act.app-start .bfx-fill{border-radius:10px;background:' + WASH_KEY + '}',
       C + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1.5px);box-shadow:' + CAP_HALF + '}',
       C + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{transform:translateY(-1.5px)}',
       C + ' .slot-card button.act.app-start:not(.busy):focus-visible{box-shadow:var(--ring),' + CAP_HALF + '}',
@@ -1741,7 +1824,7 @@ THEMES.clear = (function () {
       C + ' .slot-card .app-start.busy .start-off{display:inline-flex;font-size:14px;color:var(--tag-warn)}',
       C + ' .slot-card .app-start.busy .dot.busy{color:var(--tag-warn)}',
       C + ' .slot-card button.act.app-start:disabled:not(.busy){opacity:.6}',
-      // The backend switch is a clear capsule key; it stays down while the backend already runs this branch.
+      // The backend switch is the primary pill; it stays down while the backend already runs this branch.
       C + ' .slot-card .slot-backend{align-self:center}',
       C + ' .slot-card .slot-backend .update-btn{min-height:36px;border-radius:999px;padding:4px 14px}',
       C + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:' + CAP_DOWN + '}',
@@ -1754,7 +1837,7 @@ THEMES.clear = (function () {
       // Saved sessions after a restart: a module of the same clear plastic over the board, its text on one frosted label.
       C + ' .recovery{position:relative;isolation:isolate;margin:0 0 22px;padding:22px 24px 18px;border:0;border-radius:14px;background:none;box-shadow:0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 7px 8px -3px var(--contact)}',
       C + ' .recovery::before{content:"";position:absolute;inset:8px;z-index:-1;border-radius:8px;background:var(--pcb-module) -220px -40px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55)}',
-      C + ' .recovery::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background:' + SPEC + ',' + TEXT + ',' + FILL + ';box-shadow:' + WALLS + '}',
+      C + ' .recovery::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background:' + SPEC + ',' + TEXT + ',' + FILL + ';box-shadow:' + WALLS + ';' + SEAM + 'var(--seam-module)}',
       C + ' .recovery-row{border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent)}',
       C + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:10px;padding-top:16px}',
       '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' .slots>.card{padding:20px 14px 18px 46px}}',
@@ -1765,10 +1848,10 @@ THEMES.clear = (function () {
       '@media (max-width:559px){' + C + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
         C + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + C + ' .slot-card .head-line{white-space:normal}' + C + ' .slot-card>.muted.small:not(.head-line){margin:8px 0 0}' + C + ' .slot-card .head{padding-right:0}}',
       // Modules seat on load, about 50ms apart: each drops into the case with a small settle (only a new session seats).
-      '@media (prefers-reduced-motion:no-preference){' + C + ' .slots>.slot-card{animation:clear-seat .36s var(--ease-out) backwards}' +
+      '@media (prefers-reduced-motion:no-preference){' + C + ' .slots>.slot-card{animation:y2k-seat .36s var(--ease-out) backwards}' +
         [2, 3, 4, 5, 6, 7, 8].map(function (n) { return C + ' .slots>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}' }).join("") + '}',
-      '@keyframes clear-seat{0%{opacity:0;transform:translateY(-10px)}60%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}'
-    ].join("\n")) },
+      '@keyframes y2k-seat{0%{opacity:0;transform:translateY(-10px)}60%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}'
+    ].join("\n") },
     // A pale bench under a grey-blue anti-static mat; the cases are clear, so the stock tile is only a fallback for plain fills.
     desk: {seed: 31, surface: "plastic", blotter: "mat", stock: "acrylic",
       dark: {surface: {ramp: ["#06080c", "#0a0d13", "#0e121a", "#131823"]}, blotter: {ramp: ["#18222d", "#1c2733", "#212d3a"], grid: "rgba(255,255,255,.025)", grid2: "rgba(255,255,255,.05)"},
@@ -2559,7 +2642,7 @@ CHARACTERS.blip = (function () {
 /* ===== end CHARACTERS ============================================================= */
 var QA_THEME = (function () {
   var active = null, query = new URLSearchParams(location.search), systemDark = window.matchMedia("(prefers-color-scheme: dark)");
-  var DEFAULT = "terminal", RENAMED = {blood: "horror", neon: "clear"};
+  var DEFAULT = "terminal", RENAMED = {blood: "horror", neon: "y2k", clear: "y2k"};
   // Appearance: "system" follows the OS live, "dark" and "light" force the scheme. Read here so it is applied before first paint.
   function pickScheme() {
     var value = query.get("scheme");
@@ -2579,7 +2662,7 @@ var QA_THEME = (function () {
     return offered.indexOf(id)>=0?id:"desk";
   }
   document.documentElement.setAttribute("data-scene",pickScene());
-  // A stored pick always wins over the default; renamed themes carry over (Blood is now Horror, Neon is now Clear Plastic).
+  // A stored pick always wins over the default; renamed themes carry over (Blood is now Horror, Neon and Clear Plastic are now Y2K).
   function pick() {
     var name = query.get("theme");
     name = RENAMED[name] || name;
@@ -3571,7 +3654,7 @@ var radioView={key:null,index:0},radioRenderedKey=null,radioKeys=[],radioPainted
 function radioStatic(){
   var key=QA_THEME.id()+":"+(QA_THEME.isDark()?"dark":"light");if(radioTiles[key])return radioTiles[key];
   var canvas=document.createElement("canvas");canvas.width=canvas.height=96;var ctx=canvas.getContext("2d"),image=ctx.createImageData(96,96),seed=hashText(key),horror=QA_THEME.id()==="horror";
-  for(var i=0;i<image.data.length;i+=4){seed=Math.imul(seed^seed>>>13,1274126177)>>>0;var on=seed%9===0;image.data[i]=horror?179:QA_THEME.id()==="clear"?40:51;image.data[i+1]=horror?138:QA_THEME.id()==="clear"?48:255;image.data[i+2]=horror?82:QA_THEME.id()==="clear"?60:102;image.data[i+3]=on?40+seed%70:0}
+  for(var i=0;i<image.data.length;i+=4){seed=Math.imul(seed^seed>>>13,1274126177)>>>0;var on=seed%9===0;image.data[i]=horror?179:QA_THEME.id()==="y2k"?40:51;image.data[i+1]=horror?138:QA_THEME.id()==="y2k"?48:255;image.data[i+2]=horror?82:QA_THEME.id()==="y2k"?60:102;image.data[i+3]=on?40+seed%70:0}
   ctx.putImageData(image,0,0);return radioTiles[key]='url("'+canvas.toDataURL()+'")';
 }
 function renderRadio(){

@@ -26,7 +26,7 @@ place in each scene and protect its presence as the session list grows.
 - The character need not be an eye. An avatar, creature, or machine can take its place. Preserve
   the pleasure of deliberate marks, expressive animation, and responsive interaction rather than
   copying the eye's anatomy into every theme. A theme may also re-ink the same character instead of
-  drawing a new one, as Clear Plastic does on its LCD. Terminal draws its own: a putty CRT whose ASCII face looks a cell
+  drawing a new one, as Y2K does on its LCD. Terminal draws its own: a putty CRT whose ASCII face looks a cell
   towards the cursor and whose expression is the backend status.
 - Character animation can remain alive when services are healthy. Keep status signals clear and
   distinct from the character's personality; neither should depend only on colour or motion.
@@ -42,10 +42,10 @@ The Sessions card is a holder: its heading sits on the face, and each session is
 on that same face below it (no shared well or inset tray), with an edge, a gutter and a shadow (Terminal: an avionics
 panel slid into its own moulded bay in the putty rack, held by case screws, with an annunciator and a lamp
 column that mirror its worst app status, the branch on an engraved placard, a guarded toggle as the stop switch, the apps as illuminated
-push-buttons with split legends, and the commit on a small display screen in a bezel; Horror: stitched oxblood leather folios with gold foil; Clear Plastic: a clear shell over its own circuit board, each app a clear key beside its chip). The slot label
+push-buttons with split legends, and the commit on a small display screen in a bezel; Horror: stitched oxblood leather folios with gold foil; Y2K: a frosted shell module over its own circuit board, its halves joined by a moulded part line rather than screws, with a segmented light pipe for its status, each app a latching key beside its chip). The slot label
 is attached to its session in the theme's material: Terminal prints an upright asset tag (black tape with a phosphor
 readout, never tilted), Horror saddle-stitches a dark leather patch on in gold thread (upright, because
-it is sewn on; only tags and stamps tilt), and Clear Plastic pad-prints a capsule on the shell with the number in a small LCD. The session count beside the heading
+it is sewn on; only tags and stamps tilt), and Y2K pad-prints a capsule on the shell with the number in a small LCD. The session count beside the heading
 is made the same way as the slot label in every theme. Sessions are separated by their gutters, not by
 ink dividers, so the only line under a branch name is its hover underline.
 
@@ -105,8 +105,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   split by a dashed rule, and Done at the bottom right (full width on a phone, where labels stack above
   fields).
 - The **halftone character** keeps a fixed dot grid and a limited ramp (4–6 colours from the
-  theme). Mounts and props use the same dots: Horror's candles are screened into them, and Clear
-  Plastic's LCD casts each dot's shadow onto its reflector. Avoid glossy, clip-art objects.
+  theme). Mounts and props use the same dots: Horror's candles are screened into them, and Y2K's
+  LCD casts each dot's shadow onto its reflector. Avoid glossy, clip-art objects.
 - **Stepped animation** for the character: anything that moves position runs at about 8–12fps in whole-cell steps.
   Light and brightness may step at about 24fps.
 - Use the classic tricks: squash and stretch (tall while falling, wide on impact), one-frame smears
@@ -131,8 +131,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   non-periodic motion (flicker, crawl, drift) is fine.
 - Status animation is reserved for problems: a broken thing may pulse; a healthy thing is still.
 - Interactive moments should reward attention: an eye that follows the cursor, a pill hover that fits
-  the theme (Horror: a thin wet band of blood seeps in and one drip falls, with a cooldown; Clear
-  Plastic: the LED under the clear key lights up through the cap, flooding it with the shell's colour; Terminal: a DOS
+  the theme (Horror: a thin wet band of blood seeps in and one drip falls, with a cooldown; Y2K: the LED under the key lights up through the cap, flooding it with the shell's colour; Terminal: a DOS
   block fill `▓▒░` in inverse video), a squish on press. Every button uses its theme's effect
   (`buttonHover`), not only the pills: icon buttons, Update, Show details, Done, Stop, the segmented
   control, and in Horror the select options too.
@@ -146,7 +145,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   a large glyph, a large state word and a tinted band.
 - Detail lists invert that: **healthy is quiet** (dimmed) and **problems are loud** (bright red,
   semibold, animated). A failed build pill is the loudest thing on its card, in its theme's idiom: Horror scorches and
-  tears the tag and its eye glows red, Terminal turns the key to inverse-video red with a blinking cursor, Clear Plastic
+  tears the tag and its eye glows red, Terminal turns the key to inverse-video red with a blinking cursor, Y2K
   makes it a red clear cap with its LED blazing and its edge lit. The session card gets a red rim too.
 - An app pill shows its start time as quiet secondary text (no "up 5m" counter); the title has the full time.
 - An app the session could serve but does not run is a small, unlit start key with the theme's sleeping (or down) glyph
@@ -160,7 +159,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   borrows another theme's marks.
   - Horror: open eye = running, half-open eye = starting or rebuilding, eye crying blood = running but
     broken, closed eye with a tear = down, dagger = needs a human, hollow ring = unknown.
-  - Clear Plastic (pad-printed controller marks): circle = running, triangle = starting, cross = broken,
+  - Y2K (pad-printed controller marks): circle = running, triangle = starting, cross = broken,
     square = down, diamond with `!` = needs a human, `?` = unknown; a dashed circle marks an app that is not running.
   - Terminal (tiny ASCII faces): `^_^` running, `o_O` starting, `>_<` broken, `zZ` down, `O_O` needs a
     human, `?_?` unknown. The monitor's big face shows the same faces for the backend rollup.
@@ -214,7 +213,7 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
 
 ### 9. The current themes
 Terminal is the default for a first visit; a stored choice always wins (a stored "blood" becomes Horror, a stored
-"neon" becomes Clear Plastic).
+"neon" or "clear" becomes Y2K).
 - **Terminal**: a curved phosphor CRT in a putty bezel, with baked scanlines, glow and vignette,
   a rolling refresh band and occasional flicker. Blip is the global default. Its pupils look towards
   the cursor, and it blinks, winks, glances and smiles with irregular timing. Its CRT keeps the refresh band, flashes and static warble.
@@ -229,18 +228,22 @@ Terminal is the default for a first visit; a stored choice always wins (a stored
   for a warning, red for a problem, and a needle running down it while loading. The backend's screens are tooled leather labels
   and its details an aged paper slip; the slots gauge is a brass pocket watch and Stop a brass stud.
   The Update button is a manila tag with the behind count stamped on it in sepia.
-- **Clear Plastic**: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the
-  PSP, the iMac G3). Every panel is a tinted, frosted shell over a real circuit board, seen soft and dimmed
-  through it (the blur is baked into the pre-rendered SVG tiles, never live):
-  green solder mask in the sessions and the handheld, a black motherboard in the cases, with ICs
-  carrying pad-printed part numbers, SMD passives, crystals, screws in clear bosses and flex cables.
-  The board mirrors real state: a running app is a chip beside its key, a stopped one an empty socket,
-  an app the session does not serve a bare footprint; status LEDs glow up through the plastic, and a
-  starting app's trace carries a faint pulse. Text sits only on frosted or pad-printed areas. Keys are
-  clear caps with the switch visible through a window. The character is on a Game Boy-style
-  reflective LCD in a printed surround, and the backend rollup and commits are on small LCDs. The
-  shell colour is its own Settings pick (Atomic purple by default, Clear, Smoke, Tangerine). Problems light the
-  shell's rim red.
+- **Y2K**: late-90s see-through electronics (Game Boy Color, the GBA SP, the clear PS1 controller, the iMac G3). Every
+  panel is a tinted, frosted shell over a real circuit board, seen soft and dimmed through it (the blur is baked into the
+  pre-rendered SVG tiles, never live): green solder mask in the sessions and the handheld, a black motherboard in the cases,
+  with ICs carrying pad-printed part numbers, SMD passives and crystals. There are no screws on any face (a Game Boy's are all
+  on the back); each shell's halves meet at a moulded part line, a 1px groove about 6px in from the edge with a lit lip under
+  it. The board mirrors real state: a running app is a chip beside its key, a stopped one an empty socket, an app the session
+  does not serve a bare footprint. A session's status is a frosted light pipe (after the GBA SP's power light): a slim bar
+  split by dark ribs into a cap and three segments, milky when unlit, filled with one hue when lit, its glow bleeding into
+  the frost; while something starts, one lit segment steps down the bar. Buttons are solid, opaque caps standing proud in
+  moulded wells, with a domed top, a side wall, a cast shadow and a collar, in one family: primary actions are wide pills,
+  apps and options are squarer latching keys (raised when off, latched down when running or chosen), small utilities are
+  slim START/SELECT capsules, and Stop is a round red domed cap like the A and B buttons, with nothing printed on it.
+  Off is never faded; only a disabled key is. Legends are flat, single-ink pad printing with no shadow or glow. Text sits
+  only on frosted or pad-printed areas. The character is on a Game Boy-style reflective LCD in a printed surround, and the
+  backend rollup and commits are on small LCDs. The shell colour is its own Settings pick (Atomic purple by default, Clear,
+  Smoke, Tangerine). Problems light the shell's rim red.
 
 ## Prompt for agents building a dev-tool UI
 
