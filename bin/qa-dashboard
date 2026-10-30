@@ -144,6 +144,7 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .sessions-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 2px;font:700 27px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss);margin-bottom:14px}
 .sessions-count{font:600 13px/1 var(--mono);letter-spacing:.04em;color:var(--muted);padding:5px 9px 4px;border-radius:4px;background:var(--inset);box-shadow:var(--sunk);text-shadow:none}
 .sessions-title[hidden],.slots[hidden]{display:none}
+.slot-gauge{display:none}
 .slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
 .slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
@@ -216,6 +217,7 @@ box-shadow:inset 0 0 0 2px var(--desk-card),inset 0 0 0 3.5px currentColor;trans
 .backend .rollup:not(.tone-ok):not(.tone-busy) .state{color:var(--glyph-bad);background:var(--hl);transform:rotate(-1deg) scale(1.08);transform-origin:0 50%;margin-bottom:12px}
 .backend .rollup.tone-warn .state{color:var(--warn);background:none}
 .backend .backend-branch{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;max-width:100%;font:13px/1.35 var(--mono);color:var(--muted)}
+.svc-lamps,.backend-screen,.action-lamps{display:none}
 .backend .backend-branch-value{min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text)}
 .backend .rel{display:inline-flex;align-items:center;min-width:0;max-width:100%}
 .backend .acts{display:inline-flex;flex-wrap:wrap;gap:6px}
@@ -1228,21 +1230,26 @@ THEMES.terminal = (function () {
   function screenFavicon(rows, ink, led) {
     return bitFavicon(rows, ink, "<rect width='64' height='64' rx='10' fill='#d8cfb8'/><rect x='5' y='5' width='54' height='43' rx='6' fill='#0a140d'/><rect x='5' y='53' width='38' height='3' rx='1.5' fill='#a89c80'/><circle cx='53' cy='55' r='3.2' fill='" + led + "'/>", 10, 8, 44);
   }
-  // Four case screws as background layers, inset from each corner of a moulded panel: a domed pan head with a slot.
+  // Four case screws as background layers, inset from each corner of a moulded panel: a domed silver cross-head pan screw
+  // with a recessed cross, a soft highlight on the dome and a dark ring where it meets the panel. Each cross sits at its own
+  // fixed angle, so the four screws do not look stamped from one die.
   function screws(inset) {
-    var near = inset + "px", far = "calc(100% - " + inset + "px)", slots = [], heads = [];
+    var near = inset + "px", far = "calc(100% - " + inset + "px)", cross = [], heads = [], turns = [[14, 63], [38, 81]];
     [["left", near], ["right", far]].forEach(function (h, i) {
       [["top", near], ["bottom", far]].forEach(function (v, j) {
-        // Slots sit at a few fixed angles, so the four screws do not look stamped from one die.
-        var turn = [[0, 2], [3, 1]][i][j], size = turn % 2 ? "2px 7px" : "7px 2px";
-        slots.push("linear-gradient(var(--screw-slot),var(--screw-slot)) " + h[0] + " " + (inset - (turn % 2 ? 1 : 3.5)) + "px " + v[0] + " " + (inset - (turn % 2 ? 3.5 : 1)) + "px/" + size + " no-repeat");
-        heads.push("radial-gradient(circle at " + h[1] + " " + v[1] + ",var(--screw-hi) 0,var(--screw) 2.5px,var(--screw-lo) 4.2px,rgba(0,0,0,.4) 4.7px 5.4px,var(--mould-hi) 5.8px,transparent 6.3px)");
+        var turn = turns[i][j], at = h[0] + " " + (inset - 3) + "px " + v[0] + " " + (inset - 3) + "px/6px 6px no-repeat";
+        [turn, turn + 90].forEach(function (angle) {
+          cross.push("linear-gradient(" + angle + "deg,transparent calc(50% - 1.1px),var(--screw-hi) calc(50% - 1.1px) calc(50% - .6px),var(--screw-slot) calc(50% - .6px) calc(50% + .7px),transparent calc(50% + .7px)) " + at);
+        });
+        heads.push("radial-gradient(circle at " + h[1] + " " + v[1] + ",transparent 0 2px,rgba(255,255,255,0) 2px),radial-gradient(circle at calc(" + h[1] + " - 1.3px) calc(" + v[1] + " - 1.5px),rgba(255,255,255,.95) 0 .6px,transparent 1.8px)," +
+          "radial-gradient(circle at " + h[1] + " " + v[1] + ",var(--screw-hi) 0,var(--screw) 2.6px,var(--screw-lo) 4.3px,rgba(0,0,0,.55) 4.7px 5.5px,var(--mould-hi) 5.9px,transparent 6.4px)");
       });
     });
-    return slots.concat(heads).join(",");
+    return cross.concat(heads).join(",");
   }
-  // Looks picked by one word each: the branch label ("silk", "dymo" or "screen") and the stop key ("key" or "round").
-  var BRANCH_LABEL = "screen", STOP_STYLE = "key";
+  // Looks picked by one word each: the branch label ("silk", "dymo" or "screen") and the stop control ("power", "key" or
+  // "round").
+  var BRANCH_LABEL = "screen", STOP_STYLE = "power";
   return {
     name: "Terminal",
     radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
@@ -1279,7 +1286,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#ece4cf",
         "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
-        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--crt-rim": "rgba(51,255,102,.14)", "--crt-spill": "rgba(51,255,102,.07)", "--power-glass": "#5a2a0c", "--power-glass-hi": "#8a4a1a", "--power-glass-lo": "#241005", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
         "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
@@ -1315,7 +1322,7 @@ THEMES.terminal = (function () {
         "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#141513",
         "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
-        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--crt-rim": "rgba(51,255,102,.24)", "--crt-spill": "rgba(51,255,102,.11)", "--power-glass": "#4e230a", "--power-glass-hi": "#7d4216", "--power-glass-lo": "#1c0b03", "--stop-print": "#7d1d14", "--stop-print-lit": "#b0170c", "--stop-face": "#8e261d", "--stop-hi": "#b7463a", "--stop-wall": "#55120b", "--stop-rim": "rgba(255,200,190,.4)", "--stop-ink": "#e6b4a9", "--stop-lit": "#fff3ef", "--stop-glow-c": "rgba(255,120,100,.9)", "--stop-glow": "0 0 6px rgba(255,120,100,.8)", "--tape": "#b3121a", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
         "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
         "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
         "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
@@ -1394,7 +1401,10 @@ THEMES.terminal = (function () {
           'box-shadow:inset 0 1px 0 var(--edge-hi),inset 3px 3px 0 var(--mould-hi),inset -3px -4px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),inset 0 0 40px var(--age),0 2px 0 var(--edge-lo),0 4px 0 var(--edge-lo),0 6px 0 var(--edge-lo2),0 8px 0 var(--edge-lo2)}',
         // The screen: curved corners, the phosphor bed glowing faintly behind the character, and a black recess round the glass.
         T + ' .stage{display:block;position:relative;isolation:isolate;width:100%;padding:12px 0 8px;border-radius:24px/28px;overflow:hidden;' +
-          'background:radial-gradient(70% 62% at 50% 42%,var(--screen-bed) 0,var(--screen) 78%);box-shadow:0 0 0 3px var(--bezel-gap),0 0 0 7px var(--mfd-bezel),0 0 0 8px #000,0 -1px 0 9px var(--panel-lo),0 1px 0 9px var(--panel-hi)}',
+          'background:radial-gradient(70% 62% at 50% 42%,var(--screen-bed) 0,var(--screen) 78%);box-shadow:0 0 0 3px var(--bezel-gap),0 0 5px 5px var(--crt-rim),0 0 0 7px var(--mfd-bezel),0 0 0 8px #000,0 -1px 0 9px var(--panel-lo),0 1px 0 9px var(--panel-hi),0 4px 28px 14px var(--crt-spill)}',
+        // The phosphor lights its surroundings: a soft green spill on the inner bezel edge and on the plastic round and below the
+        // screen. It is baked into the shadows, so only the existing flicker moves; it dims with the screen when the backend is down.
+        T + '[data-rollup="down"] .stage{--crt-rim:transparent;--crt-spill:transparent}',
         T + '[data-rollup="down"] .stage{background:var(--screen)}',
         T + ' .stage .masthead-title{display:block;text-align:center;margin-top:2px}',
         T + ' .stage .mark{--brush:var(--screen-ink);--brush-deep:var(--screen-dim);--word-spacing:.2em;padding:0 0 12px .2em;font-size:25px;color:var(--screen-ink);text-shadow:0 0 1px var(--screen-ink),0 0 7px var(--screen-glow),0 0 18px var(--screen-glow2)}',
@@ -1491,17 +1501,21 @@ THEMES.terminal = (function () {
           '--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
         T + ' .module .lamps.tone-bad{--lamp:var(--lamp-on);--lamp-hi:var(--lamp-on-hi);--lamp-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
         T + ' .module .lamps.tone-warn:not(.busy){--lamp:var(--lamp-amber);--lamp-hi:var(--lamp-amber-hi);--lamp-lo:var(--lamp-amber-lo);--lamp-glow:var(--lamp-amber-glow)}',
-        T + ' .module .lamps>b{position:relative;flex:none;width:14px;height:14px;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.4px,var(--lamp-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),' +
+        T + ' :is(.module .lamps,.action-lamps)>b{position:relative;flex:none;width:14px;height:14px;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.4px,var(--lamp-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),' +
           'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
-        T + ' .module .lamps>b::after{content:"";position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-amber-hi) 0,var(--lamp-amber) 2.4px,var(--lamp-amber-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),radial-gradient(circle,var(--lamp-amber-glow) 0,transparent 7px)}',
-        T + ' .module .lamps.busy:not(.tone-bad)>b:nth-child(7)::after{opacity:1}',
-        '@media (prefers-reduced-motion:no-preference){' + T + ' .module .lamps.busy:not(.tone-bad)>b::after,' + T + ' .module .lamps.busy:not(.tone-bad)>b:nth-child(7)::after{opacity:0;animation:lamp-chase 2.4s steps(1,end) infinite;animation-delay:calc(var(--i) * 80ms - 2.4s)}' +
-          T + '[data-page-hidden="true"] .module .lamps>b::after{animation-play-state:paused}}',
+        T + ' :is(.module .lamps,.action-lamps)>b::after{content:"";position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-amber-hi) 0,var(--lamp-amber) 2.4px,var(--lamp-amber-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),radial-gradient(circle,var(--lamp-amber-glow) 0,transparent 7px)}',
+        T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b:nth-child(7)::after{opacity:1}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b::after,' + T + ' :is(.module .lamps,.action-lamps).busy:not(.tone-bad)>b:nth-child(7)::after{opacity:0;animation:lamp-chase 2.4s steps(1,end) infinite;animation-delay:calc(var(--i) * 80ms - 2.4s)}' +
+          T + '[data-page-hidden="true"] :is(.module .lamps,.action-lamps)>b::after{animation-play-state:paused}}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b::after,' + T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b:nth-child(3)::after{animation-name:lamp-chase-6;animation-duration:1.2s;animation-delay:calc(var(--i) * 200ms - 1.2s)}}',
+        T + ' .backend .action-result .action-lamps.busy:not(.tone-bad)>b:nth-child(3)::after{opacity:1}',
+        '@keyframes lamp-chase-6{0%,16.6%{opacity:1}16.7%,33.3%{opacity:.35}33.4%,100%{opacity:0}}',
         '@keyframes lamp-chase{0%,3.3%{opacity:1}3.4%,6.6%{opacity:.35}6.7%,100%{opacity:0}}',
-        // Case screws: a domed pan head in a shallow counterbore, its slot at a seeded angle.
-        T + ' .module .fastener{width:10px;height:10px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 36% 30%,var(--screw-hi),transparent 65%),var(--screw);' +
-          'box-shadow:inset 0 -1px 1px var(--screw-lo),0 0 0 1px var(--groove),0 1px 0 1px var(--mould-hi)}',
-        T + ' .module .fastener::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--screw-slot);transform:rotate(var(--turn,0deg))}',
+        // Case screws: a domed silver cross-head pan screw with a dark ring where it meets the panel, its cross at a seeded angle.
+        T + ' .module .fastener{width:10px;height:10px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.95) 0 .6px,transparent 1.8px),radial-gradient(circle at 40% 36%,var(--screw-hi),var(--screw) 55%,var(--screw-lo));' +
+          'box-shadow:inset 0 -1px 1px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.5),0 0 0 1.5px var(--groove),0 1px 0 1.5px var(--mould-hi)}',
+        T + ' .module .fastener::before,' + T + ' .module .fastener::after{content:"";position:absolute;left:2px;right:2px;top:50%;height:1.4px;margin-top:-.7px;border-radius:1px;background:var(--screw-slot);box-shadow:0 .6px 0 rgba(255,255,255,.55);transform:rotate(var(--turn,0deg))}',
+        T + ' .module .fastener::before{transform:rotate(calc(var(--turn,0deg) + 90deg))}',
         T + ' .module .fastener.tl{left:11px;top:9px}',
         T + ' .module .fastener.bl{left:11px;bottom:9px}',
         T + ' .module .fastener.tr{right:9px;top:9px}',
@@ -1550,8 +1564,9 @@ THEMES.terminal = (function () {
           T + ' .slot-card .branch .brush{top:calc(100% + 9px)}'
         ]
       }[BRANCH_LABEL]).concat([
-        // The stop control is a real key: STOP_STYLE picks a putty keycap identical to the app keys with only its stop square
-        // printed in oxblood ("key"), or a chunky red round push-button standing proud of a satin bezel ring ("round"). Hover
+        // The stop control is a real key: STOP_STYLE picks the terminal's power button ("power": a square recessed push-button
+        // in a metal bezel with an amber glass lens, dark at rest and glowing warm orange on hover), a putty keycap identical to
+        // the app keys with only its stop square printed in oxblood ("key"), or a chunky red round push-button ("round"). Hover
         // presses the cap and backlights the square red, and a press bottoms it out. One button: a
         // click opens the usual confirmation, and it dims while another action runs or there is nothing to stop.
         T + ' .slot-card .tools{flex:none;position:relative;display:grid;place-items:center;width:auto;padding:0 0 4px;background:none;box-shadow:none}',
@@ -1580,6 +1595,21 @@ THEMES.terminal = (function () {
           T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring),0 3px 0 var(--stop-wall)}',
           T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:translateY(5px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 0 0 var(--stop-wall),0 1px 0 #2a0503}',
           T + ' #slots .slot-card .tools button.icon.stop:disabled{transform:translateY(3px);box-shadow:0 2px 0 var(--stop-wall),0 3px 0 #2a0503}'
+        ],
+        power: [
+          T + ' .slot-card .tools{width:40px;height:40px;padding:0;border-radius:4px;background:linear-gradient(145deg,#f1efe8,#b9b5aa 45%,#7d796f);' +
+            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),inset 1px 1px 0 1px rgba(255,255,255,.55),0 1px 0 var(--mould-hi),0 2px 3px -1px var(--contact)}',
+          T + ' #slots .slot-card .tools button.icon.stop{width:28px;height:28px;border-radius:2px;color:transparent;' +
+            'background:linear-gradient(160deg,rgba(255,255,255,.32) 0 18%,rgba(255,255,255,.06) 30%,transparent 48%),radial-gradient(90% 90% at 50% 60%,var(--power-glass-hi) 0,var(--power-glass) 55%,var(--power-glass-lo) 100%);' +
+            'box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 3px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,210,150,.18),0 0 0 2px #2a2620,0 0 0 3px rgba(0,0,0,.4)}',
+          T + ' #slots .slot-card .tools button.icon.stop>svg{display:none}',
+          T + ' #slots .slot-card .tools button.icon.stop::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease);' +
+            'background:linear-gradient(160deg,rgba(255,255,255,.4) 0 16%,transparent 34%),radial-gradient(80% 80% at 50% 55%,#ffe0a3 0,#ff9a2e 38%,#e25c08 72%,#8a2c02 100%);' +
+            'box-shadow:inset 0 0 0 1px rgba(80,20,0,.6),inset 0 2px 3px rgba(80,20,0,.4),0 0 10px 3px rgba(255,140,40,.55),0 0 22px 6px rgba(255,120,30,.25)}',
+          T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled))::after{opacity:1}',
+          T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 0 0 2px #2a2620,var(--ring)}',
+          T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled){transform:scale(.92);transition-duration:calc(var(--dur-fast) / 3)}',
+          T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:1;filter:brightness(.55) saturate(.6)}'
         ]
       }[STOP_STYLE]).concat([
         // The app keys are the console's putty keycaps sitting straight on the panel: one cap per app with its status face,
@@ -1659,6 +1689,21 @@ THEMES.terminal = (function () {
         // Slot numbers are an asset tag: black label tape with SLOT printed on it and the number in a small phosphor readout. Never tilted.
         T + ' .slotno{top:17px;right:34px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
           'font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:none}',
+        // The slot gauge, Pip-Boy style: a small round dial under glass in a satin bezel with tick marks, a red last stretch, a
+        // needle showing sessions in use out of the task slots, and the count printed on the face. The needle settles with a
+        // small overshoot when the count changes (transform only); reduced motion makes it instant.
+        T + ' .sessions-title:has(.slot-gauge:not([hidden])) .sessions-count{display:none}',
+        T + ' .sessions-title .slot-gauge:not([hidden]){display:block;position:relative;flex:none;width:56px;height:56px;margin:-6px 4px -8px 0;border-radius:50%;' +
+          'background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.55),transparent 34%),radial-gradient(circle,#f3ecd8 0 60%,#d9cfb4 72%,#b8ad90 74%) padding-box,linear-gradient(145deg,#f1efe8,#a9a598 50%,#5f5b52) border-box;' +
+          'border:4px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.5),inset 0 1px 3px rgba(0,0,0,.4),0 2px 4px -1px var(--contact)}',
+        T + ' .slot-gauge svg{position:absolute;inset:0;width:100%;height:100%}',
+        T + ' .slot-gauge .gauge-ticks line{stroke:#2a2620;stroke-width:1.2}',
+        T + ' .slot-gauge .gauge-red{fill:none;stroke:#b3261e;stroke-width:2.2}',
+        T + ' .slot-gauge .gauge-needle{position:absolute;left:50%;top:50%;width:2px;height:19px;margin:-17px 0 0 -1px;border-radius:1px;background:#c2261a;box-shadow:0 1px 1px rgba(0,0,0,.35);transform-origin:50% 17px;' +
+          'transition:transform var(--dur) cubic-bezier(.34,1.6,.5,1)}',
+        T + ' .slot-gauge .gauge-needle::after{content:"";position:absolute;left:-2px;top:13px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8a857a,#2a2620)}',
+        T + ' .slot-gauge .gauge-n{position:absolute;left:0;right:0;bottom:5px;text-align:center;font:700 13px/1 var(--mono);color:#1d1a14;letter-spacing:0;text-shadow:none}',
+        T + ' .slot-gauge::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;background:linear-gradient(150deg,rgba(255,255,255,.35) 0 20%,transparent 38%)}',
         T + ' .sessions-title .sessions-count{align-self:center;min-width:28px;padding:4px 7px 3px;border:2px solid var(--dymo);border-radius:3px;background:var(--screen);color:var(--screen-ink);' +
           'font:700 13px/1 var(--mono);letter-spacing:0;text-align:center;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000,0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25)}',
         T + ' .slotno-k{display:flex;align-items:center;padding:5px 7px 4px 9px}',
@@ -1691,6 +1736,35 @@ THEMES.terminal = (function () {
         T + ' :is(.backend,.slot-backend) .update-btn:hover:not(:disabled),' + T + ' :is(.backend,.slot-backend) .update-btn:is(:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),0 1.5px 0 var(--key-wall),0 2px 3px -1px var(--contact)}',
         T + ' :is(.backend,.slot-backend) .update-btn:focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--key-wall)}',
         T + ' .backend .toggle{min-height:28px;padding:5px 11px 4px 9px;font-size:11.5px}',
+        // Show details latches like an app key: while the details are open it stays pressed into a collar, and springs back.
+        T + ' .backend .toggle[aria-expanded="true"]{transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 1px 0 var(--btn-edge),0 0 0 1.5px var(--collar)}',
+        T + ' .backend .toggle[aria-expanded="true"]:focus-visible{box-shadow:var(--ring),0 0 0 1.5px var(--collar)}',
+        // The backend panel's instruments: a row of labelled service lamps, the branch and commit on a small display (amber
+        // when the backend runs a branch other than develop), and the last action on a small display, with the session lamps'
+        // amber chase beside it while the action runs.
+        T + ' .backend .backend-branch,' + T + ' .backend .meta{display:none}',
+        T + ' .backend .svc-lamps{display:flex;flex-wrap:wrap;gap:8px 14px;margin:2px 0 10px}',
+        T + ' .backend .svc-lamp{display:inline-flex;align-items:center;gap:6px;font:13px/1.2 var(--mono);color:var(--panel-ink);--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
+        T + ' .backend .svc-lamp>i{flex:none;width:14px;height:14px;background:radial-gradient(circle at 42% 36%,rgba(255,255,255,.8) 0 .8px,transparent 1.6px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.6px 3.4px,var(--lamp-lo) 4.1px,#050505 4.4px 5.2px,var(--panel-lo) 5.3px,transparent 5.9px),' +
+          'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
+        T + ' .backend .svc-lamp.lamp-ok{--lamp:#3fe46f;--lamp-hi:#eaffef;--lamp-lo:#178a3a;--lamp-glow:rgba(51,255,102,.45)}',
+        T + ' .backend .svc-lamp.lamp-warn{--lamp:var(--lamp-amber);--lamp-hi:var(--lamp-amber-hi);--lamp-lo:var(--lamp-amber-lo);--lamp-glow:var(--lamp-amber-glow)}',
+        T + ' .backend .svc-lamp.lamp-bad{--lamp:var(--lamp-on);--lamp-hi:var(--lamp-on-hi);--lamp-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
+        T + ' .backend :is(.backend-screen,.action-result){display:flex;align-items:center;gap:8px;max-width:calc(100% - 12px);margin:6px 6px 8px;padding:6px 11px 5px;border-radius:3px;border-top:0;' +
+          'font:13px/1.35 var(--mono);color:var(--mfd-ink);text-shadow:0 0 4px var(--mfd-glow);background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);' +
+          'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
+        T + ' .backend .backend-screen{display:block;align-self:flex-start;min-width:0;overflow-wrap:anywhere}',
+        T + ' .backend .backend-screen-branch{font-weight:700;color:var(--screen-ink)}',
+        T + ' .backend .backend-screen.off-develop .backend-screen-branch{color:var(--screen-warn);text-shadow:0 0 5px rgba(255,176,0,.45)}',
+        T + ' .backend .backend-screen code{color:var(--mfd-ink);background:none;padding:0;font-size:13px}',
+        T + ' .backend .action-result{margin-top:14px;flex-wrap:nowrap}',
+        T + ' .backend .action-result>span{min-width:0}',
+        T + ' .backend .action-lamps.busy+span .dot{display:none}',
+        T + ' .backend .action-result>span{color:var(--mfd-ink)}',
+        T + ' .backend .action-result .tone-ok{color:var(--screen-ink)}',
+        T + ' .backend .action-result :is(.tone-down,.error){color:#ff8f80}',
+        T + ' .backend .action-result .dot{color:inherit}',
+        T + ' .backend .action-lamps.busy{display:flex;flex:none;flex-direction:row;width:84px;height:14px;overflow:hidden;margin:0 2px 0 -4px;--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent;--panel-lo:rgba(0,0,0,.6);--panel-hi:rgba(255,255,255,.06)}',
         T + ' .backend .toggle .chev{color:currentColor}',
         T + ' :is(.backend,.slot-backend) .update-btn .behind-badge{background:var(--badge-bg);text-shadow:0 0 6px color-mix(in srgb,var(--badge-ink) 50%,transparent);box-shadow:inset 0 1px 3px #000}',
         T + ' .sessions-title,' + T + ' .settings h2{letter-spacing:.12em}',
@@ -2513,7 +2587,7 @@ var QA_DESK=(function(){
 <main><section id="recovery" class="recovery" aria-labelledby="recovery-title" hidden><h2 id="recovery-title" tabindex="-1">Saved sessions are stopped</h2><div id="recovery-picker" class="recovery-picker"><p class="recovery-note">These sessions were saved before the last restart and are not running now.</p>
 <fieldset class="recovery-list"><legend>Resume these</legend><div id="recovery-rows"></div></fieldset>
 <div class="confirm-actions recovery-actions"><button type="button" id="recovery-resume" disabled>Resume sessions</button><button type="button" id="recovery-fresh">Clear saved sessions</button></div><p class="small">Clearing saved sessions forgets their records. It does not start the backend.</p></div><div id="recovery-progress" class="recovery-progress" role="status" aria-live="polite" aria-atomic="false" hidden><p id="recovery-description"></p><p id="recovery-elapsed" class="recovery-elapsed small"></p><pre id="recovery-output" class="recovery-output" aria-label="Latest recovery output"></pre></div><p id="recovery-status" class="recovery-status small" role="status" aria-live="polite" hidden></p></section>
-<h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
+<h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span><span id="slot-gauge" class="slot-gauge" role="img" hidden></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
@@ -2628,7 +2702,8 @@ function renderActionResult(){
   var h='<div class="action-result" aria-live="polite">';
   if(a){
     var line=actionLine(a);
-    h+='<span class="tone-'+line.tone+'">'+dot(line.tone)+esc(line.text)+'</span>';
+    var lamps="";for(var i=0;i<6;i++)lamps+='<b style="--i:'+i+'"></b>';
+    h+='<i class="action-lamps tone-'+line.tone+(a.state==="running"?" busy":"")+'" aria-hidden="true">'+lamps+'</i><span class="tone-'+line.tone+'">'+dot(line.tone)+esc(line.text)+'</span>';
   }
   if(actionError)h+='<span class="error">'+esc(actionError)+'</span>';
   h+='</div>';
@@ -2642,13 +2717,30 @@ function backendHealthy(b){
 }
 function detailsOpen(healthy){return detailsChoice&&detailsChoice.healthy===healthy?!!detailsChoice.open:!healthy}
 // Collapsed, the card shows only the overall rollup; service names and glyphs live in the details.
+// The backend services as lamps: one per service in the status, green ready, amber starting or degraded, red down, failed
+// or needing attention, and a neutral unlit lens when unknown. Each carries its name and state as text for screen readers.
+var SERVICE_LAMP={ok:"ok",warn:"warn",broken:"bad",down:"bad",attn:"bad"};
+function serviceState(s){return(s.probe!=="ready"&&(s.unitState==="activating"||s.unitState==="reloading"))?"starting":s.status||s.probe||s.unitState||"unknown"}
+function serviceLampList(b){
+  var svcs=(b&&b.services)||{};
+  return Object.keys(svcs).map(function(n){return{name:n,lamp:SERVICE_LAMP[serviceTone(svcs[n])]||"off",state:String(serviceState(svcs[n]))}});
+}
+function serviceLamps(b){
+  var list=serviceLampList(b);
+  if(!list.length)return"";
+  return'<span class="svc-lamps" role="list" aria-label="Backend services">'+list.map(function(l){
+    return'<span class="svc-lamp lamp-'+l.lamp+'" role="listitem" title="'+esc(l.name+": "+l.state)+'"><i aria-hidden="true"></i><span class="svc-lamp-name">'+esc(l.name)+'</span><span class="sr-only">: '+esc(l.state)+'</span></span>'}).join("")+'</span>';
+}
 function renderBackend(b){
   if(!b)return'<div class="muted">'+(data?"No backend data.":failure?STATUS_RETRYING:CHECKING_BACKEND)+'</div>'+renderActionResult();
   var branch=typeof b.branch==="string"&&b.branch?b.branch:null,switching=branch!=="develop",behind=/behind/i.test(b.relation||""),busy=backendSwitching(),healthy=backendHealthy(b),open=detailsOpen(busy?false:healthy),rollup=backendTone(b),state=busy?"Switching…":String(b.overall||"unknown").replace(/-/g," ");
   var actions=busy?"":(tone(b.overall)==="bad"?actionButton("ensure"):"")+(tone(b.overall)!=="ok"?actionButton("heal"):"");
   var h=(healthy||busy?"":'<span class="card-drip" aria-hidden="true"></span>')+'<div class="backend-body"><div class="head"><div class="rollup tone-'+rollup+'"><span class="title">Backend</span>'+
     '<span class="state" style="--stamp-chars:'+Math.max(6,state.length)+'">'+dot(rollup)+esc(state)+'</span>'+
-    '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span></div>'+
+    '<span class="backend-branch"><span>Backend branch</span><span class="backend-branch-value">'+esc(branch||"Unverified at "+(b.sha||"?"))+'</span></span>'+
+    // A theme can show the services as a row of labelled lamps and the branch and commit on a small screen instead.
+    serviceLamps(b)+'<span class="backend-screen'+(branch==="develop"?"":" off-develop")+'" title="'+esc("Backend branch "+(branch||"unverified")+(b.sha?", commit "+b.sha:""))+'">'+
+      '<span class="backend-screen-branch">'+esc(branch||"unverified")+'</span> &middot; <code>'+esc(b.sha||"?")+'</code></span></div>'+
     ((switching||behind)?'<div class="rel">'+updateButton(b.relation||"",switching)+'</div>':"")+
     (actions?'<div class="acts">'+actions+'</div>':"")+
     '<div class="meta"><span>sha <code>'+esc(b.sha||"?")+'</code></span></div></div>'+
@@ -2866,6 +2958,40 @@ function updatedText(){
   if(!lastOk)return"not loaded";
   return"updated at "+lastOk.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
 }
+// The slot gauge: an analog dial showing sessions in use out of the task slots wt allocates (backend.taskSlots, without the
+// QA tree's own slot when it falls inside that range). Only a theme that styles .slot-gauge shows it; it replaces the count.
+function slotCapacity(backend){
+  var range=backend&&backend.taskSlots;
+  if(!Array.isArray(range)||range.length!==2||!(range[1]>=range[0]))return null;
+  var total=range[1]-range[0]+1,offset=backend.offset;
+  return typeof offset==="number"&&offset>=range[0]&&offset<=range[1]?total-1:total;
+}
+function updateSlotGauge(used){
+  var gauge=document.getElementById("slot-gauge"),total=slotCapacity(data&&data.backend);
+  if(!gauge)return;
+  gauge.hidden=!data||!total;
+  if(gauge.hidden)return;
+  var shown=Math.min(used,total),key=used+"/"+total;
+  if(gauge.__key===key)return;
+  if(gauge.__total!==total){
+    var ticks="";
+    for(var i=0;i<=total;i++){var a=(-120+240*i/total)*Math.PI/180,r1=i%total===0?13:14,x=function(r){return(20+r*Math.sin(a)).toFixed(2)},y=function(r){return(20-r*Math.cos(a)).toFixed(2)};
+      ticks+='<line x1="'+x(r1)+'" y1="'+y(r1)+'" x2="'+x(17)+'" y2="'+y(17)+'"/>'}
+    gauge.innerHTML='<svg viewBox="0 0 40 40" aria-hidden="true"><path class="gauge-red" d="'+arc(total)+'"/><g class="gauge-ticks">'+ticks+'</g></svg><i class="gauge-needle" aria-hidden="true"></i><b class="gauge-n" aria-hidden="true"></b>';
+    gauge.__total=total;
+  }
+  gauge.setAttribute("aria-label",used+" of "+total+" slots in use");
+  gauge.title=used+" of "+total+" slots in use";
+  gauge.querySelector(".gauge-n").textContent=String(used);
+  var needle=gauge.querySelector(".gauge-needle");
+  if(gauge.__key===undefined)needle.style.transition="none";
+  needle.style.transform="rotate("+(-120+240*shown/total)+"deg)";
+  if(gauge.__key===undefined){needle.getBoundingClientRect();needle.style.transition=""}
+  gauge.__key=key;
+  // The last stretch of the dial is red: the slots are nearly all taken.
+  function arc(n){var from=(-120+240*(n-1)/n)*Math.PI/180,to=120*Math.PI/180,r=15.5;
+    return"M"+(20+r*Math.sin(from)).toFixed(2)+" "+(20-r*Math.cos(from)).toFixed(2)+"A"+r+" "+r+" 0 0 1 "+(20+r*Math.sin(to)).toFixed(2)+" "+(20-r*Math.cos(to)).toFixed(2)}
+}
 function setHtml(element,html){if(element.__html===html)return false;element.__html=html;element.innerHTML=html;return true}
 function setClass(element,cls){if(element.className!==cls)element.className=cls}
 function radioMessages(snapshot,fetchFailure,requestFailure){
@@ -2993,6 +3119,7 @@ function render(){
   // Saved recovery slots belong to the recovery picker only; the Sessions section lists everything else.
   var liveSlots=slots.filter(function(slot){return!slot.recovery}),savedOnly=!!data&&slots.length>0&&!liveSlots.length;
   setText(document.getElementById("sessions-count"),data?String(liveSlots.length):"");
+  updateSlotGauge(liveSlots.length);
   document.getElementById("sessions-title").hidden=savedOnly;
   if(stopDialog&&stopDialog.open&&!confirmAvailable())stopDialog.close();
   var hint=document.getElementById("hint"),hintHtml=liveSlots.length?"To start another session, "+START_HINT+".":"";

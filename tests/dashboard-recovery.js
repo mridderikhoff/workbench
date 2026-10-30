@@ -104,6 +104,22 @@ test("start keys cover only the managed apps, and app pills follow their order w
   assert.deepStrictEqual(keys({ slot: 3, branch: "b", apps: [{ app: "strategy" }, { app: "ds-demo" }] }), ["start:ri", "pill:ds-demo", "pill:strategy"], "unmanaged running apps follow");
 });
 
+test("backend service lamps map each service to green, amber, red or unlit, with its plain state", () => {
+  const p = page({ fetch: () => new Promise(() => {}) });
+  const lamps = plain(p.run("serviceLampList(" + JSON.stringify({ services: {
+    api: { probe: "ready", status: "ready" }, graph: { probe: "starting", status: "listening", unitState: "activating" },
+    fn: { status: "down", unitState: "failed" }, kc: { needsAttention: true, status: "needs attention" }, odd: {} } }) + ")"));
+  assert.deepStrictEqual(lamps.map(l => l.name + "=" + l.lamp + ":" + l.state), ["api=ok:ready", "graph=warn:starting", "fn=bad:down", "kc=bad:needs attention", "odd=off:unknown"]);
+  assert.deepStrictEqual(plain(p.run("serviceLampList(null)")), []);
+});
+
+test("the slot gauge capacity comes from the task slot range, without the QA tree's slot", () => {
+  const p = page({ fetch: () => new Promise(() => {}) });
+  assert.strictEqual(p.run("slotCapacity({taskSlots:[2,9],offset:1})"), 8);
+  assert.strictEqual(p.run("slotCapacity({taskSlots:[2,9],offset:4})"), 7);
+  assert.strictEqual(p.run("slotCapacity({})"), null);
+});
+
 test("the session LED shows the worst app status; only a session with no apps is off", () => {
   const p = page({ fetch: () => new Promise(() => {}) });
   const ok = { httpReady: true }, down = { httpReady: false, unitState: "inactive" }, starting = { httpReady: false, unitState: "active" };
