@@ -1461,14 +1461,13 @@ THEMES.terminal = (function () {
         T + ' a.app-pill:active{transform:translateY(4px)}',
         T + ' a.app-pill:active::after{transform:scaleY(.9)}',
         T + ' a.app-pill.off:hover,' + T + ' a.app-pill.off:focus-visible{transform:translateY(3px)}',
-        // Each session is an avionics-style panel slid into its own bay in the putty case. The bay is the card itself: a dark recess
-        // cut into the case with a lit lower lip. The panel (.module, behind the content) is the console's painted faceplate held
-        // by four quarter-turn fasteners, with a left channel for its annunciator (the session's worst app status, lit amber or red
-        // only for a problem) and a column of lamps that light red with it. On it: the branch engraved in a placard, a guarded stop
-        // switch, the apps as latching illuminated push-buttons in a recessed tray, and the commit on a small display screen.
-        T + '{--item-radius:10px;--item-face:var(--bay);--item-shadow:inset 0 3px 7px var(--bay-deep),inset 0 0 0 1px var(--bay-rim),0 1px 0 var(--bay-lip)}',
-        T + ' .slots>.card{isolation:isolate;padding:23px 25px 21px 53px}',
-        T + ' .slots>.card .module{display:block;position:absolute;inset:6px 7px 9px 6px;z-index:-1;pointer-events:none;border-radius:7px;' +
+        // Each session is a single raised panel of moulded plastic standing on the Sessions case, its edge and contact shadow
+        // separating it from its neighbours across the gutter. The panel (.module, behind the content) is held by four case
+        // screws, with a left channel for its annunciator and lamp column (the session's status). On it: the branch on a small
+        // display, the stop key, the app keycaps, and the commit on a small display screen.
+        T + '{--item-radius:7px;--item-face:transparent;--item-shadow:none}',
+        T + ' .slots>.card{isolation:isolate;padding:17px 18px 12px 47px}',
+        T + ' .slots>.card .module{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:7px;' +
           'background:linear-gradient(var(--mould-lo),var(--mould-lo)) 32px 0/1px 100% no-repeat,linear-gradient(var(--mould-hi),var(--mould-hi)) 33px 0/1px 100% no-repeat,' +
           'linear-gradient(var(--grip),var(--grip)) 0 0/32px 100% no-repeat,linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);outline:1px solid var(--groove);outline-offset:-6px;' +
           'box-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 3px var(--contact)}',
@@ -1515,7 +1514,7 @@ THEMES.terminal = (function () {
         T + ' .slot-card>.head-line{grid-area:read}',
         T + ' .slot-card>.error{grid-area:err;margin-top:8px}',
         T + ' .slot-card>.stopping-note{grid-area:note;margin-top:8px}',
-        T + ' .slots>.card.err{background:var(--item-face);box-shadow:var(--item-shadow)}',
+        T + ' .slots>.card.err{background:none;box-shadow:none}',
         T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
         // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
         T + ' .slot-card .card-drip{display:none}',
@@ -1649,7 +1648,7 @@ THEMES.terminal = (function () {
           'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
         T + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
         T + ' .slot-card .head-line span[style]{font-weight:700}',
-        '@media (max-width:899px){' + T + ' .slots>.card{padding:20px 16px 18px 48px}}',
+        '@media (max-width:899px){' + T + ' .slots>.card{padding:14px 9px 9px 42px}}',
         '@media (max-width:559px){' + T + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "err" "note"}' +
           T + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + T + ' .slot-card .head-line{white-space:normal}' + T + ' .slot-card .head{padding-right:0}}',
         // Modules seat on load, about 50ms apart: each drops in with a small settle. It runs on the card element, which a poll
