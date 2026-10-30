@@ -1061,7 +1061,7 @@ var THEMES = {
         D + ' .module .led{left:7px;top:12px;width:14px;height:14px;border-radius:47% 53% 44% 56%/55% 45% 55% 45%;' +
           'background:radial-gradient(circle at 36% 30%,rgba(255,240,220,.45) 0,transparent 32%),radial-gradient(circle,transparent 0 3.2px,rgba(0,0,0,.4) 3.6px 4.6px,transparent 5px),var(--wax-ok);' +
           'box-shadow:inset 0 -1px 1.5px rgba(0,0,0,.45),0 1px 1.5px rgba(0,0,0,.7)}',
-        D + ' .module .led.tone-warn{background-color:var(--wax-warn)}',
+        D + ' .module .led.tone-warn:not(.busy){background-color:var(--wax-warn)}',
         D + ' .module .led.tone-bad{background-color:var(--wax-bad)}',
         D + ' .module .led.tone-off{background:none;box-shadow:none}',
         // The seam carries the problem, so the folio drops the blood strike the backend card still uses.
@@ -1355,13 +1355,14 @@ THEMES.y2k = (function () {
       "<rect x='15' y='11' width='38' height='34' rx='2' fill='" + (lcd || "#a6b188") + "'/><circle cx='11' cy='26' r='2.6' fill='" + led + "'/>" +
       "<g transform='translate(18 12) scale(1.33)' fill='none' stroke='" + ink + "' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'>" + mark.split('"').join("'").replace("fill='currentColor'", "fill='" + ink + "'") + "</g></svg>";
   }
-  // The stop control: a saturated red domed cap like a Game Boy Advance's A and B, standing in a moulded recessed ring with a
-  // collar, its side wall below the dome and its shadow cast into the well. Nothing is printed on it; the name is on the button.
+  // The stop control: a domed cap like a Game Boy Advance's A and B in deep, desaturated red plastic (the loud reds belong to
+  // status), standing in a moulded recessed ring with a collar, its side wall below the dome and its shadow cast into the well.
+  // A faint square is moulded into the dome, tone on tone; nothing is printed, and the name is on the button.
   // .lit (a glow round it) and .on (the cap lit from inside) show on hover or focus; .lens travels down on press.
   var STOP = '<svg class="y2k-stop" viewBox="0 0 44 44" aria-hidden="true" focusable="false"><defs>' +
-    '<radialGradient id="ys-dome" cx=".38" cy=".3" r=".78"><stop offset="0" stop-color="#ff8f80"/><stop offset=".32" stop-color="#f02a2a"/><stop offset=".78" stop-color="#c00d18"/><stop offset="1" stop-color="#8a0610"/></radialGradient>' +
-    '<radialGradient id="ys-lit" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#ffd2c8"/><stop offset=".4" stop-color="#ff4a3e"/><stop offset="1" stop-color="#d6101c"/></radialGradient>' +
-    '<radialGradient id="ys-glow"><stop offset=".55" stop-color="#ff3030" stop-opacity=".45"/><stop offset="1" stop-color="#ff3030" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="ys-dome" cx=".38" cy=".3" r=".78"><stop offset="0" stop-color="#b8706c"/><stop offset=".34" stop-color="#8e3a3c"/><stop offset=".8" stop-color="#6a2629"/><stop offset="1" stop-color="#4a181b"/></radialGradient>' +
+    '<radialGradient id="ys-lit" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#d49a90" stop-opacity=".9"/><stop offset=".4" stop-color="#a8473f" stop-opacity=".85"/><stop offset="1" stop-color="#7c2a2b" stop-opacity=".8"/></radialGradient>' +
+    '<radialGradient id="ys-glow"><stop offset=".55" stop-color="#d0605a" stop-opacity=".3"/><stop offset="1" stop-color="#d0605a" stop-opacity="0"/></radialGradient>' +
     '<linearGradient id="ys-well" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".6" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity=".1"/></linearGradient>' +
     '<linearGradient id="ys-lip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient>' +
     '<radialGradient id="ys-spec" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>' +
@@ -1371,10 +1372,11 @@ THEMES.y2k = (function () {
     '<circle cx="22" cy="22.4" r="18.8" fill="url(#ys-well)"/><circle cx="22" cy="22.4" r="18.8" fill="none" stroke="url(#ys-lip)" stroke-width="1.8"/>' +
     '<ellipse class="cast" cx="22.6" cy="26.4" rx="15.4" ry="14.2" fill="#000" fill-opacity=".5"/>' +
     // the cap: its side wall, then the domed top with a soft specular highlight
-    '<g class="lens"><circle cx="22" cy="23.8" r="14.6" fill="#6e040b"/><circle cx="22" cy="23" r="14.6" fill="#9c0812"/>' +
+    '<g class="lens"><circle cx="22" cy="23.8" r="14.6" fill="#2e0d0f"/><circle cx="22" cy="23" r="14.6" fill="#4d1619"/>' +
     '<circle cx="22" cy="20.6" r="14.6" fill="url(#ys-dome)"/><circle class="on" cx="22" cy="20.6" r="14.6" fill="url(#ys-lit)"/>' +
-    '<circle cx="22" cy="20.6" r="14.1" fill="none" stroke="#ffb0a6" stroke-opacity=".45" stroke-width=".7"/>' +
-    '<ellipse cx="17.2" cy="13.8" rx="6.4" ry="3.6" fill="url(#ys-spec)" transform="rotate(-28 17.2 13.8)"/><circle cx="15.4" cy="13.4" r="1.1" fill="#fff" fill-opacity=".9"/></g></svg>';
+    '<circle cx="22" cy="20.6" r="14.1" fill="none" stroke="#e0a49c" stroke-opacity=".3" stroke-width=".7"/>' +
+    '<rect x="17.5" y="16.6" width="9" height="9" rx="1.6" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width=".8" transform="translate(0 .6)"/><rect x="17.5" y="16.6" width="9" height="9" rx="1.6" fill="#000" fill-opacity=".07" stroke="#000" stroke-opacity=".28" stroke-width=".8"/>' +
+    '<ellipse cx="17.2" cy="13.8" rx="6.4" ry="3.6" fill="url(#ys-spec)" fill-opacity=".55" transform="rotate(-28 17.2 13.8)"/><circle cx="15.4" cy="13.4" r="1" fill="#fff" fill-opacity=".55"/></g></svg>';
   /* ---------- shells: one set of plastic variables per colour, picked in Settings ---------- */
   function shell(name, light, dark) { return {name: name, light: light, dark: dark} }
   function plastic(tint, wall, rim, hi, deep, led, glow, edge) { return {"--shell": tint, "--shell-base": tint, "--shell-wall": wall, "--shell-rim": rim, "--shell-hi": hi, "--shell-deep": deep, "--key-led": led, "--key-glow": glow, "--shell-glow": edge} }
@@ -1410,9 +1412,9 @@ THEMES.y2k = (function () {
   var SEAM = "border:0 solid transparent;border-image-width:20px;border-image-repeat:stretch;border-image-slice:20;border-image-source:";
   var EDGE = "0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 6px 5px -1px var(--contact),0 22px 40px -16px var(--lift)";
   // A frosted pad: sandblasted plastic (a fine stipple) with a soft top light, on the frost colour.
-  var GRAIN = art("grain", '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">' + (function () { var r = rng(5), s = ""; for (var i = 0; i < 160; i++) s += '<circle cx="' + f(r() * 48) + '" cy="' + f(r() * 48) + '" r="' + f(0.35 + r() * 0.5) + '" fill="' + (r() < 0.5 ? "#fff" : "#000") + '" fill-opacity="' + f(0.03 + r() * 0.05) + '"/>'; return s })() + '</svg>', 48, 48);
-  var FROST = "var(--grain) 0 0/48px 48px,linear-gradient(180deg,var(--frost-hi),transparent 55%),var(--frost)";
-  var FROST_EDGE = "inset 0 0 0 1px var(--frost-rim),inset 0 1px 0 var(--frost-rim),0 1px 2px var(--frost-drop)";
+  // Pads sit on a panel that is already frosted, so they never frost again: one flat translucent fill, lit along the top edge.
+  var FROST = "var(--frost)";
+  var FROST_EDGE = "inset 0 0 0 1px var(--frost-rim),inset 0 1px 0 var(--frost-hi),0 1px 2px var(--frost-drop)";
   // Keycaps: solid plastic caps with a printed legend; the switch shows through a clear window at one end.
   var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn,.recovery-actions button)";
   // Keycaps stand proud of the shell like a Game Boy Advance's buttons: a domed top (a curved highlight, a darker lower half), a
@@ -1443,7 +1445,7 @@ THEMES.y2k = (function () {
 
   var UTIL = "radial-gradient(95% 80% at 50% 0,var(--cap-gloss) 0,transparent 70%),linear-gradient(var(--util-face),var(--util-face))";
   // The backlight a key's LED throws through the cap on hover: a bloom from the switch and the cap's edges lighting up.
-  var WASH_KEY = "radial-gradient(70% 140% at 16px 50%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 35%,transparent) 45%,transparent 80%)";
+  var WASH_KEY = "radial-gradient(70% 140% at 14px 50%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 35%,transparent) 45%,transparent 80%)";
   var WASH_BUTTON = "radial-gradient(80% 120% at 50% 100%,var(--key-glow) 0,color-mix(in srgb,var(--key-glow) 30%,transparent) 50%,transparent 85%)";
   var LIT_EDGE = "inset 0 0 0 1.5px color-mix(in srgb,var(--key-led) 85%,#fff),inset 0 0 9px var(--key-glow)";
   // An SMD LED glowing up through the plastic: a bright die, the coloured lens, and its spill on the board.
@@ -1459,7 +1461,7 @@ THEMES.y2k = (function () {
     css: {
       light: {"--item-radius": "14px", "--item-face": ITEM_FACE, "--item-shadow": ITEM_SHADOW,
         "--pipe-off": "rgba(255,255,255,.4)", "--pipe-rib": "rgba(34,20,70,.5)", "--pipe-ok": "#2fd06a", "--pipe-warn": "#ffb020", "--pipe-bad": "#ff3a3a", "--pipe-ok-glow": "rgba(40,210,100,.5)", "--pipe-warn-glow": "rgba(255,170,20,.6)", "--pipe-bad-glow": "rgba(255,50,50,.6)",
-        "--util-face": "color-mix(in srgb,var(--key-led) 20%,#dfe2e8)", "--util-wall": "#9aa1ae", "--util-ink": "#13161c",
+        "--util-face": "color-mix(in srgb,var(--key-led) 20%,#dfe2e8)", "--util-wall": "#9aa1ae", "--util-ink": "#0e1015",
         "--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#e2e7ed", "--text": "#13161c", "--muted": "#3e4452", "--border": "#b4bdc9", "--rule": "#b4bdc9", "--ok": "#0d6b3a", "--bad": "#b4121e", "--warn": "#7a4300",
         "--idle": "#5d6472", "--glyph-ok": "#23744a", "--glyph-bad": "#b4121e", "--accent": "#1c4fa6", "--accent-ink": "#ffffff", "--ok-ink": "#ffffff", "--warn-ink": "#ffffff", "--bad-ink": "#ffffff",
         "--hl": "#f8d8db", "--banner": "#b4121e", "--banner-text": "#ffffff", "--shade": "rgba(30,40,60,.1)", "--dim": "rgba(14,20,30,.5)",
@@ -1468,9 +1470,9 @@ THEMES.y2k = (function () {
         "--desk-floor": "#c3c9d1", "--desk-card": "#eef1f5", "--desk-card2": "#e1e6ec", "--edge-hi": "rgba(255,255,255,.9)", "--edge-line": "rgba(30,40,60,.14)",
         "--edge-lo": "#b9c0ca", "--edge-lo2": "#8e97a4", "--age": "rgba(0,0,0,.03)", "--contact": "rgba(20,28,44,.42)", "--lift": "rgba(20,28,44,.4)",
         "--emb-hi": "rgba(255,255,255,.9)", "--emb-lo": "rgba(20,30,50,.12)", "--well": "rgba(20,30,50,.24)", "--stamp-ok": "#13161c",
-        "--tag": "#eaeef3", "--tag-edge": "#8e97a4", "--tag-ink": "#13161c", "--tag-muted": "#3e4452", "--tag-ok": "#1d6b40", "--tag-warn": "#7a4300", "--tag-bad": "#b4121e",
-        "--tag-off": "#dfe4ea", "--tag-off-ink": "#353b47", "--tag-off-bad": "#a3101b",
-        "--btn-face": "#edf1f5", "--btn-ink": "#13161c", "--btn-hi": "rgba(255,255,255,.9)", "--btn-edge": "#8e97a4",
+        "--tag": "#eaeef3", "--tag-edge": "#8e97a4", "--tag-ink": "#0e1015", "--tag-muted": "#252a34", "--tag-ok": "#145530", "--tag-warn": "#5c3100", "--tag-bad": "#930d17",
+        "--tag-off": "#dfe4ea", "--tag-off-ink": "#252a34", "--tag-off-bad": "#930d17",
+        "--btn-face": "#edf1f5", "--btn-ink": "#0e1015", "--btn-hi": "rgba(255,255,255,.9)", "--btn-edge": "#8e97a4",
         "--head-case": "uppercase", "--head-variant": "normal", "--head-spacing": ".1em",
         "--pool": "rgba(255,255,255,.42)", "--pool-2": "rgba(150,190,255,.16)", "--flicker-1": "transparent", "--flicker-2": "transparent", "--desk-vignette": "rgba(40,52,74,.3)",
         "--key-face": "linear-gradient(#edf1f5,#edf1f5)", "--key-hover-face": "var(--key-face)", "--key-rim": "linear-gradient(transparent,transparent)", "--key-ink": "#13161c", "--key-hover-ink": "#13161c", "--key-wall": "rgba(150,170,195,.7)",
@@ -1486,7 +1488,7 @@ THEMES.y2k = (function () {
         "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#3c404a", "--veil": "rgba(255,255,255,.2)", "--veil-text": "rgba(247,245,252,.64)"},
       dark: {"--item-radius": "14px", "--item-face": ITEM_FACE, "--item-shadow": ITEM_SHADOW,
         "--pipe-off": "rgba(225,220,255,.16)", "--pipe-rib": "rgba(0,0,0,.62)", "--pipe-ok": "#3ee07a", "--pipe-warn": "#ffb020", "--pipe-bad": "#ff3a3a", "--pipe-ok-glow": "rgba(62,224,122,.5)", "--pipe-warn-glow": "rgba(255,176,32,.6)", "--pipe-bad-glow": "rgba(255,58,58,.65)",
-        "--util-face": "color-mix(in srgb,var(--key-led) 16%,#2a2d37)", "--util-wall": "#111319", "--util-ink": "#edf1f7",
+        "--util-face": "color-mix(in srgb,var(--key-led) 16%,#2a2d37)", "--util-wall": "#111319", "--util-ink": "#ffffff",
         "--screen-face": "var(--screen)", "--screen-rim": "var(--surround)", "--screen-warn": "var(--lcd-warn)", "--gauge-face": "var(--screen)", "--gauge-rim": "var(--shell-rim)", "--gauge-ink": "var(--screen-ink)", "--gauge-alert": "var(--lcd-bad)", "--details-floor": "var(--screen)", "--details-edge": "var(--surround)", "--details-lip": "var(--shell-rim)", "--details-ink": "var(--screen-ink)", "--details-warn": "var(--lcd-warn)", "--details-bad": "var(--lcd-bad)", "--lamp-chase-duration": "1.5s", "--lamp-chase-step": "50ms", "--start-face": "var(--shell)", "--start-rim": "var(--shell-rim)", "--start-wall": "var(--shell-wall)", "--start-ink": "var(--tag-off-ink)", "--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
         "--idle": "#8792a3", "--glyph-ok": "#7fcf9f", "--glyph-bad": "#ff5c5c", "--accent": "#84b8ff", "--accent-ink": "#0b1220", "--ok-ink": "#0b1220", "--warn-ink": "#1a1206", "--bad-ink": "#1a0606",
         "--hl": "#3a161a", "--banner": "#b3202a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(3,5,9,.72)",
@@ -1495,9 +1497,9 @@ THEMES.y2k = (function () {
         "--desk-floor": "#080b11", "--desk-card": "#161b23", "--desk-card2": "#10151c", "--edge-hi": "rgba(220,235,255,.1)", "--edge-line": "rgba(0,0,0,.45)",
         "--edge-lo": "#05070a", "--edge-lo2": "#020305", "--age": "rgba(0,0,0,.3)", "--contact": "rgba(0,0,0,.8)", "--lift": "rgba(0,0,0,.85)",
         "--emb-hi": "rgba(255,255,255,.06)", "--emb-lo": "rgba(0,0,0,.7)", "--well": "rgba(0,0,0,.6)", "--stamp-ok": "#e9edf4",
-        "--tag": "#1a2029", "--tag-edge": "#05070a", "--tag-ink": "#edf1f7", "--tag-muted": "#b9c3d1", "--tag-ok": "#6fe0a0", "--tag-warn": "#ffbf5e", "--tag-bad": "#ff8080",
-        "--tag-off": "#141920", "--tag-off-ink": "#aab4c3", "--tag-off-bad": "#ff8a8a",
-        "--btn-face": "#1c222c", "--btn-ink": "#edf1f7", "--btn-hi": "rgba(255,255,255,.14)", "--btn-edge": "#05070a",
+        "--tag": "#1a2029", "--tag-edge": "#05070a", "--tag-ink": "#ffffff", "--tag-muted": "#e2e7f0", "--tag-ok": "#a6f7c8", "--tag-warn": "#ffdc98", "--tag-bad": "#ffbaba",
+        "--tag-off": "#141920", "--tag-off-ink": "#e2e7f0", "--tag-off-bad": "#ffb0b0",
+        "--btn-face": "#1c222c", "--btn-ink": "#ffffff", "--btn-hi": "rgba(255,255,255,.14)", "--btn-edge": "#05070a",
         "--head-case": "uppercase", "--head-variant": "normal", "--head-spacing": ".1em",
         "--pool": "rgba(70,120,255,.13)", "--pool-2": "rgba(150,90,255,.08)", "--flicker-1": "transparent", "--flicker-2": "transparent", "--desk-vignette": "rgba(0,0,0,.7)",
         "--key-face": "linear-gradient(#1c222c,#1c222c)", "--key-hover-face": "var(--key-face)", "--key-rim": "linear-gradient(transparent,transparent)", "--key-ink": "#edf1f7", "--key-hover-ink": "#ffffff", "--key-wall": "rgba(120,140,170,.4)",
@@ -1506,7 +1508,7 @@ THEMES.y2k = (function () {
         "--focus-outer": "#84b8ff", "--item-card": "#161b23",
         "--legend-lit": "#ffffff", "--legend-lit-bad": "#ff8080",
         "--frost": "rgba(20,25,33,.9)", "--frost-hi": "rgba(255,255,255,.06)", "--frost-rim": "rgba(200,220,255,.16)", "--frost-drop": "rgba(0,0,0,.5)",
-        "--cap-frost": "color-mix(in srgb,var(--key-led) 24%,#20232d)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 55%,#000)", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
+        "--cap-frost": "color-mix(in srgb,var(--key-led) 20%,#1b1d26)", "--cap-gloss": "rgba(255,255,255,.24)", "--cap-rim": "rgba(210,225,250,.3)", "--cap-shade": "rgba(0,0,0,.4)", "--cap-wall": "color-mix(in srgb,var(--cap-frost) 55%,#000)", "--cap-lower": "rgba(0,0,0,.3)", "--key-cast": "rgba(0,0,0,.85)", "--key-well": "rgba(0,0,0,.3)", "--key-collar": "rgba(214,194,255,.3)", "--key-collar-edge": "rgba(0,0,0,.4)", "--cap-wall-lo": "#06070b",
         "--cap-clear": "rgba(160,185,220,.08)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#8f9a74", "--screen-ink": "#141c0d", "--lcd-hi": "rgba(255,255,255,.12)", "--lcd-muted": "#222e17", "--lcd-warn": "#472500", "--lcd-bad": "#5e060b", "--lcd-shadow": "rgba(20,28,13,.22)", "--lcd-off": "#5d654c",
         "--surround": "#30333d", "--surround-hi": "rgba(255,255,255,.1)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
@@ -1553,10 +1555,13 @@ THEMES.y2k = (function () {
     get deskCss() { if (deskCss) return deskCss; setTimeout(bake, 0); return deskCss = [
       // Art shared by the rules below, scheme-independent, so it sits on body rather than in the token maps. Boards are
       // pre-rendered SVG tiles; each session shows its own patch of the board.
-      C + ' body{--pcb-module:' + art("pcb-module", board("m", 480, 220, 7, GREEN, false, 1.1), 480, 220) + ';--pcb-case:' + art("pcb-case", board("k", 400, 300, 11, BLACK, true, 2.2), 400, 300) + ';--stem:' + STEM + ';--seam-case:' + seam(16) + ';--seam-module:' + seam(14) + ';--grain:' + GRAIN + ';' +
+      C + ' body{--pcb-module:' + art("pcb-module", board("m", 480, 220, 7, GREEN, false, 1.1), 480, 220) + ';--pcb-case:' + art("pcb-case", board("k", 400, 300, 11, BLACK, true, 2.2), 400, 300) + ';--stem:' + STEM + ';--seam-case:' + seam(16) + ';--seam-module:' + seam(14) + ';' +
         '--chip:' + art("chip", chipSprite("SN74LS"), 32, 22) + ';--chip-ri:' + art("chip-ri", chipSprite("RI-4201"), 32, 22) + ';--chip-strategy:' + art("chip-strategy", chipSprite("ST-6502"), 32, 22) + ';--chip-ds-demo:' + art("chip-ds-demo", chipSprite("DS-555"), 32, 22) + ';--socket:' + art("socket", SOCKET, 32, 22) + ';--footprint:' + art("footprint", FOOTPRINT, 32, 22) + '}',
       // Lighting: a softbox off to the top left over a pale bench, and a cool blue studio light in the dark.
-      C + ' #desk .desk-light{background:radial-gradient(60vmax 46vmax at 14% 6%,var(--pool) 0,transparent 70%),radial-gradient(52vmax 40vmax at 92% 10%,var(--pool-2) 0,transparent 70%),radial-gradient(130vmax 95vmax at 50% 42%,transparent 38%,var(--desk-vignette) 100%)}',
+      // The bench is a flat colour under one static light: a softbox pool and the falloff to the edges in a single layer. Only the
+      // mat carries a texture, so nothing full-page and tiled repaints behind the cases.
+      C + ' #desk{background-image:none}',
+      C + ' #desk .desk-light{background:radial-gradient(130vmax 95vmax at 22% 8%,var(--pool) 0,transparent 34%,transparent 46%,var(--desk-vignette) 100%)}',
       C + ' #desk .desk-flicker{display:none}',
       // The anti-static mat: rounded rubber with a bound edge.
       C + ' .page::before{border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.25),0 14px 34px -12px rgba(0,0,0,.5)}',
@@ -1654,6 +1659,11 @@ THEMES.y2k = (function () {
       C + '[data-button-hover="press"] .bfx{--legend-wash:' + WASH_BUTTON + '}',
       C + '[data-button-hover="press"] .bfx-fill{box-shadow:' + LIT_EDGE + '}',
       // Legends are pad-printed: one flat ink on the cap's face, crisp, with no shadow or glow even when the cap is lit.
+      // Every legend is heavy and full-strength, the start time and state included, so a key reads at a glance in any shell colour.
+      C + ' .slot-card .app-pill{font-weight:700}',
+      C + ' .slot-card .app-pill :is(.port,.since){font:700 13.5px/1.2 var(--mono);letter-spacing:0}',
+      C + ' .slot-card .app-pill .build-failed{font-size:13.5px}',
+      C + ' :is(.backend,.slot-backend) .update-btn,' + C + ' .backend :is(.toggle,button.act:not(.quiet)),' + C + ' .settings .done,' + C + ' .confirm-actions button,' + C + ' .recovery-actions button{font-weight:800}',
       C + ' :is(.bfx-text,.press-text){text-shadow:none}',
       C + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
       C + ' .confirm-actions .danger{--cap-frost:var(--danger);--cap-gloss:rgba(255,255,255,.4);--key-glow:rgba(255,120,120,.6);--key-led:#ffb3b3;color:var(--danger-ink)}',
@@ -1664,7 +1674,7 @@ THEMES.y2k = (function () {
       C + ' .backend .output-toggle{padding:5px 12px 4px 9px}',
       C + ' .backend .toggle .chev{color:currentColor}',
       C + ' .backend button.act:not(.quiet){margin-bottom:3px;padding:5px 14px 4px;font:700 14px/1.2 var(--serif);letter-spacing:.05em;text-transform:uppercase}',
-      C + ' .backend button.act.svc-restart{padding:4px 12px 3px}',
+      C + ' .backend button.act.svc-restart{padding:4px 12px 3px;font-size:14px}',
       C + ' .settings .segmented{gap:6px;padding:4px 4px 7px;border-radius:12px}',
       C + ' .settings .segmented label{min-width:0;padding:7px 4px;font:700 14px/1 var(--serif);letter-spacing:.02em;text-transform:none}',
       C + ' .settings .segmented label:has(input:checked) > .bfx .bfx-fill{opacity:1}',
@@ -1757,14 +1767,14 @@ THEMES.y2k = (function () {
       C + ' .slot-card :is(.app-pill,.app-start){--led:#24302a;--led-core:#3a463f;--led-spill:transparent;margin-left:32px}',
       C + ' .slot-card .app-pill{--pill-pad:7px 14px 8px 32px;--tag-shape:inset(0 round 10px);font-family:var(--mono);font-size:14px;transform:translateY(3px)}',
       C + ' .slot-card .app-pill::before{clip-path:none;border-radius:10px;' +
-        'background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,' +
-        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);' +
+        'background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,' +
+        'linear-gradient(90deg,transparent 0 28px,var(--cap-rim) 28px 29px,transparent 29px),linear-gradient(90deg,var(--cap-clear) 0 28px,var(--cap-frost) 28px);' +
         'box-shadow:' + latched(3) + '}',
       C + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::before{box-shadow:' + latched(3.5) + '}',
       C + ' .slot-card a.app-pill:active::before{box-shadow:' + latched(4) + '}',
       C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible)::before{box-shadow:' + CAP_HALF + '}',
-      C + ' .slot-card .app-pill.off::before{background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,' +
-        'linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);box-shadow:' + CAP_UP + '}',
+      C + ' .slot-card .app-pill.off::before{background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,' +
+        'linear-gradient(90deg,transparent 0 28px,var(--cap-rim) 28px 29px,transparent 29px),linear-gradient(90deg,var(--cap-clear) 0 28px,var(--cap-frost) 28px);box-shadow:' + CAP_UP + '}',
       C + ' .slot-card .app-pill.off{transform:none}',
       // The part beside the key: drawn on the board, so it stays put while the key moves.
       C + ' .slot-card :is(.app-pill,button.act.app-start)::after{content:"";position:absolute;inset:auto;left:-33px;top:50%;width:33px;height:22px;margin-top:-11px;z-index:-2;clip-path:none;pointer-events:none;border-radius:3px;' +
@@ -1787,7 +1797,7 @@ THEMES.y2k = (function () {
       '@keyframes y2k-pulse{0%{transform:none;opacity:0}6%{opacity:.95}30%{transform:translateX(7px);opacity:0}100%{transform:translateX(7px);opacity:0}}',
       // A failed build is the loudest key: a red translucent cap (a red clear button) with white legends and its LED blazing, its edge lit.
       C + ' .slot-card .app-pill.failed{--tag-ink:#ffffff;--tag-muted:#ffffff;--tag-bad:#ffffff;--glyph-bad:#ffffff;--legend-lit-bad:#ffffff;--legend-wash-bad:none;--legend-glow-bad:none;--legend-halo-bad:rgba(255,200,200,.9);color:#ffffff;transform:translateY(3px)}',
-      C + ' .slot-card .app-pill.failed::before{background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,linear-gradient(90deg,rgba(220,30,40,.55) 0 27px,#c8141f 27px);' +
+      C + ' .slot-card .app-pill.failed::before{background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,linear-gradient(90deg,rgba(220,30,40,.55) 0 28px,#c8141f 28px);' +
         '--cap-rim:#ff9a9a;--cap-wall:#8f0c15;--cap-wall-lo:#4a0308;--cap-glow:rgba(255,40,40,.55);--cap-gloss:rgba(255,255,255,.45);box-shadow:' + latched(3) + '}',
       C + ' .slot-card .app-pill.failed .dot{filter:none}',
       // The press: a ready key sits seated; hover pushes it a little further and lights it, a click bottoms it out.
@@ -1800,13 +1810,13 @@ THEMES.y2k = (function () {
       C + ' .slot-card a.app-pill.off:is(:hover,:focus-visible)::after{transform:translateY(-1.5px)}',
       // The backlight (the press layer): the LED under the switch floods the cap with the shell's light and lights its edges.
       C + ' .slot-card .press-text{--legend-wash:' + WASH_KEY + ';border-radius:10px;box-shadow:' + LIT_EDGE + '}',
-      C + ' .slot-card a.app-pill.failed .press-text{background:radial-gradient(70% 140% at 16px 50%,rgba(255,200,200,.55),transparent 80%);box-shadow:inset 0 0 0 1.5px #ffd0d0,inset 0 0 10px rgba(255,170,170,.7)}',
+      C + ' .slot-card a.app-pill.failed .press-text{background:radial-gradient(70% 140% at 14px 50%,rgba(255,200,200,.55),transparent 80%);box-shadow:inset 0 0 0 1.5px #ffd0d0,inset 0 0 10px rgba(255,170,170,.7)}',
       // Start keys: a raised, solid latching key with a lowercase name and the sleeping mark, its LED dark, a bare footprint beside it.
       // Hover pre-presses it and lights it; a press clicks it in, and it stays in, LED amber, reading starting, as a chip drops in.
       C + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin-bottom:0;padding:7px 15px 8px 32px;border:0;border-radius:10px;font:14px/1.2 var(--mono);color:var(--btn-ink);' +
-        'background:' + DOME + ',' + led("16px 50%") + ',var(--stem) 7px 50%/18px 18px no-repeat,linear-gradient(90deg,transparent 0 27px,var(--cap-rim) 27px 28px,transparent 28px),linear-gradient(90deg,var(--cap-clear) 0 27px,var(--cap-frost) 27px);' +
+        'background:' + DOME + ',' + led("14px 50%") + ',var(--stem) 5px 50%/18px 18px no-repeat,linear-gradient(90deg,transparent 0 28px,var(--cap-rim) 28px 29px,transparent 29px),linear-gradient(90deg,var(--cap-clear) 0 28px,var(--cap-frost) 28px);' +
         'box-shadow:' + CAP_UP + ';--legend-wash:' + WASH_KEY + ';transition:transform var(--dur-fast) var(--ease-out)}',
-      C + ' .slot-card .app-start .app-name{font-weight:500;text-transform:lowercase;letter-spacing:.02em}',
+      C + ' .slot-card .app-start .app-name{font-weight:700;text-transform:lowercase;letter-spacing:.02em}',
       C + ' .slot-card .app-start .dot{width:18px;height:18px}',
       C + ' .slot-card .app-start .dot.sleep{color:var(--tag-off-ink)}',
       C + ' .slot-card .app-start .dot.wake,' + C + ' .slot-card .app-start .bfx-text .dot.sleep{display:none}',

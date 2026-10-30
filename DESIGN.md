@@ -239,7 +239,10 @@ Terminal is the default for a first visit; a stored choice always wins (a stored
   the frost; while something starts, one lit segment steps down the bar. Buttons are solid, opaque caps standing proud in
   moulded wells, with a domed top, a side wall, a cast shadow and a collar, in one family: primary actions are wide pills,
   apps and options are squarer latching keys (raised when off, latched down when running or chosen), small utilities are
-  slim START/SELECT capsules, and Stop is a round red domed cap like the A and B buttons, with nothing printed on it.
+  slim START/SELECT capsules, and Stop is a round domed cap like the A and B buttons in deep, muted red plastic (the loud
+  reds belong to status), with only a faint square moulded into it. Legends are heavy and full-strength, 7:1 or better on the caps.
+  The frost is paid for once per panel: pads, keys and screens on it are flat translucent fills that never frost again, and the
+  bench is a flat colour under one static light.
   Off is never faded; only a disabled key is. Legends are flat, single-ink pad printing with no shadow or glow. Text sits
   only on frosted or pad-printed areas. The character is on a Game Boy-style reflective LCD in a printed surround, and the
   backend rollup and commits are on small LCDs. The shell colour is its own Settings pick (Atomic purple by default, Clear,
