@@ -99,6 +99,9 @@ test("start keys cover only the managed apps, and app pills follow their order w
   assert.deepStrictEqual(plain(p.run("SERVE_APPS")), ["ri", "ds-demo"]);
   assert.deepStrictEqual(plain(p.run("startableApps({slot:3,branch:'b',apps:[]})")), ["ri", "ds-demo"]);
   assert.deepStrictEqual(plain(p.run("appOrder([{app:'strategy'},{app:'ds-demo'},{app:'ri'}]).map(function(a){return a.app})")), ["ri", "ds-demo", "strategy"]);
+  const keys = slot => plain(p.run("keyOrder(" + JSON.stringify(slot) + ").map(function(k){return k.app?'pill:'+k.app.app:'start:'+k.start})"));
+  assert.deepStrictEqual(keys({ slot: 3, branch: "b", apps: [{ app: "ds-demo" }] }), ["start:ri", "pill:ds-demo"], "an off RI keeps the first position");
+  assert.deepStrictEqual(keys({ slot: 3, branch: "b", apps: [{ app: "strategy" }, { app: "ds-demo" }] }), ["start:ri", "pill:ds-demo", "pill:strategy"], "unmanaged running apps follow");
 });
 
 test("the session LED shows the worst app status; only a session with no apps is off", () => {

@@ -2792,6 +2792,17 @@ function moduleShell(s){
 // The apps this machine manages, in display order (WT_APPS, set by the server when it renders the page). Start keys offer
 // the ones a session does not serve yet (slots 6-9 serve ds-demo only), and a session's app pills follow this order.
 var SERVE_APPS=/*APPS*/null/*END*/||["ri","ds-demo"];
+// A session's keys, like a physical panel: each managed app has a fixed position in SERVE_APPS order, holding its running
+// pill or, when it is off, its start key; running apps outside the list follow. Returns {app} for a pill, {start} for a key.
+function keyOrder(s){
+  var running=appOrder(s.apps||[]),startable=startableApps(s),out=[];
+  SERVE_APPS.forEach(function(name){
+    running.forEach(function(a){if(a.app===name)out.push({app:a})});
+    if(startable.indexOf(name)>=0)out.push({start:name});
+  });
+  running.forEach(function(a){if(SERVE_APPS.indexOf(a.app)<0)out.push({app:a})});
+  return out;
+}
 function appOrder(apps){
   var rank=function(a){var i=SERVE_APPS.indexOf(a.app);return i<0?SERVE_APPS.length:i};
   return apps.map(function(a,i){return{a:a,i:i}}).sort(function(x,y){return rank(x.a)-rank(y.a)||x.i-y.i}).map(function(x){return x.a});
@@ -2825,9 +2836,8 @@ function renderSlot(s){
     '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+branchLabel(s.branch||"(no branch)")+'</span>'+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
-  appOrder(s.apps||[]).forEach(function(a){h+=appPill(a)});
   var startable=startableApps(s);
-  startable.forEach(function(app){h+=startKey(s,app)});
+  keyOrder(s).forEach(function(key){h+=key.app?appPill(key.app):startKey(s,key.start)});
   if(!(s.apps||[]).length&&!startable.length)h+='<span class="muted">no apps</span>';
   // The backend switch sits with the app pills; when the backend already runs this branch's head it stays, disabled, as the note.
   if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="update-btn backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
