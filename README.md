@@ -42,6 +42,7 @@ It earns its place when you compare branches or run tasks in parallel.
 | `bin/qa-dashboard` | The Overseer status page (Python standard library only). |
 | `bin/overseer-systemctl` | Service control that delegates to `systemctl` on Linux and launchd on macOS. |
 | `bin/kc-redirects` | Adds and removes Keycloak sign-in addresses for served frontends (used by `wt serve`). |
+| `bin/t3-post` | Posts a user message into a running T3 Code thread (see [Posting to a T3 thread](#posting-to-a-t3-thread)). |
 | `bin/wt-qa-runtime.py` | Reconciles the managed QA runtime after an explicit `wt qa` attach. |
 | `scripts/codex-run`, `scripts/codex-digest` | Launch Codex CLI runs and summarise their progress; see `scripts/README.md`. |
 | `hooks/` | Claude Code PreToolUse hooks: keep edits inside worktrees, block risky file reads, QA guards, Herdr tab names. |
@@ -105,6 +106,17 @@ depend on the app's own local runtime setup (backend virtualenvs, Functions, Lan
 which this repository does not create. Keycloak admin credentials stay in `~/.keycloak-local/config`,
 outside git. The unit `PATH` assumes `fnm` and `pnpm` under `~/.local`; if yours live elsewhere, add the
 tool directories to the affected units.
+
+### Posting to a T3 thread
+
+```bash
+~/.claude/bin/t3-post <thread-id> --file message.md     # or pipe the text on stdin
+~/.claude/bin/t3-post <thread-id> --dry-run < message.md   # print the command, send nothing
+```
+
+It mints a 5-minute token, reads the thread's model and modes, sends the message as a new turn, and
+revokes the token. `T3_ORIGIN` overrides the server address. It refuses empty text and deleted or
+archived threads. A real post messages a live agent, so use `--dry-run` when testing.
 
 ### Repairing one backend service
 
