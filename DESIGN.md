@@ -224,7 +224,8 @@ Terminal is the default for a first visit; a stored choice always wins (a stored
   wax seal, masking tape, halftone candles and smoky fog; brush-ink glyphs and blood-red ink.
   The Update button is a manila tag with the behind count stamped on it in sepia.
 - **Clear Plastic**: late-90s see-through electronics (Game Boy Color, the clear PS1 controller, the
-  PSP, the iMac G3). Every panel is a clear shell over a real circuit board, pre-rendered as SVG tiles:
+  PSP, the iMac G3). Every panel is a tinted, frosted shell over a real circuit board, seen soft and dimmed
+  through it (the blur is baked into the pre-rendered SVG tiles, never live):
   green solder mask in the sessions and the handheld, a black motherboard in the cases, with ICs
   carrying pad-printed part numbers, SMD passives, crystals, screws in clear bosses and flex cables.
   The board mirrors real state: a running app is a chip beside its key, a stopped one an empty socket,
@@ -232,7 +233,7 @@ Terminal is the default for a first visit; a stored choice always wins (a stored
   starting app's trace carries a faint pulse. Text sits only on frosted or pad-printed areas. Keys are
   clear caps with the switch visible through a window. The character is on a Game Boy-style
   reflective LCD in a printed surround, and the backend rollup and commits are on small LCDs. The
-  shell colour is its own Settings pick (Clear, Smoke, Atomic purple, Tangerine). Problems light the
+  shell colour is its own Settings pick (Atomic purple by default, Clear, Smoke, Tangerine). Problems light the
   shell's rim red.
 
 ## Prompt for agents building a dev-tool UI

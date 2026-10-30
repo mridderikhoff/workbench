@@ -1056,7 +1056,7 @@ THEMES.clear = (function () {
   // A board tile: solder mask, copper traces and pours under the mask, vias, silkscreen and parts in functional groups on a grid
   // of cells (an IC with its decoupling caps and pin fan-out, two SOICs over a row of resistors, a can and a crystal, a block of
   // passives, a mounting hole). Buses run the full width along each row and risers the full height, so the tile wraps.
-  function board(p, w, h, seed, c, sparse) {
+  function board(p, w, h, seed, c, sparse, soft) {
     var r = rng(seed), out = defs(p), under = "", traces = "", parts = "", silk = "", vias = "", i, j, k;
     var gold = "url(#" + p + "gold)";
     function via(x, y, rr) { rr = rr || 1.3; vias += '<circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + f(rr + 0.8) + '" fill="' + gold + '"/><circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + f(rr * 0.55) + '" fill="#050505"/>' }
@@ -1125,9 +1125,13 @@ THEMES.clear = (function () {
       }
     }
     // Routed traces may cross an edge, so they are repeated at the eight neighbouring offsets and wrap; parts stay inside the tile.
-    out += under + '<g id="' + p + 'run">' + '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' + traces + '</g>' + vias + '</g>';
-    [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]].forEach(function (d) { out += '<use href="#' + p + 'run" x="' + d[0] * w + '" y="' + d[1] * h + '"/>' });
-    out += '<g font-family="monospace" font-weight="700" fill="' + c.silk + '" fill-opacity=".78">' + silk + '</g>' + parts + rect(0, 0, w, h, 0, "url(#" + p + "sheen)");
+    // soft: the board as seen through frosted plastic, blurred once inside the tile (the image is rasterised once and cached, so
+    // nothing is blurred live). The blur takes in the wrapped copies, so the tile still joins without a seam.
+    var body = under + '<g id="' + p + 'run">' + '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' + traces + '</g>' + vias + '</g>';
+    [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]].forEach(function (d) { body += '<use href="#' + p + 'run" x="' + d[0] * w + '" y="' + d[1] * h + '"/>' });
+    body += '<g font-family="monospace" font-weight="700" fill="' + c.silk + '" fill-opacity=".78">' + silk + '</g>' + parts;
+    out += soft ? '<filter id="' + p + 'soft" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="' + soft + '"/></filter><g filter="url(#' + p + 'soft)">' + body + '</g>' : body;
+    out += rect(0, 0, w, h, 0, "url(#" + p + "sheen)");
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' + out + '</svg>';
   }
   // A compact data URI for the art: attribute quotes become single quotes, and only what a url() needs is escaped.
@@ -1194,20 +1198,26 @@ THEMES.clear = (function () {
     '<circle cx="22" cy="22" r="14.4" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".7"/><ellipse cx="17.4" cy="15" rx="6" ry="3.4" fill="url(#cs-soft)" transform="rotate(-24 17.4 15)"/><circle cx="15.6" cy="14.6" r="1.2" fill="#fff"/></g></svg>';
   /* ---------- shells: one set of plastic variables per colour, picked in Settings ---------- */
   function shell(name, light, dark) { return {name: name, light: light, dark: dark} }
-  function plastic(tint, wall, rim, hi, deep, led, glow) { return {"--shell": tint, "--shell-wall": wall, "--shell-rim": rim, "--shell-hi": hi, "--shell-deep": deep, "--key-led": led, "--key-glow": glow} }
+  function plastic(tint, wall, rim, hi, deep, led, glow, edge) { return {"--shell": tint, "--shell-base": tint, "--shell-wall": wall, "--shell-rim": rim, "--shell-hi": hi, "--shell-deep": deep, "--key-led": led, "--key-glow": glow, "--shell-glow": edge} }
+  // Atomic purple comes first, so it is the default.
   var shells = {
-    clear: shell("Clear", plastic("rgba(214,228,245,.12)", "rgba(150,175,205,.5)", "rgba(255,255,255,.9)", "rgba(255,255,255,.6)", "rgba(60,80,110,.32)", "#36b4ff", "rgba(54,180,255,.55)"),
-      plastic("rgba(170,195,230,.06)", "rgba(140,165,200,.28)", "rgba(220,235,255,.42)", "rgba(255,255,255,.2)", "rgba(0,0,0,.55)", "#36b4ff", "rgba(54,180,255,.5)")),
-    smoke: shell("Smoke", plastic("rgba(28,30,38,.4)", "rgba(24,26,34,.72)", "rgba(255,255,255,.6)", "rgba(255,255,255,.42)", "rgba(0,0,0,.5)", "#eef2ff", "rgba(230,236,255,.5)"),
-      plastic("rgba(8,9,13,.48)", "rgba(0,0,0,.6)", "rgba(200,210,230,.3)", "rgba(255,255,255,.16)", "rgba(0,0,0,.65)", "#eef2ff", "rgba(230,236,255,.42)")),
-    purple: shell("Atomic purple", plastic("rgba(104,52,196,.36)", "rgba(92,38,180,.72)", "rgba(235,220,255,.88)", "rgba(255,255,255,.5)", "rgba(40,10,90,.45)", "#c46bff", "rgba(196,107,255,.55)"),
-      plastic("rgba(104,52,196,.32)", "rgba(116,64,214,.55)", "rgba(206,176,255,.45)", "rgba(255,255,255,.2)", "rgba(10,0,30,.6)", "#c46bff", "rgba(196,107,255,.5)")),
-    tangerine: shell("Tangerine", plastic("rgba(255,122,10,.34)", "rgba(235,100,0,.74)", "rgba(255,238,214,.9)", "rgba(255,255,255,.55)", "rgba(120,40,0,.4)", "#ffb020", "rgba(255,176,32,.55)"),
-      plastic("rgba(255,122,10,.28)", "rgba(240,110,10,.52)", "rgba(255,204,150,.48)", "rgba(255,255,255,.2)", "rgba(40,10,0,.6)", "#ffb020", "rgba(255,176,32,.5)"))
+    purple: shell("Atomic purple", plastic("rgba(118,52,224,.44)", "rgba(110,44,214,.82)", "rgba(238,222,255,.9)", "rgba(255,255,255,.5)", "rgba(46,10,104,.5)", "#c46bff", "rgba(196,107,255,.55)", "rgba(206,140,255,.5)"),
+      plastic("rgba(112,46,216,.46)", "rgba(132,70,236,.66)", "rgba(214,182,255,.5)", "rgba(255,255,255,.2)", "rgba(12,0,36,.62)", "#c46bff", "rgba(196,107,255,.5)", "rgba(176,96,255,.42)")),
+    clear: shell("Clear", plastic("rgba(214,228,245,.14)", "rgba(150,175,205,.5)", "rgba(255,255,255,.9)", "rgba(255,255,255,.6)", "rgba(60,80,110,.32)", "#36b4ff", "rgba(54,180,255,.55)", "rgba(200,225,255,.4)"),
+      plastic("rgba(170,195,230,.08)", "rgba(140,165,200,.3)", "rgba(220,235,255,.42)", "rgba(255,255,255,.2)", "rgba(0,0,0,.55)", "#36b4ff", "rgba(54,180,255,.5)", "rgba(140,180,240,.22)")),
+    smoke: shell("Smoke", plastic("rgba(28,30,38,.44)", "rgba(24,26,34,.74)", "rgba(255,255,255,.6)", "rgba(255,255,255,.42)", "rgba(0,0,0,.5)", "#eef2ff", "rgba(230,236,255,.5)", "rgba(150,160,190,.3)"),
+      plastic("rgba(8,9,13,.5)", "rgba(0,0,0,.6)", "rgba(200,210,230,.3)", "rgba(255,255,255,.16)", "rgba(0,0,0,.65)", "#eef2ff", "rgba(230,236,255,.42)", "rgba(120,130,160,.2)")),
+    tangerine: shell("Tangerine", plastic("rgba(255,122,10,.38)", "rgba(235,100,0,.78)", "rgba(255,238,214,.9)", "rgba(255,255,255,.55)", "rgba(120,40,0,.4)", "#ffb020", "rgba(255,176,32,.55)", "rgba(255,170,80,.45)"),
+      plastic("rgba(240,110,10,.38)", "rgba(240,110,10,.56)", "rgba(255,204,150,.48)", "rgba(255,255,255,.2)", "rgba(40,10,0,.6)", "#ffb020", "rgba(255,176,32,.5)", "rgba(255,150,60,.36)"))
   };
   /* ---------- reusable CSS pieces ---------- */
   // The plastic over a board: a broad specular sweep and a second streak, then the shell's tint.
-  var SHEEN = "linear-gradient(118deg,var(--shell-hi) 0,transparent 24%,transparent 62%,color-mix(in srgb,var(--shell-hi) 45%,transparent) 70%,transparent 78%),linear-gradient(var(--shell),var(--shell))";
+  var SPEC = "linear-gradient(118deg,var(--shell-hi) 0,transparent 24%,transparent 62%,color-mix(in srgb,var(--shell-hi) 45%,transparent) 70%,transparent 78%)";
+  // The frosted shell over a board: the board sits in a layer behind it, already softened (the blur is baked into its tile, since a
+  // live backdrop blur made scrolling stutter), under the shell's tinted fill, a soft glow off one corner and a light rim. TEXT adds
+  // a heavier veil where text sits straight on the shell.
+  var FILL = "radial-gradient(146% 88% at 15% 100%,var(--shell-glow) 0,transparent 70%),linear-gradient(var(--shell),var(--shell)),linear-gradient(var(--veil),var(--veil))";
+  var TEXT = "linear-gradient(var(--veil-text),var(--veil-text))";
   // The shell's walls: a bright outer edge, the wall seen through the face (denser tint), a refraction line just inside it, the
   // lower wall in shade, then the thickness of the shell below and its contact shadow on the desk.
   var WALLS = "inset 0 0 0 1px var(--shell-rim),inset 0 0 0 6px var(--shell-wall),inset 1px 1.5px 0 6px var(--shell-hi),inset -1px -2px 0 6px var(--shell-deep),inset 0 0 0 8px color-mix(in srgb,var(--shell-wall) 40%,transparent)";
@@ -1260,7 +1270,7 @@ THEMES.clear = (function () {
         "--cap-clear": "rgba(230,240,255,.18)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#a6b188", "--screen-ink": "#1b2513", "--lcd-hi": "rgba(255,255,255,.22)", "--lcd-muted": "#2b3920", "--lcd-warn": "#5a3000", "--lcd-bad": "#7a0a10", "--lcd-shadow": "rgba(27,37,19,.2)", "--lcd-off": "#7b8466",
         "--surround": "#3a3e4a", "--surround-hi": "rgba(255,255,255,.14)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
-        "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#3c404a"},
+        "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#3c404a", "--veil": "rgba(255,255,255,.2)", "--veil-text": "rgba(247,245,252,.64)"},
       dark: {"--inset": "#0e131a", "--text": "#e9edf4", "--muted": "#b4becc", "--border": "#394252", "--rule": "#394252", "--ok": "#4fd18b", "--bad": "#ff7676", "--warn": "#ffb547",
         "--idle": "#8792a3", "--glyph-ok": "#7fcf9f", "--glyph-bad": "#ff5c5c", "--accent": "#84b8ff", "--accent-ink": "#0b1220", "--ok-ink": "#0b1220", "--warn-ink": "#1a1206", "--bad-ink": "#1a0606",
         "--hl": "#3a161a", "--banner": "#b3202a", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(3,5,9,.72)",
@@ -1284,7 +1294,7 @@ THEMES.clear = (function () {
         "--cap-clear": "rgba(160,185,220,.08)", "--print": "#2a2e38", "--print-ink": "#f1f3f7", "--print-muted": "#c3c9d4",
         "--screen": "#8f9a74", "--screen-ink": "#141c0d", "--lcd-hi": "rgba(255,255,255,.12)", "--lcd-muted": "#222e17", "--lcd-warn": "#472500", "--lcd-bad": "#5e060b", "--lcd-shadow": "rgba(20,28,13,.22)", "--lcd-off": "#5d654c",
         "--surround": "#30333d", "--surround-hi": "rgba(255,255,255,.1)", "--surround-line": "#7d6bd0", "--surround-line2": "#2f78c6",
-        "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#262931"}
+        "--power-ok": "#3ee07a", "--power-warn": "#ffb020", "--power-bad": "#ff3a3a", "--power-off": "#262931", "--veil": "rgba(8,5,18,.24)", "--veil-text": "rgba(12,8,24,.6)"}
     },
     fonts: {
       serif: '"Arial Rounded MT Bold","Varela Round","Nunito","M PLUS Rounded 1c","Helvetica Neue",Arial,system-ui,sans-serif',
@@ -1326,7 +1336,7 @@ THEMES.clear = (function () {
     // Built on first use, so the boards are drawn only when this theme is applied.
     get deskCss() { return deskCss || (deskCss = [
       // Art shared by the rules below. Boards are pre-rendered SVG tiles; each session shows its own patch of the board.
-      C + '{--pcb-module:' + asset(board("m", 480, 220, 7, GREEN, false)) + ';--pcb-case:' + asset(board("k", 400, 300, 11, BLACK, true)) + ';--stem:' + STEM + ';--screw:' + SCREW + ';--flex:' + FLEX + ';--grain:' + GRAIN + ';' +
+      C + '{--pcb-module:' + asset(board("m", 480, 220, 7, GREEN, false, 1.1)) + ';--pcb-case:' + asset(board("k", 400, 300, 11, BLACK, true, 2.2)) + ';--stem:' + STEM + ';--screw:' + SCREW + ';--flex:' + FLEX + ';--grain:' + GRAIN + ';' +
         '--chip:' + chipSprite("SN74LS") + ';--chip-ri:' + chipSprite("RI-4201") + ';--chip-strategy:' + chipSprite("ST-6502") + ';--chip-ds-demo:' + chipSprite("DS-555") + ';--socket:' + SOCKET + ';--footprint:' + FOOTPRINT + '}',
       // Lighting: a softbox off to the top left over a pale bench, and a cool blue studio light in the dark.
       C + ' #desk .desk-light{background:radial-gradient(60vmax 46vmax at 14% 6%,var(--pool) 0,transparent 70%),radial-gradient(52vmax 40vmax at 92% 10%,var(--pool-2) 0,transparent 70%),radial-gradient(130vmax 95vmax at 50% 42%,transparent 38%,var(--desk-vignette) 100%)}',
@@ -1337,14 +1347,18 @@ THEMES.clear = (function () {
       /* --- shells --- */
       // Every case is a clear shell: transparent, so the mat shows through its rim, with the shell's tint and specular sweep, thick
       // walls with a refraction line, and a board mounted inside it, floating over the back shell and casting a soft shadow on it.
-      C + ' :is(main,.backend,.settings){--obj-radius:16px;isolation:isolate;background:' + SHEEN + ';box-shadow:' + WALLS + ',' + EDGE + '}',
-      C + ' .settings{box-shadow:' + WALLS + ',' + EDGE + ',0 60px 90px -30px var(--lift)}',
+      C + ' :is(main,.backend,.settings){--obj-radius:16px;isolation:isolate;background:none;box-shadow:' + EDGE + '}',
+      C + ' .settings{box-shadow:' + EDGE + ',0 60px 90px -30px var(--lift)}',
+      C + ' #desk .desk-fog{display:none}',
       C + ' .settings::backdrop{background:var(--dim)}',
       // The board inside each case, and the clear screw bosses at its corners.
       C + ' :is(main,.backend,.settings)::before{content:"";display:block;position:absolute;inset:9px;z-index:-1;pointer-events:none;transform:none;border-radius:9px;' +
-        'background:' + SHEEN + ',var(--pcb-case) 0 0/400px 300px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 4px 9px -1px rgba(0,0,0,.55),0 10px 22px -8px rgba(0,0,0,.45)}',
-      C + ' main::after{content:"";display:block;position:absolute;inset:3px;top:3px;left:3px;width:auto;height:auto;z-index:-1;pointer-events:none;' +
-        'background:var(--screw) 0 0/22px 22px no-repeat,var(--screw) 100% 0/22px 22px no-repeat,var(--screw) 0 100%/22px 22px no-repeat,var(--screw) 100% 100%/22px 22px no-repeat}',
+        'background:var(--pcb-case) 0 0/400px 300px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 4px 9px -1px rgba(0,0,0,.55),0 10px 22px -8px rgba(0,0,0,.45)}',
+      C + ' :is(main,.backend,.settings)::after{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;z-index:-1;pointer-events:none;transform:none;border-radius:16px;box-shadow:' + WALLS + '}',
+      C + ' main::after{background:var(--screw) 3px 3px/22px 22px no-repeat,var(--screw) calc(100% - 3px) 3px/22px 22px no-repeat,var(--screw) 3px calc(100% - 3px)/22px 22px no-repeat,var(--screw) calc(100% - 3px) calc(100% - 3px)/22px 22px no-repeat,' + SPEC + ',' + FILL + '}',
+      // Text sits straight on the Backend and Settings shells, so their frost is heavier, except along the Backend's contacts.
+      C + ' .backend::after{background:' + SPEC + ',' + TEXT + ' 0 0/100% calc(100% - 22px) no-repeat,' + FILL + '}',
+      C + ' .settings::after{background:' + SPEC + ',' + TEXT + ',' + FILL + '}',
       C + ' main{padding:34px 38px 30px}',
       // The heading is pad-printed on a frosted strip moulded into the case; the count is a printed capsule.
       C + ' .sessions-title{align-items:center;margin:0 0 18px;padding:9px 12px 9px 16px;border-radius:10px;background:' + FROST + ';box-shadow:' + FROST_EDGE + ';font-size:24px;letter-spacing:.14em;text-shadow:none}',
@@ -1355,11 +1369,11 @@ THEMES.clear = (function () {
       C + ' .hint{border-top:0;margin:16px 0 0;padding:9px 14px;border-radius:10px;background:' + FROST + ';box-shadow:' + FROST_EDGE + ';color:var(--muted)}',
       /* --- the handheld: the eye card --- */
       C + ' .eye-card{--eye-tilt:-1.2deg;padding:20px 14px 16px}',
-      C + ' .desk-obj .paper{--obj-radius:16px 16px 46px 16px;background:' + SHEEN + ';box-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent)}',
+      C + ' .desk-obj .paper{--obj-radius:16px 16px 46px 16px;background:' + SPEC + ',' + FILL + ';box-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent)}',
       C + ' .desk-obj .shadow{inset:8px 4px 2px;border-radius:16px 16px 46px 16px;box-shadow:0 6px 5px -1px var(--contact),0 22px 40px -16px var(--lift)}',
       // The board shows through the shell round the screen; the LCD flex runs off its top edge and under the surround.
       C + ' .desk-obj .sheet{display:block;inset:9px;transform:none;border-radius:10px 10px 38px 10px;background:var(--pcb-module) -150px -10px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 4px 9px -1px rgba(0,0,0,.55),0 10px 22px -8px rgba(0,0,0,.4)}',
-      C + ' .desk-obj .mount{top:6px;width:84px;height:22px;margin-left:-42px;transform:none;background:var(--flex) center/100% 100% no-repeat}',
+      C + ' .desk-obj .mount{z-index:-1;top:6px;width:84px;height:22px;margin-left:-42px;transform:none;background:var(--flex) center/100% 100% no-repeat}',
       C + ' .desk-obj :is(.badge,.fold){display:none}',
       // The screen surround is pad-printed on the shell, with two printed lines across the top and the power LED at the left; the
       // grey-green reflective LCD sits in it. Fixed layers over the glass: the pixel grid, a reflection, and a power-on fade.
@@ -1389,8 +1403,7 @@ THEMES.clear = (function () {
       C + ' #settings-open svg{width:20px;height:20px}',
       /* --- the backend: a clear cartridge with a printed label over a black board, gold contacts along its bottom --- */
       C + ' .backend{padding:22px 22px 34px}',
-      C + ' .backend::before{inset:9px 9px 6px;background:' + SHEEN + ',repeating-linear-gradient(90deg,#e6c46c 0 4px,#b48a32 4px 5px,transparent 5px 8px) 12px calc(100% - 3px)/calc(100% - 24px) 12px no-repeat,var(--pcb-case) -40px -120px/400px 300px}',
-      C + ' .backend::after{content:"";display:block;position:absolute;inset:13px 13px 25px;z-index:-1;transform:none;border-radius:8px;pointer-events:none;background:' + FROST + ';box-shadow:' + FROST_EDGE + '}',
+      C + ' .backend::before{inset:9px 9px 6px;background:repeating-linear-gradient(90deg,#e6c46c 0 4px,#b48a32 4px 5px,transparent 5px 8px) 12px calc(100% - 3px)/calc(100% - 24px) 12px no-repeat,var(--pcb-case) -40px -120px/400px 300px}',
       C + ' .backend .rollup .title{letter-spacing:.2em;color:var(--muted);text-shadow:none}',
       // The rollup is a small segment LCD in a printed bezel; a problem lights its backlight red with white text.
       C + ' .backend .rollup .state{align-self:stretch;transform:none;-webkit-mask:none;mask:none;margin:2px 0 8px;padding:12px 14px 11px;border:0;border-radius:6px;' +
@@ -1428,7 +1441,6 @@ THEMES.clear = (function () {
       C + ' .settings .segmented label{min-width:0;padding:7px 4px;font:700 14px/1 var(--serif);letter-spacing:.02em;text-transform:none}',
       C + ' .settings .segmented label:has(input:checked) > .bfx .bfx-fill{opacity:1}',
       C + ' .settings :is(input:not([type="radio"]),select){border-radius:10px;background-color:var(--inset);box-shadow:inset 0 1px 3px var(--well),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--emb-hi)}',
-      C + ' .settings::after{content:"";position:absolute;inset:14px;z-index:-1;border-radius:10px;pointer-events:none;background:' + FROST + ';box-shadow:' + FROST_EDGE + '}',
       C + ' .settings h2{letter-spacing:.14em;text-shadow:none}',
       C + ' :is(.settings-rule,.settings-actions,.confirm-actions){border-color:color-mix(in srgb,var(--text) 16%,transparent)}',
       C + ' .settings-rule{border-top-style:solid}',
@@ -1438,24 +1450,24 @@ THEMES.clear = (function () {
       /* --- sessions: each one a clear module with its own board --- */
       // The module is the shell (transparent, so the case's board shows through its rim). .module is its board, floating inside with
       // a shadow on the back shell; its ::before is the plastic over it. Each module shows a different patch of the board.
-      C + '{--item-radius:14px;--item-face:linear-gradient(var(--shell),var(--shell));--item-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 7px 8px -3px var(--contact)}',
+      C + '{--item-radius:14px;--item-face:linear-gradient(color-mix(in srgb,var(--shell) 50%,transparent),color-mix(in srgb,var(--shell) 50%,transparent));--item-shadow:' + WALLS + ',0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 4px 0 color-mix(in srgb,var(--shell-wall) 70%,transparent),0 7px 8px -3px var(--contact)}',
       C + ' .slots{gap:18px}',
       C + ' .slots>.card{isolation:isolate;padding:22px 24px 20px 58px}',
       C + ' .slots>.card .module{display:block;position:absolute;inset:8px;z-index:-1;pointer-events:none;border-radius:8px;background:var(--pcb-module) var(--board-at,0 0)/480px 220px;' +
         'box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55),0 8px 16px -6px rgba(0,0,0,.45)}',
       [[2, "-170px -60px"], [3, "-310px -120px"], [4, "-90px -150px"], [5, "-250px -20px"], [6, "-40px -100px"], [7, "-360px -170px"], [8, "-200px -90px"]].map(function (s) { return C + ' .slots>.card:nth-child(' + s[0] + ') .module{--board-at:' + s[1] + '}' }).join("\n"),
-      C + ' .module::before{content:"";position:absolute;inset:0;border-radius:inherit;background:' + SHEEN + '}',
+      C + ' .module::before{content:"";position:absolute;inset:0;border-radius:inherit;--shell:color-mix(in srgb,var(--shell-base) 78%,transparent);background:' + SPEC + ',' + FILL + ';box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--shell-rim) 35%,transparent)}',
       C + ' .module>i{position:absolute;display:block}',
       // The status LED: an 0805 LED on the board whose light comes up through the plastic. Dark with no apps, a soft green when all
       // is well, amber while something starts and red for a problem, from the session's worst app status.
       C + ' .module .led{left:16px;top:22px;width:16px;height:10px;border-radius:2px;--led:#2a3a30;--led-core:#44524a;--led-spill:transparent;' +
         'background:linear-gradient(90deg,#c9ced4 0 3px,transparent 3px 13px,#c9ced4 13px) 0 0/100% 100% no-repeat,radial-gradient(circle at 50% 50%,var(--led-core) 0 1.4px,var(--led) 3px,color-mix(in srgb,var(--led) 70%,#000) 5px),var(--led);' +
-        'box-shadow:0 0 0 .5px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.5),0 0 12px 3px var(--led-spill)}',
+        'box-shadow:0 0 0 .5px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.5),0 0 5px 1px var(--led-spill),0 0 18px 7px var(--led-spill),0 0 34px 12px color-mix(in srgb,var(--led-spill) 45%,transparent)}',
       C + ' .module .led.tone-ok{--led:#2fd06a;--led-core:#eaffef;--led-spill:rgba(60,230,120,.35)}',
       C + ' .module .led.tone-warn{--led:#ffb020;--led-core:#fff4da;--led-spill:rgba(255,176,32,.55)}',
       C + ' .module .led.tone-bad{--led:#ff3a3a;--led-core:#fff0ee;--led-spill:rgba(255,58,58,.6)}',
       // A flat flex cable runs down the board's left channel from a connector under the LED.
-      C + ' .module .lamps{left:19px;top:44px;bottom:30px;width:10px;border-radius:1px;opacity:.86;' +
+      C + ' .module .lamps{z-index:-1;left:19px;top:44px;bottom:30px;width:10px;border-radius:1px;opacity:.86;' +
         'background:linear-gradient(180deg,#f2f2ee 0 5px,#2a2b30 5px 8px,transparent 8px calc(100% - 6px),#2a2b30 calc(100% - 6px)),repeating-linear-gradient(90deg,rgba(120,60,8,.8) 0 .7px,transparent .7px 2px),linear-gradient(90deg,#a85a0c,#e8a24a 45%,#c97a22 80%,#9a520a);' +
         'box-shadow:0 0 0 .5px rgba(0,0,0,.4),2px 2px 3px rgba(0,0,0,.35)}',
       // Screws in clear bosses at the module's corners.
@@ -1574,9 +1586,9 @@ THEMES.clear = (function () {
       C + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
       C + ' .slot-card .head-line span[style]{font-weight:700}',
       // Saved sessions after a restart: a module of the same clear plastic over the board, its text on one frosted label.
-      C + ' .recovery{position:relative;isolation:isolate;margin:0 0 22px;padding:22px 24px 18px;border:0;border-radius:14px;background:var(--item-face);box-shadow:var(--item-shadow)}',
-      C + ' .recovery::before{content:"";position:absolute;inset:8px;z-index:-1;border-radius:8px;background:' + SHEEN + ',var(--pcb-module) -220px -40px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55)}',
-      C + ' .recovery::after{content:"";position:absolute;inset:13px;z-index:-1;border-radius:8px;background:' + FROST + ';box-shadow:' + FROST_EDGE + '}',
+      C + ' .recovery{position:relative;isolation:isolate;margin:0 0 22px;padding:22px 24px 18px;border:0;border-radius:14px;background:none;box-shadow:0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 7px 8px -3px var(--contact)}',
+      C + ' .recovery::before{content:"";position:absolute;inset:8px;z-index:-1;border-radius:8px;background:var(--pcb-module) -220px -40px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55)}',
+      C + ' .recovery::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background:' + SPEC + ',' + TEXT + ',' + FILL + ';box-shadow:' + WALLS + '}',
       C + ' .recovery-row{border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent)}',
       C + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:10px;padding-top:16px}',
       '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' .slots>.card{padding:20px 14px 18px 46px}}',
