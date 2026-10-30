@@ -39,8 +39,10 @@ eye card is taped down, the backend card is an index card or an acrylic plate, p
 keycaps. Avoid ordinary floating cards pasted over unrelated artwork.
 
 The Sessions card is a holder: its heading sits on the face, and each session is its own object lying
-on that same face below it (no recessed well or inset tray), with an edge, a gutter and a shadow (Terminal: putty
-service cards; Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules). The slot label
+on that same face below it (no shared well or inset tray), with an edge, a gutter and a shadow (Terminal: an avionics
+panel slid into its own moulded bay in the putty rack, held by case screws, with an annunciator and a lamp
+column that mirror its worst app status, the branch on an engraved placard, a guarded toggle as the stop switch, the apps as illuminated
+push-buttons with split legends, and the commit on a small display screen in a bezel; Horror: stitched oxblood leather folios with gold foil; Neon: smoked acrylic modules). The slot label
 is attached to its session in the theme's material: Terminal prints an upright asset tag (black tape with a phosphor
 readout, never tilted), Horror saddle-stitches a dark leather patch on in gold thread (upright, because
 it is sewn on; only tags and stamps tilt), and Neon rivets an acrylic label on. The session count beside the heading
@@ -147,6 +149,8 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   tears the tag and its eye glows red, Terminal turns the key to inverse-video red with a blinking cursor, Neon adds a
   hazard edge and a red glow. The session card gets a red rim too.
 - An app pill shows its start time as quiet secondary text (no "up 5m" counter); the title has the full time.
+- An app the session could serve but does not run is a small, unlit start key with the theme's sleeping (or down) glyph
+  and no time; hovering wakes it, and clicking runs `wt serve <branch> <app>` with no confirmation.
 - Secondary information (being behind `develop`, hashes, "show details") is visually quiet until
   hovered. Being behind is not an error, so it is not red.
 - Status glyphs differ in **shape**, not only colour, with the text label always beside them. Each

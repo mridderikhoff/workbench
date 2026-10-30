@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Checks the Overseer server's backend Restart and session backend-switch actions: validation, the exact wt arguments,
-and the busy refusal.
+"""Checks the Overseer server's backend Restart, session backend-switch and app start actions: validation, the exact wt
+arguments, and the busy refusal.
 A fake runner records what would run, so nothing touches the live backend."""
 import importlib.machinery
 import importlib.util
@@ -18,10 +18,10 @@ class FakeRunner:
     def __init__(self, busy=False):
         self.busy, self.started = busy, []
 
-    def start(self, action, arguments=None, target=None):
+    def start(self, action, arguments=None, target=None, app=None):
         if self.busy:
             return False
-        self.started.append((action, arguments, target))
+        self.started.append((action, arguments, target) if app is None else (action, arguments, target, app))
         return True
 
     def snapshot(self):
@@ -91,6 +91,50 @@ class FakeSource:
             raise self.status
         return self.status
 
+
+SESSIONS = {"t3code/chart": (3, {"ri"}), "feat/docs": (7, {"ds-demo"})}
+for app in ("ds-demo", "strategy"):
+    runner = FakeRunner()
+    code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": app}, PAGE, PORT, SESSIONS)
+    check(f"starting {app} for a session runs `wt serve <branch> {app}` with the branch and app as target",
+          code == 202 and runner.started == [("start", ["serve", "t3code/chart", app], "t3code/chart", app)])
+
+for label, payload, expected in [
+        ("an unknown app", {"branch": "t3code/chart", "app": "backend"}, 400),
+        ("shell text as the app", {"branch": "t3code/chart", "app": "ri; rm -rf ~"}, 400),
+        ("an option as the app", {"branch": "t3code/chart", "app": "--stop"}, 400),
+        ("a non-string app", {"branch": "t3code/chart", "app": ["ri"]}, 400),
+        ("no app", {"branch": "t3code/chart"}, 400),
+        ("an unknown branch", {"branch": "develop", "app": "ri"}, 400),
+        ("shell text as the branch", {"branch": "t3code/chart; rm -rf ~", "app": "ri"}, 400),
+        ("no branch", {"app": "ri"}, 400),
+        ("a non-object body", None, 400),
+        ("an app the session already runs", {"branch": "t3code/chart", "app": "ri"}, 409),
+        ("RI on a ds-demo-only slot", {"branch": "feat/docs", "app": "ri"}, 400)]:
+    runner = FakeRunner()
+    code, body = dashboard.handle_slot_start(runner, payload, PAGE, PORT, SESSIONS)
+    check(f"starting {label} is refused with {expected} and runs nothing", code == expected and not runner.started)
+
+runner = FakeRunner()
+code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "ds-demo"}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, PORT, SESSIONS)
+check("an app start from a foreign origin is refused with 403", code == 403 and not runner.started)
+
+runner = FakeRunner(busy=True)
+code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "ds-demo"}, PAGE, PORT, SESSIONS)
+check("an app start while another action runs gets 409 with the running action", code == 409 and body.get("actions"))
+
+sessions = dashboard.slot_sessions(FakeSource({"slots": [
+    {"slot": 3, "branch": "t3code/chart", "apps": [{"app": "ri"}, {"app": "ds-demo"}]},
+    {"slot": 4, "branch": "saved/one", "apps": [{"app": "ri"}], "recovery": {"fingerprint": "x"}},
+    {"slot": "5", "branch": "odd/slot", "apps": []}]}))
+check("live sessions map to their slot and running apps; saved sessions and bad slots are left out",
+      sessions == {"t3code/chart": (3, {"ri", "ds-demo"})})
+real = dashboard.ActionRunner(wt="/bin/true")
+real.start("start", ["serve", "t3code/chart", "ri"], target="t3code/chart", app="ri")
+snapshot = real.snapshot()
+check("a running start reports its app and target to the page, never its arguments",
+      snapshot["app"] == "ri" and snapshot["target"] == "t3code/chart" and "arguments" not in snapshot)
+check("an unreadable status confirms no session", dashboard.slot_sessions(FakeSource(RuntimeError("down"))) == {})
 
 check("known services come from the current backend status",
       dashboard.backend_services(FakeSource({"backend": {"services": {"functions": {}, "backend": {}}}})) == {"functions", "backend"})

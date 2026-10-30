@@ -94,6 +94,15 @@ const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
+test("the session LED shows the worst app status; only a session with no apps is off", () => {
+  const p = page({ fetch: () => new Promise(() => {}) });
+  const ok = { httpReady: true }, down = { httpReady: false, unitState: "inactive" }, starting = { httpReady: false, unitState: "active" };
+  const failed = { httpReady: true, build: { state: "failed" } };
+  const tone = apps => p.run("slotTone(" + JSON.stringify({ apps }) + ")");
+  assert.deepStrictEqual([tone([]), tone([ok]), tone([ok, starting]), tone([down, down]), tone([ok, down]), tone([starting, failed])],
+    ["off", "ok", "warn", "bad", "bad", "bad"]);
+});
+
 test("before the first status: placeholders, count not 0, no empty/down claim, busy", () => {
   const p = page({ fetch: () => new Promise(() => {}) });
   assert(/Loading saved sessions…/.test(cards(p)), cards(p));

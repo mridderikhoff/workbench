@@ -20,6 +20,8 @@ ACTION_TIMEOUT_SECONDS = 15 * 60
 ACTION_TAIL_LINES = 40
 BACKEND_ACTIONS = ("update", "heal", "ensure")
 RECOVERY_ACTIONS = ("resume", "forget")
+# The apps `wt serve` accepts. Slots 6-9 serve ds-demo only.
+SERVE_APPS = ("ds-demo", "ri", "strategy")
 RECOVERY_FINGERPRINT = re.compile(r"[0-9a-f]{16}")
 
 HTML = r"""<!doctype html>
@@ -159,6 +161,8 @@ position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-ra
 /* The slot label is attached to its session: "slot" and the number are separate spans, so a theme can set them as two fields. */
 .slotno{position:absolute;top:16px;right:16px;display:inline-flex;align-items:baseline;gap:.35em;padding:3px 8px 2px;border-radius:3px;font:13px/1.2 var(--mono);color:var(--muted);background:var(--inset);box-shadow:var(--sunk);white-space:nowrap}
 .slotno-v{font-weight:700;color:var(--text)}
+/* The session object's decorative parts (an LED and screws); a theme that builds its sessions as hardware shows them. */
+.module{display:none}
 .hint{margin:12px 0 0;padding:14px 0 0;border-top:1px dashed var(--edge-lo2);font-size:13.5px;text-align:center}
 /* The eye card is the masthead: halftone eye, wordmark, freshness and Settings, taped to the desk at a slight tilt. */
 .eye-card{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;padding:28px 22px 16px;margin:8px 6px 0;transform:rotate(var(--eye-tilt,-1.4deg))}
@@ -282,6 +286,8 @@ button.link{border:0;background:none;box-shadow:none;padding:2px 4px;color:var(-
 .app-pill::before{content:"";position:absolute;inset:0;z-index:-1;clip-path:var(--tag-shape,none);background:var(--tag-mount,none),var(--tag-face,var(--tag))}
 .app-pill::after{content:"";position:absolute;inset:-1.5px -1.5px -3.5px;z-index:-2;clip-path:var(--tag-shape,none);background:var(--tag-rim,var(--tag-edge))}
 .app-pill .app-name{font-weight:700;white-space:nowrap}
+.pill-low{display:inline-flex;align-items:center;gap:inherit}
+.app-start .start-off{display:none}
 .app-pill .build-failed{color:var(--glyph-bad);font-weight:600;font-size:13px}
 .app-pill .port{font:600 13px var(--mono);color:var(--muted)}
 /* The dev server's start time: quiet secondary text after the label, never louder than the state; the title has the full time. */
@@ -521,6 +527,14 @@ main::before{transform:none}
 .slot-card .slot-backend .update-btn{margin:0}
 .slot-card .slot-backend .update-btn svg{width:16px;height:16px;flex:none}
 .slot-card .slot-backend .backend-here:disabled{cursor:default}
+/* A start key for an app the session does not run: smaller and quieter than an app pill, a sleeping face and no time. Hover
+   wakes the face (the effect layer shows the awake glyph). Themes restyle it in their own materials. */
+button.act.app-start{gap:6px;min-height:30px;align-self:center;padding:3px 11px 3px 7px;font:500 14px/1.2 var(--mono);color:var(--muted);border:1px solid color-mix(in srgb,var(--muted) 55%,transparent);border-radius:4px;background:transparent}
+.app-start .dot{width:16px;height:16px}
+.app-start .dot.sleep{color:var(--idle)}
+.app-start .dot.wake,.app-start .bfx-text .dot.sleep{display:none}
+.app-start .bfx-text .dot.wake{display:inline-flex}
+.app-start.busy{cursor:progress}
 </style>
 <script>
 "use strict";
@@ -578,7 +592,8 @@ and every text/ink pair under 4.5:1 (3:1 for the focus ring), for every theme in
   statusGlyphs  {ok, warn, broken, down, attn, unknown, busy, awake} SVG strings drawn with currentColor, each a distinct shape;
                 busy is a loader for an action in progress (elements .busy-a/.busy-b/.busy-c step in turn, .busy-spin turns),
                 coloured by --glyph-ok, --warn, --glyph-bad and --idle; awake (optional) has a .glyph-pupil group that follows
-                the cursor while a ready app pill is hovered
+                the cursor while a ready app pill is hovered; sleep (optional) marks an app that is not running on its start
+                key (default: down), which shows awake (default: ok) while hovered
   actionIcons   {stop, backend, check} SVG strings in the theme's own mark language (24-unit box); check is the tick on
                 the selected option in a select list, drawn as a mask in --picker-check (sized by --check-size, default 14px)
   settingsIcon  SVG string for the settings button; chevron (optional) the details toggle arrow (12-unit box)
@@ -1189,10 +1204,52 @@ THEMES.terminal = (function () {
     return rows;
   }
   var TINY = {ok: tiny("^", "^"), warn: tiny("o", "O"), broken: tiny(">", "<"), down: tiny("-", "-", false), attn: tiny("O", "O"), unknown: tiny("?", "?"),
-    awake: tiny("O", "O"), pupil: [".......", ".#...#.", ".#...#.", ".......", ".......", "......."]};
+    awake: tiny("O", "O"),
+    // Asleep: shut eyes with a small z beside them at eye height, and a small mouth.
+    sleep: [".......###", "###.###..#", "........#.", "..###..###"],
+    pupil: [".......", ".#...#.", ".#...#.", ".......", ".......", "......."]};
+  // Status faces drop their blank rows (and the pupil overlay the same rows), so bitIcon centres the marks themselves.
+  function face(rows, overlay) {
+    var lit = rows.map(function (row, y) { return row.indexOf("#") >= 0 || !!(overlay && overlay[y].indexOf("#") >= 0) });
+    var first = lit.indexOf(true), last = lit.lastIndexOf(true) + 1;
+    return bitIcon(rows.slice(first, last), overlay && overlay.slice(first, last));
+  }
   function screenFavicon(rows, ink, led) {
     return bitFavicon(rows, ink, "<rect width='64' height='64' rx='10' fill='#d8cfb8'/><rect x='5' y='5' width='54' height='43' rx='6' fill='#0a140d'/><rect x='5' y='53' width='38' height='3' rx='1.5' fill='#a89c80'/><circle cx='53' cy='55' r='3.2' fill='" + led + "'/>", 10, 8, 44);
   }
+  // Four case screws as background layers, inset from each corner of a moulded panel: a domed pan head with a slot.
+  function screws(inset) {
+    var near = inset + "px", far = "calc(100% - " + inset + "px)", slots = [], heads = [];
+    [["left", near], ["right", far]].forEach(function (h, i) {
+      [["top", near], ["bottom", far]].forEach(function (v, j) {
+        // Slots sit at a few fixed angles, so the four screws do not look stamped from one die.
+        var turn = [[0, 2], [3, 1]][i][j], size = turn % 2 ? "2px 7px" : "7px 2px";
+        slots.push("linear-gradient(var(--screw-slot),var(--screw-slot)) " + h[0] + " " + (inset - (turn % 2 ? 1 : 3.5)) + "px " + v[0] + " " + (inset - (turn % 2 ? 3.5 : 1)) + "px/" + size + " no-repeat");
+        heads.push("radial-gradient(circle at " + h[1] + " " + v[1] + ",var(--screw-hi) 0,var(--screw) 2.5px,var(--screw-lo) 4.2px,rgba(0,0,0,.4) 4.7px 5.4px,var(--mould-hi) 5.8px,transparent 6.3px)");
+      });
+    });
+    return slots.concat(heads).join(",");
+  }
+  // The stop control: a panel-mount illuminated push-button, rendered like the panel's LED lenses. A round cutout in the
+  // panel (shaded top left, catching light bottom right), a satin threaded ring, and a domed red lens with a fine texture and
+  // a soft highlight. The lens is unlit at rest; .on (the lit lens) and .lit (its glow on the panel) show on hover or focus,
+  // and .lens is the part that presses in. Gradients are shared by id across copies.
+  var STOP_LAMP = '<svg class="stop-lamp" viewBox="0 0 44 44" aria-hidden="true" focusable="false"><defs>' +
+    '<radialGradient id="sl-cut" cx=".42" cy=".4" r=".62"><stop offset=".78" stop-color="#000" stop-opacity=".55"/><stop offset=".92" stop-color="#000" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="sl-catch" x1="0" y1="0" x2="1" y2="1"><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".5"/></linearGradient>' +
+    '<radialGradient id="sl-ring" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ece7da"/><stop offset=".55" stop-color="#aaa495"/><stop offset="1" stop-color="#5f5a4f"/></radialGradient>' +
+    '<radialGradient id="sl-lens" cx=".42" cy=".36" r=".7"><stop offset="0" stop-color="#ffc0b2"/><stop offset=".28" stop-color="#ff5a40"/><stop offset=".72" stop-color="#c41a0d"/><stop offset="1" stop-color="#5e0803"/></radialGradient>' +
+    '<radialGradient id="sl-dark" cx=".42" cy=".36" r=".7"><stop offset="0" stop-color="#7a2a24"/><stop offset=".3" stop-color="#55150f"/><stop offset=".72" stop-color="#360a07"/><stop offset="1" stop-color="#1a0403"/></radialGradient>' +
+    '<radialGradient id="sl-glow"><stop offset=".55" stop-color="#ff4a30" stop-opacity=".32"/><stop offset="1" stop-color="#ff4a30" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="sl-soft"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<pattern id="sl-texture" width="2.4" height="2.4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r=".55" fill="#fff" fill-opacity=".16"/></pattern></defs>' +
+    '<circle cx="22" cy="22" r="21" fill="url(#sl-glow)" class="lit"/>' +
+    '<circle cx="22" cy="22" r="17" fill="#0e0c0a"/><circle cx="22" cy="22" r="17" fill="url(#sl-cut)"/><circle cx="22" cy="22" r="17" fill="none" stroke="url(#sl-catch)" stroke-width="1.2"/>' +
+    '<circle cx="22" cy="22" r="14.4" fill="url(#sl-ring)"/><circle cx="22" cy="22" r="14.4" fill="none" stroke="#000" stroke-opacity=".4" stroke-width=".8"/>' +
+    '<circle cx="22" cy="22" r="12.6" fill="none" stroke="#000" stroke-opacity=".18" stroke-width=".6" stroke-dasharray=".8 1.2"/>' +
+    '<circle cx="22" cy="22" r="10.6" fill="#1a0604"/>' +
+    '<g class="lens"><circle cx="22" cy="22" r="9.8" fill="url(#sl-dark)"/><circle cx="22" cy="22" r="9.8" fill="url(#sl-lens)" class="on"/><circle cx="22" cy="22" r="9.8" fill="url(#sl-texture)"/>' +
+    '<ellipse cx="19" cy="18.2" rx="4.4" ry="2.8" fill="url(#sl-soft)"/><circle cx="22" cy="22" r="9.8" fill="none" stroke="#000" stroke-opacity=".4" stroke-width=".8"/></g></svg>';
   return {
     name: "Terminal",
     radio: {reveal:"char",vars:{"--radio-plate":"var(--screen)","--radio-plate-ink":"var(--screen-ink)","--radio-alert":"#ff8585","--radio-tag":"var(--screen)","--radio-tag-ink":"var(--screen-ink)","--radio-glyph-bad":"#ff8585","--radio-problem-tag-ink":"#ff8585","--radio-problem-tag-glyph":"#ff8585"},css:'html[data-theme="terminal"][data-scene="radio"] .radio{--radio-edge:var(--edge-lo2);border:12px solid var(--desk-card);border-radius:13px;box-shadow:inset 0 0 0 2px var(--edge-lo2),var(--obj-edge),var(--obj-shadow)}html[data-theme="terminal"][data-scene="radio"] .radio-tag{border:1px solid var(--edge-lo2);border-radius:2px;box-shadow:var(--sunk)}html[data-theme="terminal"][data-scene="radio"] .radio-obj .fit{width:18px;height:4px;background:var(--edge-lo2)}'},
@@ -1222,7 +1279,18 @@ THEMES.terminal = (function () {
         "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
         "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,235,220,.85)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.45)",
         "--screen-warn": "#ffb000", "--bezel": "#c4ba9f", "--dymo": "#1d1d20", "--dymo-ink": "#f2efe6",
-        "--card-hi": "rgba(255,255,255,.3)", "--item-card": "#e3dcc8"},
+        "--card-hi": "rgba(255,255,255,.3)",
+        "--korry-lit": "#6dff95",
+        "--mfd-glass": "#060a08", "--mfd-ink": "#dfe8e2", "--mfd-glow": "rgba(200,255,220,.25)", "--mfd-bezel": "#1c201d",
+        "--lamp-off": "#3a1411", "--lamp-off-hi": "#5c2621", "--lamp-off-lo": "#1a0706", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)",
+        "--annun-ok": "#3f9f5c", "--annun-off": "#2a2620", "--annun-bezel": "#0b0c0b",
+        "--plate": "#ece4cf",
+        "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--cap-led-off": "#2c1a14", "--cap-wall-color": "#8f856c",
+        "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
+        "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
+        "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
+        "--screw": "#bdb398", "--screw-hi": "rgba(255,255,255,.9)", "--screw-lo": "#8f866d", "--screw-slot": "#4a4334"},
       dark: {"--inset": "#24211c", "--text": "#efe7d2", "--muted": "#c7bca3", "--border": "#4d473c", "--rule": "#5a5446", "--ok": "#4fe07a", "--bad": "#ff7a6a", "--warn": "#ffb000",
         "--idle": "#8f8775", "--glyph-ok": "#a89e86", "--glyph-bad": "#ff5a48", "--accent": "#ffb000", "--accent-ink": "#1a1206", "--ok-ink": "#0a140d", "--warn-ink": "#1a1206", "--bad-ink": "#1a0806",
         "--hl": "#4a1d18", "--banner": "#b3261e", "--banner-text": "#ffffff", "--shade": "rgba(0,0,0,.5)", "--dim": "rgba(4,3,2,.72)",
@@ -1247,7 +1315,18 @@ THEMES.terminal = (function () {
         "--legend-lit": "#075f25", "--legend-glow": "0 0 1px #33ff66,0 0 6px rgba(51,255,102,.85),0 0 13px rgba(51,255,102,.4)", "--legend-halo": "rgba(51,255,102,.9)", "--legend-wash": "radial-gradient(75% 80% at 50% 50%,rgba(51,255,102,.13),transparent 78%)",
         "--legend-lit-bad": "#8f1208", "--legend-glow-bad": "0 0 1px rgba(255,90,70,.9),0 0 7px rgba(255,90,70,.6)", "--legend-halo-bad": "rgba(255,90,70,.8)", "--legend-wash-bad": "radial-gradient(75% 80% at 50% 50%,rgba(255,90,70,.12),transparent 78%)", "--danger-glow": "0 0 6px rgba(255,255,255,.6)", "--screen": "#0a140d", "--screen-hi": "rgba(51,255,102,.10)", "--screen-ink": "#33ff66", "--screen-glow": "rgba(51,255,102,.55)",
         "--screen-warn": "#ffb000", "--bezel": "#5a5446", "--dymo": "#141416", "--dymo-ink": "#f2efe6",
-        "--card-hi": "rgba(255,246,222,.06)", "--item-card": "#3a362d"}
+        "--card-hi": "rgba(255,246,222,.06)",
+        "--korry-lit": "#6dff95",
+        "--mfd-glass": "#060a08", "--mfd-ink": "#dfe8e2", "--mfd-glow": "rgba(200,255,220,.25)", "--mfd-bezel": "#1c201d",
+        "--lamp-off": "#3a1411", "--lamp-off-hi": "#5c2621", "--lamp-off-lo": "#1a0706", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)",
+        "--annun-ok": "#3f9f5c", "--annun-off": "#2a2620", "--annun-bezel": "#0b0c0b",
+        "--plate": "#141513",
+        "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--cap-led-off": "#2c1a14", "--cap-wall-color": "#6b6352",
+        "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
+        "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
+        "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
+        "--screw": "#6a6455", "--screw-hi": "rgba(255,246,222,.55)", "--screw-lo": "#2a2620", "--screw-slot": "#100f0c"}
     },
     fonts: {
       serif: '"Px437 IBM VGA 8x16","Perfect DOS VGA 437","Fixedsys Excelsior","VT323","IBM Plex Mono","Cascadia Mono","DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace',
@@ -1272,13 +1351,13 @@ THEMES.terminal = (function () {
     bloom: [[1.35, 0.09, 1], [0.9, 0.13, 2]],
     // Now and then the phosphor slips for a frame or two.
     glitch: {every: [18, 40], frames: [1, 2], shift: [2, 6], bands: [1, 2]},
-    statusGlyphs: {ok: bitIcon(TINY.ok), warn: bitIcon(TINY.warn), broken: bitIcon(TINY.broken), down: bitIcon(TINY.down), attn: bitIcon(TINY.attn), unknown: bitIcon(TINY.unknown),
-      awake: bitIcon(TINY.awake, TINY.pupil),
+    statusGlyphs: {ok: face(TINY.ok), warn: face(TINY.warn), broken: face(TINY.broken), down: face(TINY.down), attn: face(TINY.attn), unknown: face(TINY.unknown),
+      awake: face(TINY.awake, TINY.pupil), sleep: face(TINY.sleep),
       // busy: a DOS progress bar, [▓▒░] in brackets; the lit block steps along it.
       busy: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges"><path d="M1 6h4v2H3v8h2v2H1zM23 6h-4v2h2v8h-2v2h4z"/><path class="busy-a" d="M5 9h4v6H5z"/><path class="busy-b" d="M10 9h4v6h-4z" fill-opacity=".6"/><path class="busy-c" d="M15 9h4v6h-4z" fill-opacity=".32"/></svg>'},
     actionIcons: {
-      // A stop sign in blocks: a solid octagon with a bar knocked out of it.
-      stop: bitIcon(["...######...", "..########..", ".##########.", "############", "############", "##........##", "##........##", "############", "############", ".##########.", "..########..", "...######..."]),
+      // The illuminated stop push-button the session card shows.
+      stop: STOP_LAMP,
       // The backend in blocks: two server units, each with a lamp and a vent.
       backend: bitIcon(["##########", "#.##.....#", "#.##.###.#", "##########", "..........", "##########", "#.##.###.#", "#.##.....#", "##########"]),
       // The code page 437 check mark (the square-root sign), in blocks.
@@ -1304,23 +1383,24 @@ THEMES.terminal = (function () {
         T + ' #desk .desk-flicker.b{background:none}',
         // The desk pad: felt with a bound vinyl edge.
         T + ' .page::before{border-radius:10px;box-shadow:inset 0 0 0 9px var(--pad-edge),inset 0 0 0 10px rgba(0,0,0,.35),inset 0 0 60px rgba(0,0,0,.35),0 2px 0 var(--pad-edge),0 14px 34px -12px rgba(0,0,0,.6)}',
-        // Panels are moulded putty plastic: a rounded body, a bevelled lip and a groove just inside the edge; no paper under them.
+        // Panels are moulded putty plastic: a rounded body, a bevelled lip and a groove just inside the edge, held by case screws.
         T + ' main,' + T + ' .backend,' + T + ' .settings{--obj-radius:9px;--obj-face:inset 0 1px 0 var(--edge-hi),inset 2px 2px 0 var(--mould-hi),inset -2px -3px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),inset 0 0 40px var(--age);outline:1.5px solid var(--groove);outline-offset:-8px}',
+        T + ' main,' + T + ' .backend{background:' + screws(14) + ',var(--stock)}',
         T + ' main::before{display:none}',
         // Vent slots moulded into the top right of the Sessions case and the backend case.
         T + ' main::after{top:12px;left:auto;right:24px;width:88px;height:8px;border-radius:2px;background:' + vents + ';box-shadow:0 1px 0 var(--vent-lip)}',
-        T + ' .backend::after{inset:13px 18px auto auto;width:48px;height:8px;transform:none;border-radius:2px;z-index:0;background:' + vents + ';box-shadow:0 1px 0 var(--vent-lip)}',
+        T + ' .backend::after{inset:13px 30px auto auto;width:48px;height:8px;transform:none;border-radius:2px;z-index:0;background:' + vents + ';box-shadow:0 1px 0 var(--vent-lip)}',
         T + ' main{padding:30px 38px 26px}',
-        // The eye card is the CRT: a chunky putty bezel with a groove and moulded lips, a curved dark-glass screen set into it,
-        // and the freshness label and the Settings key on the chin below.
-        T + ' .eye-card{--eye-tilt:-.4deg;padding:15px 15px 13px}',
+        // The eye card is the CRT: a putty panel of the same plastic as the cases, held by case screws, with the curved dark-glass
+        // screen sunk into a bezel cut into it, and the freshness label and the Settings key on the chin below.
+        T + ' .eye-card{--eye-tilt:0deg;padding:26px 26px 18px}',
         T + ' .desk-obj .sheet{display:none}',
         T + ' .desk-obj .shadow{inset:8px 4px 2px}',
-        T + ' .desk-obj .paper{--obj-radius:18px;background:radial-gradient(140% 70% at 30% 0,var(--edge-hi),transparent 60%),var(--stock);outline:1.5px solid var(--groove);outline-offset:-7px;' +
+        T + ' .desk-obj .paper{--obj-radius:14px;background:' + screws(13) + ',radial-gradient(140% 70% at 30% 0,var(--edge-hi),transparent 60%),var(--stock);outline:1.5px solid var(--groove);outline-offset:-7px;' +
           'box-shadow:inset 0 1px 0 var(--edge-hi),inset 3px 3px 0 var(--mould-hi),inset -3px -4px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),inset 0 0 40px var(--age),0 2px 0 var(--edge-lo),0 4px 0 var(--edge-lo),0 6px 0 var(--edge-lo2),0 8px 0 var(--edge-lo2)}',
         // The screen: curved corners, the phosphor bed glowing faintly behind the character, and a black recess round the glass.
         T + ' .stage{display:block;position:relative;isolation:isolate;width:100%;padding:12px 0 8px;border-radius:24px/28px;overflow:hidden;' +
-          'background:radial-gradient(70% 62% at 50% 42%,var(--screen-bed) 0,var(--screen) 78%);box-shadow:0 0 0 3px var(--bezel-gap),0 -1px 0 4px var(--mould-lo),0 1px 0 4px var(--mould-hi)}',
+          'background:radial-gradient(70% 62% at 50% 42%,var(--screen-bed) 0,var(--screen) 78%);box-shadow:0 0 0 3px var(--bezel-gap),0 0 0 7px var(--mfd-bezel),0 0 0 8px #000,0 -1px 0 9px var(--panel-lo),0 1px 0 9px var(--panel-hi)}',
         T + '[data-rollup="down"] .stage{background:var(--screen)}',
         T + ' .stage .masthead-title{display:block;text-align:center;margin-top:2px}',
         T + ' .stage .mark{--brush:var(--screen-ink);--brush-deep:var(--screen-dim);--word-spacing:.2em;padding:0 0 12px .2em;font-size:25px;color:var(--screen-ink);text-shadow:0 0 1px var(--screen-ink),0 0 7px var(--screen-glow),0 0 18px var(--screen-glow2)}',
@@ -1377,7 +1457,6 @@ THEMES.terminal = (function () {
         T + ' .app-pill.failed .dot{filter:none}',
         '@media (prefers-reduced-motion:no-preference){' + T + ' .app-pill.failed .build-failed::after{animation:term-cursor 1.06s steps(1,end) infinite}}',
         '@keyframes term-cursor{50%{opacity:0}}',
-        T + ' .slots>.card.err{outline:2px solid var(--bad);outline-offset:-6px}',
         T + ' .app-pill.off{transform:translateY(3px)}',
         T + ' .app-pill.off::after{inset:-1px -1px -2px}',
         // The press hover: the key travels down and its wall gets shorter (the wall stays put while the cap sinks); pressed, it
@@ -1388,15 +1467,141 @@ THEMES.terminal = (function () {
         T + ' a.app-pill:active{transform:translateY(4px)}',
         T + ' a.app-pill:active::after{transform:scaleY(.9)}',
         T + ' a.app-pill.off:hover,' + T + ' a.app-pill.off:focus-visible{transform:translateY(3px)}',
+        // Each session is an avionics-style panel slid into its own bay in the putty case. The bay is the card itself: a dark recess
+        // cut into the case with a lit lower lip. The panel (.module, behind the content) is the console's painted faceplate held
+        // by four quarter-turn fasteners, with a left channel for its annunciator (the session's worst app status, lit amber or red
+        // only for a problem) and a column of lamps that light red with it. On it: the branch engraved in a placard, a guarded stop
+        // switch, the apps as latching illuminated push-buttons in a recessed tray, and the commit on a small display screen.
+        T + '{--item-radius:10px;--item-face:var(--bay);--item-shadow:inset 0 3px 7px var(--bay-deep),inset 0 0 0 1px var(--bay-rim),0 1px 0 var(--bay-lip)}',
+        T + ' .slots>.card{isolation:isolate;padding:23px 25px 21px 53px}',
+        T + ' .slots>.card .module{display:block;position:absolute;inset:6px 7px 9px 6px;z-index:-1;pointer-events:none;border-radius:7px;' +
+          'background:linear-gradient(var(--mould-lo),var(--mould-lo)) 32px 0/1px 100% no-repeat,linear-gradient(var(--mould-hi),var(--mould-hi)) 33px 0/1px 100% no-repeat,' +
+          'linear-gradient(var(--grip),var(--grip)) 0 0/32px 100% no-repeat,linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);outline:1px solid var(--groove);outline-offset:-6px;' +
+          'box-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 3px var(--contact)}',
+        T + ' .module>i{position:absolute;display:block}',
+        // The annunciator: a small square lens in a black bezel. Unlit with no apps, a dim green when all is well, and lit
+        // amber or red for a problem, with a glow on the panel around it.
+        T + ' .module .led{left:8px;top:28px;width:17px;height:13px;border-radius:2px;--led:var(--annun-off);--led-glow:transparent;' +
+          'background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,transparent 1px 3px),radial-gradient(80% 90% at 50% 40%,rgba(255,255,255,.28),transparent 70%),var(--led);' +
+          'box-shadow:0 0 0 2px var(--annun-bezel),0 0 0 3px var(--panel-lo),0 1px 0 3px var(--panel-hi),0 0 10px 2px var(--led-glow)}',
+        T + ' .module .led.tone-ok{--led:var(--annun-ok)}',
+        T + ' .module .led.tone-warn{--led:var(--power-warn);--led-glow:rgba(255,176,0,.55)}',
+        T + ' .module .led.tone-bad{--led:var(--power-bad);--led-glow:rgba(255,90,70,.6)}',
+        // The lamp column: every lamp is always there, each in its own cup with a dark rim, a lens and a highlight. They stay
+        // unlit while the session is fine and light red, with a soft baked glow, when it has a problem. Purely decorative.
+        T + ' .module .lamps{left:10px;top:52px;bottom:30px;width:14px;--lamp-lens:var(--lamp-off);--lamp-lens-hi:var(--lamp-off-hi);--lamp-lens-lo:var(--lamp-off-lo);--lamp-glow:transparent;' +
+          'background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px) 0 0/14px 14px space,' +
+          'radial-gradient(circle,var(--lamp-lens-hi) 0,var(--lamp-lens) 2.4px,var(--lamp-lens-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px) 0 0/14px 14px space,' +
+          'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px) 0 0/14px 14px space,radial-gradient(circle,var(--lamp-glow) 0,transparent 7px) 0 0/14px 14px space}',
+        T + ' .module .lamps.tone-bad{--lamp-lens:var(--lamp-on);--lamp-lens-hi:var(--lamp-on-hi);--lamp-lens-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
+        // Case screws: a domed pan head in a shallow counterbore, its slot at a seeded angle.
+        T + ' .module .fastener{width:10px;height:10px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 36% 30%,var(--screw-hi),transparent 65%),var(--screw);' +
+          'box-shadow:inset 0 -1px 1px var(--screw-lo),0 0 0 1px var(--groove),0 1px 0 1px var(--mould-hi)}',
+        T + ' .module .fastener::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--screw-slot);transform:rotate(var(--turn,0deg))}',
+        T + ' .module .fastener.tl{left:11px;top:9px}',
+        T + ' .module .fastener.bl{left:11px;bottom:9px}',
+        T + ' .module .fastener.tr{right:9px;top:9px}',
+        T + ' .module .fastener.br{right:9px;bottom:9px}',
+        // Content lays out on the panel: the commit screen and the worktree legend share the bottom row.
+        T + ' .slots>.slot-card{--text:var(--panel-ink);--muted:var(--panel-muted);--focus-inner:var(--panel)}',
+        T + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read wt" "err err" "note note"}',
+        T + ' .slot-card>.head{grid-area:head}',
+        T + ' .slot-card>.apps{grid-area:apps}',
+        T + ' .slot-card>.head-line{grid-area:read}',
+        T + ' .slot-card>.error{grid-area:err;margin-top:8px}',
+        T + ' .slot-card>.stopping-note{grid-area:note;margin-top:8px}',
+        T + ' .slot-card>.muted.small:not(.head-line){grid-area:wt;padding-left:18px;text-shadow:var(--legend-through)}',
+        T + ' .slots>.card.err{background:var(--item-face);box-shadow:var(--item-shadow)}',
+        T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
+        // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
+        T + ' .slot-card .card-drip{display:none}',
+        // The branch is a strip of embossed label-maker tape stuck on the panel, the same glossy black tape as the slot tag:
+        // raised white letters (lit along their tops, shaded below, whitest where the plastic stretched), square-cut ends, a
+        // sheen across the tape and a thin shadow on the panel. The text sits optically centred on the tape. A long name ends
+        // in an ellipsis (the title has it in full); the hover underline lights up on the panel just below the tape.
+        T + ' .slot-card .head{flex-wrap:nowrap;gap:4px 14px;padding-right:7.6em;margin-bottom:0;padding-bottom:0}',
+        T + ' .slot-card .branch{flex:0 1 auto;min-width:0;overflow:clip;overflow-clip-margin:12px;white-space:nowrap;text-overflow:ellipsis;overflow-wrap:normal;padding:5.5px 12px 4.5px;border-radius:1px;' +
+          'font:700 17px/20px var(--mono);letter-spacing:.06em;color:var(--dymo-ink);text-shadow:0 -.5px 0 rgba(255,255,255,.75),0 1px 0 rgba(0,0,0,.85),0 1.5px 1px rgba(0,0,0,.5);--brush:var(--plate-lit);--brush-deep:var(--plate-lit-deep);' +
+          'background:linear-gradient(180deg,rgba(255,255,255,.16) 0,rgba(255,255,255,.05) 18%,transparent 45%,rgba(255,255,255,.03) 70%,rgba(0,0,0,.25) 100%),' +
+          'linear-gradient(100deg,transparent 30%,rgba(255,255,255,.07) 44%,transparent 58%),repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px),var(--dymo);' +
+          'box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.6),0 1px 1px rgba(0,0,0,.45),0 2px 3px -1px var(--contact)}',
+        T + ' .slot-card .branch .brush{top:calc(100% + 3px);left:4px;filter:drop-shadow(0 0 2px var(--plate-lit))}',
+        // The stop control is a panel-mount illuminated push-button (the theme's stop icon): a domed red lens with a fine
+        // texture and a soft highlight, held by a satin threaded ring in a round cutout in the panel, under an engraved STOP
+        // legend. At rest the lens is unlit, a deep oxblood; hover and focus light it and a press pushes it in a little. One real
+        // button; a click opens the usual confirmation, and it dims further while another action runs.
+        T + ' .slot-card .tools{flex:none;position:relative;display:grid;justify-items:center;align-content:start;width:60px;padding-top:19px;background:none;box-shadow:none}',
+        T + ' .slot-card .tools::after{content:"STOP" / "";position:absolute;left:0;right:0;top:2px;text-align:center;font:700 13px/1 var(--mono);letter-spacing:.12em;color:var(--panel-ink);text-shadow:var(--legend-through)}',
+        T + ' #slots .slot-card .tools button.icon.stop{position:relative;width:50px;height:50px;padding:0;border-radius:50%;overflow:visible;background:none;box-shadow:none;transform:none}',
+        T + ' #slots .slot-card .tools button.icon.stop>svg{display:block;width:50px;height:50px;overflow:visible}',
+        T + ' #slots .slot-card .tools button.icon.stop>.bfx{display:none}',
+        T + ' #slots .slot-card .tools button.icon.stop:is(:hover,:focus-visible,:active,.fx-settled,:disabled){background:none;box-shadow:none;transform:none}',
+        T + ' .stop-lamp .lens{transform-box:view-box;transform-origin:22px 22px;transition:transform var(--dur-fast) var(--ease-out)}',
+        T + ' .stop-lamp :is(.lit,.on){opacity:0;transition:opacity var(--dur-fast) var(--ease)}',
+        T + ' #slots .slot-card .tools button.icon.stop:is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) :is(.lit,.on){opacity:1}',
+        T + ' #slots .slot-card .tools button.icon.stop:active:not(:disabled) .lens{transform:scale(.94);transition-duration:calc(var(--dur-fast) / 3)}',
+        T + ' #slots .slot-card .tools button.icon.stop:focus-visible{box-shadow:var(--ring)}',
+        T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.55}',
+        // The app keys are the console's putty keycaps sitting straight on the panel: one cap per app with its status face,
+        // name and start time on one line. A configured app's key latches down (its wall shrinks and a collar shadow rings it),
+        // so it sits lower than an off app's key, which stands at full height; a press clicks in with a little overshoot. A small
+        // inset lamp at the left of each cap, built like the column LEDs, shows the status: green ready, amber starting,
+        // rebuilding or busy, red failed or down, and dark when the app is off.
+        T + ' .slot-card .apps{justify-self:start;max-width:100%;margin:14px 0 14px;padding:0;gap:14px 14px;background:none;box-shadow:none}',
+        T + ' .slot-card :is(.app-pill,.app-start){--led:var(--cap-led-off);--led-glow:transparent}',
+        T + ' .slot-card :is(.app-pill,button.act.app-start){--pill-pad:7px 15px 9px 27px;' +
+          '--led-lamp:radial-gradient(circle at 13px 50%,rgba(255,255,255,.85) 0 .6px,transparent 1.4px),radial-gradient(circle at 14px 50%,var(--led) 0 2.6px,#1a1410 3.2px 3.9px,var(--cap-shade) 4.4px,transparent 4.9px),radial-gradient(circle at 14px 50%,var(--led-glow),transparent 9px)}',
+        T + ' .slot-card .app-pill{--led:#3fe46f;--led-glow:rgba(51,255,102,.45);--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);transform:translateY(3px)}',
+        T + ' .slot-card .app-pill.tone-warn{--led:#ffb81a;--led-glow:rgba(255,176,0,.45)}',
+        T + ' .slot-card .app-pill:is(.off:not(.tone-warn),.failed){--led:#ff4a36;--led-glow:rgba(255,70,50,.5)}',
+        T + ' .slot-card .app-pill.failed{--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--led:#ffe2dc;--led-glow:rgba(255,255,255,.4)}',
+        T + ' .slot-card .app-pill.off::before{background:var(--led-lamp),var(--tag-off)}',
+        T + ' .slot-card .app-pill::after,' + T + ' .slot-card .app-pill.off::after{inset:-1px -1px -2px;box-shadow:0 0 0 1.5px var(--collar),0 2px 2px -1px var(--contact)}',
+        T + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3px)}',
+        T + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:none}',
+        T + ' .slot-card a.app-pill:active{transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3)}',
+        T + ' .slot-card a.app-pill:active::after{transform:scaleY(.8)}',
+        // Off keys (start keys): a full-height putty cap with a lowercase name, the sleeping face and a dark lamp, no time.
+        // Hover pre-presses it and wakes the face; a press clicks it in, and it stays in, lamp amber, reading starting.
+        T + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin:0 0 3px;padding:7px 15px 8px 27px;border:0;border-radius:5px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
+          'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag-off) 70%);' +
+          'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--cap-wall-color),0 4px 5px -1px var(--contact);' +
+          '--legend-lit:var(--legend-cap-lit);--legend-glow:var(--legend-glow-lit,none);--legend-halo:var(--korry-lit);--legend-wash:none;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}',
+        T + ' .slot-card .app-start .app-name{font-weight:500;text-transform:lowercase;letter-spacing:.02em}',
+        T + ' .slot-card .app-start .dot{width:20px;height:16px}',
+        T + ' .slot-card .app-start .dot.sleep{color:var(--tag-off-ink)}',
+        T + ' .slot-card .app-start .dot.wake,' + T + ' .slot-card .app-start .bfx-text .dot.sleep{display:none}',
+        T + ' .slot-card .app-start .bfx-text .dot.wake{display:inline-flex}',
+        T + ' .slot-card .app-start .start-off{display:none}',
+        T + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--cap-wall-color),0 2px 3px -1px var(--contact)}',
+        T + ' .slot-card button.act.app-start:not(.busy):focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--cap-wall-color)}',
+        T + ' .slot-card button.act.app-start:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
+        T + ' .slot-card button.act.app-start.busy{--led:#ffb81a;--led-glow:rgba(255,176,0,.45);transform:translateY(3px);color:var(--tag-ink);' +
+          'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);box-shadow:inset 0 1px 2px var(--cap-shade),0 1px 0 var(--cap-wall-color),0 0 0 1.5px var(--collar)}',
+        T + ' .slot-card button.act.app-start.busy:focus-visible{box-shadow:var(--ring),0 0 0 1.5px var(--collar)}',
+        T + ' .slot-card .app-start.busy .start-off{display:inline-flex;font-size:14px;color:var(--tag-warn)}',
+        T + ' .slot-card .app-start.busy .dot.busy{color:var(--tag-warn)}',
+        T + ' .slot-card button.act.app-start:disabled:not(.busy){opacity:.55}',
+        // The backend switch is the same putty keycap; it is momentary, and stays down when the backend already runs this branch.
+        T + ' .slot-card .slot-backend{align-self:center}',
+        T + ' .slot-card .slot-backend .update-btn{min-height:36px;margin:0 0 3px}',
+        T + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
+        // The commit display: a small screen in a thick bezel. The hash is green, the rest white, and uncommitted changes amber.
+        T + ' .slot-card .head-line{justify-self:start;max-width:calc(100% - 12px);margin:6px;padding:6px 11px 5px;border-radius:3px;font:13px/1.35 var(--mono);color:var(--mfd-ink);--warn:var(--screen-warn);' +
+          'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);text-shadow:0 0 4px var(--mfd-glow);' +
+          'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
+        T + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
+        T + ' .slot-card .head-line span[style]{font-weight:700}',
+        '@media (max-width:899px){' + T + ' .slots>.card{padding:20px 16px 18px 48px}}',
+        '@media (max-width:559px){' + T + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
+          T + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + T + ' .slot-card .head-line{white-space:normal}' + T + ' .slot-card>.muted.small:not(.head-line){padding:8px 0 0}' + T + ' .slot-card .head{padding-right:0}}',
+        // Modules seat on load, about 50ms apart: each drops in with a small settle. It runs on the card element, which a poll
+        // keeps, so only a new session seats; a data change that rebuilds the card's contents does not replay it.
+        '@media (prefers-reduced-motion:no-preference){' + T + ' .slots>.slot-card{animation:term-seat .36s var(--ease-out) backwards}' +
+          [2, 3, 4, 5, 6, 7, 8].map(function (n) { return T + ' .slots>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}'; }).join("") + '}',
+        '@keyframes term-seat{0%{opacity:0;transform:translateY(-12px)}60%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}',
         // Slot numbers are an asset tag: black label tape with SLOT printed on it and the number in a small phosphor readout. Never tilted.
-        // Each session is a putty service card lying on the case: cards with the same moulded
-        // lip and groove as the case, a shade lighter, each sitting on its own shadow.
-        T + '{--item-radius:6px;' +
-          '--item-face:linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);' +
-          '--item-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 2px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 7px 8px -4px var(--contact)}',
-        T + ' .slots>.card{outline:1px solid var(--groove);outline-offset:-6px}',
-        T + ' .slot-card .head{padding-right:6.4em}',
-        T + ' .slotno{top:15px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
+        T + ' .slotno{top:17px;right:34px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
           'font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:none}',
         T + ' .sessions-title .sessions-count{align-self:center;min-width:28px;padding:4px 7px 3px;border:2px solid var(--dymo);border-radius:3px;background:var(--screen);color:var(--screen-ink);' +
           'font:700 13px/1 var(--mono);letter-spacing:0;text-align:center;text-shadow:0 0 6px var(--screen-glow);box-shadow:inset 0 1px 3px #000,0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25)}',
@@ -1893,6 +2098,8 @@ var QA_THEME = (function () {
     ["--legend-lit", "--tag"], ["--legend-lit", "--btn-face"], ["--legend-lit", "--key-face"], ["--legend-lit-bad", "--tag"],
     // Text on the CRT screen (Terminal's wordmark).
     ["--screen-ink", "--screen"], ["--radio-alert", "--radio-plate"],
+    // Terminal panels: the engraved placard core, legends on the panel, tray and stop plate, and the off and down key legends.
+    ["--panel-muted", "--panel"],
     // Problem tag text and mark use their own on-colours; the sentence uses the plate's red ink.
     ["--radio-problem-tag-ink", "--radio-tag"], ["--radio-problem-tag-glyph", "--radio-tag", 3],
     ["--radio-glyph-bad", "--radio-plate", 3], ["--glyph-ok", "--radio-plate", 3],
@@ -1900,7 +2107,7 @@ var QA_THEME = (function () {
     ["--item-text", "--item-card"], ["--item-muted", "--item-card"], ["--focus-outer", "--item-card", 3],
     ["--folio-foil-hi", "--item-card"], ["--folio-foil-mid", "--item-card"], ["--folio-foil-lo", "--item-card"], ["--folio-ok", "--item-card"], ["--folio-bad", "--item-card"], ["--folio-warn", "--item-card"]];
   // Decorative inks (the index card's margin line) are not text; a few inks sit on a fill with another name.
-  var DECOR = {"--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag", "--radio-problem-tag-ink": "--radio-tag"};
+  var DECOR = {"--margin-ink": 1}, FILL = {"--btn-ink": "--btn-face", "--stamp-ink": "--tag", "--radio-problem-tag-ink": "--radio-tag", "--mfd-ink": "--mfd-glass"};
   var failures = [], checked = 0, table = [];
   Object.keys(THEMES).forEach(function (id) { ["light", "dark"].forEach(function (scheme) {
     var map = QA_THEME.merged(THEMES[id], scheme), pairs = PAIRS.slice();
@@ -2332,7 +2539,7 @@ function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 function backendSwitching(){var a=currentAction();return!!(a&&a.state==="running"&&(a.action==="attach"||a.action==="update"))}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Clear saved sessions"};
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",start:"Start",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Clear saved sessions"};
 function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
@@ -2348,7 +2555,7 @@ function updateButton(relation,switching){
     '<span class="update-label">'+(busy?busyLabel:label)+'</span>'+(count?'<span class="behind-badge">'+esc(count)+' behind</span>':"")+'</button>';
 }
 function actionLine(a){
-  var verb=(ACTION_VERBS[a.action]||a.action)+(a.target?" "+a.target:"");
+  var verb=(ACTION_VERBS[a.action]||a.action)+(a.app?" "+(APP_NAMES[a.app]||a.app)+(a.target?" for":""):"")+(a.target?" "+a.target:"");
   if(a.state==="running")return{text:verb+" running since "+clock(a.startedAt),tone:"busy"};
   if(a.state==="ok")return{text:verb+" finished at "+clock(a.endedAt),tone:"ok"};
   return{text:verb+" failed"+(a.exitCode!=null?" (exit "+a.exitCode+")":"")+" at "+clock(a.endedAt),tone:"down"};
@@ -2487,30 +2694,64 @@ function buildFailed(a){return!!(a.httpReady&&a.build&&a.build.state==="failed")
 function appPill(a){
   var name=APP_NAMES[a.app]||a.app||"app",url=appUrl(a),ready=!!a.httpReady&&!!url,status=appStatus(a);
   var state=status.label||(a.httpReady&&!url?"no link":""),started=startTime(a.startedAt);
-  var inner=dot(status.tone)+'<span class="app-name">'+esc(name)+'</span>'+
-    (status.failed?'<span class="build-failed">'+esc(state)+'</span>':
+  // The state and start time share one wrapper, so a theme can set them as a second line of the legend.
+  var low=status.failed?'<span class="build-failed">'+esc(state)+'</span>':
     (state?'<span class="port">'+esc(state)+'</span>':"")+
-    (a.httpReady&&started?'<span class="since"><span class="sr-only">started </span>'+esc(started.label)+'</span>':""));
+    (a.httpReady&&started?'<span class="since"><span class="sr-only">started </span>'+esc(started.label)+'</span>':"");
+  var inner=dot(status.tone)+'<span class="app-name">'+esc(name)+'</span>'+(low?'<span class="pill-low">'+low+'</span>':"");
   var since=started?" (dev server started "+started.full+"; if your tab is older, hard-refresh)":"";
   var title=status.failed?"Build failed: "+(a.build.error||"see the browser overlay")+(started?" (dev server started "+started.full+")":""):"Open "+name+" on :"+a.port+since;
   if(ready){
     var seed=hashText(name+":"+a.port),awake=inner.replace(dot(status.tone),dot(status.tone==="ok"?"awake":status.tone));
     var fx=(PILL_HOVERS[QA_THEME.pillHover()]||PILL_HOVERS.none)(awake,seed);
-    return'<a class="app-pill tone-'+status.tone+(status.failed?" failed":"")+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(title)+'">'+inner+fx+'</a>';
+    return'<a class="app-pill tone-'+status.tone+(status.failed?" failed":"")+'" data-app="'+esc(a.app||"")+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(title)+'">'+inner+fx+'</a>';
   }
-  if(url)return'<a class="app-pill off tone-'+status.tone+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
-  return'<span class="app-pill off tone-'+status.tone+'" title="'+esc(name)+' has no link">'+inner+'</span>';
+  if(url)return'<a class="app-pill off tone-'+status.tone+'" data-app="'+esc(a.app||"")+'" href="'+esc(url)+'" target="_blank" rel="noopener" title="'+esc(name)+' is not ready yet; opening anyway">'+inner+'</a>';
+  return'<span class="app-pill off tone-'+status.tone+'" data-app="'+esc(a.app||"")+'" title="'+esc(name)+' has no link">'+inner+'</span>';
+}
+// The session's worst app status, for a theme that mirrors it on the session object (Terminal's module LED). A down app is a
+// problem, as its pill's glyph says, so it counts as bad like a failed build; "off" is only a session with no apps.
+function slotTone(s){
+  var tones=(s.apps||[]).map(function(a){return appStatus(a).tone});
+  if(!tones.length)return"off";
+  if(tones.indexOf("broken")>=0||tones.indexOf("down")>=0)return"bad";
+  return tones.indexOf("warn")>=0?"warn":"ok";
+}
+// Decorative parts a theme can show on the session object (hidden unless the theme styles .module): an annunciator and a
+// lamp column that mirror slotTone, and four corner screws whose slot angles are seeded per session, so they stay put across polls.
+function moduleShell(s){
+  var seed=hashText(String(s.slot)+":"+(s.branch||"")),fasteners="";
+  ["tl","tr","bl","br"].forEach(function(corner,i){fasteners+='<i class="fastener '+corner+'" style="--turn:'+((seed>>>(i*7))%180)+'deg"></i>'});
+  var tone=slotTone(s);
+  return'<span class="module" aria-hidden="true"><i class="led tone-'+tone+'"></i><i class="lamps tone-'+tone+'"></i>'+fasteners+'</span>';
+}
+// Apps `wt serve` could add to a session: the ones it does not serve yet (slots 6-9 serve ds-demo only).
+var SERVE_APPS=["ds-demo","ri","strategy"];
+function startableApps(s){
+  if(!s.branch||s.recovery||String(s.branch).charAt(0)==="-")return[];
+  var running=(s.apps||[]).map(function(a){return a.app});
+  return SERVE_APPS.filter(function(app){return running.indexOf(app)<0&&(app==="ds-demo"||Number(s.slot)<6)});
+}
+// An app that is not running is a small, unlit key with a sleeping face and no time; hovering it wakes the face. While it
+// starts, the face is the busy loader; the next poll turns it into a normal app pill.
+function startKey(s,app){
+  var a=currentAction(),busy=isRunning()&&a.action==="start"&&a.target===s.branch&&a.app===app,name=APP_NAMES[app]||app,glyphs=QA_THEME.current().statusGlyphs||{};
+  var face=busy?dot("busy"):'<span class="dot sleep">'+(glyphs.sleep||QA_THEME.glyph("down"))+'</span><span class="dot wake">'+(glyphs.awake||QA_THEME.glyph("ok"))+'</span>';
+  return'<button type="button" class="act app-start'+(busy?" busy":"")+'" data-start-app="'+esc(app)+'" data-start-branch="'+esc(s.branch)+'" aria-label="Start '+esc(name)+' for '+esc(s.branch)+'"'+
+    ' title="Start '+esc(name)+' (wt serve '+esc(s.branch)+' '+esc(app)+')"'+(busy?' aria-disabled="true"':isRunning()?" disabled":"")+'>'+face+'<span class="app-name">'+esc(name)+'</span><span class="pill-low start-off" aria-hidden="true">'+(busy?"starting":"off")+'</span>'+(busy?'<span class="sr-only"> starting</span>':"")+'</button>';
 }
 function renderSlot(s){
   var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
   var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
-  var h=(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
-    '<div class="head"><span class="branch">'+esc(s.branch||"(no branch)")+'</span>'+
+  var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
+    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   (s.apps||[]).forEach(function(a){h+=appPill(a)});
-  if(!(s.apps||[]).length)h+='<span class="muted">no apps</span>';
+  var startable=startableApps(s);
+  startable.forEach(function(app){h+=startKey(s,app)});
+  if(!(s.apps||[]).length&&!startable.length)h+='<span class="muted">no apps</span>';
   // The backend switch sits with the app pills; when the backend already runs this branch's head it stays, disabled, as the note.
   if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="update-btn backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
     '<button type="button" class="update-btn" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
@@ -2674,6 +2915,7 @@ function render(){
     savedOnly?[]:
     [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
   var changedCards=reconcileCards(slotsBox,cards);
+  restoreStartFocus();
   renderRecovery();
   if(backendChanged)buttonFx(backendBox);
   changedCards.forEach(buttonFx);
@@ -2708,13 +2950,13 @@ function copyText(text,button){
   try{ok=document.execCommand("copy")}catch(e){}
   area.remove();button.focus();done(ok);
 }
-function runAction(name,branch,service){
+function runAction(name,branch,service,app){
   actionError=null;recoveryRequest=false;
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
-  if(data){data.actions={action:service?"restart":name,target:service||branch||null,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
-  var request=branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
+  if(data){data.actions={action:service?"restart":name,target:service||branch||null,app:app||undefined,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
+  var request=app?{url:"/api/slot/start",body:JSON.stringify({branch:branch,app:app})}:branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
       if(data)data.actions=j.actions||before;
@@ -2750,6 +2992,32 @@ function backendOn(s){
   var mine=s.head&&s.head.sha?String(s.head.sha):"",theirs=b.sha?String(b.sha):"";
   if(!mine||!theirs)return"unverified";
   return mine.indexOf(theirs)===0||theirs.indexOf(mine)===0?"current":"different";
+}
+// Starting an app is not destructive, so it needs no confirmation; a running action disables every other key and the busy key
+// ignores clicks, so it cannot fire twice.
+function startApp(branch,app,key){
+  var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch&&!s.recovery});
+  if(isRunning()||!slot||startableApps(slot).indexOf(app)<0)return;
+  startFocus=key&&document.activeElement===key?{branch:branch,app:app}:null;
+  runAction("start",branch,null,app);
+}
+// Rebuilding a card drops the focus of the start key that was pressed. While it starts, focus returns to its busy key (which
+// stays focusable); once the app is live, to its new pill, else the session's stop key. Focusing anything else ends this.
+var startFocus=null;
+document.addEventListener("focusin",function(e){
+  var t=e.target;
+  if(startFocus&&!(t&&t.getAttribute&&t.getAttribute("data-start-branch")===startFocus.branch&&t.getAttribute("data-start-app")===startFocus.app))startFocus=null;
+});
+function restoreStartFocus(){
+  var wanted=startFocus,active=document.activeElement;
+  if(!wanted||(active&&active!==document.body&&active.isConnected!==false))return;
+  var byBranch=function(selector,attribute){return Array.prototype.find.call(document.querySelectorAll(selector),function(el){return el.getAttribute(attribute)===wanted.branch})};
+  var key=Array.prototype.find.call(document.querySelectorAll("[data-start-app]"),function(el){return el.getAttribute("data-start-branch")===wanted.branch&&el.getAttribute("data-start-app")===wanted.app});
+  if(key&&!key.disabled){key.focus();return}
+  var label=byBranch(".slot-card .branch","title"),card=label&&label.closest(".slot-card"),pill=card&&card.querySelector('a.app-pill[data-app="'+wanted.app+'"]');
+  var target=pill||byBranch("[data-stop]","data-stop");
+  startFocus=null;
+  if(target&&!target.disabled)target.focus();
 }
 function attachAvailable(branch){
   var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
@@ -2912,7 +3180,7 @@ document.getElementById("recovery-fresh").addEventListener("click",function(){
   runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
-  var t=e.target.closest("[data-action],[data-copy-output],[data-toggle],[data-stop],[data-attach],[data-restart],[data-output],[data-radio]");
+  var t=e.target.closest("[data-action],[data-copy-output],[data-toggle],[data-stop],[data-start-app],[data-attach],[data-restart],[data-output],[data-radio]");
   if(!t||t.disabled)return;
   if(t.hasAttribute("data-radio")){
     var messages=radioMessages(data,failure,actionError),step=t.dataset.radio==="prev"?-1:1;
@@ -2929,6 +3197,7 @@ document.addEventListener("click",function(e){
     var branch=t.getAttribute("data-stop");
     confirmStop(branch,t);
   }
+  else if(t.hasAttribute("data-start-app"))startApp(t.getAttribute("data-start-branch"),t.getAttribute("data-start-app"),t);
   else if(t.hasAttribute("data-attach"))confirmAttach(t.getAttribute("data-attach"),t);
   else if(t.hasAttribute("data-restart"))confirmRestart(t.getAttribute("data-restart"),t);
   else if(t.hasAttribute("data-output")){
@@ -3989,13 +4258,15 @@ class ActionRunner:
                 return None
             return {key: value for key, value in dict(self.last, output=list(self.last["output"])).items() if key != "arguments"}
 
-    def start(self, action, arguments=None, target=None):
+    def start(self, action, arguments=None, target=None, app=None):
         with self.lock:
             if self.last and self.last["state"] == "running":
                 return False
             self.last = {"action": action, "target": target, "arguments": arguments or ["backend", action],
                          "state": "running", "startedAt": now_iso(), "endedAt": None,
                          "exitCode": None, "output": collections.deque(maxlen=ACTION_TAIL_LINES)}
+            if app:
+                self.last["app"] = app
             run = self.last
         threading.Thread(target=self._run, args=(run,), daemon=True).start()
         return True
@@ -4104,6 +4375,27 @@ def handle_slot_backend(runner, body, headers, port, known_branches):
     return 202, {"actions": runner.snapshot()}
 
 
+def handle_slot_start(runner, body, headers, port, sessions):
+    """Starts one app a live session does not serve yet through `wt serve <branch> <app>`. The branch must be a session in
+    the current status and the app one `wt serve` accepts that the session lacks, so no free text reaches the command."""
+    if not same_origin(headers, port):
+        return 403, {"error": "forbidden"}
+    branch = body.get("branch") if isinstance(body, dict) else None
+    app = body.get("app") if isinstance(body, dict) else None
+    if not isinstance(branch, str) or branch not in sessions or branch.startswith("-"):
+        return 400, {"error": "unknown branch"}
+    if not isinstance(app, str) or app not in SERVE_APPS:
+        return 400, {"error": "unknown app"}
+    slot, running = sessions[branch]
+    if app in running:
+        return 409, {"error": f"{app} is already running for {branch}", "actions": runner.snapshot()}
+    if app != "ds-demo" and slot >= 6:
+        return 400, {"error": f"slot {slot} serves ds-demo only"}
+    if not runner.start("start", ["serve", branch, app], target=branch, app=app):
+        return 409, {"error": "another action is still running", "actions": runner.snapshot()}
+    return 202, {"actions": runner.snapshot()}
+
+
 def recovery_tokens(body):
     """Validates a recovery selection; returns {slot: fingerprint}, or None when it is malformed."""
     entries = body.get("slots") if isinstance(body, dict) else None
@@ -4168,6 +4460,19 @@ def slot_branches(source):
         return set()
 
 
+def slot_sessions(source):
+    """Maps each live session's branch to its slot number and the apps it already serves; saved sessions are left out."""
+    try:
+        sessions = {}
+        for slot in source.get().get("slots") or []:
+            branch, number = slot.get("branch"), slot.get("slot")
+            if isinstance(branch, str) and branch and type(number) is int and not slot.get("recovery"):
+                sessions[branch] = (number, {app.get("app") for app in slot.get("apps") or [] if isinstance(app, dict)})
+        return sessions
+    except Exception:  # an unreadable status means no session can be confirmed
+        return {}
+
+
 def make_handler(source, runner, port):
     class Handler(BaseHTTPRequestHandler):
         def send(self, code, body, content_type):
@@ -4211,6 +4516,12 @@ def make_handler(source, runner, port):
                     body = None
                 handler = handle_slot_stop if path == "/api/slot/stop" else handle_slot_backend
                 code, body = handler(runner, body, self.headers, port, slot_branches(source))
+            elif path == "/api/slot/start":
+                try:
+                    body = json.loads(raw or b"{}")
+                except ValueError:
+                    body = None
+                code, body = handle_slot_start(runner, body, self.headers, port, slot_sessions(source))
             elif path == "/api/backend/restart":
                 try:
                     body = json.loads(raw or b"{}")
