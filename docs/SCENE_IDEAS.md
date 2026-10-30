@@ -42,7 +42,7 @@ hierarchy and fought the halftone eye. The backdrop added noise behind the work.
 
 **How it could come back.** On the Desk engine as a theme-driven variant rather than a frame on everything: one display
 bezel around the eye card (a deskArt mount or a cached tile), the sessions on an acrylic panel, and plain sunk controls.
-Use the plate look, if at all, for the portrait only. Neon's LED readout and keycap pills already carry most of the
+Use the plate look, if at all, for the portrait only. Terminal's CRT readouts and keycaps already carry most of the
 console feel.
 
 ## Deferred scene ideas
@@ -57,7 +57,7 @@ console feel.
 Candlelight and fog already live in Desk as materials and atmosphere. They do not need to become
 scene choices of their own.
 
-Neon covers cyberpunk. Possible future themes include classic Mac and general science fiction. Do not build
+Possible future themes include cyberpunk, classic Mac and general science fiction. Do not build
 them yet. The same scene compositions should adapt to those worlds without losing the animated
 character or making the interface harder to use.
 

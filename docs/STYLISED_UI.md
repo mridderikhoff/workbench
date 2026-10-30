@@ -10,22 +10,22 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 
 1. **A theme is one set of materials; the character is its own setting.** The character (Eye,
    Blip the CRT face, later an owl) is the masthead. Blip is the global default and the
-   Settings > Overseer pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, acrylic on a cutting mat,
+   Settings > Overseer pick wins, so every character must render in every theme, in that theme's inks; the panels are physical objects (card stock on leather, clear shells over circuit boards,
    a CRT and putty plastic). Every pixel of the theme answers "what is this made of?"
 2. **Materials over gradients.** Inscryption's candlelit table, NieR's warm paper UI. Surfaces get
    real texture, light falloff and contact shadows; nothing is a flat colour or a generic gradient.
 3. **Marks match the material.** On leather: gold-foil hot-stamping for titles, blind tooling for
-   secondary text, saddle stitching for seams. On paper: rubber stamps and brush ink. On acrylic:
-   stencils and printed labels. On a CRT: phosphor glyphs. Never a plain dashed CSS line.
+   secondary text, saddle stitching for seams. On paper: rubber stamps and brush ink. On clear
+   plastic: pad printing on frosted areas, never on the board. On a CRT: phosphor glyphs. Never a plain dashed CSS line.
 4. **The character's art language is the house style.** The eye is a halftone, so props are screened
    into the same dots. Props that don't share the language get cut (the floppy disk and the mug went).
 5. **Style first, then tune legibility.** Persona 5's menus were unreadable at first and were tuned
    until they weren't. Status text stays upright, plain and AA; decoration can tilt, bleed and drip.
-6. **A forced palette, with one meaning per colour.** Horror: blood red on bone and black. Neon:
-   magenta and cyan, red for problems. Terminal: phosphor green and amber, red for problems. A
+6. **A forced palette, with one meaning per colour.** Horror: blood red on bone and black. Clear
+   Plastic: the board's green and gold, the shell's colour for light, red for problems. Terminal: phosphor green and amber, red for problems. A
    colour never means two things.
 7. **Each theme has a signature hover.** Horror: the blood seep (an uneven wet band in the bottom
-   third, one drop with a cooldown). Neon: the stepped pixel charge bar. Terminal keycaps: the key
+   third, one drop with a cooldown). Clear Plastic: the LED under a clear key lights up through the cap. Terminal keycaps: the key
    presses down and its legend lights up as if backlit. Apply the signature everywhere it makes
    sense (buttons, options, toggles), but match the object: a keycap is pressed, not filled.
    Hover plays once, on arrival: a click or a poll that rebuilds the hovered element must not replay
@@ -46,20 +46,20 @@ the Obra Dinn, Cult of the Lamb, Death Stranding, Cyberpunk 2077, Fallout, Bruno
 14. **Effects have an off switch.** Reduced motion gives a designed still frame; Static logo mode
     runs no loop.
 15. **Separate objects, not ruled lists.** A list is a holder with one object per item (a card in a
-    rack, a folio, an acrylic module), split by gutters and edges. A line between items would read
+    rack, a folio, a clear module), split by gutters and edges. A line between items would read
     as the hover underline, so we don't draw one.
 
 ## Toolbox (pick per theme, per moment)
 
 | Moment | Technique | Notes |
 |---|---|---|
-| Page load | Cards stagger in; CRT turn-on line (Terminal); slab sweeps in behind the title (Neon) | Under 400ms total |
+| Page load | Cards stagger in; CRT turn-on line (Terminal); LCD power-on fade and modules seating into the case (Clear Plastic) | Under 400ms total |
 | Hover | The theme's signature hover; a foil sheen on stamped titles | Readable mid-animation |
 | Confirm / cancel | Hit-stop then thump or stamp; spring back on cancel | Visual only |
 | Dialog opens | It arrives like an object: dealt like a card, slid out, or the CRT warms up | Same materials as the cards |
 | Status change | Squash and overshoot on ready; one jitter on failure; the character glances at it | Animate only what changed |
 | Message arrives | Radio gives one short hail, static burst, and text reveal | Under 900ms; none on load |
-| Error | Theme-specific mark: a blood splat sprite, a hazard-tape wipe, an inverse-video block | Loud but brief, then still |
+| Error | Theme-specific mark: a blood splat sprite, a shell rim lit red, an inverse-video block | Loud but brief, then still |
 | Idle | One rare, irregular ambient event | Paused when hidden or behind a modal |
 
 ## Don'ts (and the adaptation)

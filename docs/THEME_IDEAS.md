@@ -12,6 +12,15 @@ state (see DESIGN.md rule 5).
   in Static and reduced motion). Blip is a large ASCII face whose pupils follow the
   cursor on the CRT. The glass keeps its flashes and static warble. There is no typed prompt line and no props.
   Keys press down and their legend lights LED green. See DESIGN.md rule 9.
+- **Clear Plastic** (replaced Neon): late-90s and Y2K see-through electronics. Every panel is a clear
+  shell over a real circuit board (pre-rendered SVG tiles: copper traces under green or black solder
+  mask, ICs with pad-printed part numbers, SMD passives, crystals, screws in clear bosses, flex cables),
+  with the board's shadow on the back shell and thick walls with a refraction line. The insides mirror
+  real state: a running app is a chip beside its key, with a faint pulse along its trace while it starts;
+  a stopped app is an empty socket and an unserved one a bare footprint; status LEDs glow up through the
+  plastic. Keys are clear caps with the switch visible through a window, and hover lights the LED under
+  the cap. The character is on a Game Boy-style reflective LCD in a printed surround. Text sits only on
+  frosted or pad-printed areas. Shell colours are a Settings pick: Clear, Smoke, Atomic purple, Tangerine.
 - **Characters** (independent of theme): Eye (the halftone eye) and Blip (global default).
 
 ## Owl (follow-up, still an idea)
@@ -30,25 +39,6 @@ A cosy, non-horror theme: the owl keeps the "overseer" idea without the creepine
   halftone dots. Palette: midnight blue, moss, warm lamp amber; problems in a clear red-orange.
 - **Halftone fit:** feathers and big round eyes read well as dots; keep the eye discs large so the
   pupils stay crisp at the 4.5px pitch.
-
-## Clear Plastic (next, after Terminal)
-
-Late-90s and Y2K see-through electronics: Game Boy Color, PS1 and PSP clear shells, iMac G3, clear VHS
-and MiniDisc. The appeal is seeing the real circuitry and hardware inside the device; the coloured
-shell is secondary. It replaces Neon, whose smoked acrylic modules are halfway there.
-
-- **Panels:** clear or tinted shells over a visible circuit board: copper traces, chips, capacitors,
-  screw posts, ribbon cables to the keys, and the board's shadow on the inside of the shell.
-- **The insides mirror real state** (no decoration that pretends): each running app is a chip on its
-  session's board and its trace to the key carries a faint pulse while starting; status LEDs are
-  surface-mount parts glowing up through the plastic; a stopped app is an empty socket.
-- **Keys:** clear caps with the switch visible underneath, like a clear PS1 controller.
-- **Screen:** the character on a Game Boy-style LCD in a printed screen surround.
-- **Legibility:** text sits on frosted or pad-printed areas of the shell (like a Game Boy Color's
-  screen surround and printed labels), never over busy circuitry.
-- **Shell colours** as a Settings pick: clear, smoke, atomic purple, tangerine.
-- **Bar:** the board, parts and plastic must match the rendering quality of Terminal's LEDs and CRT
-  (soft volumetric shading, lens highlights, real contact shadows), not flat clip art.
 
 ## Considered and parked
 
