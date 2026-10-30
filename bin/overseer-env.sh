@@ -33,7 +33,7 @@ esac
 export OVERSEER_CONFIG_FILE
 if [ -f "$OVERSEER_CONFIG_FILE" ]; then
   overseer_saved_env=()
-  for overseer_name in WT_MAIN_CHECKOUT QA_TREE WT_QA_TREE WT_TENANT KC_LIB QA_UNIT_DIR WT_STATE_DIR; do
+  for overseer_name in WT_MAIN_CHECKOUT QA_TREE WT_QA_TREE WT_TENANT WT_APPS KC_LIB QA_UNIT_DIR WT_STATE_DIR; do
     if declare -p "$overseer_name" >/dev/null 2>&1; then
       overseer_saved_env+=("$(declare -p "$overseer_name")")
     fi

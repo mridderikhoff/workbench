@@ -66,8 +66,10 @@ Only `bin/` is needed to run the local runtime. The rest is the author's persona
   page is a view over the same logs. The Keycloak unit's journal is its *launcher's* log; the container's
   own output comes from the container runtime.
 - **Settings.** `~/.config/overseer/runtime.env` (or `OVERSEER_CONFIG_FILE`) holds `WT_MAIN_CHECKOUT`,
-  `QA_TREE`, `WT_QA_TREE`, `WT_TENANT` and `KC_LIB`. The tools and generated units load it themselves;
-  variables already set in the environment win. Paths may contain spaces if quoted.
+  `QA_TREE`, `WT_QA_TREE`, `WT_TENANT`, `WT_APPS` and `KC_LIB`. The tools and generated units load it themselves;
+  variables already set in the environment win. Paths may contain spaces if quoted. `WT_APPS` lists the apps this
+  machine manages, space-separated, in display order (default `ri ds-demo`; valid names are `ri`, `ds-demo` and
+  `strategy`): Overseer offers start keys only for these and refuses to start any other app.
 - **Ports.** The QA tree has a port offset `o` (currently `1`). The backend uses `8000+10o`, LangGraph
   `2024+10o`, Functions `7071+10o`; Keycloak (`8080`) and Azurite (`10000`–`10002`) are fixed and shared.
 - **Task slots.** Frontend slots are numbered `2`–`9`; allocation always starts at `2`. Slot `1` is not a

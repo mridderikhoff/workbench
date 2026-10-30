@@ -93,11 +93,29 @@ class FakeSource:
 
 
 SESSIONS = {"t3code/chart": (3, {"ri"}), "feat/docs": (7, {"ds-demo"})}
+ALL_APPS = ("ri", "ds-demo", "strategy")
 for app in ("ds-demo", "strategy"):
     runner = FakeRunner()
-    code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": app}, PAGE, PORT, SESSIONS)
+    code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": app}, PAGE, PORT, SESSIONS, ALL_APPS)
     check(f"starting {app} for a session runs `wt serve <branch> {app}` with the branch and app as target",
           code == 202 and runner.started == [("start", ["serve", "t3code/chart", app], "t3code/chart", app)])
+
+saved_apps = os.environ.pop("WT_APPS", None)
+check("the managed apps default to RI then ds-demo", dashboard.managed_apps() == ("ri", "ds-demo"))
+runner = FakeRunner()
+code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "strategy"}, PAGE, PORT, SESSIONS)
+check("Strategy is refused by default because WT_APPS leaves it out", code == 400 and not runner.started)
+os.environ["WT_APPS"] = "strategy ds-demo ri"
+runner = FakeRunner()
+code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "strategy"}, PAGE, PORT, SESSIONS)
+check("Strategy starts when WT_APPS includes it", code == 202 and runner.started[0][1] == ["serve", "t3code/chart", "strategy"])
+check("WT_APPS sets the display order", dashboard.managed_apps() == ("strategy", "ds-demo", "ri"))
+check("WT_APPS keeps only apps wt serve accepts, each once", dashboard.managed_apps("ri backend ri ds-demo;rm") == ("ri",))
+check("the page is rendered with the managed apps in order", '["strategy", "ds-demo", "ri"]' in dashboard.render_html({}))
+if saved_apps is None:
+    os.environ.pop("WT_APPS", None)
+else:
+    os.environ["WT_APPS"] = saved_apps
 
 for label, payload, expected in [
         ("an unknown app", {"branch": "t3code/chart", "app": "backend"}, 400),
@@ -112,11 +130,11 @@ for label, payload, expected in [
         ("an app the session already runs", {"branch": "t3code/chart", "app": "ri"}, 409),
         ("RI on a ds-demo-only slot", {"branch": "feat/docs", "app": "ri"}, 400)]:
     runner = FakeRunner()
-    code, body = dashboard.handle_slot_start(runner, payload, PAGE, PORT, SESSIONS)
+    code, body = dashboard.handle_slot_start(runner, payload, PAGE, PORT, SESSIONS, ALL_APPS)
     check(f"starting {label} is refused with {expected} and runs nothing", code == expected and not runner.started)
 
 runner = FakeRunner()
-code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "ds-demo"}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, PORT, SESSIONS)
+code, body = dashboard.handle_slot_start(runner, {"branch": "t3code/chart", "app": "ds-demo"}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, PORT, SESSIONS, ALL_APPS)
 check("an app start from a foreign origin is refused with 403", code == 403 and not runner.started)
 
 runner = FakeRunner(busy=True)

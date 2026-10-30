@@ -94,6 +94,13 @@ const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
+test("start keys cover only the managed apps, and app pills follow their order with others after", () => {
+  const p = page({ fetch: () => new Promise(() => {}) });
+  assert.deepStrictEqual(plain(p.run("SERVE_APPS")), ["ri", "ds-demo"]);
+  assert.deepStrictEqual(plain(p.run("startableApps({slot:3,branch:'b',apps:[]})")), ["ri", "ds-demo"]);
+  assert.deepStrictEqual(plain(p.run("appOrder([{app:'strategy'},{app:'ds-demo'},{app:'ri'}]).map(function(a){return a.app})")), ["ri", "ds-demo", "strategy"]);
+});
+
 test("the session LED shows the worst app status; only a session with no apps is off", () => {
   const p = page({ fetch: () => new Promise(() => {}) });
   const ok = { httpReady: true }, down = { httpReady: false, unitState: "inactive" }, starting = { httpReady: false, unitState: "active" };

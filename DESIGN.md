@@ -150,7 +150,9 @@ so do skulls and bodies. Backgrounds stay ambient: candles, smoky grey fog, old 
   hazard edge and a red glow. The session card gets a red rim too.
 - An app pill shows its start time as quiet secondary text (no "up 5m" counter); the title has the full time.
 - An app the session could serve but does not run is a small, unlit start key with the theme's sleeping (or down) glyph
-  and no time; hovering wakes it, and clicking runs `wt serve <branch> <app>` with no confirmation.
+  and no time; hovering wakes it, and clicking runs `wt serve <branch> <app>` with no confirmation. Start keys cover only
+  the apps the machine manages (`WT_APPS`, default `ri ds-demo`), and a session's keys follow that order; a running app
+  outside the list still shows, after the others.
 - Secondary information (being behind `develop`, hashes, "show details") is visually quiet until
   hovered. Being behind is not an error, so it is not red.
 - Status glyphs differ in **shape**, not only colour, with the text label always beside them. Each

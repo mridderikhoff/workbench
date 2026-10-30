@@ -21,7 +21,18 @@ ACTION_TAIL_LINES = 40
 BACKEND_ACTIONS = ("update", "heal", "ensure")
 RECOVERY_ACTIONS = ("resume", "forget")
 # The apps `wt serve` accepts. Slots 6-9 serve ds-demo only.
-SERVE_APPS = ("ds-demo", "ri", "strategy")
+KNOWN_APPS = ("ds-demo", "ri", "strategy")
+
+
+def managed_apps(value=None):
+    """The apps this machine manages, in display order: WT_APPS (space-separated, default "ri ds-demo"), keeping only
+    apps `wt serve` accepts, each once."""
+    names = (os.environ.get("WT_APPS") if value is None else value) or "ri ds-demo"
+    out = []
+    for name in names.split():
+        if name in KNOWN_APPS and name not in out:
+            out.append(name)
+    return tuple(out)
 RECOVERY_FINGERPRINT = re.compile(r"[0-9a-f]{16}")
 
 HTML = r"""<!doctype html>
@@ -1496,15 +1507,14 @@ THEMES.terminal = (function () {
         T + ' .module .fastener.bl{left:11px;bottom:9px}',
         T + ' .module .fastener.tr{right:9px;top:9px}',
         T + ' .module .fastener.br{right:9px;bottom:9px}',
-        // Content lays out on the panel: the commit screen and the worktree legend share the bottom row.
+        // Content lays out on the panel: the commit screen sits on the bottom row.
         T + ' .slots>.slot-card{--text:var(--panel-ink);--muted:var(--panel-muted);--focus-inner:var(--panel)}',
-        T + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read wt" "err err" "note note"}',
+        T + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read read" "err err" "note note"}',
         T + ' .slot-card>.head{grid-area:head}',
         T + ' .slot-card>.apps{grid-area:apps}',
         T + ' .slot-card>.head-line{grid-area:read}',
         T + ' .slot-card>.error{grid-area:err;margin-top:8px}',
         T + ' .slot-card>.stopping-note{grid-area:note;margin-top:8px}',
-        T + ' .slot-card>.muted.small:not(.head-line){grid-area:wt;padding-left:18px;text-shadow:var(--legend-through)}',
         T + ' .slots>.card.err{background:var(--item-face);box-shadow:var(--item-shadow)}',
         T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
         // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
@@ -1640,8 +1650,8 @@ THEMES.terminal = (function () {
         T + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
         T + ' .slot-card .head-line span[style]{font-weight:700}',
         '@media (max-width:899px){' + T + ' .slots>.card{padding:20px 16px 18px 48px}}',
-        '@media (max-width:559px){' + T + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
-          T + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + T + ' .slot-card .head-line{white-space:normal}' + T + ' .slot-card>.muted.small:not(.head-line){padding:8px 0 0}' + T + ' .slot-card .head{padding-right:0}}',
+        '@media (max-width:559px){' + T + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "err" "note"}' +
+          T + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + T + ' .slot-card .head-line{white-space:normal}' + T + ' .slot-card .head{padding-right:0}}',
         // Modules seat on load, about 50ms apart: each drops in with a small settle. It runs on the card element, which a poll
         // keeps, so only a new session seats; a data change that rebuilds the card's contents does not replay it.
         '@media (prefers-reduced-motion:no-preference){' + T + ' .slots>.slot-card{animation:term-seat .36s var(--ease-out) backwards}' +
@@ -2779,8 +2789,13 @@ function moduleShell(s){
   for(var i=0;i<30;i++)lamps+='<b style="--i:'+i+'"></b>';
   return'<span class="module" aria-hidden="true"><i class="led tone-'+tone+(busy?" busy":"")+'"></i><i class="lamps tone-'+tone+(busy?" busy":"")+'">'+lamps+'</i>'+fasteners+'</span>';
 }
-// Apps `wt serve` could add to a session: the ones it does not serve yet (slots 6-9 serve ds-demo only).
-var SERVE_APPS=["ds-demo","ri","strategy"];
+// The apps this machine manages, in display order (WT_APPS, set by the server when it renders the page). Start keys offer
+// the ones a session does not serve yet (slots 6-9 serve ds-demo only), and a session's app pills follow this order.
+var SERVE_APPS=/*APPS*/null/*END*/||["ri","ds-demo"];
+function appOrder(apps){
+  var rank=function(a){var i=SERVE_APPS.indexOf(a.app);return i<0?SERVE_APPS.length:i};
+  return apps.map(function(a,i){return{a:a,i:i}}).sort(function(x,y){return rank(x.a)-rank(y.a)||x.i-y.i}).map(function(x){return x.a});
+}
 function startableApps(s){
   if(!s.branch||s.recovery||String(s.branch).charAt(0)==="-")return[];
   var running=(s.apps||[]).map(function(a){return a.app});
@@ -2810,7 +2825,7 @@ function renderSlot(s){
     '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+branchLabel(s.branch||"(no branch)")+'</span>'+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
-  (s.apps||[]).forEach(function(a){h+=appPill(a)});
+  appOrder(s.apps||[]).forEach(function(a){h+=appPill(a)});
   var startable=startableApps(s);
   startable.forEach(function(app){h+=startKey(s,app)});
   if(!(s.apps||[]).length&&!startable.length)h+='<span class="muted">no apps</span>';
@@ -2825,7 +2840,6 @@ function renderSlot(s){
   if(s.error)h+='<div class="error">'+esc(s.error)+'</div>';
   if(stopping)h+='<div class="stopping-note" role="status">Stopping&hellip;</div>';
   if(switching)h+='<div class="stopping-note" role="status">Switching backend&hellip;</div>';
-  if(s.worktree)h+='<div class="muted small" title="'+esc(s.worktree)+'">'+esc(String(s.worktree).replace(/\/+$/,"").split("/").pop())+'</div>';
   return{key:"slot:"+s.slot+":"+(s.branch||""),cls:cls,html:h};
 }
 function hasRi(s){return(s.apps||[]).some(function(a){return a.app==="ri"})}
@@ -4261,7 +4275,7 @@ var QA_BRUSH=(function(){
 def render_html(status=None):
     """Page HTML; a status embeds a static snapshot and disables polling."""
     blob = json.dumps(status).replace("<", "\\u003c") if status is not None else "null"
-    return HTML.replace("/*INITIAL*/null/*END*/", blob)
+    return HTML.replace("/*INITIAL*/null/*END*/", blob).replace("/*APPS*/null/*END*/", json.dumps(list(managed_apps())))
 
 
 def load_status_file(path):
@@ -4437,16 +4451,17 @@ def handle_slot_backend(runner, body, headers, port, known_branches):
     return 202, {"actions": runner.snapshot()}
 
 
-def handle_slot_start(runner, body, headers, port, sessions):
+def handle_slot_start(runner, body, headers, port, sessions, apps=None):
     """Starts one app a live session does not serve yet through `wt serve <branch> <app>`. The branch must be a session in
-    the current status and the app one `wt serve` accepts that the session lacks, so no free text reaches the command."""
+    the current status and the app one of this machine's managed apps (WT_APPS) that the session lacks, so no free text
+    reaches the command."""
     if not same_origin(headers, port):
         return 403, {"error": "forbidden"}
     branch = body.get("branch") if isinstance(body, dict) else None
     app = body.get("app") if isinstance(body, dict) else None
     if not isinstance(branch, str) or branch not in sessions or branch.startswith("-"):
         return 400, {"error": "unknown branch"}
-    if not isinstance(app, str) or app not in SERVE_APPS:
+    if not isinstance(app, str) or app not in (managed_apps() if apps is None else apps):
         return 400, {"error": "unknown app"}
     slot, running = sessions[branch]
     if app in running:

@@ -41,7 +41,7 @@ Look first; ask one short question only for what you cannot find.
   and you cannot find it.
 - **Config:** `~/.config/overseer/runtime.env` (or `OVERSEER_CONFIG_FILE`, absolute path). Read and reuse it.
   Variables already in your environment (`WT_MAIN_CHECKOUT`, `QA_TREE`, `WT_QA_TREE`, `WT_TENANT`,
-  `KC_LIB`, `QA_UNIT_DIR`, `WT_STATE_DIR`) win over the file; never overwrite either.
+  `WT_APPS`, `KC_LIB`, `QA_UNIT_DIR`, `WT_STATE_DIR`) win over the file; never overwrite either.
 
 ## 2. Prerequisites
 
