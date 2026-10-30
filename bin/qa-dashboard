@@ -1282,11 +1282,11 @@ THEMES.terminal = (function () {
         "--card-hi": "rgba(255,255,255,.3)",
         "--korry-lit": "#6dff95",
         "--mfd-glass": "#060a08", "--mfd-ink": "#dfe8e2", "--mfd-glow": "rgba(200,255,220,.25)", "--mfd-bezel": "#1c201d",
-        "--lamp-off": "#3a1411", "--lamp-off-hi": "#5c2621", "--lamp-off-lo": "#1a0706", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)",
-        "--annun-ok": "#3f9f5c", "--annun-off": "#2a2620", "--annun-bezel": "#0b0c0b",
+        "--lamp-off": "#16191b", "--lamp-off-hi": "#59616a", "--lamp-off-lo": "#060708", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)", "--lamp-amber": "#ffb000", "--lamp-amber-hi": "#fff0c2", "--lamp-amber-lo": "#a36700", "--lamp-amber-glow": "rgba(255,176,0,.5)",
+        "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#ece4cf",
         "--plate-lit": "#1d6b34", "--plate-lit-deep": "#0e3a1c",
-        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--cap-led-off": "#2c1a14", "--cap-wall-color": "#8f856c",
+        "--collar": "rgba(60,48,26,.45)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#8f856c",
         "--item-card": "#e3dcc8", "--panel": "#e3dcc8", "--panel-hi": "rgba(255,255,255,.6)", "--panel-lo": "rgba(90,78,50,.32)", "--panel-line": "rgba(80,70,40,.18)", "--panel-edge": "#b8ae94", "--panel-edge2": "#8f866d",
         "--panel-ink": "#1d1a14", "--panel-muted": "#4a4334", "--legend-through": "none", "--grip": "#d0c7b0",
         "--bay": "#9d927a", "--bay-deep": "rgba(50,38,18,.55)", "--bay-rim": "rgba(60,48,26,.35)", "--bay-lip": "rgba(255,255,255,.8)",
@@ -1318,11 +1318,11 @@ THEMES.terminal = (function () {
         "--card-hi": "rgba(255,246,222,.06)",
         "--korry-lit": "#6dff95",
         "--mfd-glass": "#060a08", "--mfd-ink": "#dfe8e2", "--mfd-glow": "rgba(200,255,220,.25)", "--mfd-bezel": "#1c201d",
-        "--lamp-off": "#3a1411", "--lamp-off-hi": "#5c2621", "--lamp-off-lo": "#1a0706", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)",
-        "--annun-ok": "#3f9f5c", "--annun-off": "#2a2620", "--annun-bezel": "#0b0c0b",
+        "--lamp-off": "#16191b", "--lamp-off-hi": "#59616a", "--lamp-off-lo": "#060708", "--lamp-on": "#ff4a36", "--lamp-on-hi": "#ffd6cc", "--lamp-on-lo": "#b3170d", "--lamp-on-glow": "rgba(255,70,50,.5)", "--lamp-amber": "#ffb000", "--lamp-amber-hi": "#fff0c2", "--lamp-amber-lo": "#a36700", "--lamp-amber-glow": "rgba(255,176,0,.5)",
+        "--annun-ok": "#3f9f5c", "--annun-off": "#1a1d20", "--annun-bezel": "#0b0c0b",
         "--plate": "#141513",
         "--plate-lit": "#6dff95", "--plate-lit-deep": "#1f7a3c",
-        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--cap-led-off": "#2c1a14", "--cap-wall-color": "#6b6352",
+        "--collar": "rgba(0,0,0,.6)", "--toggle-ring": "#c2261a", "--legend-cap-lit": "#075f25", "--bl-ok": "#075f25", "--bl-ok-glow": "rgba(51,255,102,.9)", "--bl-ok-wash": "rgba(51,255,102,.3)", "--bl-warn": "#6b3d00", "--bl-warn-glow": "rgba(255,176,0,.95)", "--bl-warn-wash": "rgba(255,176,0,.32)", "--bl-bad": "#8f1208", "--bl-bad-glow": "rgba(255,90,70,.9)", "--bl-bad-wash": "rgba(255,90,70,.28)", "--cap-wall-color": "#6b6352",
         "--item-card": "#3a362d", "--panel": "#3a362d", "--panel-hi": "rgba(255,246,222,.10)", "--panel-lo": "rgba(0,0,0,.45)", "--panel-line": "rgba(0,0,0,.45)", "--panel-edge": "#1c1a15", "--panel-edge2": "#12110d",
         "--panel-ink": "#efe7d2", "--panel-muted": "#c7bca3", "--legend-through": "0 0 4px rgba(255,214,150,.22)", "--grip": "#2e2a23",
         "--bay": "#151310", "--bay-deep": "rgba(0,0,0,.9)", "--bay-rim": "rgba(0,0,0,.6)", "--bay-lip": "rgba(255,240,210,.09)",
@@ -1486,14 +1486,25 @@ THEMES.terminal = (function () {
           'box-shadow:0 0 0 2px var(--annun-bezel),0 0 0 3px var(--panel-lo),0 1px 0 3px var(--panel-hi),0 0 10px 2px var(--led-glow)}',
         T + ' .module .led.tone-ok{--led:var(--annun-ok)}',
         T + ' .module .led.tone-warn{--led:var(--power-warn);--led-glow:rgba(255,176,0,.55)}',
+        T + ' .module .led.busy:not(.tone-bad){--led:var(--annun-off);--led-glow:transparent}',
         T + ' .module .led.tone-bad{--led:var(--power-bad);--led-glow:rgba(255,90,70,.6)}',
-        // The lamp column: every lamp is always there, each in its own cup with a dark rim, a lens and a highlight. They stay
-        // unlit while the session is fine and light red, with a soft baked glow, when it has a problem. Purely decorative.
-        T + ' .module .lamps{left:10px;top:52px;bottom:30px;width:14px;--lamp-lens:var(--lamp-off);--lamp-lens-hi:var(--lamp-off-hi);--lamp-lens-lo:var(--lamp-off-lo);--lamp-glow:transparent;' +
-          'background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px) 0 0/14px 14px space,' +
-          'radial-gradient(circle,var(--lamp-lens-hi) 0,var(--lamp-lens) 2.4px,var(--lamp-lens-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px) 0 0/14px 14px space,' +
-          'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px) 0 0/14px 14px space,radial-gradient(circle,var(--lamp-glow) 0,transparent 7px) 0 0/14px 14px space}',
-        T + ' .module .lamps.tone-bad{--lamp-lens:var(--lamp-on);--lamp-lens-hi:var(--lamp-on-hi);--lamp-lens-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
+        // The lamp column: a column of lamps, each in its own cup with a dark rim, a smoked neutral lens and a highlight, so
+        // colour appears only when a lamp is lit. Unlit while the session is fine, steady amber for a settled warning and red
+        // for a problem. While an app on the session is starting, or an action targets it, a single amber lamp runs up the
+        // column with one dimmer lamp trailing it, an indeterminate busy indicator, and the annunciator above stays dark until
+        // the session settles. Red wins over both. Only the lit layer's opacity animates; the chase pauses in a hidden tab, and
+        // reduced motion holds one amber lamp steady part-way up the column instead. Purely decorative.
+        T + ' .module .lamps{left:10px;top:52px;bottom:30px;width:14px;overflow:hidden;display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:flex-start;' +
+          '--lamp:var(--lamp-off);--lamp-hi:var(--lamp-off-hi);--lamp-lo:var(--lamp-off-lo);--lamp-glow:transparent}',
+        T + ' .module .lamps.tone-bad{--lamp:var(--lamp-on);--lamp-hi:var(--lamp-on-hi);--lamp-lo:var(--lamp-on-lo);--lamp-glow:var(--lamp-on-glow)}',
+        T + ' .module .lamps.tone-warn:not(.busy){--lamp:var(--lamp-amber);--lamp-hi:var(--lamp-amber-hi);--lamp-lo:var(--lamp-amber-lo);--lamp-glow:var(--lamp-amber-glow)}',
+        T + ' .module .lamps>b{position:relative;flex:none;width:14px;height:14px;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-hi) 0,var(--lamp) 2.4px,var(--lamp-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),' +
+          'radial-gradient(circle at 50% 58%,transparent 5.6px,var(--panel-hi) 6px,transparent 6.6px),radial-gradient(circle,var(--lamp-glow) 0,transparent 7px)}',
+        T + ' .module .lamps>b::after{content:"";position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 44% 38%,rgba(255,255,255,.75) 0 .7px,transparent 1.5px),radial-gradient(circle,var(--lamp-amber-hi) 0,var(--lamp-amber) 2.4px,var(--lamp-amber-lo) 3.5px,#050505 3.9px 4.9px,var(--panel-lo) 5.3px,transparent 5.9px),radial-gradient(circle,var(--lamp-amber-glow) 0,transparent 7px)}',
+        T + ' .module .lamps.busy:not(.tone-bad)>b:nth-child(7)::after{opacity:1}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' .module .lamps.busy:not(.tone-bad)>b::after,' + T + ' .module .lamps.busy:not(.tone-bad)>b:nth-child(7)::after{opacity:0;animation:lamp-chase 2.4s steps(1,end) infinite;animation-delay:calc(var(--i) * 80ms - 2.4s)}' +
+          T + '[data-page-hidden="true"] .module .lamps>b::after{animation-play-state:paused}}',
+        '@keyframes lamp-chase{0%,3.3%{opacity:1}3.4%,6.6%{opacity:.35}6.7%,100%{opacity:0}}',
         // Case screws: a domed pan head in a shallow counterbore, its slot at a seeded angle.
         T + ' .module .fastener{width:10px;height:10px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 36% 30%,var(--screw-hi),transparent 65%),var(--screw);' +
           'box-shadow:inset 0 -1px 1px var(--screw-lo),0 0 0 1px var(--groove),0 1px 0 1px var(--mould-hi)}',
@@ -1544,27 +1555,33 @@ THEMES.terminal = (function () {
         T + ' #slots .slot-card .tools button.icon.stop:disabled{opacity:.55}',
         // The app keys are the console's putty keycaps sitting straight on the panel: one cap per app with its status face,
         // name and start time on one line. A configured app's key latches down (its wall shrinks and a collar shadow rings it),
-        // so it sits lower than an off app's key, which stands at full height; a press clicks in with a little overshoot. A small
-        // inset lamp at the left of each cap, built like the column LEDs, shows the status: green ready, amber starting,
-        // rebuilding or busy, red failed or down, and dark when the app is off.
+        // so it sits lower than an off app's key, which stands at full height; a press clicks in with a little overshoot.
         T + ' .slot-card .apps{justify-self:start;max-width:100%;margin:14px 0 14px;padding:0;gap:14px 14px;background:none;box-shadow:none}',
-        T + ' .slot-card :is(.app-pill,.app-start){--led:var(--cap-led-off);--led-core:#5a3a30;--led-edge:#1f120e;--led-glow:transparent}',
-        T + ' .slot-card :is(.app-pill,button.act.app-start){--pill-pad:7px 15px 9px 29px;' +
-          '--led-lamp:radial-gradient(circle at 13px calc(50% - 1px),rgba(255,255,255,.75) 0 1px,transparent 1.8px),radial-gradient(circle at 14px 50%,var(--led-core) 0 1.2px,var(--led) 2.4px 3.6px,var(--led-edge) 4.2px,#1a1410 4.6px 5.2px,transparent 5.7px),radial-gradient(circle at 14px 50%,var(--led-glow),transparent 10px)}',
-        T + ' .slot-card .app-pill{--led:#3fe46f;--led-core:#eaffef;--led-edge:#178a3a;--led-glow:rgba(51,255,102,.5);--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);transform:translateY(3px)}',
-        T + ' .slot-card .app-pill.tone-warn{--led:#ffb81a;--led-core:#fff3d6;--led-edge:#a86b00;--led-glow:rgba(255,176,0,.5)}',
-        T + ' .slot-card .app-pill:is(.off:not(.tone-warn),.failed){--led:#ff4a36;--led-core:#ffe0d8;--led-edge:#a3160c;--led-glow:rgba(255,70,50,.55)}',
-        T + ' .slot-card .app-pill.failed{--tag-face:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%);--led:#ffd8d0;--led-core:#ffffff;--led-edge:#8f1208;--led-glow:rgba(255,255,255,.45)}',
-        T + ' .slot-card .app-pill.off::before{background:var(--led-lamp),var(--tag-off)}',
+        // Status is the legend, backlit through the cap like the keyboard's keys: a configured app's glyph, name and time light
+        // up in the status colour (green ready, amber starting or rebuilding, red down) with a soft glow and a wash bleeding
+        // through the putty. The inks are dark enough to pass AA on the cap; the glow is decoration. Hover brightens the same
+        // backlight, so a latched key never stacks a second glow. A failed build keeps its red cap and dark legend.
+        T + ' .slot-card :is(.app-pill,button.act.app-start){--pill-pad:7px 15px 9px 13px}',
+        T + ' .slot-card .app-pill{--bl:var(--bl-ok);--bl-glow:var(--bl-ok-glow);--bl-wash:var(--bl-ok-wash);--bl-strength:.55;transform:translateY(3px);' +
+          '--tag-face:radial-gradient(80% 90% at 50% 50%,color-mix(in srgb,var(--bl-wash) calc(var(--bl-strength) * 100%),transparent),transparent 78%),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%)}',
+        T + ' .slot-card .app-pill.tone-warn{--bl:var(--bl-warn);--bl-glow:var(--bl-warn-glow);--bl-wash:var(--bl-warn-wash)}',
+        T + ' .slot-card .app-pill.off:not(.tone-warn){--bl:var(--bl-bad);--bl-glow:var(--bl-bad-glow);--bl-wash:var(--bl-bad-wash)}',
+        T + ' .slot-card .app-pill.off::before{background:var(--tag-face)}',
+        T + ' .slot-card .app-pill:not(.failed) :is(.dot,.app-name,.port,.since){color:var(--bl);text-shadow:0 0 calc(var(--bl-strength) * 8px) var(--bl-glow)}',
+        T + ' .slot-card .app-pill:not(.failed) .since{opacity:.85}',
+        T + ' .slot-card .app-pill:not(.failed) .dot{filter:drop-shadow(0 0 calc(var(--bl-strength) * 4px) var(--bl-glow))}',
+        T + ' .slot-card .app-pill:not(.failed) .pill-fx{display:none}',
+        T + ' .slot-card a.app-pill:not(.failed):is(:hover,:focus-visible,.fx-settled){--bl-strength:1}',
+        T + ' .slot-card .app-pill.failed{--tag-face:radial-gradient(120% 90% at 50% 30%,color-mix(in srgb,var(--bad) 82%,#fff) 0,var(--bad) 70%)}',
         T + ' .slot-card .app-pill::after,' + T + ' .slot-card .app-pill.off::after{inset:-1px -1px -2px;box-shadow:0 0 0 1.5px var(--collar),0 2px 2px -1px var(--contact)}',
         T + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled){transform:translateY(3px)}',
         T + ' .slot-card a.app-pill:is(:hover,:focus-visible,.fx-settled)::after{transform:none}',
         T + ' .slot-card a.app-pill:active{transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3)}',
         T + ' .slot-card a.app-pill:active::after{transform:scaleY(.8)}',
-        // Off keys (start keys): a full-height putty cap with a lowercase name, the sleeping face and a dark lamp, no time.
-        // Hover pre-presses it and wakes the face; a press clicks it in, and it stays in, lamp amber, reading starting.
-        T + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin:0 0 3px;padding:7px 15px 8px 29px;border:0;border-radius:5px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
-          'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag-off) 70%);' +
+        // Off keys (start keys): a full-height putty cap with a lowercase printed name, the sleeping face and no time. Hover
+        // pre-presses it and lights the legend as it wakes; a press clicks it in, and it stays in, backlit amber, reading starting.
+        T + ' .slot-card button.act.app-start{position:relative;isolation:isolate;gap:7px;min-height:36px;margin:0 0 3px;padding:7px 15px 8px 13px;border:0;border-radius:5px;font:14px/1.2 var(--mono);color:var(--tag-off-ink);' +
+          'background:radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag-off) 70%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--cap-wall-color),0 4px 5px -1px var(--contact);' +
           '--legend-lit:var(--legend-cap-lit);--legend-glow:var(--legend-glow-lit,none);--legend-halo:var(--korry-lit);--legend-wash:none;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}',
         T + ' .slot-card .app-start .app-name{font-weight:500;text-transform:lowercase;letter-spacing:.02em}',
@@ -1576,16 +1593,17 @@ THEMES.terminal = (function () {
         T + ' .slot-card button.act.app-start:not(.busy):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--cap-wall-color),0 2px 3px -1px var(--contact)}',
         T + ' .slot-card button.act.app-start:not(.busy):focus-visible{box-shadow:var(--ring),0 1.5px 0 var(--cap-wall-color)}',
         T + ' .slot-card button.act.app-start:active:not(:disabled){transform:translateY(4px);transition-duration:calc(var(--dur-fast) / 3);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
-        T + ' .slot-card button.act.app-start.busy{--led:#ffb81a;--led-core:#fff3d6;--led-edge:#a86b00;--led-glow:rgba(255,176,0,.5);transform:translateY(3px);color:var(--tag-ink);' +
-          'background:var(--led-lamp),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);box-shadow:inset 0 1px 2px var(--cap-shade),0 1px 0 var(--cap-wall-color),0 0 0 1.5px var(--collar)}',
+        T + ' .slot-card button.act.app-start.busy{transform:translateY(3px);color:var(--bl-warn);' +
+          'background:radial-gradient(80% 90% at 50% 50%,color-mix(in srgb,var(--bl-warn-wash) 55%,transparent),transparent 78%),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--tag) 70%);box-shadow:inset 0 1px 2px var(--cap-shade),0 1px 0 var(--cap-wall-color),0 0 0 1.5px var(--collar)}',
         T + ' .slot-card button.act.app-start.busy:focus-visible{box-shadow:var(--ring),0 0 0 1.5px var(--collar)}',
-        T + ' .slot-card .app-start.busy .start-off{display:inline-flex;font-size:14px;color:var(--tag-warn)}',
-        T + ' .slot-card .app-start.busy .dot.busy{color:var(--tag-warn)}',
+        T + ' .slot-card .app-start.busy :is(.start-off,.app-name){display:inline-flex;font-size:14px;color:var(--bl-warn);text-shadow:0 0 4px var(--bl-warn-glow)}',
+        T + ' .slot-card .app-start.busy .dot.busy{color:var(--bl-warn)}',
         T + ' .slot-card button.act.app-start:disabled:not(.busy){opacity:.55}',
         // The backend switch is the same putty keycap; it is momentary, and stays down when the backend already runs this branch.
         T + ' .slot-card .slot-backend{align-self:center}',
         T + ' .slot-card .slot-backend .update-btn{min-height:36px;margin:0 0 3px}',
-        T + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar)}',
+        T + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);color:var(--bl-ok);text-shadow:0 0 4px var(--bl-ok-glow);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar);' +
+          'background:radial-gradient(80% 90% at 50% 50%,color-mix(in srgb,var(--bl-ok-wash) 55%,transparent),transparent 78%),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--btn-face) 72%)}',
         // Saved sessions after a restart: a panel of the same moulded plastic as the sessions, above them in the case. Its
         // progress output is the CRT's phosphor glass, like the backend log.
         T + ' .recovery{position:relative;margin:4px 0 24px;padding:20px 22px 18px;border:0;border-radius:7px;--text:var(--panel-ink);--muted:var(--panel-muted);' +
@@ -2108,7 +2126,7 @@ var QA_THEME = (function () {
     // Text on the CRT screen (Terminal's wordmark).
     ["--screen-ink", "--screen"], ["--radio-alert", "--radio-plate"],
     // Terminal panels: the engraved placard core, legends on the panel, tray and stop plate, and the off and down key legends.
-    ["--panel-muted", "--panel"],
+    ["--panel-muted", "--panel"], ["--bl-ok", "--tag"], ["--bl-warn", "--tag"], ["--bl-bad", "--tag"], ["--bl-ok", "--btn-face"],
     // Problem tag text and mark use their own on-colours; the sentence uses the plate's red ink.
     ["--radio-problem-tag-ink", "--radio-tag"], ["--radio-problem-tag-glyph", "--radio-tag", 3],
     ["--radio-glyph-bad", "--radio-plate", 3], ["--glyph-ok", "--radio-plate", 3],
@@ -2727,12 +2745,17 @@ function slotTone(s){
   return tones.indexOf("warn")>=0?"warn":"ok";
 }
 // Decorative parts a theme can show on the session object (hidden unless the theme styles .module): an annunciator and a
-// lamp column that mirror slotTone, and four corner screws whose slot angles are seeded per session, so they stay put across polls.
+// lamp column that mirror slotTone (the column also chases while the session is busy), and four corner screws whose slot
+// angles are seeded per session, so they stay put across polls.
 function moduleShell(s){
   var seed=hashText(String(s.slot)+":"+(s.branch||"")),fasteners="";
   ["tl","tr","bl","br"].forEach(function(corner,i){fasteners+='<i class="fastener '+corner+'" style="--turn:'+((seed>>>(i*7))%180)+'deg"></i>'});
-  var tone=slotTone(s);
-  return'<span class="module" aria-hidden="true"><i class="led tone-'+tone+'"></i><i class="lamps tone-'+tone+'"></i>'+fasteners+'</span>';
+  var tone=slotTone(s),action=currentAction(),lamps="";
+  // The lamp column chases while an app on the session is starting (its dev server is not answering yet) or a running action
+  // targets the session; a rebuild on a running server only lights it steady amber.
+  var busy=(s.apps||[]).some(function(a){return!a.httpReady&&a.unitState==="active"})||!!(action&&action.state==="running"&&action.target===s.branch);
+  for(var i=0;i<30;i++)lamps+='<b style="--i:'+i+'"></b>';
+  return'<span class="module" aria-hidden="true"><i class="led tone-'+tone+(busy?" busy":"")+'"></i><i class="lamps tone-'+tone+(busy?" busy":"")+'">'+lamps+'</i>'+fasteners+'</span>';
 }
 // Apps `wt serve` could add to a session: the ones it does not serve yet (slots 6-9 serve ds-demo only).
 var SERVE_APPS=["ds-demo","ri","strategy"];
