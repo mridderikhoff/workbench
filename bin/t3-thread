@@ -170,36 +170,30 @@ def cmd_spawn(args):
         if args.model:
             model["model"] = args.model
         title = args.title or (text.strip().splitlines()[0][:60] or "New thread")
+        if args.new_worktree:
+            # The HTTP dispatch endpoint ignores turn-start bootstrap, so T3 cannot prepare a worktree here.
+            die("--new-worktree is not supported over HTTP; create the worktree with `wt new` and spawn into it")
         new_id, created = str(uuid.uuid4()), now_iso()
-        bootstrap = {"createThread": {
+        create = {
+            "type": "thread.create", "commandId": str(uuid.uuid4()), "threadId": new_id,
             "projectId": src["projectId"], "title": title, "modelSelection": model,
             "runtimeMode": src["runtimeMode"], "interactionMode": src["interactionMode"],
-            "branch": src.get("branch"), "worktreePath": src.get("worktreePath"), "createdAt": created}}
-        if args.new_worktree:
-            base = args.base_branch or default_base_branch(snap, project)
-            bootstrap["createThread"]["branch"] = base
-            bootstrap["createThread"]["worktreePath"] = None
-            bootstrap["prepareWorktree"] = {
-                "projectCwd": project["workspaceRoot"], "baseBranch": base,
-                "branch": f"t3code/{uuid.uuid4().hex[:8]}"}
-            bootstrap["runSetupScript"] = True
-        command = {
+            "branch": src.get("branch"), "worktreePath": src.get("worktreePath"), "createdAt": created}
+        turn = {
             "type": "thread.turn.start", "commandId": str(uuid.uuid4()), "threadId": new_id,
-            "message": user_message(text), "modelSelection": model, "titleSeed": title,
+            "message": user_message(text), "modelSelection": model,
             "runtimeMode": src["runtimeMode"], "interactionMode": src["interactionMode"],
-            "bootstrap": bootstrap, "createdAt": created}
-        status = dispatch(token, command, args.dry_run)
-        if not status:
+            "createdAt": now_iso()}
+        if not dispatch(token, create, args.dry_run):
+            dispatch(token, turn, True)
             return
-        print(f"thread={new_id} status={status}")
         deadline = time.time() + 20
-        while time.time() < deadline:
-            created_thread = next((t for t in snapshot(token)["threads"] if t["id"] == new_id), None)
-            if created_thread:
-                print(f"title={created_thread['title']}")
-                return
+        while not any(t["id"] == new_id for t in snapshot(token)["threads"]):
+            if time.time() > deadline:
+                die(f"thread {new_id} did not appear within 20s")
             time.sleep(1)
-        die(f"thread {new_id} did not appear within 20s")
+        status = dispatch(token, turn, False)
+        print(f"thread={new_id} status={status} title={title}")
 
 
 def main():

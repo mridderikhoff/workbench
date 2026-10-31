@@ -113,7 +113,7 @@ tool directories to the affected units.
 t=~/.claude/bin/t3-thread
 $t post <thread-id> --file message.md        # or pipe the text on stdin
 $t self                                      # print this agent's own thread id (--cwd DIR)
-$t spawn --from <thread-id> --file first.md [--title T] [--model M] [--new-worktree [--base-branch B]]
+$t spawn --from <thread-id> --file first.md [--title T] [--model M]
 $t settle <thread-id>
 ```
 
@@ -126,9 +126,9 @@ $t settle <thread-id>
   git toplevel of the current directory. With several, it prints the most recently used and warns on
   stderr; with none, it exits 1.
 - `spawn` starts a thread in the same project with the file as its first message, copying the source's
-  worktree, branch, model and modes. `--new-worktree` has T3 prepare a fresh worktree from `--base-branch`
-  (default `develop`), as the web client does. It prints `thread=<id> status=<http>`, then waits up to 20s
-  for the thread to appear.
+  worktree, branch, model and modes. It creates the thread, waits up to 20s for it to appear, then sends
+  the first turn and prints `thread=<id> status=<http>`. T3's HTTP endpoint cannot prepare a new worktree,
+  so `--new-worktree` refuses; create one with `wt new` first.
 - `settle` marks a thread settled.
 
 A real post or spawn starts a live agent, so use `--dry-run` when testing.
