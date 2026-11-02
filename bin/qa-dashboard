@@ -458,6 +458,8 @@ box-shadow:var(--obj-face),var(--obj-edge),0 8px 8px -2px var(--contact),0 22px 
 .settings-form>h2{grid-column:1/-1;margin-bottom:8px}
 .settings-row{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center}
 .settings-row[hidden]{display:none}
+/* A short note under a field sits in the field column. */
+.settings .field-note{grid-column:-2/-1;margin:0;font-size:13px;line-height:1.35;color:var(--muted)}
 .settings-rule{grid-column:1/-1;height:0;margin:2px 0;border:0;border-top:1px dashed var(--edge-lo2)}
 .settings label,.settings .field-label{font:600 15px/1.2 var(--serif);font-variant:var(--head-variant);text-transform:var(--head-case);letter-spacing:var(--head-spacing);color:var(--muted);white-space:nowrap}
 .settings input:not([type="radio"],[type="checkbox"]),.settings select{width:100%;min-height:38px;margin:0;font:16px/1.3 var(--serif);color:var(--text);background-color:var(--inset);border:0;border-radius:4px;box-shadow:var(--sunk);padding:7px 10px 6px;transition:background-color var(--dur-fast)}
@@ -3214,7 +3216,7 @@ var QA_DESK=(function(){
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
-<div class="settings-row" id="startkeys-row"><span class="field-label" id="startkeys-label">Server buttons</span><div class="segmented" id="startkeys-settings" role="group" aria-labelledby="startkeys-label"></div></div>
+<div class="settings-row" id="startkeys-row"><span class="field-label" id="startkeys-label">Server buttons</span><div class="segmented" id="startkeys-settings" role="group" aria-labelledby="startkeys-label"></div><p class="field-note">Running servers stay shown. Stop them from their session.</p></div>
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
 <div class="settings-row"><label for="shell-pick">Shell colour</label><select id="shell-pick"></select></div>
@@ -3227,7 +3229,7 @@ var QA_DESK=(function(){
 <dialog id="tenant-welcome" class="settings confirm-dialog" aria-labelledby="welcome-title" aria-describedby="welcome-message"><form method="dialog">
 <h2 id="welcome-title">Welcome</h2><p id="welcome-message">Which tenant do you sign in to? The RI and Strategy links open under it. Choose which server buttons each session shows. You can change both later in Settings.</p>
 <div class="settings-row"><label for="welcome-tenant">Tenant</label><input id="welcome-tenant" placeholder="tenant id" autocomplete="off" required></div>
-<div class="settings-row"><span class="field-label" id="welcome-startkeys-label">Server buttons</span><div class="segmented" id="startkeys-welcome" role="group" aria-labelledby="welcome-startkeys-label"></div></div>
+<div class="settings-row"><span class="field-label" id="welcome-startkeys-label">Server buttons</span><div class="segmented" id="startkeys-welcome" role="group" aria-labelledby="welcome-startkeys-label"></div><p class="field-note">Running servers stay shown. Stop them from their session.</p></div>
 <div class="confirm-actions"><button type="button" id="welcome-later">Later</button><button type="submit">Save</button></div>
 </form></dialog>
 <dialog id="stop-confirm" class="settings confirm-dialog" aria-labelledby="stop-title" aria-describedby="stop-message"><form method="dialog">
