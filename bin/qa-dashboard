@@ -3214,7 +3214,7 @@ var QA_DESK=(function(){
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
-<div class="settings-row" id="startkeys-row"><span class="field-label" id="startkeys-label">Start buttons</span><div class="segmented" id="startkeys-settings" role="group" aria-labelledby="startkeys-label"></div></div>
+<div class="settings-row" id="startkeys-row"><span class="field-label" id="startkeys-label">Server buttons</span><div class="segmented" id="startkeys-settings" role="group" aria-labelledby="startkeys-label"></div></div>
 <hr class="settings-rule">
 <div class="settings-row"><label for="theme-pick">Theme</label><select id="theme-pick"></select></div>
 <div class="settings-row"><label for="shell-pick">Shell colour</label><select id="shell-pick"></select></div>
@@ -3225,9 +3225,9 @@ var QA_DESK=(function(){
 <div class="settings-actions"><button type="submit" class="done">Done</button></div>
 </form></dialog>
 <dialog id="tenant-welcome" class="settings confirm-dialog" aria-labelledby="welcome-title" aria-describedby="welcome-message"><form method="dialog">
-<h2 id="welcome-title">Welcome</h2><p id="welcome-message">Which tenant do you sign in to? The RI and Strategy links open under it. Choose which start buttons each session shows. You can change both later in Settings.</p>
+<h2 id="welcome-title">Welcome</h2><p id="welcome-message">Which tenant do you sign in to? The RI and Strategy links open under it. Choose which server buttons each session shows. You can change both later in Settings.</p>
 <div class="settings-row"><label for="welcome-tenant">Tenant</label><input id="welcome-tenant" placeholder="tenant id" autocomplete="off" required></div>
-<div class="settings-row"><span class="field-label" id="welcome-startkeys-label">Start buttons</span><div class="segmented" id="startkeys-welcome" role="group" aria-labelledby="welcome-startkeys-label"></div></div>
+<div class="settings-row"><span class="field-label" id="welcome-startkeys-label">Server buttons</span><div class="segmented" id="startkeys-welcome" role="group" aria-labelledby="welcome-startkeys-label"></div></div>
 <div class="confirm-actions"><button type="button" id="welcome-later">Later</button><button type="submit">Save</button></div>
 </form></dialog>
 <dialog id="stop-confirm" class="settings confirm-dialog" aria-labelledby="stop-title" aria-describedby="stop-message"><form method="dialog">
