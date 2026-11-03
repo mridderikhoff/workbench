@@ -8,7 +8,7 @@ and high-risk reviews. The wrapper defaults to `gpt-6-sol` and does not read
 
 | script | purpose |
 |--------|---------|
-| `codex-run` | Makes the artifact dir, saves the prompt, prints the banner, starts `codex exec`/`codex review` detached, and returns in about a second. With `--wait`, it blocks and exits with codex's exit code. |
+| `codex-run` | Makes the artifact dir, saves the prompt, prints the banner, starts `codex exec`/`codex review` detached, and returns in about a second. With `--wait`, it blocks and exits with codex's exit code. At most 3 codex runs execute machine-wide; extra runs print `⏳ queued` and start when a slot frees (`CODEX_RUN_MAX_PARALLEL=<n>`, `0` disables; needs `flock`). Codex runs at `nice 10`. A queued detached run has no pid in `meta.json` yet. |
 | `codex-digest` | Command for the `Monitor` tool. For exec runs, it prints a line at once on first action, on errors, on failed commands, and when codex finishes, plus a progress line every 5 min. After 10 min with no new event it prints `⚠ codex stalled` with the kill command (`--stall <s>` tunes it, `--stall-kill` sends SIGTERM itself). For review runs, it prints only the finish line. It stops at 29 min (re-arm it). |
 
 Artifact dir (`$TMPDIR/codex-<label>.XXXXXX/`): `prompt.md`, `meta.json` (with the
