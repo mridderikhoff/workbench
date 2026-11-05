@@ -34,6 +34,9 @@ goal and scope boundary in `coverage.md` without expected answers.
 
 ## How to write it
 
+- **Main idea first.** Open with one or two plain sentences giving the high-level gist:
+  what the thing does and how its key pieces fit together. This is the default opening;
+  it does not need an analogy. Let the diagrams and short explanations unpack it.
 - **Pictures carry the mechanism.** Each must-have idea gets a figure drawn as inline SVG or
   CSS boxes and arrows. Control flow: numbered boxes joined by arrows. State change: a
   before-and-after pair. A cycle: a loop. Containment: nested boxes. Legible at 700 px wide,
@@ -50,9 +53,10 @@ goal and scope boundary in `coverage.md` without expected answers.
   full specification. Cut edge cases, history, alternatives and configuration. If a sentence
   does not help the reader explain the mechanism, delete it. Prose budget: 600 words. Five to
   nine sections.
-- **One analogy.** Introduce it in the opening, reuse its vocabulary in the captions, and end
-  with a short "where the analogy breaks" note. The analogy must be true for every must-have
-  idea or it is the wrong analogy.
+- **Analogy only when useful.** Direct diagrams and explanations are a good default. Use a
+  comparison when it makes a mechanism easier to grasp without distorting it; do not stretch
+  one across every idea. If its limit could mislead the reader, say briefly where it stops
+  fitting. Omit the comparison and its limit when neither helps.
 - **Correct beats simple.** A simplification that is false is a defect. Say "it is a little
   more complicated, but" rather than something untrue. Leave out detail; never invent it.
 - **Finish with "Try explaining it".** Three questions a curious listener would ask. They
@@ -84,8 +88,8 @@ Repeat for the remaining core ideas.
 ## Words to know
 - <word>: <plain meaning>
 
-## Analogy
-<the analogy>. Breaks when <where it stops being true>.
+## Analogy (only when used)
+<the comparison and any limit needed to avoid a misconception>
 
 ## Questions a curious listener asks
 1. ...

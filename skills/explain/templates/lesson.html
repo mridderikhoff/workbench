@@ -57,8 +57,9 @@
   <p id="hidden-message" role="status" hidden>Lesson hidden. Explain it in your own words, then ask to see it again when you want to review.</p>
   <div id="lesson">
   <h1>{{TITLE}}</h1>
-  <p class="lead">{{ONE_BREATH_SUMMARY: the whole idea in one sentence a child could repeat}}</p>
+  <p class="lead">{{MAIN_IDEA: one or two plain sentences giving the gist before the diagrams}}</p>
 
+  <!-- Optional analogy. Remove this whole block when a direct explanation is clearer. -->
   <div class="callout">
     <strong>Think of it like {{ANALOGY_NAME}}</strong>
     {{ANALOGY: two or three sentences that set up the picture used throughout}}
@@ -84,7 +85,7 @@
       <text class="label" x="590" y="90">{{Step three}}</text>
       <text class="note" x="350" y="150">{{one-line note under the flow}}</text>
     </svg>
-    <figcaption>{{CAPTION: what the picture shows, in analogy words}}</figcaption>
+    <figcaption>{{CAPTION: what the picture shows and why it matters}}</figcaption>
   </figure>
   <p>{{Short paragraph: what happens and why.}}</p>
 
@@ -93,6 +94,7 @@
     <dt>{{word}}</dt><dd>{{plain meaning}}</dd>
   </dl>
 
+  <!-- Optional analogy limit. Remove this block when no useful limit needs stating. -->
   <div class="callout warn">
     <strong>Where the analogy breaks</strong>
     {{One or two sentences.}}
