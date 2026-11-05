@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestrate"
+  short_description: "Plan and supervise substantial work through agents"
+  default_prompt: "Use $orchestrate to plan this effort, settle the design, and delegate implementation while tracking progress in Markdown."

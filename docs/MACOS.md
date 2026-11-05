@@ -23,7 +23,7 @@ repairs a missing page, and **Resume** restores saved sessions
 - **Prerequisites:** Homebrew with Bash 4.4+, GNU coreutils, `flock` and Python 3.13+
   (`brew install bash coreutils flock python@3.13`), plus Git. The tools add Homebrew's `bin` and `gnubin`
   directories to `PATH` themselves (`/opt/homebrew` on Apple Silicon, `/usr/local` on Intel).
-  `install.sh --runtime-only --dry-run` checks them and prints the links it would make. The installer never
+  `install.sh --dry-run` checks them and prints the links it would make. The installer never
   installs Homebrew or application dependencies; the setup agent handles those and presents any OS approval prompts.
 - **Application prerequisites** (Node and pnpm; for RI and Strategy also Python 3.13 and uv, Azure Functions
   Core Tools, LangGraph, Docker or Podman for Keycloak) come from the app repo's `local-app-runtime` and

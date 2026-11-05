@@ -57,7 +57,7 @@ Look first; ask one short question only for what you cannot find.
 
 ## 3. Install and configure
 
-1. `./install.sh --runtime-only --dry-run`, then `./install.sh --runtime-only` in the workbench clone.
+1. `./install.sh --dry-run`, then `./install.sh` in the workbench clone.
    It links only `bin/*`; never install personal hooks or settings. **Rerun it after every tool update**
    so new helpers get linked.
 2. Create `~/.config/overseer/runtime.env` only if it does not exist, with absolute values: `WT_MAIN_CHECKOUT`,

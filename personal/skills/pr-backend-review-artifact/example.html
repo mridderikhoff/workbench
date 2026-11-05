@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR 1303 backend review: highlight cited passages (STR-1176)</title>
+<meta name="description" content="Short review guide for backend reviewers of PR 1303: why the citation changes exist and the approach questions worth a human opinion.">
+<style>
+  :root { color-scheme: light dark; --fg:#1b1b1f; --muted:#5b5b66; --line:#d9d9e0; --bg:#fff; --card:#f6f6f9; --accent:#7a5af8; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#ececf1; --muted:#a3a3b0; --line:#34343c; --bg:#141418; --card:#1c1c22; --accent:#a48bff; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 20px 64px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  h2 { font-size:16px; margin:32px 0 10px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .tldr { background:var(--card); border-left:3px solid var(--accent); padding:14px 16px; border-radius:6px; }
+  .tldr p { margin:0 0 8px; } .tldr p:last-child { margin:0; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--card); font-weight:600; }
+  code { font:13px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  ol.questions { padding-left:20px; } ol.questions li { margin-bottom:14px; }
+  ol.questions strong { display:block; }
+  .alt { color:var(--muted); font-size:14px; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<h1>PR 1303: highlight cited passages — backend review</h1>
+<div class="meta"><a href="https://github.com/copperleaftech/cl-strategy/pull/1303">PR #1303</a> · STR-1176 · author: Matthew Ridderikhoff (frontend)</div>
+
+<div class="tldr">
+  <p><strong>What:</strong> the chain-of-evidence modal now highlights the cited passage inside the PDF or Word file. To find it, the viewer needs each citation's page and the cited text as it appears in the file, so the server now sends them.</p>
+  <p><strong>What I'd like from you:</strong> an opinion on the approach. Agents have reviewed the code for bugs, so line-level errors are less of a concern.</p>
+</div>
+
+<h2>What changed on the server</h2>
+<table>
+  <tr><th>Where</th><th>Change</th></tr>
+  <tr><td>Respond writer</td><td>Chunk citations gain <code>page_number</code> and <code>quote</code> (chunk text without the generated title line or truncation note, ≤4,000 chars), built in <code>ri_evidence_retrieval.py</code> and saved in draft metadata.</td></tr>
+  <tr><td>Cooper</td><td>Chunk citations gain <code>quote</code> when the grounded verifier matched one contiguous span: plain text, ≤1,200 chars, saved with the answer message.</td></tr>
+  <tr><td>Backend</td><td>Thread reload allows <code>quote</code> through the citation allowlist and re-applies the cap.</td></tr>
+</table>
+
+<h2>Where a human opinion helps</h2>
+<ol class="questions">
+  <li>
+    <strong>Building the quote at retrieval</strong>
+    The new code strips ingestion's generated title line in strategy-graph, mirroring chunking's format from another app.
+    <div class="alt">Alternative: store clean text at ingestion. Needs an index field and a re-ingest.</div>
+  </li>
+  <li>
+    <strong>Respond quotes the whole chunk</strong>
+    Highlights often cover most of two pages, overlap included.
+    <div class="alt">Alternative: have the Respond verifier pick the supporting span, as Cooper does.</div>
+  </li>
+  <li>
+    <strong>Storage</strong>
+    Up to ~4 KB more per Respond citation in draft metadata, and up to 1.2 KB per Cooper citation in answer messages.
+    <div class="alt">Alternative: send an identifier and fetch the text when the modal opens.</div>
+  </li>
+  <li>
+    <strong>Cooper sends document text to the browser</strong>
+    One verified quote per chunk citation (threat-model L-2, L-16). Acceptable? Should Cooper also strip <code>additional_kwargs</code> explicitly before model calls?
+  </li>
+  <li>
+    <strong>Cooper quotes only with grounded answers</strong>
+    Gated on the <code>ri_cooper_grounded_answers</code> tenant flag. Right gate?
+  </li>
+  <li>
+    <strong>No backfill</strong>
+    Only new drafts and answers carry the fields. Acceptable?
+  </li>
+</ol>
+
+</main>
+</body>
+</html>

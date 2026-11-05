@@ -1,0 +1,96 @@
+{
+  "permissions": {
+    "allow": [
+      "Grep",
+      "Glob",
+      "Read",
+      "Bash(ls:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "sonnet",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${HOME}/.claude/hooks/block-inline-checkout-edits.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${HOME}/.claude/hooks/block-bash-file-reads.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash '${HOME}/.claude/hooks/wt-qa-guard.sh'",
+            "if": "Bash(*wt qa *)",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '${HOME}/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '${HOME}/.claude/hooks/wt-qa-intent.sh'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node ${HOME}/.claude/statusline-v2.mjs",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "linear@anthropic-plugin-directory": true
+  },
+  "effortLevel": "medium",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "medium"
+    },
+    "claude-opus-4-8": {
+      "effortLevel": "medium"
+    },
+    "claude-sonnet-5": {
+      "effortLevel": "medium"
+    }
+  },
+  "autoMemoryEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "env": {
+    "CLAUDE_CODE_FORK_MODE": "0",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5"
+  }
+}

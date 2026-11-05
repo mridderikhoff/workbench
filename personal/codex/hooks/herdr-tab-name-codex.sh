@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-readonly TARGET='/home/marica/.claude/hooks/herdr-tab-name.sh'
+readonly TARGET="$HOME/.claude/hooks/herdr-tab-name.sh"
 
 event=${1:-}
 case "$event" in

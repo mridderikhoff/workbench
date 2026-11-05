@@ -1,0 +1,4 @@
+installer: copperleaf-pages
+source: https://github.com/copperleaftech/cl-github-pages @ 5c1a733843b45e6968adfe6f6644497a4764fff8
+installed: 2026-11-04T15:58:31.120Z
+environment: linux

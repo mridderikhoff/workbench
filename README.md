@@ -44,14 +44,15 @@ It earns its place when you compare branches or run tasks in parallel.
 | `bin/kc-redirects` | Adds and removes Keycloak sign-in addresses for served frontends (used by `wt serve`). |
 | `bin/t3-thread` | Posts to, spawns, settles and identifies T3 Code threads (see [Managing T3 threads](#managing-t3-threads)). `bin/t3-post` is a wrapper for `t3-thread post`. |
 | `bin/wt-qa-runtime.py` | Reconciles the managed QA runtime after an explicit `wt qa` attach. |
-| `scripts/codex-run`, `scripts/codex-digest` | Launch Codex CLI runs and summarise their progress; see `scripts/README.md`. |
-| `hooks/` | Claude Code PreToolUse hooks: keep edits inside worktrees, block risky file reads, QA guards, Herdr tab names. |
-| `codex/` | The Codex CLI equivalents: `hooks.json`, its hooks and the Herdr session hook. |
+| `personal/scripts/codex-run`, `personal/scripts/codex-digest` | Launch Codex CLI runs and summarise their progress; see `personal/scripts/README.md`. |
+| `personal/hooks/` | Claude Code PreToolUse hooks: keep edits inside worktrees, block risky file reads, QA guards, Herdr tab names. |
+| `personal/codex/` | The Codex CLI equivalents: `hooks.json`, its hooks and the Herdr session hook. |
 | `skills/overseer/` | Agent skill for setting up, opening and repairing Overseer. |
 | `systemd/cl-strategy-qa-dashboard.service` | Reference copy of the dashboard unit. `qa-stack install` writes the real one. |
 
-Only `bin/` is needed to run the local runtime. The rest is the author's personal agent kit
-(see [Full personal agent kit](#full-personal-agent-kit)).
+The default `./install.sh` installs only the runtime tools in `bin/`. The shared Overseer skill and
+setup documentation are for everyone. The author's prompts, skills, hooks and preferences live under
+`personal/` and require `./install.sh --personal`; see [Personal setup](personal/README.md).
 
 ## How it works
 
@@ -225,14 +226,23 @@ client, without overwriting anything already there: Claude Code uses `~/.claude/
 
 ## Full personal agent kit
 
-The rest of this repository is the author's own Claude Code and Codex setup. `./install.sh` (without
-`--runtime-only`) links `bin/`, `scripts/`, `hooks/`, and `codex/` into `~/.claude` and `~/.codex`, moving
-existing files aside as `<name>.bak-<timestamp>`. That **replaces your `~/.codex/hooks.json` and hook files**,
-and the Codex hook configuration contains the author's absolute paths, so run `./install.sh --dry-run` first
-and prefer `--runtime-only` unless you want the whole kit. The hooks are wired up in `~/.claude/settings.json`;
-install only links the files.
+Workbench has two install profiles:
 
-After a full install, `~/.claude/bin/wt` and friends are symlinks into this repository, so edits here are what
-runs, and `git diff` shows every change to the live tools.
+```bash
+./install.sh --dry-run               # preview the Overseer/wt install
+./install.sh                         # install Overseer/wt only (default)
+./install.sh --personal --dry-run    # preview the author's additional setup
+./install.sh --personal              # install both profiles
+```
+
+`--runtime-only` remains an alias for the default. The two profile flags cannot be combined.
+The personal profile installs the author's base prompts, maintained skills, hooks, scripts and portable
+preferences. It backs up replaced files, merges settings while preserving unowned keys, and keeps
+machine-specific servers and credentials out of Git. This profile is intended for the author;
+colleagues only need the default install. Read [Personal setup](personal/README.md) before adopting it.
+
+The root `AGENTS.md` and `CLAUDE.md` describe how to develop workbench. Global base prompts live
+separately in `personal/prompts/`. Legacy `hooks/`, `codex/` and personal script paths remain symlinks
+so existing installations keep working after the directory move.
 
 To try the page without a backend: `bin/qa-dashboard --render-once --status-file some-status.json > page.html`.

@@ -1,0 +1,137 @@
+[
+  {
+    "name": "explain",
+    "source": "~/.agents/skills/explain",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "handoff",
+    "source": "~/.agents/skills/handoff",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "orchestrate",
+    "source": "~/.agents/skills/orchestrate",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "challenge-me",
+    "source": "~/.agents/skills/challenge-me",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "t3-handoff",
+    "source": "~/.agents/skills/t3-handoff",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "skill-harden",
+    "source": "~/.agents/skills/skill-harden",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "learn-by-teaching",
+    "source": "~/.agents/skills/learn-by-teaching",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "publish-artifact",
+    "source": "~/.agents/skills/publish-artifact",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "t3",
+    "source": "~/.agents/skills/t3",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "codex-review",
+    "source": "~/.claude/skills/codex-review",
+    "clients": [
+      "claude"
+    ]
+  },
+  {
+    "name": "codex-computer-use",
+    "source": "~/.claude/skills/codex-computer-use",
+    "clients": [
+      "claude"
+    ]
+  },
+  {
+    "name": "pr-backend-review-artifact",
+    "source": "~/.claude/skills/pr-backend-review-artifact",
+    "clients": [
+      "claude"
+    ]
+  },
+  {
+    "name": "codex-implementation",
+    "source": "~/.claude/skills/codex-implementation",
+    "clients": [
+      "claude"
+    ]
+  },
+  {
+    "name": "cross-review",
+    "source": "~/.claude/skills/cross-review",
+    "clients": [
+      "claude"
+    ]
+  },
+  {
+    "name": "ds-design",
+    "source": "~/.agents/skills/ds-design",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "manager-mode",
+    "source": "~/.agents/skills/manager-mode",
+    "canonical": "orchestrate",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  }
+]

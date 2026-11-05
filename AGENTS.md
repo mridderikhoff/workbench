@@ -1,11 +1,16 @@
 # workbench — Agent Instructions
 
-This repo is the live developer kit for both Claude Code and Codex: `~/.claude/bin`,
-`~/.claude/scripts`, `~/.claude/hooks`, `~/.codex/hooks`, `~/.codex/hooks.json` and `~/.codex/bin/wt`
-are symlinks into the main checkout at `~/workbench` (see `install.sh`). A change to shared behaviour
-(worktree-only edits, QA rules) usually needs both the `hooks/` and `codex/hooks/` versions updated. Whatever is on `main`
-there is what every agent session on the machine runs, so a half-finished edit in that checkout
-breaks them all.
+This repo has two audiences: Overseer/wt consumers and the author's personal agent setup.
+`./install.sh` installs only runtime tools; `./install.sh --personal` adds the opt-in kit in
+`personal/`. Keep consumer setup independent of personal prompts, skills, hooks and preferences.
+The root `AGENTS.md` and `CLAUDE.md` govern this repository; global base prompts live in
+`personal/prompts/`.
+
+Installed files link into the main checkout at `~/workbench` (see `install.sh`). Personal
+Claude and Codex hooks live in `personal/hooks/` and `personal/codex/hooks/`; shared policy
+changes usually need both versions updated. Legacy paths are compatibility symlinks.
+Whatever is on `main` there is what agent sessions run, so a half-finished edit in that
+checkout breaks them all.
 
 ## Changing the kit
 

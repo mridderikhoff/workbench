@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""codex-digest: throttled progress digest for a codex-run artifact dir.
+
+Usage: codex-digest <ARTIFACT_DIR> [--interval 300]
+
+Meant as the command of Claude's Monitor tool: every stdout line becomes a
+notification, so output is sparse, one line per event, flushed immediately.
+"""
+import argparse, json, os, re, signal, sys, time
+
+POLL = 1.0
+HARD_STOP = 29 * 60
+FAIL_COOLDOWN = 30
+WAIT_FOR_EVENTS = 60
+
+
+def say(line):
+    print(line, flush=True)
+
+
+def one_line(text, n):
+    text = re.sub(r"\s+", " ", str(text or "")).strip()
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def short_cmd(cmd):
+    cmd = str(cmd or "")
+    # strip the shell wrapper: "/bin/zsh -lc 'ls'" or "/bin/zsh -lc false"
+    m = re.match(r"""^\S*sh -l?c (?:'(.*)'|"(.*)"|(\S+))$""", cmd, re.S)
+    return one_line(next((g for g in m.groups() if g), cmd) if m else cmd, 80)
+
+
+def mmss(secs):
+    secs = max(0, int(secs))
+    return "%d:%02d" % (secs // 60, secs % 60)
+
+
+def change_paths(item):
+    out = []
+    for c in item.get("changes") or []:
+        if isinstance(c, dict) and c.get("path"):
+            out.append(str(c["path"]))
+        elif isinstance(c, str):
+            out.append(c)
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("artifact_dir")
+    ap.add_argument("--interval", type=int, default=300)
+    ap.add_argument("--stall", type=int, default=600,
+                    help="seconds without a new event before a stall warning (0 disables)")
+    ap.add_argument("--stall-kill", action="store_true",
+                    help="send SIGTERM to the codex pid when a stall is detected")
+    a = ap.parse_args()
+    d = a.artifact_dir.rstrip("/")
+    events_path = os.path.join(d, "events.jsonl")
+    exit_path = os.path.join(d, "exit-code")
+    report = os.path.join(d, "report.md")
+
+    t0 = time.time()
+    meta_path = os.path.join(d, "meta.json")
+    st = {"start": t0, "pid": None, "mode": None, "gone_since": None}
+
+    def load_meta():
+        try:
+            meta = json.load(open(meta_path))
+        except Exception:
+            return  # absent or mid-replace; retry on the next poll
+        st["start"] = float(meta.get("start_epoch") or t0)
+        st["pid"] = meta.get("pid") or st["pid"]
+        st["mode"] = meta.get("mode") or st["mode"]
+
+    load_meta()
+
+    commands, failed, files = 0, 0, []
+    last_file, last_msg = None, None
+    started = False
+    new_activity = False
+    last_fail_emit = 0.0
+    next_digest = t0 + a.interval
+    last_event_at = t0
+    stall_said = False
+
+    def read_exit():
+        try:
+            return open(exit_path).read().strip() or "?"
+        except OSError:
+            return None
+
+    def finish(code):
+        line = "■ codex finished · exit %s" % code
+        if st["mode"] != "review":
+            line += " · %d commands · %d files changed" % (commands, len(files))
+        line += " · report: %s" % report
+        if code != "0":
+            line += " · stderr: %s/stderr.log" % d
+        if not (os.path.isfile(report) and os.path.getsize(report) > 0):
+            line += " · ⚠ report empty"
+        say(line)
+        sys.exit(0)
+
+    def check_exit_and_liveness():
+        """Finish if exit-code exists; bail if the codex pid is gone without one."""
+        code = read_exit()
+        if code is not None:
+            finish(code)
+        if st["pid"] is None:
+            load_meta()  # detached launches record the pid a moment after start
+        pid, now = st["pid"], time.time()
+        if not pid:
+            return
+        try:
+            os.kill(int(pid), 0)
+            st["gone_since"] = None
+        except ProcessLookupError:
+            st["gone_since"] = st["gone_since"] or now
+            if now - st["gone_since"] > 5 and read_exit() is None:
+                say("⚠ codex process %s exited without writing exit-code · check %s/stderr.log"
+                    % (pid, d))
+                sys.exit(1)
+        except (PermissionError, ValueError):
+            pass
+
+    def check_hard_stop():
+        if time.time() - t0 >= HARD_STOP:
+            say("◔ digest expiring · codex still running · re-arm codex-digest %s" % d)
+            sys.exit(0)
+
+    # Review runs have no event stream, so they stay in this loop and only the finish
+    # line is ever emitted. Exec runs leave it once events.jsonl appears (or bail at 60s).
+    while st["mode"] == "review" or not os.path.exists(events_path):
+        check_exit_and_liveness()
+        check_hard_stop()
+        if st["mode"] != "review" and time.time() - t0 > WAIT_FOR_EVENTS:
+            say("⚠ codex-digest: no events.jsonl in %s after %ds" % (d, WAIT_FOR_EVENTS))
+            sys.exit(1)
+        time.sleep(POLL)
+        if st["mode"] is None:
+            load_meta()
+
+    f = open(events_path, "r", encoding="utf-8", errors="replace")
+    buf = ""
+    while True:
+        chunk = f.read()
+        if chunk:
+            buf += chunk
+            *lines, buf = buf.split("\n")  # keep a trailing partial line for next poll
+            for raw in lines:
+                try:
+                    ev = json.loads(raw)
+                except ValueError:
+                    continue
+                if not isinstance(ev, dict):
+                    continue
+                new_activity = True
+                last_event_at = time.time()
+                stall_said = False
+                et = ev.get("type")
+                item = ev.get("item") if isinstance(ev.get("item"), dict) else {}
+                it = item.get("type")
+
+                if et == "error":
+                    say("⚠ codex error: %s" % one_line(ev.get("message") or ev, 160))
+                elif et == "turn.failed":
+                    err = ev.get("error") or {}
+                    msg = err.get("message") if isinstance(err, dict) else err
+                    say("⚠ codex turn failed: %s" % one_line(msg, 160))
+                elif et == "turn.completed":
+                    say("✓ codex turn completed · %d commands · %d files changed"
+                        % (commands, len(files)))
+                elif et in ("item.started", "item.completed", "item.updated"):
+                    if it in ("command_execution", "file_change") and not started:
+                        started = True
+                        first = short_cmd(item.get("command")) if it == "command_execution" \
+                            else ", ".join(change_paths(item)[:3]) or "file change"
+                        say("● codex started working · first action: %s" % first)
+                    if et != "item.completed":
+                        continue
+                    if it == "command_execution":
+                        commands += 1
+                        code = item.get("exit_code")
+                        if isinstance(code, int) and code != 0:
+                            failed += 1
+                            now = time.time()
+                            if now - last_fail_emit >= FAIL_COOLDOWN:
+                                last_fail_emit = now
+                                say("⚠ codex command failed (exit %d): %s"
+                                    % (code, short_cmd(item.get("command"))))
+                    elif it == "file_change":
+                        for p in change_paths(item):
+                            last_file = p
+                            if p not in files:
+                                files.append(p)
+                    elif it == "agent_message":
+                        last_msg = item.get("text")
+                    elif it == "error":
+                        say("⚠ codex error: %s" % one_line(item.get("message") or item, 160))
+                    # other item types (reasoning, mcp_tool_call, ...) only count as activity
+
+        check_exit_and_liveness()
+
+        now = time.time()
+        if a.stall and not stall_said and now - last_event_at >= a.stall:
+            stall_said = True
+            idle = mmss(now - last_event_at)
+            pid = st["pid"]
+            if a.stall_kill and pid:
+                try:
+                    os.kill(int(pid), signal.SIGTERM)
+                    say("⚠ codex stalled · no event for %s · sent SIGTERM to pid %s · "
+                        "relaunch with a tighter prompt" % (idle, pid))
+                except (ProcessLookupError, PermissionError, ValueError):
+                    say("⚠ codex stalled · no event for %s · pid %s could not be signalled" % (idle, pid))
+            else:
+                say("⚠ codex stalled · no event for %s · kill it with: kill %s · "
+                    "then relaunch with a tighter prompt (or re-arm with --stall-kill)"
+                    % (idle, pid or "<pid from meta.json>"))
+        if now >= next_digest:
+            next_digest = now + a.interval
+            el = mmss(now - st["start"])
+            if new_activity:
+                parts = ["◔ codex progress", "%s elapsed" % el, "%d commands" % commands]
+                if failed:
+                    parts.append("%d failed" % failed)
+                parts.append("%d files changed" % len(files))
+                if last_file:
+                    parts.append("last file: %s" % last_file)
+                if last_msg:
+                    parts.append("last message: %s" % one_line(last_msg, 120))
+                say(" · ".join(parts))
+            else:
+                say("◔ codex progress · %s elapsed · no new activity since last digest" % el)
+            new_activity = False
+
+        check_hard_stop()
+        time.sleep(POLL)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)

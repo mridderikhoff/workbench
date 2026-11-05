@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "python3 '/home/marica/.codex/hooks/block-inline-checkout-edits-codex.py'",
+            "command": "python3 \"${HOME}/.codex/hooks/block-inline-checkout-edits-codex.py\"",
             "timeout": 20,
             "type": "command"
           }
@@ -14,7 +14,7 @@
         "matcher": "^Agent$",
         "hooks": [
           {
-            "command": "python3 '/home/marica/.codex/hooks/enforce-subagent-policy.py'",
+            "command": "python3 \"${HOME}/.codex/hooks/enforce-subagent-policy.py\"",
             "timeout": 20,
             "type": "command"
           }
@@ -25,7 +25,7 @@
       {
         "hooks": [
           {
-            "command": "bash '/home/marica/.codex/herdr-agent-state.sh' session",
+            "command": "bash \"${HOME}/.codex/herdr-agent-state.sh\" session",
             "timeout": 10,
             "type": "command"
           }
