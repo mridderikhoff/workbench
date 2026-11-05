@@ -6,7 +6,31 @@
       "sourceUrl": "https://github.com/ogulcancelik/herdr.git",
       "skillPath": "SKILL.md",
       "skillFolderHash": "a979916568b0225123711b1aa401d67102e3cf95"
+    }
+  },
+  "hybridWorkflow": {
+    "repository": "https://github.com/copperleaftech/claude-and-cursor-profile",
+    "directory": "simon",
+    "ref": "main",
+    "relationship": "borrowed and locally adapted; original import revision unknown",
+    "url": "https://github.com/copperleaftech/claude-and-cursor-profile/tree/main/simon",
+    "skills": [
+      "codex-implementation",
+      "codex-review",
+      "codex-computer-use",
+      "cross-review"
+    ],
+    "scripts": {
+      "codex-run": "simon/.claude/scripts/codex-run",
+      "codex-digest": "simon/.claude/scripts/codex-digest",
+      "README.md": "simon/.claude/scripts/README.md"
     },
+    "promptSections": {
+      "personal/prompts/CLAUDE.md": "codex-delegation block; local routing adaptations"
+    },
+    "verification": "Upstream paths verified through GitHub; local content is adapted, not pinned to current upstream."
+  },
+  "retiredSkills": {
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",

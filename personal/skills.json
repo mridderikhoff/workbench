@@ -45,15 +45,6 @@
     ]
   },
   {
-    "name": "skill-harden",
-    "source": "~/.agents/skills/skill-harden",
-    "clients": [
-      "claude",
-      "agents",
-      "codex"
-    ]
-  },
-  {
     "name": "learn-by-teaching",
     "source": "~/.agents/skills/learn-by-teaching",
     "clients": [
@@ -85,49 +76,60 @@
     "source": "~/.claude/skills/codex-review",
     "clients": [
       "claude"
-    ]
+    ],
+    "upstream": {
+      "repository": "https://github.com/copperleaftech/claude-and-cursor-profile",
+      "directory": "simon",
+      "ref": "main",
+      "relationship": "borrowed and locally adapted; original import revision unknown",
+      "path": "simon/.claude/skills/codex-review"
+    }
   },
   {
     "name": "codex-computer-use",
     "source": "~/.claude/skills/codex-computer-use",
     "clients": [
       "claude"
-    ]
-  },
-  {
-    "name": "pr-backend-review-artifact",
-    "source": "~/.claude/skills/pr-backend-review-artifact",
-    "clients": [
-      "claude"
-    ]
+    ],
+    "upstream": {
+      "repository": "https://github.com/copperleaftech/claude-and-cursor-profile",
+      "directory": "simon",
+      "ref": "main",
+      "relationship": "borrowed and locally adapted; original import revision unknown",
+      "path": "simon/.claude/skills/codex-computer-use"
+    }
   },
   {
     "name": "codex-implementation",
     "source": "~/.claude/skills/codex-implementation",
     "clients": [
       "claude"
-    ]
+    ],
+    "upstream": {
+      "repository": "https://github.com/copperleaftech/claude-and-cursor-profile",
+      "directory": "simon",
+      "ref": "main",
+      "relationship": "borrowed and locally adapted; original import revision unknown",
+      "path": "simon/.claude/skills/codex-implementation"
+    }
   },
   {
     "name": "cross-review",
     "source": "~/.claude/skills/cross-review",
     "clients": [
       "claude"
-    ]
+    ],
+    "upstream": {
+      "repository": "https://github.com/copperleaftech/claude-and-cursor-profile",
+      "directory": "simon",
+      "ref": "main",
+      "relationship": "borrowed and locally adapted; original import revision unknown",
+      "path": "simon/.claude/skills/cross-review"
+    }
   },
   {
     "name": "ds-design",
     "source": "~/.agents/skills/ds-design",
-    "clients": [
-      "claude",
-      "agents",
-      "codex"
-    ]
-  },
-  {
-    "name": "manager-mode",
-    "source": "~/.agents/skills/manager-mode",
-    "canonical": "orchestrate",
     "clients": [
       "claude",
       "agents",

@@ -15,7 +15,7 @@
   specialists for their areas, and `general-purpose` only when nothing fits.
 - Never fork — always brief a fresh sub-agent instead (forking carries the full
   conversation and dodges the sub-agent model enforcement; it's also disabled via
-  `CLAUDE_CODE_FORK_MODE`). Load `manager-mode` for long multi-phase work.
+  `CLAUDE_CODE_FORK_MODE`). Load `orchestrate` for long multi-phase work.
 
 ## Servers and QA
 

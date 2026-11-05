@@ -77,8 +77,8 @@ class InstallProfiles(unittest.TestCase):
             self.assertTrue((self.home / path).exists(), path)
         for client in ['agents', 'claude', 'codex']:
             skill = self.home / f'.{client}/skills/orchestrate'
-            alias = self.home / f'.{client}/skills/manager-mode'
-            self.assertEqual(skill.resolve(), alias.resolve())
+            self.assertTrue(skill.is_symlink())
+            self.assertFalse((self.home / f'.{client}/skills/manager-mode').exists())
         settings = json.loads((self.home / '.claude/settings.json').read_text())
         self.assertTrue(settings['custom'])
         self.assertEqual(settings['env']['KEEP_THIS'], 'local')
@@ -132,6 +132,41 @@ class InstallProfiles(unittest.TestCase):
         self.install('--personal')
         self.assertEqual(config.stat().st_mode & 0o777, 0o600)
         self.assertEqual(settings.stat().st_mode & 0o777, 0o640)
+
+    def test_retired_skills_are_archived_only_by_personal_install(self):
+        names = ['manager-mode', 'pr-backend-review-artifact', 'skill-harden', 'find-skills']
+        for client in ['claude', 'agents', 'codex']:
+            for name in names:
+                if name == 'manager-mode':
+                    target = self.home / f'.{client}/skills/{name}'
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.symlink_to(self.home / 'missing-alias')
+                else:
+                    self.write(f'.{client}/skills/{name}/SKILL.md', f'original {client}/{name}')
+        before = self.snapshot()
+        self.install('--personal', '--dry-run')
+        self.assertEqual(self.snapshot(), before)
+        self.install()
+        for client in ['claude', 'agents', 'codex']:
+            for name in names:
+                self.assertTrue(os.path.lexists(self.home / f'.{client}/skills/{name}'))
+        self.install('--personal')
+        for client in ['claude', 'agents', 'codex']:
+            for name in names:
+                target = self.home / f'.{client}/skills/{name}'
+                self.assertFalse(os.path.lexists(target))
+                backups = list((self.home / '.local/state/workbench/retired-skills' / client).glob(name + '.bak-*'))
+                self.assertEqual(list(target.parent.glob(name + '.bak-*')), [])
+                self.assertEqual(len(backups), 1)
+                if name == 'manager-mode':
+                    self.assertTrue(backups[0].is_symlink())
+                else:
+                    self.assertEqual((backups[0] / 'SKILL.md').read_text(), f'original {client}/{name}')
+        for name in ['codex-implementation', 'codex-review', 'codex-computer-use', 'cross-review']:
+            self.assertTrue((self.home / f'.claude/skills/{name}/SKILL.md').exists())
+        after = self.snapshot()
+        self.install('--personal')
+        self.assertEqual(self.snapshot(), after)
 
     def test_toml_merge_handles_section_positions(self):
         preferences = {'model': 'new', 'features': {'hooks': True}, 'agents': {'default_subagent_model': 'preferred'}, 'tui': {'status_line': ['model']}}

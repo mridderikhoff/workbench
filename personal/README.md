@@ -51,7 +51,7 @@ New installs link straight into `personal/`. The previously versioned `skills/ex
 ## Skill provenance and dependencies
 
 `skills.json` records each imported skill's source location and client destinations. The shared
-Claude, Codex and agent copies are deduplicated. `manager-mode` remains an alias for `orchestrate`.
+Claude, Codex and agent copies are deduplicated. Use `orchestrate` for coordinated work.
 Claude-specific Codex wrappers and review skills stay Claude-only. No user-level agent definitions
 were present at import time; future definitions can be added under `agents/claude/`, `agents/codex/`
 or `agents/agents/` and will be linked individually by the personal installer.
@@ -63,7 +63,7 @@ refreshing this snapshot; installing workbench does not copy the DS kit itself.
 `dependencies.json` records the existing third-party skill sources and upstream skill-folder hashes:
 
 - Herdr: `ogulcancelik/herdr`, root `SKILL.md`.
-- Find skills: `vercel-labs/skills`, `skills/find-skills/SKILL.md`.
+
 
 These are provenance hashes from the existing skill lock, not Git commit pins. Install these using
 their upstream instructions if needed; this installer never fetches dependencies or vendors the
@@ -76,3 +76,23 @@ in `config/claude-settings.json`; they still need the corresponding marketplaces
 Run `scripts/run-gates.sh installer` for focused sandbox checks. They cover both profiles, settings
 preservation, client mappings, repeated installs, backup handling and write-free dry runs. Tests
 never install into the real home or touch running services.
+
+## Borrowed Claude/Codex workflow
+
+The hybrid workflow comes from [Simon’s setup in claude-and-cursor-profile](https://github.com/copperleaftech/claude-and-cursor-profile/tree/main/simon).
+It includes `codex-implementation`, `codex-review`, `codex-computer-use`, `cross-review`, the
+`codex-run` and `codex-digest` scripts, their README, and the delegation block in the Claude
+base prompt. These are retained as locally adapted copies. Upstream paths are recorded in
+`skills.json` and `dependencies.json`. The original import revision is unknown; the files
+are not claimed to match upstream main exactly. Local routing and script changes remain local.
+
+## Retired skills
+
+`manager-mode`, `pr-backend-review-artifact`, `find-skills` and `skill-harden` are retired.
+The personal installer moves existing copies or aliases in Claude, Codex and agent skill folders
+to `~/.local/state/workbench/retired-skills/<client>/<name>.bak-<timestamp>` and stops installing
+them. Archives stay outside skill discovery folders so retired skills cannot load accidentally.
+The installer never deletes their contents.
+The runtime-only installer leaves them alone. `retired-skills.json` records this migration;
+`dependencies.json` preserves the former find-skills provenance. For coordinated work, use
+`orchestrate` directly. These retirements do not change the Claude/Codex hybrid workflow.

@@ -102,6 +102,12 @@ def main():
         source = kit / 'skills' / skill.get('canonical', skill['name'])
         for client in skill['clients']:
             link(source, f'.{client}/skills/{skill["name"]}')
+    # Retired skills are archived, never deleted; keep removal repeatable and reversible.
+    for skill in json.loads((kit / 'retired-skills.json').read_text()):
+        for client in skill['clients']:
+            target = home / f'.{client}/skills/{skill["name"]}'
+            if os.path.lexists(target):
+                actions.append((target, None, None))
     # Future agent definitions remain individual links, so unrelated agents survive.
     agents = kit / 'agents'
     if agents.exists():
@@ -133,14 +139,24 @@ def main():
     for target, source, data in actions:
         mode = stat.S_IMODE(target.stat().st_mode) if data is not None and target.is_file() else 0o600
         if os.path.lexists(target):
-            backup = target.with_name(target.name + '.bak-' + stamp)
+            retired = source is None and data is None
+            if retired:
+                client = target.relative_to(home).parts[0].lstrip('.')
+                backup = home / '.local/state/workbench/retired-skills' / client / (target.name + '.bak-' + stamp)
+            else:
+                backup = target.with_name(target.name + '.bak-' + stamp)
+            backup_base = backup
             suffix = 0
             while os.path.lexists(backup):
                 suffix += 1
-                backup = target.with_name(target.name + f'.bak-{stamp}-{suffix}')
+                backup = backup_base.with_name(backup_base.name + f'-{suffix}')
             print(f'{"would back up" if args.dry_run else "backed up"} {target} -> {backup}')
             if not args.dry_run:
+                backup.parent.mkdir(parents=True, exist_ok=True)
                 target.rename(backup)
+        if source is None and data is None:
+            print(f'{"would retire" if args.dry_run else "retired"} {target}')
+            continue
         print(f'{"would link" if args.dry_run else "linked"} {target} -> {source}' if source else f'{"would merge" if args.dry_run else "merged"} {target}')
         if not args.dry_run:
             target.parent.mkdir(parents=True, exist_ok=True)

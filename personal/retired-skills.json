@@ -1,0 +1,34 @@
+[
+  {
+    "name": "manager-mode",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "pr-backend-review-artifact",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "skill-harden",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
+    "name": "find-skills",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  }
+]
