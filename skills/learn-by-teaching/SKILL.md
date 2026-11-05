@@ -27,12 +27,22 @@ file can be reopened. An inline artifact may remain in chat history. On “ready
 “Okay, teach me [topic]. Start wherever you like.” Wait for the learner's explanation;
 there is no evaluation before it.
 
+At readiness, read the private coverage and the evaluator/listener role texts **once** into
+the coordinator's context. For each live turn, embed only the role and inputs named below;
+neither child uses tools or rereads files. Request **low reasoning effort explicitly in the
+host call settings** for both fresh evaluator and listener, using an available capable model.
+In T3, discover settings once per session with `orchestrator_capabilities` and pass its supported low-effort setting in
+`delegate_task.target.options`; use the host's equivalent when available. Do not switch to
+premium fast/priority service or change global settings. If per-call low effort is unavailable,
+say so rather than claiming it was set. Keep uncertain evidence `unclear`; speed does not
+relax completion checks.
+
 Keep a transcript of **speaker-attributed, numbered turns** (`L1`, `S1`, `L2`, …). After each
 substantive learner turn:
 
-1. Give a **fresh isolated evaluator**, with no forked conversation, the coverage path and
-   full raw transcript. Follow [the evaluator role](references/evaluator.md). Keep its full
-   audit private; save it beside the lesson if useful.
+1. Give a **fresh isolated evaluator**, with no forked conversation or tools, only the
+   embedded [evaluator role](references/evaluator.md), private coverage **text**, topic, and
+   full raw transcript. Keep its compact audit private; save it beside the lesson if useful.
 2. Parse the evaluator's JSON response with separate `private_audit` and `listener_report`
    fields; reject malformed output. Check every evidence quote in the private audit against its cited learner turn, including
    the learner-stated causal link for each item marked explained. Reject fabricated quotes,
