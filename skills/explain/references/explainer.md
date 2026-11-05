@@ -34,7 +34,7 @@ goal and scope boundary in `coverage.md` without expected answers.
 
 ## How to write it
 
-- **Main idea first.** Open with one or two plain sentences giving the high-level gist:
+- **At a glance.** Open with this label and one or two plain sentences giving the high-level gist:
   what the thing does and how its key pieces fit together. This is the default opening;
   it does not need an analogy. Let the diagrams and short explanations unpack it.
 - **Pictures carry the mechanism.** Each must-have idea gets a figure drawn as inline SVG or
