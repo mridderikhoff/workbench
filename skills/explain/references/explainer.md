@@ -7,6 +7,11 @@ the mechanism from the pictures, with the text as support.
 Write for someone tired, distracted, and new to the topic. In one quick read, they should grasp
 the main idea, the key pieces, and how those pieces connect.
 
+Use the learner's goal to set the stopping point. Give the smallest end-to-end causal story
+that supports what they want to do; treat the word budget as a guide, not the scope. State
+briefly what the lesson covers and leaves for later, in learner-facing words. Record the
+goal and scope boundary in `coverage.md` without expected answers.
+
 ## Order of work
 
 1. **Write `coverage.md` first.** It records the core ideas the lesson must explain and guides
@@ -34,6 +39,10 @@ the main idea, the key pieces, and how those pieces connect.
   before-and-after pair. A cycle: a loop. Containment: nested boxes. Legible at 700 px wide,
   at most about eight shapes per figure, with labels of one to three words. The caption says
   what the picture shows in one sentence.
+- **Whole picture at the end.** Add one summary visual that connects the key pieces into a
+  causal overview rather than repeating earlier figures. For a workflow, show the entry,
+  outcome, and any relevant loop. For another technical topic, show the relationship that
+  best connects its pieces; do not force a flowchart.
 - **Simple words.** Mostly sentences under twelve words. One idea per paragraph. No term from
   the field without a plain definition at first use. Prefer "the browser" to "the runtime",
   prefer a verb to a noun made from one.
@@ -54,6 +63,11 @@ the main idea, the key pieces, and how those pieces connect.
 
 ```markdown
 # Coverage: <title>
+
+## Scope
+- Learner goal: <what they want to understand or do afterward, no answer content>
+- In scope: <brief boundary>
+- Left for later: <optional depth, not required for understanding this lesson>
 
 ## Must explain
 ### <core idea>

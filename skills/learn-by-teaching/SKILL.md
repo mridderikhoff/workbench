@@ -23,7 +23,8 @@ Ask the learner to read the page, use **Hide lesson** or close it, and say “re
 file can be reopened; an inline artifact may remain in chat history. At readiness, cache
 the coverage and both role texts once in the coordinator. Start **one isolated listener
 session with no fork or tools**. Embed [the listener role](references/student.md) in its
-initial prompt, plus only the topic and audience. Send no lesson, coverage, audit, parent
+initial prompt, plus only the topic, audience, learner goal, and answer-free scope boundary.
+Send no lesson, coverage, audit, parent
 history, file path, or role-file path. Never use the explainer or evaluator as listener.
 Relay its opening verbatim and wait for the learner. Do not run an evaluator yet.
 
@@ -65,6 +66,10 @@ quote against the cited turn and its gap for answer terms, expected mechanisms, 
 suggested questions, labels, and private reasoning. An unmentioned idea gets only a neutral
 invitation anchored in the topic or learner's words. Retry an invalid audit or leaking
 report once, then pause without declaring completion.
+
+If the evaluator flags a checkpoint outside the declared scope, repair that private
+checkpoint against the lesson before reevaluating. Do not send it to the listener or count
+the mismatch as a gap in the learner's understanding.
 
 If the verified report says `complete`, end the round. Otherwise send **only its sanitized
 neutral gap** to the same listener. Never forward the audit, coverage, or lesson. If the

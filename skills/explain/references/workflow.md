@@ -10,12 +10,14 @@ databases, security, infrastructure, or AI. Interpret an ambiguous topic in its 
 context when that fits the request. For an unrelated topic, ask the person to choose a coding
 or technology topic instead.
 
-Infer the topic, audience, desired depth, and whether independent review is worthwhile from
-the person's words. Default to a curious 10-year-old, simple words, a few diagrams, and the
-smallest causal story that explains the mechanism. A request to share or rely on the lesson,
-or a complex or consequential topic, warrants the review in [critics.md](critics.md). Ask one
-brief plain-language question only when consequential uncertainty cannot be resolved from
-context; otherwise make a reasonable choice and continue.
+Infer the topic, audience, learner goal, and whether independent review is worthwhile from
+the person's words. The goal may be to follow a flow, change code, or debug a problem. If
+the goal is unclear, ask one short natural question about what they want to understand or
+do afterward; do not run an interview or force flags. Default to a curious 10-year-old,
+simple words, a few diagrams, and the smallest coherent end-to-end causal story that serves
+that goal. A request to share or rely on the lesson, or a complex or consequential topic,
+warrants the review in [critics.md](critics.md). Use context to resolve other uncertainty;
+do not stack more questions onto the scope question.
 
 Create a unique temporary folder holding `lesson.html` and `coverage.md`. Give the topic,
 audience, folder, [explainer.md](explainer.md), and
