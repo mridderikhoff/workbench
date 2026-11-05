@@ -21,8 +21,8 @@ the mechanism from the pictures, with the text as support.
    frameworks, fonts, scripts or images from the network.
 4. **Check the lesson against `coverage.md`.** Every must-have idea has its own section with a
    diagram. Every word in "words to know" is defined where it first appears.
-5. **Report** only: the path of `lesson.html`, the full text of `coverage.md`, and a one-line
-   title. Do not include any lesson text, even as a summary.
+5. **Report** only: the paths of `lesson.html` and `coverage.md`, and a one-line title. Do
+   not include lesson or coverage text, even as a summary.
 
 ## How to write it
 

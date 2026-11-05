@@ -21,9 +21,11 @@ Create a unique temporary folder holding `lesson.html` and `coverage.md`. Give t
 audience, folder, [explainer.md](explainer.md), and
 [the HTML template](../templates/lesson.html) to a fresh available subagent. Use the host's
 model routing and the person's model choice. Ask it to return the page path, private coverage
-sheet, and title without lesson prose. For repository topics, it follows local instructions
-and restricted-file rules. If no subagent is available, the main agent writes the lesson and
-is honest later that it has read it.
+**path**, and title without lesson prose or coverage contents. For repository topics, it
+follows local instructions and restricted-file rules. If no subagent is available, `explain`
+may write the lesson directly. `learn-by-teaching` needs isolated evaluator and listener
+agents after the lesson; if they are unavailable, offer the lesson alone or wait rather than
+merging those roles.
 
 Run [critics.md](critics.md) when independent review is warranted. Correct known factual
 errors before showing the page. Reviewers and the explainer should keep the page concise
@@ -40,5 +42,5 @@ artifact. Inline rendering may put the HTML in the main agent's context; it does
 lesson prose in chat. The Hide lesson control hides the current view, not chat history or
 the agent's context. The saved file remains available for rereading.
 
-Return the page path and private coverage to the `learn-by-teaching` caller so it can listen
-and probe; return only the page artifact/link to the `explain` learner.
+Return the page path and private coverage **path** to the `learn-by-teaching` coordinator;
+return only the page artifact/link to the `explain` learner.
