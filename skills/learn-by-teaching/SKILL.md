@@ -2,11 +2,11 @@
 name: learn-by-teaching
 disable-model-invocation: true
 description: >
-  Learn a topic from a short visual HTML lesson, then explain it back to a curious
-  listener who probes gaps and causes without a quiz. Use when the person asks to
-  learn by teaching or wants a teach-back conversation.
+  Learn a coding or technology topic from a visual HTML lesson, then explain it back
+  to a curious listener who probes gaps without a quiz. Use for software or technical
+  teach-back requests.
 metadata:
-  argument-hint: "topic or natural-language learning request"
+  argument-hint: "coding or technology topic"
 ---
 
 # Learn by teaching

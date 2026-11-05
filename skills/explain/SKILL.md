@@ -2,11 +2,11 @@
 name: explain
 disable-model-invocation: true
 description: >
-  Explain a topic in a concise, visual, self-contained HTML lesson. Use when the person
-  wants an explanation or teaching document to read or share. This skill stops after
-  presenting the lesson; interactive teach-back uses learn-by-teaching.
+  Explain a coding or technology topic in a concise, visual HTML lesson. Use when the
+  person wants a software or technical explanation to read or share. This skill stops
+  after presenting the lesson; interactive teach-back uses learn-by-teaching.
 metadata:
-  argument-hint: "topic or natural-language learning request"
+  argument-hint: "coding or technology topic"
 ---
 
 # Explain

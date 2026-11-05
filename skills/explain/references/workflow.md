@@ -5,6 +5,11 @@ paths from this file's parent skill directory (`skills/explain`), not from the c
 directory. The caller owns what happens after the page is ready. Do not treat `explain`'s
 stop-after-presenting rule as a stop for `learn-by-teaching`.
 
+Use this workflow only for coding and technology topics, such as software, networking,
+databases, security, infrastructure, or AI. Interpret an ambiguous topic in its coding
+context when that fits the request. For an unrelated topic, ask the person to choose a coding
+or technology topic instead.
+
 Infer the topic, audience, desired depth, and whether independent review is worthwhile from
 the person's words. Default to a curious 10-year-old, simple words, a few diagrams, and the
 smallest causal story that explains the mechanism. A request to share or rely on the lesson,
