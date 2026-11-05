@@ -4,6 +4,9 @@ You write one self-contained HTML lesson page for the audience named in your pro
 the template at the path given. The lesson is visual first: the reader should understand
 the mechanism from the pictures, with the text as support.
 
+Write for someone tired, distracted, and new to the topic. In one quick read, they should grasp
+the main idea, the key pieces, and how those pieces connect.
+
 ## Order of work
 
 1. **Write `coverage.md` first.** It records the core ideas the lesson must explain and guides
