@@ -21,8 +21,8 @@ Do not let Codex commit, push, deploy, or edit global config unless the user exp
 2. Define the scope: the files or behavior to change, files to avoid, constraints, and verification commands.
 3. Pick the model from the routing table in `~/.claude/CLAUDE.md`:
    - `gpt-6-luna` for bulk or mechanical work
-   - `gpt-6-sol` for standard work with a clear spec
-   - Claude (Sonnet 5.5 or Opus, per the routing table), not codex, for user-facing parts (UI, copy, public API design)
+   - `gpt-6-sol` for clear-spec implementation, including agreed UI, copy, docs, tests, and routine fixes
+   - Opus for bounded ambiguous design judgment before Sol implements the agreed direction
 4. Delegate using the protocol below.
 5. Inspect the changes: `git status` and `git diff`, and for spec files, the `it(` counts (see below).
 6. Run the cheapest reliable verification yourself.
@@ -31,7 +31,7 @@ Do not let Codex commit, push, deploy, or edit global config unless the user exp
 
 ## Delegation Protocol
 
-Follow the protocol in `~/.claude/scripts/README.md`: one `codex-run` call, relay the artifact dir, arm the `codex-digest` Monitor, and read `report.md` when it finishes. Skill-specific parts:
+In Claude Code, follow `~/.claude/scripts/README.md`: one `codex-run` call and read `report.md` when it finishes. Arm the digest Monitor only if the host needs it for completion notification. In T3 or another Codex host, use its native delegation tools. Skill-specific parts:
 
 ```bash
 ~/.claude/scripts/codex-run --mode exec --label "<label>" --model gpt-6-sol --sandbox workspace-write <<'PROMPT'
@@ -98,6 +98,6 @@ Report:
 - **Spec files:** compare `grep -c "^\s*it(" <file>` against the pre-run count. A drop the task didn't ask for is a defect, not a cleanup.
 - **Reverting:** revert only mistakes Codex created, and only when you are sure they are not user changes.
 - **Stop and report** with a diff summary if Codex leaves the repo in a worse state or changes unrelated files.
-- **Stalls or failures:** if codex stalls twice or fails review twice on the same task, the routing table moves it to Opus.
+- **Stalls or failures:** if Codex stalls twice, split or narrow the run. After two Sol attempts fail on the same task, obtain a bounded Opus diagnosis or replan. If the work still cannot meet the bar, report the blocker and ask for the user's decision.
 
-If `codex` is not installed (wrapper exit 127) or the run fails, report the error and offer to do the implementation directly.
+If `codex` is not installed (wrapper exit 127) or the run fails, report the error and use another available authorized Codex route where possible. Preserve required review gates.

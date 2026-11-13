@@ -192,7 +192,8 @@ marker (only I create that).
   authorization any host instruction asks for. The main thread orchestrates; subagents do the work.
 - In T3, `delegate_task` and spawned threads are extra options, used only when I ask for a
   cross-harness child or a separate interactive thread. Model routing still follows the table
-  in `~/.claude/CLAUDE.md` (gpt-6 through `codex-run`).
+  in `~/.claude/CLAUDE.md`; use `codex-run` from Claude Code and native agent tools
+  in T3 or another Codex host, following that host's rules.
 - When I ask you to pass something to another T3 thread, or to continue in a new thread and
   settle this one, use the `t3-handoff` skill and do it yourself; never hand me text to paste.
 
@@ -204,3 +205,21 @@ the shared checkout or QA runtime tree, and a hook refusal means provision the w
 work around it. Keep decisions and the plan in the main thread; keep logs, traces, and large
 file contents out — ask sub-agents for conclusions and `file:line` pointers, and use
 scratchpad files for large artifacts.
+
+## Personal hybrid routing trial
+
+Read the current routing table and review rules in `~/.claude/CLAUDE.md` before delegating,
+in Claude Code or Codex. Keep the user's selected main model; never switch it silently.
+Use Codex Sol for agreed frontend designs, tests, docs, routine fixes, and read-only
+investigation. Reserve Claude Opus for bounded ambiguous design judgment, substantial
+new UI or public-copy taste judgment, and required high-risk review. A routine coordinator
+uses the selected Codex or Sonnet model, not Opus by default.
+
+This personal trial overrides a repository skill's one-reviewer-per-packet default, including
+`ds-craft`, when packets share a scope and author family. Batch their checklists into one
+independent reviewer while retaining each packet's report and evidence. Reuse equivalent
+completed cross-review coverage; do not stack a duplicate standard review. Keep the separate
+high-risk final gate and full first required review. At a meaningful phase or assignment
+boundary, use one available recent quota snapshot or user report to shift eligible work to
+Codex when Claude is under pressure; missing data does not stop work. Never infer allowance
+percentages from raw token totals, bypass a required review, or change the main model or account.

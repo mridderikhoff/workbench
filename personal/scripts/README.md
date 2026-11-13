@@ -1,9 +1,11 @@
 # ~/.claude/scripts
 
-Delegation to the Codex CLI. Every codex launch goes through `codex-run`.
+Delegation to the Codex CLI from Claude Code. In T3 or another Codex host, use
+native agent tools according to that host's rules. Every Codex CLI launch from
+Claude Code goes through `codex-run`.
 Models: `gpt-6-luna` for fast, cheap bulk and mechanical work; `gpt-6-sol` for
-standard implementation, fix runs, and reviews; `gpt-6-astra` for computer use
-and high-risk reviews. The wrapper defaults to `gpt-6-sol` and does not read
+clear-spec implementation including agreed UI and copy, read-only investigation,
+fix runs, computer use, and reviews. The wrapper defaults to `gpt-6-sol` and does not read
 `~/.codex/config.toml` for the model.
 
 | script | purpose |
@@ -39,14 +41,14 @@ specs. Prompts no longer need to repeat these rules.
    `-- --skip-git-repo-check`.
 3. The tool result is the banner (`▶ Delegating to codex (...) · <label> · artifacts: <dir>`)
    and a `progress:` line. Relay the artifact dir to the user.
-4. Arm `Monitor` with the command `~/.claude/scripts/codex-digest <dir>`,
+4. If the host does not wake the turn on completion, arm `Monitor` with the command `~/.claude/scripts/codex-digest <dir>`,
    `timeout_ms: 1800000`, and the description `codex progress: <label>`. Relay each
    progress notification in one sentence. If it says `digest expiring`, re-arm it.
    If it says `⚠ codex stalled`, run the kill command it names, then relaunch with a
    tighter prompt (smaller target, fewer files). Two stalls in a row on the same target
    means the run is too big: split it or do the work directly.
-   Review runs get no progress lines, only the finish line. Arm the Monitor for them
-   anyway, because it is the only signal that the run finished.
+   Review runs get no progress lines, only the finish line. When the host supplies
+   completion notifications, use them instead of a Monitor.
 5. On `■ codex finished`, read `report.md`. If the line names `stderr:` or says
    `⚠ report empty`, also read `stderr.log`. `exited without writing exit-code`
    means the run died; read `stderr.log` and `run.log`.

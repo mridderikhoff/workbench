@@ -1,6 +1,6 @@
 ---
 name: codex-computer-use
-description: Ask Codex CLI (gpt-6-astra) to run local app verification that needs computer use, browser automation, simulators, screenshots, app launching, or independent runtime inspection.  This is how gpt-6 is invoked for computer-use work.  Use when the user asks Claude to have Codex or gpt-6 test a flow, verify UI behavior, inspect a running app, capture screenshots, or report confirmation and feedback about implemented behavior.
+description: Ask Codex Sol to run local app verification that needs computer use, browser automation, simulators, screenshots, app launching, or independent runtime inspection. Use when the user asks Codex to test a flow, verify UI behavior, inspect a running app, capture screenshots, or report confirmation and feedback about implemented behavior.
 ---
 
 # Codex Computer Use
@@ -19,19 +19,19 @@ Launching apps, simulators, or browsers to verify the requested work is fine wit
 
 ## Delegation Protocol
 
-Follow the protocol in `~/.claude/scripts/README.md`: one `codex-run` call, relay the artifact dir, arm the `codex-digest` Monitor, and read `report.md` when it finishes. Skill-specific parts:
+In Claude Code, follow `~/.claude/scripts/README.md`: one `codex-run` call and read `report.md` when it finishes. Arm the digest Monitor only if the host needs it for completion notification. In T3 or another Codex host, use its native delegation tools. Skill-specific parts:
 
 ```bash
-~/.claude/scripts/codex-run --mode exec --label "<label>" --model gpt-6-astra --sandbox danger-full-access <<'PROMPT'
+~/.claude/scripts/codex-run --mode exec --label "<label>" --model gpt-6-sol --sandbox danger-full-access <<'PROMPT'
 <self-contained prompt>
 PROMPT
 ```
 
-- **Model:** always `--model gpt-6-astra`. It's the computer-use model in the routing table, and the wrapper's default is sol.
+- **Model:** use `--model gpt-6-sol` as in the routing table.
 - **Sandbox:** `danger-full-access` is needed for GUI automation, iOS simulators, launching desktop apps, screenshots, or access outside the repo. For non-GUI checks that only need the repo and the artifact directory, use `workspace-write`.
 - **Target outside the current directory:** add `--cwd <dir>`, plus `-- --skip-git-repo-check` if that directory isn't a git repo.
 - **Artifact dir in the prompt:** write `{{ARTIFACT_DIR}}`, so screenshots and logs land in the same folder as the report.
-- **Bash description:** `Delegate to codex (gpt-6-astra): <label>`.
+- **Bash description:** `Delegate to codex (gpt-6-sol): <label>`.
 
 ## Prompt Requirements
 

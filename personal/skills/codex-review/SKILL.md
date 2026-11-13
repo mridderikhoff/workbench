@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: Ask Codex CLI (gpt-6-sol, or gpt-6-astra for high-risk work) for an independent code review of Claude-written changes, a branch diff, a commit, or a specific implementation.  This is how gpt-6 is invoked for review work.  Use when cross-review routes Claude-authored work to gpt-6, when the user asks Claude to have Codex or gpt-6 review work, or when Codex should audit a diff, find bugs or regressions, or compare an implementation against requirements. gpt-6-authored work is reviewed by a fresh Claude subagent (Sonnet 5.5 standard, Opus high-risk) through cross-review instead.
+description: Ask Codex Sol for an independent review of Claude-written changes, a branch diff, a commit, or a specific implementation. Use when cross-review routes Claude-authored work to Codex, when the user asks for Codex review, or when Codex should audit a diff against requirements. Codex-authored work receives an independent Claude review (Sonnet standard, Opus high-risk) through cross-review.
 ---
 
 # Codex Review
@@ -15,7 +15,7 @@ Use Codex as the independent, other-family reviewer for work Claude wrote. The `
 
 ## Delegation Protocol
 
-Follow the protocol in `~/.claude/scripts/README.md`: one `codex-run` call, relay the artifact dir, arm the `codex-digest` Monitor, and read `report.md` when it finishes. Skill-specific parts:
+In Claude Code, follow `~/.claude/scripts/README.md`: one `codex-run` call and read `report.md` when it finishes. Arm the digest Monitor only if the host needs it for completion notification. In T3 or another Codex host, use its native delegation tools. Skill-specific parts:
 
 **Default: a criteria-aware review in exec read-only mode.** Without the criteria, gpt-6 can only find generic bugs. It can't catch "this doesn't do what was asked."
 
@@ -25,7 +25,7 @@ Follow the protocol in `~/.claude/scripts/README.md`: one `codex-run` call, rela
 PROMPT
 ```
 
-- Use `--model gpt-6-astra` for high-risk work.
+- Use `--model gpt-6-sol` for standard and high-risk work. A separate independent Opus final gate applies to high-risk work.
 - **Never give a review run `workspace-write`.** The read-only preamble also stops codex from spending 20 minutes fighting EPERM.
 - **Name the target explicitly**, including untracked files, which `git diff HEAD` doesn't show. Best is to point at the packet's `change.diff`.
 - **Outside git**, add `--cwd <dir>` and `-- --skip-git-repo-check`.
