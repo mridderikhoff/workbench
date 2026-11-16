@@ -4,6 +4,13 @@
 
 I am a frontend developer who owns `libs/ds`, the design-system library.
 
+## Time zone
+
+I am in Edmonton, Alberta. From November 1, 2026, my local time is Alberta Time
+(UTC−06:00) year-round, with no seasonal clock changes. Use that offset for local
+timestamps even if stale `America/Edmonton` system data reports UTC−07:00 in winter.
+Preserve historical timestamps before that date. Do not change system-wide time settings.
+
 ## File paths for Windows
 
 I work in WSL (distro `Ubuntu-24.04`) and open files from Windows File Explorer. Whenever you
