@@ -36,6 +36,15 @@
     ]
   },
   {
+    "name": "grill-me",
+    "source": "~/.agents/skills/grill-me",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
+  },
+  {
     "name": "t3-handoff",
     "source": "~/.agents/skills/t3-handoff",
     "clients": [
