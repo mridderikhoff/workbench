@@ -1,0 +1,15 @@
+{
+  "name": "cl-strategy",
+  "checkout": "~/cl-strategy",
+  "baseBranch": "develop",
+  "deps": [],
+  "nodeModules": "apps/ui",
+  "backend": true,
+  "nxSharedCache": true,
+  "defaultApps": ["ds-demo", "ri"],
+  "apps": {
+    "ds-demo": {"label": "DS demo", "portBase": 5175, "cwd": "apps/ui", "command": "pnpm exec nx serve ds-demo --port {port}", "urlPath": "/", "backend": false},
+    "ri": {"label": "RI", "portBase": 5174, "cwd": "apps/ui", "command": "CI=true PORT_OFFSET={offset} pnpm exec nx serve ri --port {port}", "urlPath": "/{tenant}/ri/", "backend": true},
+    "strategy": {"label": "Strategy", "portBase": 5173, "cwd": "apps/ui", "command": "CI=true PORT_OFFSET={offset} pnpm exec nx serve strategy --port {port}", "urlPath": "/{tenant}", "backend": true}
+  }
+}

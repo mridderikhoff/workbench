@@ -26,42 +26,42 @@ profile() {
   python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" "$1" "$2" "${@:3}"
 }
 tree_profile_root() {
-  local tree="$1"
-  [ -n "$tree" ] && [ -f "$tree/.workbench/wt.json" ] && { echo "$tree"; return; }
-  repo_main_for_path "$tree"
+  repo_main_for_path "$1"
 }
 tree_profile() { profile "$(tree_profile_root "$1")" "$2" "${@:3}"; }
+builtin_app() { case "$1" in ds-demo|ri|strategy) return 0 ;; *) return 1 ;; esac; }
 known_repos() {
-  local -a repos
-  IFS=: read -r -a repos <<<"${WT_REPOS:-$HOME/cl-strategy:$HOME/cl-system}"
+  local -a repos=()
+  local listed
+  if [ -n "${WT_MAIN_CHECKOUT:-}" ]; then repos=("$WT_MAIN_CHECKOUT")
+  elif [ -n "${WT_REPOS:-}" ]; then IFS=: read -r -a repos <<<"$WT_REPOS"
+  else
+    listed=$(profile / known) || return 2
+    if [ -n "$listed" ]; then mapfile -t repos <<<"$listed"
+    else repos=("$HOME/cl-strategy"); fi
+  fi
   local repo
-  for repo in "${repos[@]}"; do [ -d "$repo/.git" ] && echo "$repo"; done
+  for repo in "${repos[@]}"; do git -C "$repo" rev-parse --git-common-dir >/dev/null 2>&1 && echo "$repo"; done
 }
 repo_main_for_path() {
-  local path="$1" common repo dirs
+  local path="$1" common
   common=$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
-  while IFS= read -r repo; do
-    dirs=$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
-    [ "$dirs" = "$common" ] && { echo "$repo"; return; }
-  done < <({ [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; known_repos; } | awk '!seen[$0]++')
-  for repo in $(git -C "$path" worktree list --porcelain | awk '/^worktree /{print $2}'); do
-    dirs=$(git -C "$repo" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null) || continue
-    [ "$(echo "$dirs" | head -1)" = "$(echo "$dirs" | tail -1)" ] && { echo "$repo"; return; }
-  done
-  return 1
+  readlink -f "$(dirname "$common")"
 }
 wt_git_context() {
-  local main
+  local main repo
   if [ -n "${WT_MAIN_CHECKOUT:-}" ]; then
     main="$WT_MAIN_CHECKOUT"
     [ "$(repo_main_for_path "$PWD" 2>/dev/null)" = "$(repo_main_for_path "$main" 2>/dev/null)" ] && { echo "$PWD"; return; }
     echo "$main"; return
   fi
   main=$(repo_main_for_path "$PWD" 2>/dev/null) || main=
-  if [ -n "$main" ] && { [ -f "$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null)/.workbench/wt.json" ] || [ -f "$main/.workbench/wt.json" ] || known_repos | grep -Fxq "$main"; }; then
-    echo "$PWD"; return
-  fi
-  known_repos | head -1
+  while IFS= read -r repo; do
+    [ -n "$repo" ] || continue
+    [ -n "$main" ] && [ "$main" = "$(repo_main_for_path "$repo" 2>/dev/null)" ] && { echo "$PWD"; return; }
+    [ -n "${first:-}" ] || first="$repo"
+  done < <(known_repos)
+  [ -n "${first:-}" ] && echo "$first"
 }
 
 worktree_paths() {
@@ -123,7 +123,6 @@ qa_tree() {
   [ -n "${WT_QA_TREE:-}" ] && { echo "$WT_QA_TREE"; return 0; }
   local path repo
   while IFS= read -r repo; do
-    [ -f "$repo/.workbench/wt.json" ] && continue
     for path in $(git -C "$repo" worktree list --porcelain | awk '/^worktree /{print $2}'); do
     [ -f "$path/.wt-qa-runtime" ] && { echo "$path"; return 0; }
     done
@@ -400,9 +399,8 @@ install_deps() {
   main=$(repo_main_for_path "$path") || return 1
   source_root=$(tree_profile_root "$path") || return 1
   if [ ${#dirs[@]} -eq 0 ]; then
-    if [ -f "$source_root/.workbench/wt.json" ]; then
-      configured=$(profile "$source_root" deps) || return 1
-      [ -z "$configured" ] || mapfile -t dirs <<<"$configured"
+    configured=$(profile "$source_root" deps) || return 1
+    if [ -n "$configured" ]; then mapfile -t dirs <<<"$configured"
     else mapfile -t dirs < <(pnpm_workspaces "$path"); fi
   fi
   [ ${#dirs[@]} -eq 0 ] && { echo "deps       no pnpm workspace found under $path"; return 0; }
@@ -814,14 +812,7 @@ serve_slot_ports() {
       [ -f "$file" ] && sed -n 's/^path=//p' "$file" | head -1
     done
     [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"
-    while IFS= read -r repo; do
-      echo "$repo"
-      if [ ! -f "$repo/.workbench/wt.json" ]; then
-        for tree in $(git -C "$repo" worktree list --porcelain | awk '/^worktree /{print $2}'); do
-          [ -f "$tree/.workbench/wt.json" ] && { echo "$tree"; break; }
-        done
-      fi
-    done < <(known_repos)
+    known_repos
   } | awk 'NF && !seen[$0]++')
 }
 serve_app_backend() { tree_profile "$1" app "$2" backend; }
@@ -1053,7 +1044,7 @@ serve_command() {
   source_root=$(tree_profile_root "$path") || return 1
   printf -v quoted '%q' "$path/$(profile "$source_root" app "$app" cwd)"
   port=$(serve_port "$slot" "$app" "$path")
-  if [ -f "$source_root/.workbench/wt.json" ]; then
+  if ! builtin_app "$app"; then
     command=$(profile "$source_root" app "$app" command) || return 1
     command=${command//\{port\}/$port}
     echo "cd $quoted && $command"
@@ -1092,7 +1083,7 @@ serve_write_unit() {
   exec_start="/usr/bin/env bash -lc '$command_line'"
   unit_config_file="$OVERSEER_CONFIG_FILE"
   unit_home="$HOME"
-  if [ -f "$source_root/.workbench/wt.json" ]; then
+  if ! builtin_app "$app"; then
     description=$(profile "$source_root" app "$app" label) || return 1
     description="$(echo "$description" | sed 's/%/%%/g') task frontend $slot $app"
     cwd="${path}/$cwd"
@@ -1117,7 +1108,7 @@ Environment=NX_WORKSPACE_DATA_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/d
   if [ "$OVERSEER_MACOS" = 1 ]; then
     unit_env_path="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$unit_env_path"
   fi
-  if [ -f "$source_root/.workbench/wt.json" ]; then
+  if ! builtin_app "$app"; then
     unit_config_file=${unit_config_file//%/%%}
     unit_home=${unit_home//%/%%}
     unit_env_path=${unit_env_path//%/%%}
@@ -1332,7 +1323,7 @@ serve_start_locked() {
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
       echo "dry-run    install frontend dependencies in $path/$node_modules"
     else
-      if [ -f "$source_root/.workbench/wt.json" ]; then install_deps "$path" 9>&- || return 1
+      if [ "$(profile "$source_root" name)" != cl-strategy ]; then install_deps "$path" 9>&- || return 1
       else install_deps "$path" "$path/apps/ui" 9>&- || return 1; fi
     fi
   fi
@@ -2104,18 +2095,8 @@ spec.loader.exec_module(profile_module)
 
 def repo_profile(path):
     try:
-        root = subprocess.run(['git', '-C', path, 'rev-parse', '--show-toplevel'], capture_output=True, text=True, timeout=2, check=True).stdout.strip()
-        if (pathlib.Path(root) / '.workbench/wt.json').is_file():
-            return profile_module.profile(root)
-        common = subprocess.run(['git', '-C', root, 'rev-parse', '--path-format=absolute', '--git-common-dir'], capture_output=True, text=True, timeout=2, check=True).stdout.strip()
-        paths = subprocess.run(['git', '-C', root, 'worktree', 'list', '--porcelain'], capture_output=True, text=True, timeout=2, check=True).stdout
-        for line in paths.splitlines():
-            if not line.startswith('worktree '): continue
-            candidate = line[9:]
-            git_dir = subprocess.run(['git', '-C', candidate, 'rev-parse', '--path-format=absolute', '--git-dir'], capture_output=True, text=True, timeout=2)
-            if git_dir.stdout.strip() == common:
-                return profile_module.profile(candidate)
-        return profile_module.profile(root)
+        common = subprocess.run(['git', '-C', path, 'rev-parse', '--path-format=absolute', '--git-common-dir'], capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+        return profile_module.profile(str(pathlib.Path(common).parent))
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as error:
         return None
 
@@ -2620,9 +2601,11 @@ within the last 2h (--min-age N seconds, or WT_CLEAN_MIN_AGE): a freshly
 provisioned tree is clean and idle while its agent is still reading, which
 otherwise looks exactly like an abandoned one.
 
-Repo profiles: a repository opts in with .workbench/wt.json. WT_REPOS lists
-known main checkouts (colon separated); WT_MAIN_CHECKOUT overrides context.
+Repo profiles: user config lives in ${WT_PROFILE_DIR:-~/.config/wt/profiles}/*.json.
+Each profile names its shared checkout. WT_REPOS lists known main checkouts
+(colon separated); WT_MAIN_CHECKOUT overrides context and the known repo list.
+Without either, valid profiles supply the list; without profiles, ~/cl-strategy is used.
 Branch commands resolve the owning repository and use its apps and base branch.
-Only {port} is substituted in profile app commands.
+Only {port} is substituted in non-cl-strategy profile app commands.
 USAGE
 esac

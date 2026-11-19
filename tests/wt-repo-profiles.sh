@@ -18,10 +18,11 @@ mkdir -p "$S/cl-strategy/apps/ui"
 touch "$S/cl-strategy/apps/ui/pnpm-lock.yaml"
 git -C "$S/cl-strategy" add .
 git -C "$S/cl-strategy" commit -qm base
-mkdir -p "$S/cl-system/.workbench" "$S/cl-system/scripts"
-cat >"$S/cl-system/.workbench/wt.json" <<'PROFILE'
+mkdir -p "$S/cl-system/scripts" "$S/profiles"
+cat >"$S/profiles/cl-system.json" <<'PROFILE'
 {
   "name": "cl-system",
+  "checkout": "REPLACE_CHECKOUT",
   "baseBranch": "develop",
   "deps": ["."],
   "nodeModules": ".",
@@ -40,6 +41,7 @@ cat >"$S/cl-system/.workbench/wt.json" <<'PROFILE'
   }
 }
 PROFILE
+sed -i "s|REPLACE_CHECKOUT|$S/cl-system|" "$S/profiles/cl-system.json"
 touch "$S/cl-system/pnpm-lock.yaml"
 printf '#!/usr/bin/env bash\n' >"$S/cl-system/scripts/wt-serve-docs.sh"
 git -C "$S/cl-system" add .
@@ -66,9 +68,45 @@ esac
 STUB
 chmod +x "$S/bin/"*
 export FIXTURE="$S" HOME="$S/home" TMPDIR="$S" PATH="$S/bin:$PATH"
-export WT_REPOS="$S/cl-strategy:$S/cl-system" WT_STATE_DIR="$S/state"
+export WT_REPOS="$S/cl-strategy:$S/cl-system" WT_PROFILE_DIR="$S/profiles" WT_STATE_DIR="$S/state"
 export QA_UNIT_DIR="$S/units" WT_QA_STACK_BIN="$S/bin/qa-stack"
 export WT_DRY_RUN=1 WT_STUB_PORTS='' OVERSEER_CONFIG_FILE="$S/no-runtime.env"
+
+# Profiles select real main checkouts, and can supply the known repo list.
+ln -s "$S/cl-system" "$S/system-link"
+python3 - "$S/profiles/cl-system.json" "$S/system-link" <<'PY'
+import json, sys
+path = sys.argv[1]
+data = json.load(open(path))
+data['checkout'] = sys.argv[2]
+with open(path, 'w') as stream: json.dump(data, stream)
+PY
+[ "$(python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name)" = cl-system ] || fail 'symlinked checkout did not match realpath'
+[ "$(python3 "$ROOT/bin/wt-profile.py" "$S/system-link" name)" = cl-system ] || fail 'symlink checkout path did not match'
+unset WT_REPOS
+[ "$(python3 "$ROOT/bin/wt-profile.py" / known)" = "$S/cl-system" ] || fail 'known repo was not derived from profile'
+(cd "$S/home" && "$ROOT/bin/wt" new derived-feature >"$S/out") || fail 'derived known repo context failed'
+[ -d "$S/cl-system/.claude/worktrees/derived-feature" ] || fail 'derived context chose wrong repo'
+export WT_REPOS="$S/cl-strategy:$S/cl-system"
+mkdir -p "$S/missing-profiles"
+[ "$(WT_PROFILE_DIR="$S/missing-profiles" python3 "$ROOT/bin/wt-profile.py" "$S/cl-strategy" name)" = cl-strategy ] || fail 'missing profile directory lost fallback'
+cp "$S/profiles/cl-system.json" "$S/profiles/duplicate.json"
+if python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name >"$S/out" 2>&1; then fail 'duplicate profile accepted'; fi
+grep -Fq 'cl-system.json and ' "$S/out" || fail 'duplicate error omitted both files'
+rm "$S/profiles/duplicate.json"
+python3 - "$S/profiles/cl-system.json" "$S/profiles/duplicate.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+data['name'] = 'other-docs'
+with open(sys.argv[2], 'w') as stream: json.dump(data, stream)
+PY
+if python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name >"$S/out" 2>&1; then fail 'duplicate checkout accepted'; fi
+grep -Fq 'cl-system.json and ' "$S/out" || fail 'duplicate checkout error omitted both files'
+rm "$S/profiles/duplicate.json"
+printf '{invalid json\n' >"$S/profiles/invalid.json"
+[ "$(python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name 2>"$S/warning")" = cl-system ] || fail 'invalid profile blocked valid profile'
+grep -Fq 'invalid.json' "$S/warning" || fail 'invalid profile warning omitted file'
+rm "$S/profiles/invalid.json"
 
 # Current-repo commands use the matching checkout; outside either repo uses the first known one.
 (cd "$S/cl-strategy" && "$ROOT/bin/wt" new strategy-feature >"$S/out") || fail 'strategy context failed'
@@ -83,11 +121,11 @@ docs_tree="$S/cl-system/.claude/worktrees/docs-feature"
 (cd "$S/home" && "$ROOT/bin/wt" new fallback-feature >"$S/out") || fail 'HOME-like context failed'
 [ -d "$S/cl-strategy/.claude/worktrees/fallback-feature" ] || fail 'HOME-like context used wrong repo'
 
-# The branch can carry a profile that is absent from its parked main checkout.
-git -C "$S/cl-system" rm -q .workbench/wt.json
-git -C "$S/cl-system" commit -qm 'remove profile on develop'
-[ ! -e "$S/cl-system/.workbench/wt.json" ] || fail 'main checkout kept the profile'
-[ -f "$docs_tree/.workbench/wt.json" ] || fail 'feature tree lost the profile'
+# A repository file has no effect on user profile selection.
+mkdir -p "$S/cl-system/.workbench"
+printf '{"name":"stray"}\n' >"$S/cl-system/.workbench/wt.json"
+(cd "$S/cl-system" && "$ROOT/bin/wt" list >/dev/null) || fail 'stray repository profile was read'
+[ "$(python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name)" = cl-system ] || fail 'stray repository profile changed selection'
 
 # Branch lookup crosses known repos and installs from the profile's root workspace.
 (cd "$S/home" && "$ROOT/bin/wt" deps docs-feature >"$S/out") || fail 'profile deps failed'
@@ -166,6 +204,25 @@ cmp -s "$S/expected-builtin.service" "$unit" || {
   diff -u "$S/expected-builtin.service" "$unit" >&2 || true
   fail 'built-in unit changed'
 }
+cp "$unit" "$S/unit-without-profile.service"
+python3 - "$ROOT/personal/config/wt/profiles/cl-strategy.json" "$S/profiles/cl-strategy.json" "$S/cl-strategy" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+data['checkout'] = sys.argv[3]
+with open(sys.argv[2], 'w') as stream: json.dump(data, stream)
+PY
+python3 - "$ROOT/bin/wt-profile.py" "$S/cl-strategy" <<'PY' || fail 'strategy file differs from built-in settings'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('wt_profile', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+actual = module.profile(sys.argv[2]).copy()
+actual.pop('checkout')
+assert actual == module.FALLBACK
+PY
+[ "$(python3 "$ROOT/bin/wt-profile.py" / known | head -1)" = "$S/cl-strategy" ] || fail 'cl-strategy was not first derived known repo'
+(cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'file-backed strategy serve failed'
+cmp -s "$S/unit-without-profile.service" "$unit" || fail 'cl-strategy file changed unit bytes'
 (cd "$S/home" && WT_DRY_RUN=0 "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'built-in serve dependency install failed'
 [ "$(tail -n 1 "$S/pnpm-cwds")" = "$strategy_tree/apps/ui" ] || fail 'built-in serve installed the wrong workspace'
 [ "$(wc -l <"$S/pnpm-cwds")" = 2 ] || fail 'built-in serve installed extra workspaces'
@@ -188,9 +245,9 @@ PY
 [ ! -e "$unit" ] || fail 'legacy slot stop kept unit'
 
 # A profile command stays shell data; systemd receives an escaped percent path.
-cp "$docs_tree/.workbench/wt.json" "$S/docs-profile.json"
+cp "$S/profiles/cl-system.json" "$S/docs-profile.json"
 mkdir -p "$docs_tree/docs%folder"
-python3 - "$docs_tree/.workbench/wt.json" <<'PY'
+python3 - "$S/profiles/cl-system.json" <<'PY'
 import json, sys
 path = sys.argv[1]
 data = json.load(open(path, encoding='utf-8'))
@@ -208,7 +265,7 @@ grep -Fqx "ExecStart=/usr/bin/env bash -l $command_script" "$unit" || fail 'unit
 grep -Fq 'echo $HOME/% --port 5236' "$command_script" || fail 'command script changed shell variables or percent'
 (cd "$S/home" && "$ROOT/bin/wt" serve --stop docs-feature >"$S/out") || fail 'profile command stop failed'
 
-python3 - "$docs_tree/.workbench/wt.json" <<'PY'
+python3 - "$S/profiles/cl-system.json" <<'PY'
 import json, sys
 path = sys.argv[1]
 data = json.load(open(path, encoding='utf-8'))
@@ -221,7 +278,7 @@ if (cd "$S/cl-system" && "$ROOT/bin/wt" serve docs-feature >"$S/out" 2>&1); then
 fi
 [ ! -e "$record" ] || fail 'invalid command created a slot record'
 [ ! -e "$unit" ] || fail 'invalid command created a unit'
-cp "$S/docs-profile.json" "$docs_tree/.workbench/wt.json"
+cp "$S/docs-profile.json" "$S/profiles/cl-system.json"
 
 # Same-named branches may have independent slots, but HOME cannot identify one to stop or log.
 git -C "$S/cl-strategy" worktree add -q -b docs-feature "$S/cl-strategy/.claude/worktrees/docs-feature" develop

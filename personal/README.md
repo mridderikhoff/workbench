@@ -17,6 +17,7 @@ profile (the macOS runtime already requires 3.13+).
 | `config/claude-settings.json` | Merged into `~/.claude/settings.json` |
 | `config/codex-config.toml` | Managed scalar preferences merged into `~/.codex/config.toml` |
 | `config/statusline-v2.mjs` | `~/.claude/statusline-v2.mjs` |
+| `config/wt/profiles/` | `~/.config/wt/profiles`, linked as the user's repo profiles |
 
 The root repository prompts remain instructions for developing workbench. They are not installed
 as global defaults. The personal base prompts were imported from the existing user files without
@@ -34,6 +35,7 @@ The installer backs up every replaced file, directory or dangling link as `.bak-
 Merged settings retain existing file permissions; new settings files are private to the user.
 Repeated installs leave already-correct links and settings alone. Settings keys owned by the
 profile take precedence, including permissions, model preferences and hook arrays. Existing
+real `~/.config/wt/profiles` directories must be moved manually before personal install.
 unowned JSON keys, environment values, Codex MCP servers and project trust entries survive.
 Malformed or unsupported settings stop the personal install before any personal file is changed;
 the runtime tool links may already have been installed.

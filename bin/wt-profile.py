@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validated repository settings for wt and its status reader."""
 import json
+import os
 import pathlib
 import re
 import sys
@@ -12,13 +13,15 @@ BUILTINS = {
 }
 
 
-def profile(root):
-    if not root:
-        raise ValueError('profile root is empty')
-    file = pathlib.Path(root) / '.workbench/wt.json'
-    if not file.exists():
-        return dict(name='cl-strategy', baseBranch='develop', deps=[], nodeModules='apps/ui',
-                    backend=True, nxSharedCache=True, defaultApps=['ds-demo', 'ri'], apps=BUILTINS)
+FALLBACK = dict(name='cl-strategy', baseBranch='develop', deps=[], nodeModules='apps/ui',
+                backend=True, nxSharedCache=True, defaultApps=['ds-demo', 'ri'], apps=BUILTINS)
+
+
+def profile_dir():
+    return pathlib.Path(os.environ.get('WT_PROFILE_DIR', '~/.config/wt/profiles')).expanduser()
+
+
+def read_profile(file):
     try:
         data = json.loads(file.read_text())
         def check_controls(value, key):
@@ -36,11 +39,16 @@ def profile(root):
         def safe_string(value, key):
             if not isinstance(value, str) or any(ord(char) < 32 or ord(char) == 127 for char in value):
                 raise ValueError(f'{key} must be a string without control characters')
-        required = ('name', 'baseBranch', 'deps', 'nodeModules', 'backend', 'nxSharedCache', 'defaultApps', 'apps')
+        required = ('name', 'checkout', 'baseBranch', 'deps', 'nodeModules', 'backend', 'nxSharedCache', 'defaultApps', 'apps')
         if not isinstance(data, dict) or any(key not in data for key in required):
             raise ValueError('missing required fields')
         for key in ('name', 'baseBranch', 'nodeModules'):
             safe_string(data[key], key)
+        safe_string(data['checkout'], 'checkout')
+        if (any(char in data['checkout'] for char in "\\\"'")
+                or (data['checkout'].startswith('~') and not data['checkout'].startswith('~/'))
+                or not pathlib.Path(data['checkout']).expanduser().is_absolute()):
+            raise ValueError('checkout must be an absolute path without backslashes or quotes')
         if not re.fullmatch(r'[a-z0-9][a-z0-9-]*', data['name']):
             raise ValueError('name must use lowercase letters, digits and hyphens')
         if not isinstance(data['baseBranch'], str) or not data['baseBranch'] or data['baseBranch'].startswith('-'):
@@ -61,7 +69,7 @@ def profile(root):
             raise ValueError('apps must be a nonempty object')
         for name, app in data['apps'].items():
             safe_string(name, 'app name')
-            if name in BUILTINS or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', name):
+            if (name in BUILTINS and data['name'] != 'cl-strategy') or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', name):
                 raise ValueError(f'invalid or built-in app name: {name}')
             if not isinstance(app, dict) or any(k not in app for k in ('label', 'portBase', 'cwd', 'command', 'urlPath', 'backend')):
                 raise ValueError(f'{name}: missing app fields')
@@ -81,10 +89,46 @@ def profile(root):
         raise ValueError(f'bad wt profile {file}: {error}') from error
 
 
+def profiles():
+    found = []
+    names, checkouts = {}, {}
+    for file in sorted(profile_dir().glob('*.json')):
+        try:
+            data = read_profile(file)
+        except ValueError as error:
+            print(f'wt: warning: {error}', file=sys.stderr)
+            continue
+        try:
+            checkout = str(pathlib.Path(data['checkout']).expanduser().resolve())
+        except (OSError, RuntimeError) as error:
+            print(f'wt: warning: bad wt profile {file}: {error}', file=sys.stderr)
+            continue
+        for key, value, seen in (('name', data['name'], names), ('checkout', checkout, checkouts)):
+            if value in seen:
+                raise ValueError(f'duplicate profile {key} {value}: {seen[value]} and {file}')
+            seen[value] = file
+        found.append((file, data, checkout))
+    return found
+
+
+def profile(root):
+    if not root:
+        raise ValueError('profile root is empty')
+    checkout = str(pathlib.Path(root).resolve())
+    for _, data, candidate in profiles():
+        if candidate == checkout:
+            return data
+    return FALLBACK
+
+
 if __name__ == '__main__':
     try:
-        data = profile(sys.argv[1])
         action = sys.argv[2]
+        if action == 'known':
+            found = sorted(profiles(), key=lambda item: (item[1]['name'] != 'cl-strategy', item[1]['name']))
+            print('\n'.join(item[2] for item in found))
+            sys.exit(0)
+        data = profile(sys.argv[1])
         if action == 'json': print(json.dumps(data))
         elif action == 'apps': print(' '.join(data['apps']))
         elif action == 'defaultApps': print(' '.join(data['defaultApps']))

@@ -240,6 +240,7 @@ The personal profile installs the author's base prompts, maintained skills, hook
 preferences. It backs up replaced files, merges settings while preserving unowned keys, and keeps
 machine-specific servers and credentials out of Git. This profile is intended for the author;
 colleagues only need the default install. Read [Personal setup](personal/README.md) before adopting it.
+The personal install also links user-level wt repo profiles at `~/.config/wt/profiles`.
 
 The root `AGENTS.md` and `CLAUDE.md` describe how to develop workbench. Global base prompts live
 separately in `personal/prompts/`. Legacy `hooks/`, `codex/` and personal script paths remain symlinks

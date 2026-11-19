@@ -98,6 +98,10 @@ def main():
     link(kit / 'prompts/AGENTS.md', '.codex/AGENTS.md')
     link(kit / 'prompts/CLAUDE.md', '.claude/CLAUDE.md')
     link(kit / 'config/statusline-v2.mjs', '.claude/statusline-v2.mjs')
+    profiles_target = home / '.config/wt/profiles'
+    if profiles_target.is_dir() and not profiles_target.is_symlink():
+        raise ValueError(f'Existing wt profiles directory must be moved manually: {profiles_target}')
+    link(kit / 'config/wt/profiles', '.config/wt/profiles')
     for skill in json.loads((kit / 'skills.json').read_text()):
         source = kit / 'skills' / skill.get('canonical', skill['name'])
         for client in skill['clients']:

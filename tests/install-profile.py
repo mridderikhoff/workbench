@@ -48,6 +48,7 @@ class InstallProfiles(unittest.TestCase):
         self.assertFalse((self.home / '.codex').exists())
         self.assertFalse((self.home / '.claude/CLAUDE.md').exists())
         self.assertFalse((self.home / '.claude/skills').exists())
+        self.assertFalse((self.home / '.config/wt/profiles').exists())
         self.assertEqual(hook.read_text(), 'keep')
         self.assertEqual(settings.read_text(), '{"custom": true}')
 
@@ -72,7 +73,7 @@ class InstallProfiles(unittest.TestCase):
         self.write('.claude/settings.json', json.dumps({'env': {'KEEP_THIS': 'local'}, 'custom': True}))
         self.write('.codex/config.toml', 'model = "old"\n[mcp_servers.local]\nurl = "http://localhost:7777"\n[features]\nother = true\n[projects."/local"]\ntrust_level = "trusted"\n')
         self.install('--personal')
-        for path in ['.claude/CLAUDE.md', '.codex/AGENTS.md', '.claude/hooks/block-inline-checkout-edits.py', '.claude/scripts/codex-run', '.codex/hooks.json']:
+        for path in ['.claude/CLAUDE.md', '.codex/AGENTS.md', '.claude/hooks/block-inline-checkout-edits.py', '.claude/scripts/codex-run', '.codex/hooks.json', '.config/wt/profiles']:
             self.assertTrue((self.home / path).is_symlink(), path)
             self.assertTrue((self.home / path).exists(), path)
         for client in ['agents', 'claude', 'codex']:
@@ -97,6 +98,14 @@ class InstallProfiles(unittest.TestCase):
         before = self.snapshot()
         self.install('--personal')
         self.assertEqual(self.snapshot(), before)
+
+    def test_existing_real_profile_directory_is_refused(self):
+        profile = self.write('.config/wt/profiles/local.json', '{}')
+        result = self.install('--personal', success=False)
+        self.assertIn('Existing wt profiles directory', result.stderr)
+        self.assertEqual(profile.read_text(), '{}')
+        self.assertFalse((self.home / '.codex/AGENTS.md').exists())
+        self.assertFalse(list(profile.parent.parent.glob('profiles.bak-*')))
 
     def test_backups_preserve_files_directories_and_broken_links(self):
         prompt = self.write('.codex/AGENTS.md', 'original prompt')

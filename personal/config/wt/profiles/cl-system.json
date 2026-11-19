@@ -1,0 +1,13 @@
+{
+  "name": "cl-system",
+  "checkout": "~/cl-system",
+  "baseBranch": "develop",
+  "deps": ["."],
+  "nodeModules": ".",
+  "backend": false,
+  "nxSharedCache": true,
+  "defaultApps": ["system-docs"],
+  "apps": {
+    "system-docs": {"label": "Docs", "portBase": 5176, "cwd": ".", "command": "bash scripts/wt-serve-docs.sh --port {port}", "urlPath": "/", "backend": false}
+  }
+}
