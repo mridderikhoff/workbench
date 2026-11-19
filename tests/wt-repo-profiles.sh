@@ -74,6 +74,8 @@ export WT_DRY_RUN=1 WT_STUB_PORTS='' OVERSEER_CONFIG_FILE="$S/no-runtime.env"
 (cd "$S/cl-strategy" && "$ROOT/bin/wt" new strategy-feature >"$S/out") || fail 'strategy context failed'
 [ -d "$S/cl-strategy/.claude/worktrees/strategy-feature" ] || fail 'strategy worktree in wrong repo'
 (cd "$S/cl-system" && "$ROOT/bin/wt" new docs-feature >"$S/out") || fail 'profile context failed'
+mkdir -p "$S/linkbin" && ln -s "$ROOT/bin/wt" "$S/linkbin/wt"
+(cd "$S/cl-system" && "$S/linkbin/wt" list >/dev/null) || fail 'wt run through a symlink cannot find wt-profile.py'
 docs_tree="$S/cl-system/.claude/worktrees/docs-feature"
 [ -d "$docs_tree" ] || fail 'profile worktree in wrong repo'
 (cd "$docs_tree" && "$ROOT/bin/wt" new nested-feature >"$S/out") || fail 'profile worktree context failed'

@@ -23,7 +23,7 @@ repo_root() { git rev-parse --show-toplevel 2>/dev/null; }
 
 profile() {
   [ -n "$1" ] || { echo 'wt: profile root is empty' >&2; return 2; }
-  python3 "$(dirname "${BASH_SOURCE[0]}")/wt-profile.py" "$1" "$2" "${@:3}"
+  python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" "$1" "$2" "${@:3}"
 }
 tree_profile_root() {
   local tree="$1"
@@ -2095,7 +2095,7 @@ PY
     )
   fi
   rm -f "$health_error"
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" WT_STATUS_PROFILE_BIN="$(dirname "${BASH_SOURCE[0]}")/wt-profile.py" python3 - <<'PY_JSON'
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" WT_STATUS_PROFILE_BIN="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" python3 - <<'PY_JSON'
 import concurrent.futures, datetime, importlib.util, json, os, pathlib, re, subprocess, urllib.request
 
 spec = importlib.util.spec_from_file_location('wt_profile', os.environ['WT_STATUS_PROFILE_BIN'])
