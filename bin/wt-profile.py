@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validated repository settings for wt and its status reader."""
 import json
+import hashlib
 import os
 import pathlib
 import re
@@ -19,6 +20,21 @@ FALLBACK = dict(name='cl-strategy', baseBranch='develop', deps=[], nodeModules='
 
 def profile_dir():
     return pathlib.Path(os.environ.get('WT_PROFILE_DIR', '~/.config/wt/profiles')).expanduser()
+
+
+def warn_invalid(file, error):
+    marker_dir = os.environ.get('WT_PROFILE_WARNING_DIR')
+    if marker_dir:
+        marker = pathlib.Path(marker_dir) / hashlib.sha256(str(file).encode()).hexdigest()
+        try:
+            descriptor = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            return
+        os.close(descriptor)
+    message = str(error)
+    if not message.startswith('bad wt profile '):
+        message = f'bad wt profile {file}: {message}'
+    print(f'wt: warning: {message}', file=sys.stderr)
 
 
 def read_profile(file):
@@ -96,12 +112,12 @@ def profiles():
         try:
             data = read_profile(file)
         except ValueError as error:
-            print(f'wt: warning: {error}', file=sys.stderr)
+            warn_invalid(file, error)
             continue
         try:
             checkout = str(pathlib.Path(data['checkout']).expanduser().resolve())
         except (OSError, RuntimeError) as error:
-            print(f'wt: warning: bad wt profile {file}: {error}', file=sys.stderr)
+            warn_invalid(file, error)
             continue
         for key, value, seen in (('name', data['name'], names), ('checkout', checkout, checkouts)):
             if value in seen:

@@ -29,12 +29,10 @@ tree_profile_root() {
   repo_main_for_path "$1"
 }
 tree_profile() { profile "$(tree_profile_root "$1")" "$2" "${@:3}"; }
-builtin_app() { case "$1" in ds-demo|ri|strategy) return 0 ;; *) return 1 ;; esac; }
 known_repos() {
   local -a repos=()
   local listed
-  if [ -n "${WT_MAIN_CHECKOUT:-}" ]; then repos=("$WT_MAIN_CHECKOUT")
-  elif [ -n "${WT_REPOS:-}" ]; then IFS=: read -r -a repos <<<"$WT_REPOS"
+  if [ -n "${WT_REPOS:-}" ]; then IFS=: read -r -a repos <<<"$WT_REPOS"
   else
     listed=$(profile / known) || return 2
     if [ -n "$listed" ]; then mapfile -t repos <<<"$listed"
@@ -43,24 +41,30 @@ known_repos() {
   local repo
   for repo in "${repos[@]}"; do git -C "$repo" rev-parse --git-common-dir >/dev/null 2>&1 && echo "$repo"; done
 }
+context_repos() {
+  local repos repo
+  repos=$(known_repos) || return 2
+  { [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; printf '%s\n' "$repos"; } | awk 'NF && !seen[$0]++'
+}
 repo_main_for_path() {
   local path="$1" common
   common=$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
   readlink -f "$(dirname "$common")"
 }
 wt_git_context() {
-  local main repo
+  local main repo repos first=
   if [ -n "${WT_MAIN_CHECKOUT:-}" ]; then
     main="$WT_MAIN_CHECKOUT"
     [ "$(repo_main_for_path "$PWD" 2>/dev/null)" = "$(repo_main_for_path "$main" 2>/dev/null)" ] && { echo "$PWD"; return; }
     echo "$main"; return
   fi
   main=$(repo_main_for_path "$PWD" 2>/dev/null) || main=
+  repos=$(known_repos) || return 2
   while IFS= read -r repo; do
     [ -n "$repo" ] || continue
     [ -n "$main" ] && [ "$main" = "$(repo_main_for_path "$repo" 2>/dev/null)" ] && { echo "$PWD"; return; }
     [ -n "${first:-}" ] || first="$repo"
-  done < <(known_repos)
+  done <<<"$repos"
   [ -n "${first:-}" ] && echo "$first"
 }
 
@@ -121,12 +125,14 @@ compare_branch() {
 # marker file so no command ever edits, sweeps, or releases it.
 qa_tree() {
   [ -n "${WT_QA_TREE:-}" ] && { echo "$WT_QA_TREE"; return 0; }
-  local path repo
+  local path repo repos
+  repos=$(context_repos) || return 2
   while IFS= read -r repo; do
+    [ -n "$repo" ] || continue
     for path in $(git -C "$repo" worktree list --porcelain | awk '/^worktree /{print $2}'); do
     [ -f "$path/.wt-qa-runtime" ] && { echo "$path"; return 0; }
     done
-  done < <({ [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; known_repos; } | awk '!seen[$0]++')
+  done <<<"$repos"
   return 1
 }
 
@@ -401,6 +407,7 @@ install_deps() {
   if [ ${#dirs[@]} -eq 0 ]; then
     configured=$(profile "$source_root" deps) || return 1
     if [ -n "$configured" ]; then mapfile -t dirs <<<"$configured"
+    elif [ "$(profile "$source_root" name)" = cl-strategy ]; then dirs=("apps/ui")
     else mapfile -t dirs < <(pnpm_workspaces "$path"); fi
   fi
   [ ${#dirs[@]} -eq 0 ] && { echo "deps       no pnpm workspace found under $path"; return 0; }
@@ -798,7 +805,8 @@ serve_port() {
   echo $((base + 10 * slot))
 }
 serve_slot_ports() {
-  local slot="$1" extra="${2:-}" repo tree app source_root apps file
+  local slot="$1" extra="${2:-}" repo app source_root apps file repos
+  repos=$(context_repos) || return 2
   while IFS= read -r repo; do
     source_root=$(tree_profile_root "$repo") || continue
     if ! apps=$(profile "$source_root" apps); then
@@ -811,8 +819,7 @@ serve_slot_ports() {
     for file in "$(serve_state_dir)"/slot-*; do
       [ -f "$file" ] && sed -n 's/^path=//p' "$file" | head -1
     done
-    [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"
-    known_repos
+    printf '%s\n' "$repos"
   } | awk 'NF && !seen[$0]++')
 }
 serve_app_backend() { tree_profile "$1" app "$2" backend; }
@@ -1024,37 +1031,36 @@ serve_host() {
 }
 
 serve_urls() {
-  local slot="$1" apps="$2" branch="${3:-}" path="${4:-$SERVE_PATH}" app port host named suffix
+  local slot="$1" apps="$2" branch="${3:-}" path="${4:-$SERVE_PATH}" app port host named suffix profile_name
+  profile_name=$(tree_profile "$path" name) || return 1
   for app in $apps; do
     port=$(serve_port "$slot" "$app" "$path")
     host=localhost
     named="$(serve_host "$branch"):$port"
     case " ${SERVE_KC:-} " in *" $named "*) host=${named%:*} ;; esac
-    case "$app" in
-      ds-demo) echo "urls       ds-demo http://$(serve_host "$branch"):$port/" ;;
-      ri) echo "urls       ri http://$host:$port/${WT_TENANT:-mridderikhoff}/ri/" ;;
-      strategy) echo "urls       strategy http://$host:$port/${WT_TENANT:-mridderikhoff}" ;;
-      *) suffix=$(tree_profile "$path" app "$app" urlPath); echo "urls       $app http://$(serve_host "$branch"):$port$suffix" ;;
-    esac
+    suffix=$(tree_profile "$path" app "$app" urlPath) || return 1
+    if [ "$profile_name" = cl-strategy ]; then
+      suffix=${suffix//\{tenant\}/${WT_TENANT:-mridderikhoff}}
+      case "$app" in ri|strategy) ;; *) host=${named%:*} ;; esac
+    else host=${named%:*}; fi
+    echo "urls       $app http://$host:$port$suffix"
   done
 }
 
 serve_command() {
-  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port source_root command
+  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port source_root command profile_name cwd
   source_root=$(tree_profile_root "$path") || return 1
-  printf -v quoted '%q' "$path/$(profile "$source_root" app "$app" cwd)"
+  cwd=$(profile "$source_root" app "$app" cwd) || return 1
+  printf -v quoted '%q' "$path/$cwd"
   port=$(serve_port "$slot" "$app" "$path")
-  if ! builtin_app "$app"; then
-    command=$(profile "$source_root" app "$app" command) || return 1
-    command=${command//\{port\}/$port}
-    echo "cd $quoted && $command"
-    return
+  command=$(profile "$source_root" app "$app" command) || return 1
+  profile_name=$(profile "$source_root" name) || return 1
+  command=${command//\{port\}/$port}
+  if [ "$profile_name" = cl-strategy ]; then
+    command=${command//\{offset\}/$qa_offset}
+    command=${command//\{tenant\}/${WT_TENANT:-mridderikhoff}}
   fi
-  if [ "$app" = ds-demo ]; then
-    echo "cd $quoted && pnpm exec nx serve ds-demo --port $port"
-  else
-    echo "cd $quoted && CI=true PORT_OFFSET=$qa_offset pnpm exec nx serve $app --port $port"
-  fi
+  echo "cd $quoted && $command"
 }
 
 serve_unit() { echo "cl-strategy-serve-$1-$2.service"; }
@@ -1072,10 +1078,11 @@ except Exception:
 PY_HTTP
 }
 serve_write_unit() {
-  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path main cwd cache_env= source_root description exec_start script script_temp script_changed=0 unit_config_file unit_home
+  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path main cwd cache_env= source_root description exec_start script script_temp script_changed=0 unit_config_file unit_home profile_name
   main=$(repo_main_for_path "$path") || return 1
   source_root=$(tree_profile_root "$path") || return 1
   cwd=$(profile "$source_root" app "$app" cwd) || return 1
+  profile_name=$(profile "$source_root" name) || return 1
   unit_dir=$(serve_unit_dir)
   mkdir -p "$unit_dir" || return 1
   command_line=$(serve_command "$path" "$app" "$slot" "$offset") || return 1
@@ -1083,7 +1090,7 @@ serve_write_unit() {
   exec_start="/usr/bin/env bash -lc '$command_line'"
   unit_config_file="$OVERSEER_CONFIG_FILE"
   unit_home="$HOME"
-  if ! builtin_app "$app"; then
+  if [ "$profile_name" != cl-strategy ]; then
     description=$(profile "$source_root" app "$app" label) || return 1
     description="$(echo "$description" | sed 's/%/%%/g') task frontend $slot $app"
     cwd="${path}/$cwd"
@@ -1108,7 +1115,7 @@ Environment=NX_WORKSPACE_DATA_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/d
   if [ "$OVERSEER_MACOS" = 1 ]; then
     unit_env_path="/opt/homebrew/opt/python@3.13/libexec/bin:/usr/local/opt/python@3.13/libexec/bin:/opt/homebrew/bin:/usr/local/bin:$unit_env_path"
   fi
-  if ! builtin_app "$app"; then
+  if [ "$profile_name" != cl-strategy ]; then
     unit_config_file=${unit_config_file//%/%%}
     unit_home=${unit_home//%/%%}
     unit_env_path=${unit_env_path//%/%%}
@@ -1323,8 +1330,7 @@ serve_start_locked() {
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
       echo "dry-run    install frontend dependencies in $path/$node_modules"
     else
-      if [ "$(profile "$source_root" name)" != cl-strategy ]; then install_deps "$path" 9>&- || return 1
-      else install_deps "$path" "$path/apps/ui" 9>&- || return 1; fi
+      install_deps "$path" 9>&- || return 1
     fi
   fi
   if [ $# -eq 0 ]; then
@@ -1411,9 +1417,11 @@ serve_start_locked() {
     fi
   done
   host=$(serve_host "$branch")
-  for app in "${merged[@]}"; do
-    case "$app" in ri|strategy) kc_addresses+=("$host:$(serve_port "$free" "$app" "$path")") ;; esac
-  done
+  if [ "$repo_name" = cl-strategy ]; then
+    for app in "${merged[@]}"; do
+      case "$app" in ri|strategy) kc_addresses+=("$host:$(serve_port "$free" "$app" "$path")") ;; esac
+    done
+  fi
   # Publish the slot before registration. A concurrent sync takes the serve
   # lock and therefore sees either this completed state or the previous one.
   printf 'branch=%s\npath=%s\nrepo=%s\napps=%s\nunits=%s\nkc=\nboot=%s\n' "$branch" "$path" "$repo_name" "${merged[*]}" "${merged[*]}" "$(wt_boot_id)" >"$state_dir/slot-$free"
@@ -2218,7 +2226,7 @@ def slot_data(slot, file):
         host = 'localhost'
         name = re.sub(r'-+', '-', re.sub(r'[^a-z0-9-]', '-', branch.rsplit('/', 1)[-1].lower())).strip('-')[:63].rstrip('-')
         named = f'{name}.localhost' if name else 'localhost'
-        if app not in ('ri', 'strategy') or f'{named}:{port}' in kc: host = named
+        if config['name'] != 'cl-strategy' or app not in ('ri', 'strategy') or f'{named}:{port}' in kc: host = named
         item['apps'].append({'app': app, 'label': settings['label'], 'backend': settings['backend'], 'slot': slot, 'port': port, 'url': f'http://{host}:{port}{suffix}',
                              'unitState': unit_state(slot, app) if fields.get('units') else 'legacy',
                              'startedAt': unit_started(slot, app) if fields.get('units') else None,
@@ -2532,6 +2540,11 @@ cmd_clean() {
        "all branch refs preserved"
 }
 
+WT_PROFILE_WARNING_DIR=$(mktemp -d "${TMPDIR:-/tmp}/wt-profile-warnings.XXXXXX") || exit 2
+export WT_PROFILE_WARNING_DIR
+trap 'rm -rf -- "$WT_PROFILE_WARNING_DIR"' EXIT
+profile / known >/dev/null || exit 2
+
 case "${1:-}" in
   new) shift; cmd_new "$@" ;;
   deps) shift; cmd_deps "$@" ;;
@@ -2603,9 +2616,10 @@ otherwise looks exactly like an abandoned one.
 
 Repo profiles: user config lives in ${WT_PROFILE_DIR:-~/.config/wt/profiles}/*.json.
 Each profile names its shared checkout. WT_REPOS lists known main checkouts
-(colon separated); WT_MAIN_CHECKOUT overrides context and the known repo list.
+(colon separated); WT_MAIN_CHECKOUT overrides command context only.
 Without either, valid profiles supply the list; without profiles, ~/cl-strategy is used.
 Branch commands resolve the owning repository and use its apps and base branch.
-Only {port} is substituted in non-cl-strategy profile app commands.
+Profile commands substitute {port}; cl-strategy commands also substitute
+{offset} and {tenant}.
 USAGE
 esac

@@ -93,6 +93,9 @@ mkdir -p "$S/missing-profiles"
 cp "$S/profiles/cl-system.json" "$S/profiles/duplicate.json"
 if python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name >"$S/out" 2>&1; then fail 'duplicate profile accepted'; fi
 grep -Fq 'cl-system.json and ' "$S/out" || fail 'duplicate error omitted both files'
+if (cd "$S/home" && "$ROOT/bin/wt" list >"$S/out" 2>"$S/error"); then fail 'wt accepted duplicate profile'; fi
+grep -Fq 'cl-system.json and ' "$S/error" || fail 'wt duplicate error omitted both files'
+[ ! -s "$S/out" ] || fail 'wt printed output despite duplicate profiles'
 rm "$S/profiles/duplicate.json"
 python3 - "$S/profiles/cl-system.json" "$S/profiles/duplicate.json" <<'PY'
 import json, sys
@@ -169,6 +172,23 @@ PY
 [ ! -e "$record" ] || fail 'stop kept profile slot record'
 [ ! -e "$unit" ] || fail 'stop kept profile unit'
 
+# WT_MAIN_CHECKOUT changes context, while QA discovery still searches known repos.
+mkdir -p "$S/third-repo"
+git init -q -b develop "$S/third-repo"
+git -C "$S/third-repo" config user.name Fixture
+git -C "$S/third-repo" config user.email fixture@example.test
+printf 'third\n' >"$S/third-repo/README.md"
+git -C "$S/third-repo" add .
+git -C "$S/third-repo" commit -qm base
+git -C "$S/cl-strategy" worktree add -q -b qa-fixture "$S/qa-tree" develop
+touch "$S/qa-tree/.wt-qa-runtime"
+printf '1\n' >"$S/qa-tree/.port-offset"
+(cd "$S/home" && WT_MAIN_CHECKOUT="$S/third-repo" "$ROOT/bin/wt" status --json >"$S/status.json") || fail 'QA tree lookup with third repo context failed'
+python3 - "$S/status.json" "$S/qa-tree" <<'PY' || fail 'QA tree was hidden by WT_MAIN_CHECKOUT'
+import json, sys
+assert json.load(open(sys.argv[1]))['backend']['tree'] == sys.argv[2]
+PY
+
 # The built-in profile keeps its apps/ui dependency location and unit bytes.
 strategy_tree="$S/cl-strategy/.claude/worktrees/strategy-feature"
 (cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'built-in serve failed'
@@ -205,6 +225,40 @@ cmp -s "$S/expected-builtin.service" "$unit" || {
   fail 'built-in unit changed'
 }
 cp "$unit" "$S/unit-without-profile.service"
+(cd "$S/home" && WT_DRY_RUN=0 "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'built-in serve dependency install failed'
+[ "$(tail -n 1 "$S/pnpm-cwds")" = "$strategy_tree/apps/ui" ] || fail 'built-in serve installed the wrong workspace'
+[ "$(wc -l <"$S/pnpm-cwds")" = 2 ] || fail 'built-in serve installed extra workspaces'
+rmdir "$strategy_tree/apps/ui/node_modules"
+(cd "$S/home" && "$ROOT/bin/wt" serve --stop strategy-feature >"$S/out") || fail 'built-in demo stop failed'
+(cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ri strategy >"$S/out") || fail 'built-in backend apps failed'
+for app in ri strategy; do
+  case "$app" in ri) port=5194 ;; strategy) port=5193 ;; esac
+  cat >"$S/expected-$app.service" <<EOF_UNIT
+[Unit]
+Description=cl-strategy task frontend 2 $app
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=$strategy_tree/apps/ui
+EnvironmentFile=-$OVERSEER_CONFIG_FILE
+Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
+Environment="PATH=$unit_env_path"
+Environment="PNPM_HOME=$HOME/.local/share/pnpm"
+Environment=NX_DAEMON=false
+ExecStart=/usr/bin/env bash -lc 'cd $strategy_tree/apps/ui && CI=true PORT_OFFSET=1 pnpm exec nx serve $app --port $port'
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
+EOF_UNIT
+  cmp -s "$S/expected-$app.service" "$S/units/cl-strategy-serve-2-$app.service" || fail "$app built-in unit bytes changed"
+done
+(cd "$S/home" && "$ROOT/bin/wt" serve --stop strategy-feature >"$S/out") || fail 'built-in backend apps stop failed'
 python3 - "$ROOT/personal/config/wt/profiles/cl-strategy.json" "$S/profiles/cl-strategy.json" "$S/cl-strategy" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1]))
@@ -221,14 +275,19 @@ actual.pop('checkout')
 assert actual == module.FALLBACK
 PY
 [ "$(python3 "$ROOT/bin/wt-profile.py" / known | head -1)" = "$S/cl-strategy" ] || fail 'cl-strategy was not first derived known repo'
+(cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ri strategy >"$S/out") || fail 'file-backed backend apps failed'
+for app in ri strategy; do
+  cmp -s "$S/expected-$app.service" "$S/units/cl-strategy-serve-2-$app.service" || fail "$app profile changed unit bytes"
+done
+(cd "$S/home" && "$ROOT/bin/wt" serve --stop strategy-feature >"$S/out") || fail 'file-backed backend apps stop failed'
 (cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'file-backed strategy serve failed'
 cmp -s "$S/unit-without-profile.service" "$unit" || fail 'cl-strategy file changed unit bytes'
 (cd "$S/home" && WT_DRY_RUN=0 "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'built-in serve dependency install failed'
 [ "$(tail -n 1 "$S/pnpm-cwds")" = "$strategy_tree/apps/ui" ] || fail 'built-in serve installed the wrong workspace'
-[ "$(wc -l <"$S/pnpm-cwds")" = 2 ] || fail 'built-in serve installed extra workspaces'
+[ "$(wc -l <"$S/pnpm-cwds")" = 3 ] || fail 'file-backed serve installed extra workspaces'
 (cd "$S/home" && "$ROOT/bin/wt" deps strategy-feature >"$S/out") || fail 'built-in deps failed'
 [ "$(tail -n 1 "$S/pnpm-cwds")" = "$strategy_tree/apps/ui" ] || fail 'built-in deps did not use apps/ui'
-[ "$(wc -l <"$S/pnpm-cwds")" = 3 ] || fail 'built-in deps installed another workspace'
+[ "$(wc -l <"$S/pnpm-cwds")" = 4 ] || fail 'built-in deps installed another workspace'
 
 # Older records have no repo field and still identify the built-in repository.
 sed -i '/^repo=/d' "$record"
@@ -243,6 +302,26 @@ PY
 (cd "$S/home" && "$ROOT/bin/wt" serve --stop strategy-feature >"$S/out") || fail 'legacy slot stop failed'
 [ ! -e "$record" ] || fail 'legacy slot stop kept record'
 [ ! -e "$unit" ] || fail 'legacy slot stop kept unit'
+
+# A customised cl-strategy file uses its own command, cwd and deps.
+cp "$S/profiles/cl-strategy.json" "$S/strategy-profile.json"
+mkdir -p "$strategy_tree/custom"
+python3 - "$S/profiles/cl-strategy.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+data = json.load(open(path))
+data['deps'] = ['custom']
+data['apps']['ds-demo']['cwd'] = 'custom'
+data['apps']['ds-demo']['command'] = 'echo custom-{offset}-{tenant} --port {port}'
+with open(path, 'w') as stream: json.dump(data, stream)
+PY
+(cd "$S/home" && "$ROOT/bin/wt" deps strategy-feature >"$S/out") || fail 'custom strategy deps failed'
+[ "$(tail -n 1 "$S/pnpm-cwds")" = "$strategy_tree/custom" ] || fail 'custom strategy deps were ignored'
+(cd "$S/home" && "$ROOT/bin/wt" serve strategy-feature ds-demo >"$S/out") || fail 'custom strategy serve failed'
+grep -Fqx "WorkingDirectory=$strategy_tree/custom" "$S/units/cl-strategy-serve-6-ds-demo.service" || fail 'custom strategy cwd was ignored'
+grep -Fq 'echo custom-1-mridderikhoff --port 5235' "$S/units/cl-strategy-serve-6-ds-demo.service" || fail 'custom strategy command tokens were ignored'
+(cd "$S/home" && "$ROOT/bin/wt" serve --stop strategy-feature >"$S/out") || fail 'custom strategy stop failed'
+cp "$S/strategy-profile.json" "$S/profiles/cl-strategy.json"
 
 # A profile command stays shell data; systemd receives an escaped percent path.
 cp "$S/profiles/cl-system.json" "$S/docs-profile.json"
@@ -273,7 +352,7 @@ data['apps']['system-docs']['command'] = 'echo first\necho second'
 with open(path, 'w', encoding='utf-8') as file:
     json.dump(data, file)
 PY
-if (cd "$S/cl-system" && "$ROOT/bin/wt" serve docs-feature >"$S/out" 2>&1); then
+if (cd "$S/cl-system" && "$ROOT/bin/wt" serve docs-feature system-docs >"$S/out" 2>&1); then
   fail 'profile command with newline was accepted'
 fi
 [ ! -e "$record" ] || fail 'invalid command created a slot record'
@@ -286,6 +365,15 @@ strategy_docs_tree="$S/cl-strategy/.claude/worktrees/docs-feature"
 (cd "$S/cl-system" && "$ROOT/bin/wt" serve docs-feature system-docs >"$S/out") || fail 'duplicate profile serve failed'
 (cd "$S/cl-strategy" && "$ROOT/bin/wt" serve docs-feature ds-demo >"$S/out") || fail 'duplicate built-in serve failed'
 [ -f "$S/state/wt-serve/slot-6" ] && [ -f "$S/state/wt-serve/slot-7" ] || fail 'duplicate branches did not get separate slots'
+printf '{invalid json\n' >"$S/profiles/invalid.json"
+(cd "$S/home" && "$ROOT/bin/wt" status --json >"$S/status.json" 2>"$S/warning") || fail 'status with invalid profile failed'
+[ "$(grep -Fc 'wt: warning:' "$S/warning")" = 1 ] || fail 'status repeated invalid profile warning'
+grep -Fq 'invalid.json' "$S/warning" || fail 'status warning omitted invalid profile file'
+python3 - "$S/status.json" <<'PY' || fail 'status lost a slot with invalid profile'
+import json, sys
+assert len(json.load(open(sys.argv[1]))['slots']) >= 2
+PY
+rm "$S/profiles/invalid.json"
 if (cd "$S/home" && "$ROOT/bin/wt" serve --stop docs-feature >"$S/out" 2>&1); then
   fail 'ambiguous stop succeeded'
 fi
