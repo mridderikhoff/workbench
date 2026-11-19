@@ -140,7 +140,8 @@ marker (only I create that).
 - **QA is agent-owned.** When I ask for QA, you start and keep healthy what it needs; I
   never manage services. Everything runs as systemd user units, outside your thread:
   - Frontends: `~/.claude/bin/wt serve <your-branch> [ds-demo|ri|strategy]` (ds-demo alone
-    needs no backend). Re-run it to repair a slot. Leave it running for my review; stop only
+    needs no backend). In cl-system, `wt serve <branch>` defaults to `system-docs`, which needs
+    no backend. Re-run it to repair a slot. Leave it running for my review; stop only
     your own (`wt serve --stop <branch>`) and only when I say the review is done.
   - Shared backend (one for all agents): `wt serve` with `ri` or
     `strategy` runs `wt backend ensure` for you. If something is down or misbehaving, run
@@ -164,7 +165,10 @@ marker (only I create that).
   tests). When a change is ready for manual QA, run tests and lint for just the paths you changed:
   `scripts/run-gates.sh <project> --include <path>…`. After a failure, fix it and re-run only the
   failing spec files (`--include <spec path>` or `--filter <test name>`), never the whole project
-  again. Never let a gate interrupt mid-development for lint or test nits; those wait for the QA
+  again. In cl-system, gate targets are Nx project names: use
+  `scripts/run-gates.sh <nx-project> --typecheck` or
+  `scripts/run-gates.sh <nx-project> --include <path>…`. Never let a gate interrupt
+  mid-development for lint or test nits; those wait for the QA
   tier. Never run a whole project, `apps/ui`, or `all` without `--include` unless I ask,
   and run nothing at ship. Rely on PR CI plus manual QA, and fix CI failures on the same branch.
   `wt verify` without gate projects is always safe. Run any test only through

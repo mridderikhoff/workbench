@@ -21,17 +21,38 @@ if [ "${WT_DRY_RUN:-0}" = 1 ]; then export QA_STACK_DRY_RUN=1; fi
 
 repo_root() { git rev-parse --show-toplevel 2>/dev/null; }
 
-# Commands may be called from home or another repository. Preserve the current
-# cl-strategy worktree when there is one; otherwise use its shared checkout.
+profile() { python3 "$(dirname "${BASH_SOURCE[0]}")/wt-profile.py" "$1" "$2" "${@:3}"; }
+known_repos() {
+  local -a repos
+  IFS=: read -r -a repos <<<"${WT_REPOS:-$HOME/cl-strategy:$HOME/cl-system}"
+  local repo
+  for repo in "${repos[@]}"; do [ -d "$repo/.git" ] && echo "$repo"; done
+}
+repo_main_for_path() {
+  local path="$1" common repo dirs
+  common=$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
+  while IFS= read -r repo; do
+    dirs=$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
+    [ "$dirs" = "$common" ] && { echo "$repo"; return; }
+  done < <({ [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; known_repos; } | awk '!seen[$0]++')
+  for repo in $(git -C "$path" worktree list --porcelain | awk '/^worktree /{print $2}'); do
+    dirs=$(git -C "$repo" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null) || continue
+    [ "$(echo "$dirs" | head -1)" = "$(echo "$dirs" | tail -1)" ] && { echo "$repo"; return; }
+  done
+  return 1
+}
 wt_git_context() {
-  local fallback="${WT_MAIN_CHECKOUT:-$HOME/cl-strategy}" here_common base_common
-  base_common=$(git -C "$fallback" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
-  here_common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
-  if [ -n "$here_common" ] && [ "$here_common" = "$base_common" ]; then
-    echo "$PWD"
-  else
-    echo "$fallback"
+  local main
+  if [ -n "${WT_MAIN_CHECKOUT:-}" ]; then
+    main="$WT_MAIN_CHECKOUT"
+    [ "$(repo_main_for_path "$PWD" 2>/dev/null)" = "$(repo_main_for_path "$main" 2>/dev/null)" ] && { echo "$PWD"; return; }
+    echo "$main"; return
   fi
+  main=$(repo_main_for_path "$PWD" 2>/dev/null) || main=
+  if [ -n "$main" ] && { [ -f "$main/.workbench/wt.json" ] || known_repos | grep -Fxq "$main"; }; then
+    echo "$PWD"; return
+  fi
+  known_repos | head -1
 }
 
 worktree_paths() {
@@ -43,33 +64,45 @@ worktree_paths() {
 branch_at() { git -C "$1" symbolic-ref --quiet --short HEAD 2>/dev/null || echo DETACHED; }
 
 path_for_branch() {
-  local wanted="$1" context
+  local wanted="$1" context repo path matches=()
   context=$(wt_git_context) || return 1
-  git -C "$context" worktree list --porcelain | WT_LOOKUP_BRANCH="$wanted" awk '
+  path=$(git -C "$context" worktree list --porcelain | WT_LOOKUP_BRANCH="$wanted" awk '
     /^worktree / { path = substr($0, 10) }
     !found && $0 == "branch refs/heads/" ENVIRON["WT_LOOKUP_BRANCH"] { print path; found = 1 }
     END { if (!found) exit 1 }
-  '
+  ') && { echo "$path"; return; }
+  [ -n "${WT_MAIN_CHECKOUT:-}" ] && return 1
+  while IFS= read -r repo; do
+    [ "$repo" = "$(repo_main_for_path "$context")" ] && continue
+    path=$(git -C "$repo" worktree list --porcelain | WT_LOOKUP_BRANCH="$wanted" awk '
+      /^worktree / { path = substr($0, 10) }
+      !found && $0 == "branch refs/heads/" ENVIRON["WT_LOOKUP_BRANCH"] { print path; found = 1 }
+      END { if (!found) exit 1 }') && matches+=("$path")
+  done < <(known_repos)
+  if [ "${#matches[@]}" -gt 1 ]; then printf 'branch %s is ambiguous across: %s\n' "$wanted" "${matches[*]}" >&2; return 2; fi
+  [ "${#matches[@]}" = 1 ] && { echo "${matches[0]}"; return; }
+  return 1
 }
 
 # The shared checkout, as opposed to any linked worktree: its git-dir and
 # git-common-dir are the same path.
 main_checkout() {
   [ -n "${WT_MAIN_CHECKOUT:-}" ] && { echo "$WT_MAIN_CHECKOUT"; return 0; }
-  local path dirs
-  for path in $(worktree_paths); do
-    dirs=$(git -C "$path" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null)
-    [ "$(echo "$dirs" | head -1)" = "$(echo "$dirs" | tail -1)" ] && { echo "$path"; return 0; }
-  done
-  return 1
+  repo_main_for_path "$(wt_git_context)"
+}
+set_branch_repo() {
+  local path="$1"
+  WT_BRANCH_MAIN=$(repo_main_for_path "$path") || return 1
+  WT_BRANCH_BASE="${WT_BASE_BRANCH:-$(profile "$WT_BRANCH_MAIN" baseBranch)}" || return 1
 }
 
 # In a repo that has no $BASE_BRANCH (wt is repo-agnostic), verify/ship fall
 # back to measuring against whatever branch the shared checkout is on.
 compare_branch() {
   local main="$1"
-  if git -C "$main" show-ref --verify --quiet "refs/heads/$BASE_BRANCH"; then
-    echo "$BASE_BRANCH"
+  local base="${WT_BASE_BRANCH:-$(profile "$main" baseBranch)}"
+  if git -C "$main" show-ref --verify --quiet "refs/heads/$base"; then
+    echo "$base"
   else
     branch_at "$main"
   fi
@@ -79,10 +112,13 @@ compare_branch() {
 # marker file so no command ever edits, sweeps, or releases it.
 qa_tree() {
   [ -n "${WT_QA_TREE:-}" ] && { echo "$WT_QA_TREE"; return 0; }
-  local path
-  for path in $(worktree_paths); do
+  local path repo
+  while IFS= read -r repo; do
+    [ -f "$repo/.workbench/wt.json" ] && continue
+    for path in $(git -C "$repo" worktree list --porcelain | awk '/^worktree /{print $2}'); do
     [ -f "$path/.wt-qa-runtime" ] && { echo "$path"; return 0; }
-  done
+    done
+  done < <({ [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; known_repos; } | awk '!seen[$0]++')
   return 1
 }
 
@@ -351,12 +387,18 @@ pnpm_workspaces() {
 
 install_deps() {
   local path="$1"; shift
-  local dirs=("$@") dir status=0
-  [ ${#dirs[@]} -eq 0 ] && mapfile -t dirs < <(pnpm_workspaces "$path")
+  local dirs=("$@") dir status=0 main configured=
+  main=$(repo_main_for_path "$path") || return 1
+  if [ ${#dirs[@]} -eq 0 ]; then
+    if [ -f "$main/.workbench/wt.json" ]; then
+      configured=$(profile "$main" deps) || return 1
+      [ -z "$configured" ] || mapfile -t dirs <<<"$configured"
+    else mapfile -t dirs < <(pnpm_workspaces "$path"); fi
+  fi
   [ ${#dirs[@]} -eq 0 ] && { echo "deps       no pnpm workspace found under $path"; return 0; }
   for dir in "${dirs[@]}"; do
-    [ -d "$dir" ] || dir="$path/$dir"
-    local log="${TMPDIR:-/tmp}/wt-deps-$(basename "$(dirname "$dir")")-$(basename "$dir").log"
+    case "$dir" in /*) ;; *) dir="$path/$dir" ;; esac
+    local log="${TMPDIR:-/tmp}/wt-deps-$(basename "$main")-$(printf %s "$path/$dir" | sha256sum | cut -c1-12).log"
     local start=$SECONDS
     if (cd "$dir" && pnpm install --frozen-lockfile --prefer-offline) >"$log" 2>&1; then
       echo "deps       ${dir#"$path"/} installed in $((SECONDS - start))s"
@@ -371,10 +413,11 @@ install_deps() {
 
 run_gates() {
   local tree="$1" base="$2" label="$3"; shift 3
-  local main; main=$(main_checkout) || return 1
+  local main; main=$(repo_main_for_path "$tree") || return 1
+  [ -f "$tree/scripts/run-gates.sh" ] || { echo "GATES FAIL: $tree/scripts/run-gates.sh is missing" >&2; return 1; }
   local log="${TMPDIR:-/tmp}/wt-gates-${label//\//-}.log"
   nx_affected_env "$base"
-  nx_shared_cache_env "$main"
+  [ "$(profile "$main" nxSharedCache)" != true ] || nx_shared_cache_env "$main"
   # Vitest runs one worker per core, so two projects at once — or two gate runs
   # from different trees — already double-subscribe the machine and zoneless
   # Angular specs hit their 5s timeout. Run projects serially by default and hold
@@ -412,6 +455,7 @@ cmd_new() {
   set -- "${args[@]+"${args[@]}"}"
   local branch="${1:?usage: wt new <branch> [base] [--deps] [--existing]}" base="${2:-}"
   local main; main=$(main_checkout) || { echo "not in a git repository"; return 1; }
+  BASE_BRANCH="${WT_BASE_BRANCH:-$(profile "$main" baseBranch)}" || return 1
 
   local dirt; dirt=$(dirty_count "$main")
   if [ "$dirt" -gt 0 ]; then
@@ -457,14 +501,16 @@ cmd_new() {
   echo
   echo "Brief the writer with: your tree at $path is clean and current;"
   echo "stay inside that path; run no git commands at all; start no dev servers."
-  [ "$deps" = 0 ] && echo "It has no node_modules: nx/vitest and any script importing typescript" &&
+  [ "$deps" = 0 ] && [ ! -d "$path/$(profile "$main" nodeModules)/node_modules" ] && echo "It has no node_modules: nx/vitest and any script importing typescript" &&
     echo "will not run there until you run \`wt deps $branch\`."
 }
 
 cmd_verify() {
   local branch="${1:?usage: wt verify <branch> [gate-project...]}"; shift
-  local main path; main=$(main_checkout) || return 1
+  local main path
   path=$(path_for_branch "$branch") || { echo "no worktree checked out on $branch"; return 1; }
+  set_branch_repo "$path" || return 1
+  main="$WT_BRANCH_MAIN"
   local against; against=$(compare_branch "$main")
 
   local dirt ahead base_behind mb
@@ -494,7 +540,7 @@ cmd_verify() {
   [ $# -eq 0 ] && return 0
   # verify gates run inside the worktree, so an Nx gate here needs this tree's
   # own install.
-  if [ ! -d "$path/apps/ui/node_modules" ]; then
+  if [ ! -d "$path/$(profile "$main" nodeModules)/node_modules" ]; then
     echo
     echo "NOTE       no node_modules in $path — Nx gates will fail."
     echo "           run \`wt deps $branch\` first (seconds, shared pnpm store)."
@@ -513,11 +559,12 @@ cmd_ship() {
   done
   set -- "${args[@]+"${args[@]}"}"
   local branch="${1:?usage: wt ship <branch> [--ready]}"; shift
-  local main; main=$(main_checkout) || return 1
+  local main path; path=$(path_for_branch "$branch") || { echo "no worktree checked out on $branch"; return 1; }
+  set_branch_repo "$path" || return 1
+  main="$WT_BRANCH_MAIN" BASE_BRANCH="$WT_BRANCH_BASE"
   git -C "$main" show-ref --verify --quiet "refs/heads/$branch" ||
     { echo "no local branch named $branch"; return 1; }
 
-  local path; path=$(path_for_branch "$branch" || true)
   if [ -n "$path" ] && [ "$(dirty_count "$path")" -gt 0 ]; then
     echo "REFUSED: worktree $path has uncommitted changes — commit them first."
     git -C "$path" status --short | head -10
@@ -558,7 +605,7 @@ cmd_ship() {
   fi
   echo
   echo "next: manual QA — run: wt serve $branch"
-  echo "      if backend code changed, run: wt qa $branch"
+  [ "$(profile "$main" backend)" != true ] || echo "      if backend code changed, run: wt qa $branch"
   return 0
 }
 
@@ -735,10 +782,18 @@ serve_with_lock() (
 )
 
 serve_port() {
-  local slot="$1" app="$2" base
-  case "$app" in strategy) base=5173 ;; ri) base=5174 ;; ds-demo) base=5175 ;; esac
+  local slot="$1" app="$2" base main="${3:-}"
+  [ -n "$main" ] || main=$(main_checkout)
+  base=$(profile "$main" app "$app" portBase) || return 1
   echo $((base + 10 * slot))
 }
+serve_slot_ports() {
+  local slot="$1" repo app
+  while IFS= read -r repo; do
+    for app in $(profile "$repo" apps 2>/dev/null); do serve_port "$slot" "$app" "$repo"; done
+  done < <({ [ -z "${WT_MAIN_CHECKOUT:-}" ] || echo "$WT_MAIN_CHECKOUT"; known_repos; } | awk '!seen[$0]++')
+}
+serve_app_backend() { profile "$1" app "$2" backend; }
 
 port_listening() {
   if [ "${WT_STUB_PORTS+x}" ]; then
@@ -750,7 +805,7 @@ port_listening() {
 
 serve_state_load() {
   local file="$1" key value
-  SERVE_BRANCH= SERVE_PATH= SERVE_TAB= SERVE_APPS= SERVE_UNITS= SERVE_KC= SERVE_BOOT=
+  SERVE_BRANCH= SERVE_PATH= SERVE_TAB= SERVE_APPS= SERVE_UNITS= SERVE_KC= SERVE_BOOT= SERVE_REPO=cl-strategy
   [ -f "$file" ] || return 1
   [ -r "$file" ] || return 1
   cat -- "$file" >/dev/null 2>&1 || return 1
@@ -763,6 +818,7 @@ serve_state_load() {
       units) SERVE_UNITS="$value" ;;
       kc) SERVE_KC="$value" ;;
       boot) SERVE_BOOT="$value" ;;
+      repo) SERVE_REPO="$value" ;;
     esac
   done <"$file" || return 1
 }
@@ -840,14 +896,16 @@ recover_classify() {
   else
     local seen=' '
     for app in "${apps[@]}"; do
-      case "$app" in ds-demo|ri|strategy) ;; *) REC_REASON='invalid saved apps'; break ;; esac
+      profile "$(repo_main_for_path "$SERVE_PATH")" app "$app" label >/dev/null 2>&1 || { REC_REASON='invalid saved apps'; break; }
       case "$seen" in *" $app "*) REC_REASON='invalid saved apps'; break ;; esac
       seen="$seen$app "
     done
   fi
   if [ -z "$REC_REASON" ] && [ ! -d "$SERVE_PATH" ]; then REC_REASON='worktree missing'; fi
   if [ -z "$REC_REASON" ]; then
-    found=$(path_for_branch "$SERVE_BRANCH" 2>/dev/null) || found=
+    found=$(git -C "$SERVE_PATH" worktree list --porcelain 2>/dev/null | WT_LOOKUP_BRANCH="$SERVE_BRANCH" awk '
+      /^worktree / { path = substr($0, 10) }
+      $0 == "branch refs/heads/" ENVIRON["WT_LOOKUP_BRANCH"] { print path; exit }')
     [ "$found" = "$SERVE_PATH" ] || REC_REASON='branch no longer checked out there'
   fi
   if [ -z "$REC_REASON" ]; then
@@ -863,13 +921,15 @@ recover_classify() {
     done
   fi
   if [ -z "$REC_REASON" ] && [ "$slot" -ge 6 ]; then
-    for app in "${apps[@]}"; do case "$app" in ri|strategy) REC_REASON='slot cannot serve RI or Strategy' ;; esac; done
+    for app in "${apps[@]}"; do
+      [ "$(serve_app_backend "$(repo_main_for_path "$SERVE_PATH")" "$app")" != true ] || REC_REASON='slot cannot serve backend apps'
+    done
   fi
   if [ -z "$REC_REASON" ]; then
     if qa=$(qa_tree 2>/dev/null) && offset=$(qa_offset_readonly "$qa" 2>/dev/null); then
       offset=${offset%% *}
       [ "$offset" != "$slot" ] || REC_REASON='slot is used by the QA tree'
-    else
+    elif [ "$(profile "$(repo_main_for_path "$SERVE_PATH")" backend 2>/dev/null)" = true ]; then
       REC_REASON='QA port offset unavailable'
     fi
   fi
@@ -888,12 +948,12 @@ recover_scan() {
 serve_slot_live() {
   local slot="$1" port
   if [ "${WT_STUB_PORTS+x}" ]; then
-    for port in $((5173 + 10 * slot)) $((5174 + 10 * slot)) $((5175 + 10 * slot)); do
+    for port in $(serve_slot_ports "$slot"); do
       port_listening "$port" && return 0
     done
     return 1
   fi
-  python3 - "$slot" <<'PY_PORTS'
+  python3 - $(serve_slot_ports "$slot") <<'PY_PORTS'
 import socket
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -905,8 +965,8 @@ def listening(port):
     except OSError:
         return False
 
-ports = [base + 10 * int(sys.argv[1]) for base in (5173, 5174, 5175)]
-with ThreadPoolExecutor(max_workers=3) as pool:
+ports = [int(port) for port in sys.argv[1:]]
+with ThreadPoolExecutor(max_workers=max(1, len(ports))) as pool:
     sys.exit(0 if any(pool.map(listening, ports)) else 1)
 PY_PORTS
 }
@@ -941,9 +1001,10 @@ serve_host() {
 }
 
 serve_urls() {
-  local slot="$1" apps="$2" branch="${3:-}" app port host named
+  local slot="$1" apps="$2" branch="${3:-}" path="${4:-$SERVE_PATH}" app port host named main suffix
+  main=$(repo_main_for_path "$path") || return 1
   for app in $apps; do
-    port=$(serve_port "$slot" "$app")
+    port=$(serve_port "$slot" "$app" "$main")
     host=localhost
     named="$(serve_host "$branch"):$port"
     case " ${SERVE_KC:-} " in *" $named "*) host=${named%:*} ;; esac
@@ -951,14 +1012,22 @@ serve_urls() {
       ds-demo) echo "urls       ds-demo http://$(serve_host "$branch"):$port/" ;;
       ri) echo "urls       ri http://$host:$port/${WT_TENANT:-mridderikhoff}/ri/" ;;
       strategy) echo "urls       strategy http://$host:$port/${WT_TENANT:-mridderikhoff}" ;;
+      *) suffix=$(profile "$main" app "$app" urlPath); echo "urls       $app http://$(serve_host "$branch"):$port$suffix" ;;
     esac
   done
 }
 
 serve_command() {
-  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port
-  printf -v quoted '%q' "$path/apps/ui"
-  port=$(serve_port "$slot" "$app")
+  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port main command
+  main=$(repo_main_for_path "$path") || return 1
+  printf -v quoted '%q' "$path/$(profile "$main" app "$app" cwd)"
+  port=$(serve_port "$slot" "$app" "$main")
+  if [ -f "$main/.workbench/wt.json" ]; then
+    command=$(profile "$main" app "$app" command) || return 1
+    command=${command//\{port\}/$port}
+    echo "cd $quoted && $command"
+    return
+  fi
   if [ "$app" = ds-demo ]; then
     echo "cd $quoted && pnpm exec nx serve ds-demo --port $port"
   else
@@ -981,7 +1050,13 @@ except Exception:
 PY_HTTP
 }
 serve_write_unit() {
-  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path
+  local path="$1" slot="$2" app="$3" offset="$4" unit_dir command_line unit_path temp unit_env_path main cwd cache_env=
+  main=$(repo_main_for_path "$path") || return 1
+  cwd=$(profile "$main" app "$app" cwd) || return 1
+  if [ -f "$main/.workbench/wt.json" ] && [ "$(profile "$main" nxSharedCache)" = true ] && [ "${WT_NX_SHARED_CACHE:-1}" = 1 ]; then
+    cache_env="Environment=NX_CACHE_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/cache
+Environment=NX_WORKSPACE_DATA_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/data"
+  fi
   unit_dir=$(serve_unit_dir)
   mkdir -p "$unit_dir" || return 1
   command_line=$(serve_command "$path" "$app" "$slot" "$offset")
@@ -999,12 +1074,13 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-WorkingDirectory=$path/apps/ui
+WorkingDirectory=$path/$cwd
 EnvironmentFile=-$OVERSEER_CONFIG_FILE
 Environment="OVERSEER_CONFIG_FILE=$OVERSEER_CONFIG_FILE"
 Environment="PATH=$unit_env_path"
 Environment="PNPM_HOME=$HOME/.local/share/pnpm"
 Environment=NX_DAEMON=false
+$cache_env
 ExecStart=/usr/bin/env bash -lc '$command_line'
 Restart=on-failure
 RestartSec=5
@@ -1080,7 +1156,7 @@ serve_stop_orphan_branch() {
     [ -f "$(serve_state_dir)/slot-$slot" ] && continue
     for file in "$(serve_unit_dir)"/cl-strategy-serve-"$slot"-*.service; do
       [ -f "$file" ] || continue
-      if grep -qF "WorkingDirectory=$path/apps/ui" "$file"; then
+      if grep -qF "WorkingDirectory=$path/" "$file"; then
         serve_remove_slot "$slot" || return 1
         echo "slot       $slot stopped for $branch (orphan units)"
         return 0
@@ -1090,12 +1166,13 @@ serve_stop_orphan_branch() {
   return 1
 }
 serve_print_slot() {
-  local slot="$1" app port state
+  local slot="$1" app port state main
+  main=$(repo_main_for_path "$SERVE_PATH") || return 1
   echo "slot       $slot"
   echo "branch     $SERVE_BRANCH"
   echo "worktree   $SERVE_PATH"
   for app in $SERVE_APPS; do
-    port=$(serve_port "$slot" "$app")
+    port=$(serve_port "$slot" "$app" "$main")
     state=$(serve_unit_state "$slot" "$app")
     if serve_http_ready "$port"; then echo "app        $app $state HTTP ready"; else echo "app        $app $state HTTP not ready"; fi
   done
@@ -1104,8 +1181,8 @@ serve_print_slot() {
 }
 cmd_serve_locked() {
   local qa offset slot file branch state_dir
-  qa=$(qa_tree) || { echo 'no QA tree found' >&2; return 1; }
-  offset=$(qa_offset "$qa") || return 1
+  offset=-1
+  if qa=$(qa_tree); then offset=$(qa_offset "$qa") || return 1; fi
   state_dir=$(serve_state_dir)
   if [ "${1:-}" = --stop ]; then
     branch="${2:?usage: wt serve --stop <branch>}"
@@ -1135,12 +1212,15 @@ cmd_serve_locked() {
 
 # Start one saved slot without pruning unrelated records or orphan units.
 serve_start_locked() {
-  local pin="$1" offset="$2" slot file branch path app port free= occupied state_dir existing=0 needs_reload=0 needs_ri=0 host kc=
+  local pin="$1" offset="$2" slot file branch path app port free= occupied state_dir existing=0 needs_reload=0 needs_ri=0 host kc= main repo_name node_modules
   local chosen=() merged=() candidates=() changed_apps=() kc_addresses=() seen=' '
   shift 2
   state_dir=$(serve_state_dir)
   branch="$1"; shift
   path=$(path_for_branch "$branch") || { echo "serve      no worktree on $branch" >&2; return 1; }
+  main=$(repo_main_for_path "$path") || return 1
+  repo_name=$(profile "$main" name) || return 1
+  node_modules=$(profile "$main" nodeModules) || return 1
   if [ -n "$pin" ]; then
     [ "$pin" != "$offset" ] || { echo "serve      slot $pin is the QA tree slot" >&2; return 1; }
     file="$state_dir/slot-$pin"
@@ -1161,26 +1241,27 @@ serve_start_locked() {
     serve_state_load "$state_dir/slot-$pin" || { echo "serve      slot $pin record changed or missing" >&2; return 1; }
     free="$pin" existing=1
   fi
-  if [ ! -d "$path/apps/ui/node_modules" ]; then
+  if [ ! -d "$path/$node_modules/node_modules" ]; then
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
-      echo "dry-run    install frontend dependencies in $path/apps/ui"
+      echo "dry-run    install frontend dependencies in $path/$node_modules"
     else
-      install_deps "$path" "$path/apps/ui" 9>&- || return 1
+      install_deps "$path" 9>&- || return 1
     fi
   fi
-  [ $# -eq 0 ] && set -- ds-demo ri
+  [ $# -eq 0 ] && read -r -a default_apps <<<"$(profile "$main" defaultApps)" && set -- "${default_apps[@]}"
   [ $# -le 3 ] || { echo 'serve      at most three apps' >&2; return 1; }
   for app in "$@"; do
-    case "$app" in ds-demo|ri|strategy) ;; *) echo "serve      unknown app: $app" >&2; return 1 ;; esac
-    case "$app" in ri|strategy) needs_ri=1 ;; esac
+    profile "$main" app "$app" label >/dev/null || return 1
+    [ "$(serve_app_backend "$main" "$app")" != true ] || needs_ri=1
     case "$seen" in *" $app "*) echo "serve      duplicate app: $app" >&2; return 1 ;; esac
     seen="$seen$app "; chosen+=("$app")
   done
+  [ "$needs_ri" = 0 ] || [ "$offset" != -1 ] || { echo 'serve      backend app needs a QA tree' >&2; return 1; }
   if [ -z "$pin" ]; then
     for slot in {2..9}; do
       file="$state_dir/slot-$slot"
       serve_state_load "$file" || continue
-      if [ "$SERVE_BRANCH" = "$branch" ]; then free="$slot"; existing=1; break; fi
+      if [ "$SERVE_BRANCH" = "$branch" ] && [ "$SERVE_PATH" = "$path" ]; then free="$slot"; existing=1; break; fi
     done
   fi
   if [ "$existing" = 1 ] && [ "$free" -ge 6 ] && [ "$needs_ri" = 1 ]; then
@@ -1194,7 +1275,7 @@ serve_start_locked() {
       [ "$slot" = "$offset" ] && continue
       file="$state_dir/slot-$slot"; [ -e "$file" ] && continue
       occupied=0
-      for port in $((5173 + 10 * slot)) $((5174 + 10 * slot)) $((5175 + 10 * slot)); do
+      for port in $(serve_slot_ports "$slot"); do
         port_listening "$port" && occupied=1
       done
       [ "$occupied" = 0 ] && { free="$slot"; break; }
@@ -1209,7 +1290,7 @@ serve_start_locked() {
         if serve_state_load "$file"; then
           echo "slot       $slot $SERVE_BRANCH ($SERVE_APPS)" >&2
         else
-          for port in $((5173 + 10 * slot)) $((5174 + 10 * slot)) $((5175 + 10 * slot)); do
+          for port in $(serve_slot_ports "$slot"); do
             port_listening "$port" && echo "slot       $slot port $port listening" >&2
           done
         fi
@@ -1227,11 +1308,10 @@ serve_start_locked() {
   done
   if [ "$free" -ge 6 ]; then
     for app in "${merged[@]}"; do
-      case "$app" in
-        ri|strategy)
-          echo "serve      slot $free cannot serve ri or strategy; stop it (wt serve --stop $branch) and re-serve with all apps" >&2
-          return 1 ;;
-      esac
+      if [ "$(serve_app_backend "$main" "$app")" = true ]; then
+        echo "serve      slot $free cannot serve backend app $app; stop it (wt serve --stop $branch) and re-serve with all apps" >&2
+        return 1
+      fi
     done
   fi
   for app in "${merged[@]}"; do
@@ -1249,11 +1329,11 @@ serve_start_locked() {
   done
   host=$(serve_host "$branch")
   for app in "${merged[@]}"; do
-    case "$app" in ri|strategy) kc_addresses+=("$host:$(serve_port "$free" "$app")") ;; esac
+    case "$app" in ri|strategy) kc_addresses+=("$host:$(serve_port "$free" "$app" "$main")") ;; esac
   done
   # Publish the slot before registration. A concurrent sync takes the serve
   # lock and therefore sees either this completed state or the previous one.
-  printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=\nboot=%s\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" "$(wt_boot_id)" >"$state_dir/slot-$free"
+  printf 'branch=%s\npath=%s\nrepo=%s\napps=%s\nunits=%s\nkc=\nboot=%s\n' "$branch" "$path" "$repo_name" "${merged[*]}" "${merged[*]}" "$(wt_boot_id)" >"$state_dir/slot-$free"
   if [ ${#kc_addresses[@]} -gt 0 ]; then
     if [ "${WT_DRY_RUN:-0}" = 1 ]; then
       echo "dry-run    kc-redirects add ${kc_addresses[*]}"
@@ -1264,7 +1344,7 @@ serve_start_locked() {
     fi
   fi
   if [ -n "$kc" ]; then
-    printf 'branch=%s\npath=%s\napps=%s\nunits=%s\nkc=%s\nboot=%s\n' "$branch" "$path" "${merged[*]}" "${merged[*]}" "$kc" "$(wt_boot_id)" >"$state_dir/slot-$free"
+    printf 'branch=%s\npath=%s\nrepo=%s\napps=%s\nunits=%s\nkc=%s\nboot=%s\n' "$branch" "$path" "$repo_name" "${merged[*]}" "${merged[*]}" "$kc" "$(wt_boot_id)" >"$state_dir/slot-$free"
   fi
   serve_state_load "$state_dir/slot-$free"
   serve_print_slot "$free"
@@ -1307,7 +1387,9 @@ recover_precheck() {
     slot=${token%%:*}; fp=${token#*:}
     recover_check_token "$slot" "$fp" resume || continue
     REC_PRECHECK="$REC_PRECHECK $slot"
-    for app in $SERVE_APPS; do case "$app" in ri|strategy) REC_NEEDS_BACKEND=1 ;; esac; done
+    for app in $SERVE_APPS; do
+      [ "$(serve_app_backend "$(repo_main_for_path "$SERVE_PATH")" "$app")" != true ] || REC_NEEDS_BACKEND=1
+    done
   done
   printf '%s|%s\n' "$REC_PRECHECK" "$REC_NEEDS_BACKEND"
 }
@@ -1318,7 +1400,13 @@ recover_resume_slot_locked() {
   recover_check_token "$slot" "$fp" resume || { echo "skipped: $REC_RESULT"; return 5; }
   branch="$SERVE_BRANCH"
   read -r -a apps <<<"$SERVE_APPS"
-  qa=$(qa_tree) && offset=$(qa_offset "$qa") || { echo 'failed: QA offset unavailable'; return 1; }
+  offset=-1
+  if qa=$(qa_tree); then offset=$(qa_offset "$qa") || { echo 'failed: QA offset unavailable'; return 1; }; fi
+  if [ "$offset" = -1 ]; then
+    for app in "${apps[@]}"; do
+      [ "$(serve_app_backend "$(repo_main_for_path "$SERVE_PATH")" "$app")" != true ] || { echo 'failed: QA offset unavailable'; return 1; }
+    done
+  fi
   serve_start_locked "$slot" "$offset" "$branch" "${apps[@]}"
 }
 
@@ -1414,11 +1502,16 @@ PY_RECOVER
   esac
 }
 cmd_serve() {
-  local app needs_backend=0 ensure_pending=0 result
+  local app needs_backend=0 ensure_pending=0 result path main
   if [ $# -gt 0 ] && [ "$1" != --stop ]; then
-    if [ $# -eq 1 ]; then needs_backend=1; else
-      for app in "${@:2}"; do case "$app" in ri|strategy) needs_backend=1 ;; esac; done
-    fi
+    path=$(path_for_branch "$1") || { echo "serve      no worktree on $1" >&2; return 1; }
+    main=$(repo_main_for_path "$path") || return 1
+    if [ $# -eq 1 ]; then read -r -a apps <<<"$(profile "$main" defaultApps)"
+    else apps=("${@:2}"); fi
+    for app in "${apps[@]}"; do
+      profile "$main" app "$app" label >/dev/null || return 1
+      [ "$(serve_app_backend "$main" "$app")" != true ] || needs_backend=1
+    done
   fi
   if [ "$needs_backend" = 1 ]; then
     cmd_backend ensure || {
@@ -1438,7 +1531,8 @@ cmd_logs() {
     case "$1" in
       -f) follow=1; shift ;;
       -n) count="${2:?missing count}"; shift 2 ;;
-      ds-demo|ri|strategy) app="$1"; shift ;;
+      -*) echo "logs      unknown argument: $1" >&2; return 1 ;;
+      *) app="$1"; shift ;;
       *) echo "logs      unknown argument: $1" >&2; return 1 ;;
     esac
   done
@@ -1724,7 +1818,7 @@ backend_update_locked() {
   local -a generated_locks=()
   qa_update_reset
   qa=$(qa_tree) || return 1
-  main=$(main_checkout) || return 1
+  main=$(repo_main_for_path "$qa") || return 1
   old=$(git -C "$qa" rev-parse HEAD) || return 1
   marker=$(qa_update_marker)
   if [ "${WT_DRY_RUN:-0}" = 1 ]; then
@@ -1908,8 +2002,19 @@ PY
     )
   fi
   rm -f "$health_error"
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" python3 - <<'PY_JSON'
-import concurrent.futures, datetime, json, os, pathlib, re, subprocess, urllib.request
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_BOOT_ID="$(wt_boot_id)" WT_STATUS_BOOT_TIME="$(wt_boot_time)" WT_STATUS_RECOVERY="$(recover_scan)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" WT_STATUS_PROFILE_BIN="$(dirname "${BASH_SOURCE[0]}")/wt-profile.py" python3 - <<'PY_JSON'
+import concurrent.futures, datetime, importlib.util, json, os, pathlib, re, subprocess, urllib.request
+
+spec = importlib.util.spec_from_file_location('wt_profile', os.environ['WT_STATUS_PROFILE_BIN'])
+profile_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(profile_module)
+
+def repo_profile(path):
+    try:
+        root = subprocess.run(['git', '-C', path, 'rev-parse', '--show-toplevel'], capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+        return profile_module.profile(root)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as error:
+        return None
 
 def backend_branch(path):
     try:
@@ -2003,7 +2108,13 @@ def slot_data(slot, file):
     except (OSError, UnicodeError) as error:
         errors.append(f'cannot read state: {error}')
     branch, path = fields.get('branch', ''), fields.get('path', '')
-    item = {'slot': slot, 'branch': branch, 'worktree': path, 'apps': []}
+    config = repo_profile(path) if path else None
+    item = {'slot': slot, 'branch': branch, 'worktree': path, 'repo': fields.get('repo', 'cl-strategy'), 'apps': [], 'availableApps': []}
+    if config:
+        item['repo'] = config['name']
+        item['availableApps'] = [{'app': name, 'label': settings['label'], 'backend': settings['backend']}
+                                 for name, settings in config['apps'].items() if slot <= 5 or not settings['backend']]
+    elif path: errors.append('repository profile unavailable')
     if not branch: errors.append('missing branch')
     if not path: errors.append('missing path')
     elif not pathlib.Path(path).is_dir(): errors.append('worktree missing')
@@ -2012,18 +2123,18 @@ def slot_data(slot, file):
     kc = fields.get('kc', '').split()
     if not apps: errors.append('missing apps')
     for app in apps:
-        if app not in ('ds-demo', 'ri', 'strategy'):
+        if not config or app not in config['apps']:
             errors.append(f'unknown app: {app}')
             continue
-        port = {'ds-demo': 5175, 'ri': 5174, 'strategy': 5173}[app] + 10 * slot
+        settings = config['apps'][app]
+        port = settings['portBase'] + 10 * slot
         tenant = os.environ.get('WT_TENANT') or 'mridderikhoff'
-        suffix = {'ds-demo': '/', 'ri': f'/{tenant}/ri/', 'strategy': f'/{tenant}'}[app]
+        suffix = settings['urlPath'].replace('{tenant}', tenant)
         host = 'localhost'
-        if app == 'ds-demo' or app in ('ri', 'strategy'):
-            name = re.sub(r'-+', '-', re.sub(r'[^a-z0-9-]', '-', branch.rsplit('/', 1)[-1].lower())).strip('-')[:63].rstrip('-')
-            named = f'{name}.localhost' if name else 'localhost'
-            if app == 'ds-demo' or f'{named}:{port}' in kc: host = named
-        item['apps'].append({'app': app, 'slot': slot, 'port': port, 'url': f'http://{host}:{port}{suffix}',
+        name = re.sub(r'-+', '-', re.sub(r'[^a-z0-9-]', '-', branch.rsplit('/', 1)[-1].lower())).strip('-')[:63].rstrip('-')
+        named = f'{name}.localhost' if name else 'localhost'
+        if app not in ('ri', 'strategy') or f'{named}:{port}' in kc: host = named
+        item['apps'].append({'app': app, 'label': settings['label'], 'backend': settings['backend'], 'slot': slot, 'port': port, 'url': f'http://{host}:{port}{suffix}',
                              'unitState': unit_state(slot, app) if fields.get('units') else 'legacy',
                              'startedAt': unit_started(slot, app) if fields.get('units') else None,
                              'httpReady': False})
@@ -2045,6 +2156,13 @@ def build_state(slot, app):
     for index in range(len(lines) - 1, -1, -1):
         line = lines[index]
         if 'Changes detected. Rebuilding' in line:
+            return {'state': 'building'}
+        if 'Compiled successfully' in line or 'compiled successfully' in line:
+            return {'state': 'ok'}
+        if 'Failed to compile' in line or 'ERROR in' in line:
+            first = next((entry for entry in lines[index:] if 'ERROR in' in entry), line)
+            return {'state': 'failed', 'errorCount': 1, 'error': first[:300]}
+        if 'Compiling' in line or 'webpack: Compiling' in line:
             return {'state': 'building'}
         if line.startswith('Application bundle generation complete'):
             return {'state': 'ok'}
@@ -2109,6 +2227,7 @@ cmd_sync_locked() {
   local prune=0 arg
   for arg in "$@"; do [ "$arg" = "--prune-branches" ] && prune=1; done
   local main; main=$(main_checkout) || return 1
+  BASE_BRANCH="${WT_BASE_BRANCH:-$(profile "$main" baseBranch)}" || return 1
   local working; working=$(branch_at "$main")
   [ "$working" != "$BASE_BRANCH" ] &&
     { echo "REFUSED: shared checkout is on $working, not $BASE_BRANCH — repark it first."; return 1; }
@@ -2130,7 +2249,9 @@ cmd_sync_locked() {
       release_worktree "$main" "$branch"
     fi
   done
-  (cd "$main" && python3 scripts/dev/ports.py doctor --prune) >/dev/null 2>&1 || true
+  if [ "$(profile "$main" backend)" = true ]; then
+    (cd "$main" && python3 scripts/dev/ports.py doctor --prune) >/dev/null 2>&1 || true
+  fi
   serve_with_lock serve_prune_missing_paths
 
   if [ "$prune" = 1 ]; then
@@ -2145,7 +2266,7 @@ cmd_sync_locked() {
     echo "pruned     $pruned merged branch ref(s)"
   fi
 
-  wt_qa_with_lock sync_qa_update_locked "$main"
+  [ "$(profile "$main" backend)" != true ] || wt_qa_with_lock sync_qa_update_locked "$main"
 }
 sync_qa_update_locked() {
   local main="$1" qa
@@ -2352,7 +2473,7 @@ wt ship <branch> [--ready]            push, open a draft PR (--ready: not draft)
 wt qa [branch|commit]                 attach QA code, restart and probe app services
                                       (no argument: status)
 wt serve [branch] [ds-demo|ri|strategy…]
-                                      task frontends; register named sign-in URLs
+                                      task frontends; apps default from repo profile
 wt serve --stop <branch>              stop its frontend units
 ~/.claude/bin/wt recover [--json]     list stopped sessions saved before this restart
 ~/.claude/bin/wt recover resume <slot:fp>…
@@ -2393,5 +2514,9 @@ clean keeps a tree that any live process is sitting in, and one provisioned
 within the last 2h (--min-age N seconds, or WT_CLEAN_MIN_AGE): a freshly
 provisioned tree is clean and idle while its agent is still reading, which
 otherwise looks exactly like an abandoned one.
+
+Repo profiles: a repository opts in with .workbench/wt.json. WT_REPOS lists
+known main checkouts (colon separated); WT_MAIN_CHECKOUT overrides context.
+Branch commands resolve the owning repository and use its apps and base branch.
 USAGE
 esac

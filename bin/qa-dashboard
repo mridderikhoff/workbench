@@ -177,6 +177,7 @@ position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-ra
 .branch{position:relative;font:600 22px/1.25 var(--serif);overflow-wrap:anywhere;text-shadow:var(--emboss)}
 .slot-card{position:relative;isolation:isolate}
 .slot-card .head{padding-right:4.5em;align-items:center;padding-bottom:6px}
+.slot-card .repo-name{font:600 12px/1.2 var(--mono);color:var(--muted);overflow-wrap:anywhere}
 /* The slot label is attached to its session: "slot" and the number are separate spans, so a theme can set them as two fields. */
 .slotno{position:absolute;top:16px;right:16px;display:inline-flex;align-items:baseline;gap:.35em;padding:3px 8px 2px;border-radius:3px;font:13px/1.2 var(--mono);color:var(--muted);background:var(--inset);box-shadow:var(--sunk);white-space:nowrap}
 .slotno-v{font-weight:700;color:var(--text)}
@@ -3242,6 +3243,12 @@ var QA_DESK=(function(){
 "use strict";
 var INITIAL=/*INITIAL*/null/*END*/;
 var APP_NAMES={ri:"RI","ds-demo":"ds-demo",strategy:"Strategy"};
+function appName(a){return a&&a.label||APP_NAMES[a&&a.app]||a&&a.app||"app"}
+function availableApps(s){
+  if(Array.isArray(s.availableApps))return s.availableApps.filter(function(a){return a&&typeof a.app==="string"});
+  return SERVE_APPS.filter(function(app){return app==="ds-demo"||Number(s.slot)<6}).map(function(app){return{app:app,label:APP_NAMES[app]||app,backend:app!=="ds-demo"}});
+}
+function slotNeedsBackend(s){return(s.apps||[]).some(function(a){return a.backend===true||a.backend==null&&(a.app==="ri"||a.app==="strategy")})}
 var tenantInput=document.getElementById("tenant");
 var storedTenant=null;
 try{storedTenant=localStorage.getItem("qaDashboardTenant")}catch(e){}
@@ -3466,7 +3473,7 @@ function settleUnderPointer(){
 }
 function buildFailed(a){return!!(a.httpReady&&a.build&&a.build.state==="failed")}
 function appPill(a){
-  var name=APP_NAMES[a.app]||a.app||"app",url=appUrl(a),ready=!!a.httpReady&&!!url,status=appStatus(a);
+  var name=appName(a),url=appUrl(a),ready=!!a.httpReady&&!!url,status=appStatus(a);
   var state=status.label||(a.httpReady&&!url?"no link":""),started=startTime(a.startedAt);
   // The state and start time share one wrapper, so a theme can set them as a second line of the legend.
   var low=status.failed?'<span class="build-failed">'+esc(state)+'</span>':
@@ -3510,27 +3517,28 @@ var SERVE_APPS=/*APPS*/null/*END*/||["ri","ds-demo"];
 // A session's keys, like a physical panel: each managed app has a fixed position in SERVE_APPS order, holding its running
 // pill or, when it is off, its start key; running apps outside the list follow. Returns {app} for a pill, {start} for a key.
 function keyOrder(s){
-  var running=appOrder(s.apps||[]),startable=startableApps(s),out=[];
-  SERVE_APPS.forEach(function(name){
+  var order=availableApps(s).map(function(a){return a.app}),running=appOrder(s.apps||[],order),startable=startableApps(s),out=[];
+  order.forEach(function(name){
     running.forEach(function(a){if(a.app===name)out.push({app:a})});
     if(startable.indexOf(name)>=0)out.push({start:name});
   });
-  running.forEach(function(a){if(SERVE_APPS.indexOf(a.app)<0)out.push({app:a})});
+  running.forEach(function(a){if(order.indexOf(a.app)<0)out.push({app:a})});
   return out;
 }
-function appOrder(apps){
-  var rank=function(a){var i=SERVE_APPS.indexOf(a.app);return i<0?SERVE_APPS.length:i};
+function appOrder(apps,order){
+  order=order||SERVE_APPS;
+  var rank=function(a){var i=order.indexOf(a.app);return i<0?order.length:i};
   return apps.map(function(a,i){return{a:a,i:i}}).sort(function(x,y){return rank(x.a)-rank(y.a)||x.i-y.i}).map(function(x){return x.a});
 }
 function startableApps(s){
   if(!s.branch||s.recovery||String(s.branch).charAt(0)==="-")return[];
   var running=(s.apps||[]).map(function(a){return a.app});
-  return SERVE_APPS.filter(function(app){return running.indexOf(app)<0&&hiddenStartKeys.indexOf(app)<0&&(app==="ds-demo"||Number(s.slot)<6)});
+  return availableApps(s).map(function(a){return a.app}).filter(function(app){return running.indexOf(app)<0&&hiddenStartKeys.indexOf(app)<0});
 }
 // An app that is not running is a small, unlit key with a sleeping face and no time; hovering it wakes the face. While it
 // starts, the face is the busy loader; the next poll turns it into a normal app pill.
 function startKey(s,app){
-  var a=currentAction(),busy=isRunning()&&a.action==="start"&&a.target===s.branch&&a.app===app,name=APP_NAMES[app]||app,glyphs=QA_THEME.current().statusGlyphs||{};
+  var a=currentAction(),busy=isRunning()&&a.action==="start"&&a.target===s.branch&&a.app===app,name=appName(availableApps(s).find(function(item){return item.app===app})),glyphs=QA_THEME.current().statusGlyphs||{};
   var face=busy?dot("busy"):'<span class="dot sleep">'+(glyphs.sleep||QA_THEME.glyph("down"))+'</span><span class="dot wake">'+(glyphs.awake||QA_THEME.glyph("ok"))+'</span>';
   return'<button type="button" class="act app-start'+(busy?" busy":"")+'" data-start-app="'+esc(app)+'" data-start-branch="'+esc(s.branch)+'" aria-label="Start '+esc(name)+' for '+esc(s.branch)+'"'+
     ' title="Start '+esc(name)+' (wt serve '+esc(s.branch)+' '+esc(app)+')"'+(busy?' aria-disabled="true"':isRunning()?" disabled":"")+'>'+face+'<span class="app-name">'+esc(name)+'</span><span class="pill-low start-off" aria-hidden="true">'+(busy?"starting":"off")+'</span>'+(busy?'<span class="sr-only"> starting</span>':"")+'</button>';
@@ -3540,14 +3548,14 @@ function renderSlot(s){
   var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
-    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+
+    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+(s.repo?'<span class="repo-name">'+esc(s.repo)+'</span>':"")+
     (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   var startable=startableApps(s);
   keyOrder(s).forEach(function(key){h+=key.app?appPill(key.app):startKey(s,key.start)});
   if(!(s.apps||[]).length&&!startable.length)h+='<span class="muted">no apps</span>';
   // The backend switch sits with the app pills; when the backend already runs this branch's head it stays, disabled, as the note.
-  if(!switching&&s.branch&&s.branch!=="develop")h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="update-btn backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
+  if(!switching&&s.branch&&s.branch!=="develop"&&slotNeedsBackend(s))h+='<span class="slot-backend">'+(here==="current"?'<button type="button" class="update-btn backend-here" disabled title="The shared backend runs this branch">'+QA_THEME.icon("backend")+'<span>Backend on this branch</span></button>':
     '<button type="button" class="update-btn" data-attach="'+esc(s.branch)+'" title="'+(here==="different"?"The backend runs another commit of this branch. ":here?"The backend runs this branch at an unknown commit. ":"")+
       'Switch the shared backend to this branch (wt qa '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("backend")+'<span>'+(here?"Update backend":"Switch backend")+'</span></button>')+'</span>';
   h+='</div>';
@@ -3622,13 +3630,13 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
   }
   if(action&&action.state!=="running"&&action.state!=="ok"&&!obsoleteBackendAction(action,backend))add("action:failed:"+action.action+":"+(action.target||""),"down",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
   var saved=slots.filter(function(slot){return slot.recovery}),live=slots.filter(function(slot){return!slot.recovery});
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",(APP_NAMES[app.app]||app.app||"App")+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",appName(app)+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",(APP_NAMES[app.app]||app.app||"App")+" is "+app.unitState+" on "+slot.branch+".")})});
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",appName(app)+" is "+app.unitState+" on "+slot.branch+".")})});
   if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"busy",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
   if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Clear saved sessions.");
   if(backend&&!switching){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=APP_NAMES[app.app]||app.app||"App";if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
+  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=appName(app);if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
   if(backend&&!switching&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
   if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
   else if(backend&&!switching&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
@@ -3729,6 +3737,7 @@ function render(){
     if(focusTarget)focusTarget.focus();
   }
   var slots=(data&&data.slots)||[];
+  updateStartKeyChoices(slots);
   // Saved recovery slots belong to the recovery picker only; the Sessions section lists everything else.
   var liveSlots=slots.filter(function(slot){return!slot.recovery}),savedOnly=!!data&&slots.length>0&&!liveSlots.length;
   setText(document.getElementById("sessions-count"),data?String(liveSlots.length):"");
@@ -3850,7 +3859,7 @@ function restoreStartFocus(){
 }
 function attachAvailable(branch){
   var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
-  return!isRunning()&&!!slot&&branch!=="develop"&&backendOn(slot)!=="current";
+  return!isRunning()&&!!slot&&slotNeedsBackend(slot)&&branch!=="develop"&&backendOn(slot)!=="current";
 }
 function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):stopAvailable(stopBranch)}
 function confirmAttach(branch,opener){
@@ -3901,7 +3910,7 @@ var recoveryBox=document.getElementById("recovery"),recoveryRows=document.getEle
 function recoveryCandidates(){return((data&&data.slots)||[]).filter(function(s){return s.recovery&&s.recovery.fingerprint}).sort(function(a,b){return a.slot-b.slot})}
 function recoveryPairs(list){return list.map(function(s){return{slot:s.slot,fingerprint:s.recovery.fingerprint}})}
 function recoveryRow(s){
-  var apps=(s.apps||[]).map(function(a){return APP_NAMES[a.app]||a.app}).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
+  var apps=(s.apps||[]).map(appName).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
     body='<span class="branch">'+esc(s.branch||"(no branch)")+'</span><span class="small">'+esc(apps)+'</span>'+(leaf?'<span class="small" title="'+esc(s.worktree)+'">'+esc(leaf)+'</span>':"");
   if(!s.recovery.resumable)return'<div class="recovery-row"><span class="recovery-pad"></span><div class="recovery-plain">'+body+'<span class="why">'+dot("warn")+" Can&rsquo;t resume: "+esc(s.recovery.reason||"not available")+'. Clear saved sessions forgets it.</span></div></div>';
   var pick=recoveryPicks[s.slot];
@@ -4149,21 +4158,33 @@ tenantInput.addEventListener("input",function(){
 // One checkbox group in Settings and one in the welcome dialog, kept in sync; a change saves and redraws at once.
 var hiddenStartKeys=[];
 try{var storedHidden=JSON.parse(localStorage.getItem("qaDashboardHiddenStartKeys"));if(Array.isArray(storedHidden))hiddenStartKeys=storedHidden.filter(function(a){return typeof a==="string"})}catch(e){}
-(function startKeyChoices(){
-  var groups=[document.getElementById("startkeys-settings"),document.getElementById("startkeys-welcome")].filter(Boolean);
-  var row=document.getElementById("startkeys-row");
-  if(row)row.dataset.keep="1";
-  groups.forEach(function(group){
-    SERVE_APPS.forEach(function(app){
+var startKeyGroups=[document.getElementById("startkeys-settings"),document.getElementById("startkeys-welcome")].filter(Boolean);
+function updateStartKeyChoices(slots){
+  var choices=[];
+  (slots||[]).forEach(function(s){availableApps(s).forEach(function(a){if(!choices.some(function(c){return c.app===a.app}))choices.push(a)})});
+  if(!choices.length)choices=SERVE_APPS.map(function(app){return{app:app,label:APP_NAMES[app]||app}});
+  choices.forEach(function(a){APP_NAMES[a.app]=a.label||APP_NAMES[a.app]||a.app});
+  SERVE_APPS=choices.map(function(a){return a.app});
+  startKeyGroups.forEach(function(group){
+    var existing=Array.prototype.map.call(group.querySelectorAll('input[type="checkbox"]'),function(box){return box.value});
+    if(existing.join("\0")===SERVE_APPS.join("\0"))return;
+    group.innerHTML="";
+    choices.forEach(function(a){
       var label=document.createElement("label"),box=document.createElement("input"),text=document.createElement("span");
-      box.type="checkbox";box.value=app;box.checked=hiddenStartKeys.indexOf(app)<0;text.textContent=APP_NAMES[app]||app;
+      box.type="checkbox";box.value=a.app;box.checked=hiddenStartKeys.indexOf(a.app)<0;text.textContent=appName(a);
       label.appendChild(box);label.appendChild(text);group.appendChild(label);
     });
+  });
+}
+(function startKeyChoices(){
+  var row=document.getElementById("startkeys-row");
+  if(row)row.dataset.keep="1";
+  startKeyGroups.forEach(function(group){
     group.addEventListener("change",function(e){
       var box=e.target;if(!box||box.type!=="checkbox")return;
       hiddenStartKeys=hiddenStartKeys.filter(function(a){return a!==box.value});
       if(!box.checked)hiddenStartKeys.push(box.value);
-      groups.forEach(function(g){Array.prototype.forEach.call(g.querySelectorAll("input"),function(b){if(b.value===box.value)b.checked=box.checked})});
+      startKeyGroups.forEach(function(g){Array.prototype.forEach.call(g.querySelectorAll("input"),function(b){if(b.value===box.value)b.checked=box.checked})});
       try{localStorage.setItem("qaDashboardHiddenStartKeys",JSON.stringify(hiddenStartKeys))}catch(err){}
       render();
     });
@@ -5244,7 +5265,7 @@ def handle_slot_backend(runner, body, headers, port, known_branches):
 
 def handle_slot_start(runner, body, headers, port, sessions, apps=None):
     """Starts one app a live session does not serve yet through `wt serve <branch> <app>`. The branch must be a session in
-    the current status and the app one of this machine's managed apps (WT_APPS) that the session lacks, so no free text
+    the current status and the app one of that session's available apps, so no free text
     reaches the command."""
     if not same_origin(headers, port):
         return 403, {"error": "forbidden"}
@@ -5252,13 +5273,16 @@ def handle_slot_start(runner, body, headers, port, sessions, apps=None):
     app = body.get("app") if isinstance(body, dict) else None
     if not isinstance(branch, str) or branch not in sessions or branch.startswith("-"):
         return 400, {"error": "unknown branch"}
-    if not isinstance(app, str) or app not in (managed_apps() if apps is None else apps):
+    session = sessions[branch]
+    slot, running = session[:2]
+    available = session[2] if len(session) > 2 else {name for name in (managed_apps() if apps is None else apps)
+                                                     if name == "ds-demo" or slot < 6}
+    if len(session) == 2 and isinstance(app, str) and app in (managed_apps() if apps is None else apps) and app != "ds-demo" and slot >= 6:
+        return 400, {"error": f"slot {slot} serves ds-demo only"}
+    if not isinstance(app, str) or app not in available:
         return 400, {"error": "unknown app"}
-    slot, running = sessions[branch]
     if app in running:
         return 409, {"error": f"{app} is already running for {branch}", "actions": runner.snapshot()}
-    if app != "ds-demo" and slot >= 6:
-        return 400, {"error": f"slot {slot} serves ds-demo only"}
     if not runner.start("start", ["serve", branch, app], target=branch, app=app):
         return 409, {"error": "another action is still running", "actions": runner.snapshot()}
     return 202, {"actions": runner.snapshot()}
@@ -5321,21 +5345,30 @@ def backend_services(source):
         return set()
 
 
-def slot_branches(source):
+def slot_branches(source, backend_only=False):
     try:
-        return {slot.get("branch") for slot in source.get().get("slots") or [] if slot.get("branch")}
+        return {slot.get("branch") for slot in source.get().get("slots") or []
+                if slot.get("branch") and (not backend_only or slot.get("repo", "cl-strategy") == "cl-strategy"
+                    and any(app.get("backend", app.get("app") in ("ri", "strategy"))
+                            for app in slot.get("apps") or [] if isinstance(app, dict)))}
     except Exception:  # an unreadable status means no branch can be confirmed
         return set()
 
 
 def slot_sessions(source):
-    """Maps each live session's branch to its slot number and the apps it already serves; saved sessions are left out."""
+    """Maps each live branch to its slot, running apps and eligible apps; saved sessions are left out."""
     try:
         sessions = {}
         for slot in source.get().get("slots") or []:
             branch, number = slot.get("branch"), slot.get("slot")
             if isinstance(branch, str) and branch and type(number) is int and not slot.get("recovery"):
-                sessions[branch] = (number, {app.get("app") for app in slot.get("apps") or [] if isinstance(app, dict)})
+                running = {app.get("app") for app in slot.get("apps") or [] if isinstance(app, dict)}
+                offered = slot.get("availableApps")
+                if isinstance(offered, list):
+                    available = {app.get("app") for app in offered if isinstance(app, dict) and isinstance(app.get("app"), str)}
+                    sessions[branch] = (number, running, available)
+                else:
+                    sessions[branch] = (number, running)
         return sessions
     except Exception:  # an unreadable status means no session can be confirmed
         return {}
@@ -5383,7 +5416,8 @@ def make_handler(source, runner, port):
                 except ValueError:
                     body = None
                 handler = handle_slot_stop if path == "/api/slot/stop" else handle_slot_backend
-                code, body = handler(runner, body, self.headers, port, slot_branches(source))
+                code, body = handler(runner, body, self.headers, port,
+                                     slot_branches(source, backend_only=path == "/api/slot/backend"))
             elif path == "/api/slot/start":
                 try:
                     body = json.loads(raw or b"{}")
