@@ -3248,7 +3248,7 @@ function availableApps(s){
   if(Array.isArray(s.availableApps))return s.availableApps.filter(function(a){return a&&typeof a.app==="string"});
   return SERVE_APPS.filter(function(app){return app==="ds-demo"||Number(s.slot)<6}).map(function(app){return{app:app,label:APP_NAMES[app]||app,backend:app!=="ds-demo"}});
 }
-function slotNeedsBackend(s){return(s.apps||[]).some(function(a){return a.backend===true||a.backend==null&&(a.app==="ri"||a.app==="strategy")})}
+function slotNeedsBackend(s){return s.repoBackend===true||s.repoBackend==null&&(!s.repo||s.repo==="cl-strategy")}
 var tenantInput=document.getElementById("tenant");
 var storedTenant=null;
 try{storedTenant=localStorage.getItem("qaDashboardTenant")}catch(e){}
@@ -5348,9 +5348,8 @@ def backend_services(source):
 def slot_branches(source, backend_only=False):
     try:
         return {slot.get("branch") for slot in source.get().get("slots") or []
-                if slot.get("branch") and (not backend_only or slot.get("repo", "cl-strategy") == "cl-strategy"
-                    and any(app.get("backend", app.get("app") in ("ri", "strategy"))
-                            for app in slot.get("apps") or [] if isinstance(app, dict)))}
+                if slot.get("branch") and (not backend_only or
+                    slot.get("repoBackend", slot.get("repo", "cl-strategy") == "cl-strategy") is True)}
     except Exception:  # an unreadable status means no branch can be confirmed
         return set()
 

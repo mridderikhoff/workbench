@@ -635,7 +635,9 @@ test("first visit asks for the tenant; a saved tenant skips the prompt and fills
 test("each session offers to switch the backend to its branch, except the one already on it", async () => {
   const snap = snapshot([{ slot: 2, branch: "feat/a", apps: [{ app: "ri" }], head: { sha: "aaa111" } },
                          { slot: 3, branch: "feat/b", apps: [{ app: "ri" }], head: { sha: "bbb222" } },
-                         { slot: 4, branch: "feat/c", apps: [{ app: "ri" }], head: { sha: "ccc999" } }]);
+                         { slot: 4, branch: "feat/c", apps: [{ app: "ri" }], head: { sha: "ccc999" } },
+                         { slot: 5, branch: "feat/demo", repo: "cl-strategy", repoBackend: true, apps: [{ app: "ds-demo", backend: false }] },
+                         { slot: 6, branch: "feat/docs", repo: "system-docs", repoBackend: false, apps: [{ app: "docs", backend: false }] }]);
   Object.assign(snap.backend, { branch: "feat/b", sha: "bbb222" });
   const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: { action: "attach", target: "feat/a", state: "running", output: [] } }, true, 202) });
   await p.poll();
@@ -645,6 +647,10 @@ test("each session offers to switch the backend to its branch, except the one al
   assert.match(card("feat/b"), /Backend on this branch/);
   assert.doesNotMatch(card("feat/b"), /data-attach/);
   assert.strictEqual(p.run("attachAvailable('feat/b')"), false);
+  assert.match(card("feat/demo"), /data-attach="feat\/demo".*Switch backend</, "a cl-strategy demo-only session can switch the backend");
+  assert.strictEqual(p.run("attachAvailable('feat/demo')"), true);
+  assert.doesNotMatch(card("feat/docs"), /data-attach/, "a repo without a backend cannot switch it");
+  assert.strictEqual(p.run("attachAvailable('feat/docs')"), false);
   snap.backend.branch = "feat/c"; snap.backend.sha = "ccc111";
   await p.poll();
   assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /data-attach="feat\/c" title="The backend runs another commit[^"]*".*Update backend</);

@@ -92,6 +92,14 @@ class FakeSource:
         return self.status
 
 
+backend_branches = dashboard.slot_branches(FakeSource({"slots": [
+    {"branch": "feat/demo", "repo": "cl-strategy", "repoBackend": True, "apps": [{"app": "ds-demo", "backend": False}]},
+    {"branch": "feat/docs", "repo": "system-docs", "repoBackend": False, "apps": [{"app": "docs", "backend": False}]},
+]}), backend_only=True)
+check("a demo-only cl-strategy session can attach its backend; a frontend-only repo cannot",
+      backend_branches == {"feat/demo"})
+
+
 SESSIONS = {"t3code/chart": (3, {"ri"}), "feat/docs": (7, {"ds-demo"})}
 ALL_APPS = ("ri", "ds-demo", "strategy")
 for app in ("ds-demo", "strategy"):
