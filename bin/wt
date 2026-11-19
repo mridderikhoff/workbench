@@ -485,7 +485,7 @@ run_gates() {
     echo "GATES PASS ($*)  full log: $log"
   else
     echo "GATES FAIL ($*)  full log: $log"
-    grep -E '^(FAIL|.*error|.*Error)' "$log" | head -20
+    grep -E '^(FAIL|GATES FAIL|wt:|.*error|.*Error)' "$log" | head -20
     return 1
   fi
 }
