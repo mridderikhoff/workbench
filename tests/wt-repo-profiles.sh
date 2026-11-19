@@ -34,14 +34,24 @@ cat >"$S/profiles/cl-system.json" <<'PROFILE'
       "label": "Docs",
       "portBase": 5176,
       "cwd": ".",
-      "command": "bash scripts/wt-serve-docs.sh --port {port}",
+      "command": "bash {profileDir}/cl-system/serve-docs.sh --port {port}",
       "urlPath": "/",
       "backend": false
     }
-  }
+  },
+  "gates": "bash {profileDir}/profile-gates.sh"
 }
 PROFILE
 sed -i "s|REPLACE_CHECKOUT|$S/cl-system|" "$S/profiles/cl-system.json"
+cat >"$S/profiles/profile-gates.sh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$PWD" >"$FIXTURE/gate-cwd"
+printf '%s\n' "$@" >"$FIXTURE/gate-args"
+printf '%s\n' "${NX_CACHE_DIRECTORY:-}" >"$FIXTURE/gate-cache"
+printf 'fixture gate output\n'
+exit "${GATE_EXIT:-0}"
+STUB
+chmod +x "$S/profiles/profile-gates.sh"
 touch "$S/cl-system/pnpm-lock.yaml"
 printf '#!/usr/bin/env bash\n' >"$S/cl-system/scripts/wt-serve-docs.sh"
 git -C "$S/cl-system" add .
@@ -71,6 +81,29 @@ export FIXTURE="$S" HOME="$S/home" TMPDIR="$S" PATH="$S/bin:$PATH"
 export WT_REPOS="$S/cl-strategy:$S/cl-system" WT_PROFILE_DIR="$S/profiles" WT_STATE_DIR="$S/state"
 export QA_UNIT_DIR="$S/units" WT_QA_STACK_BIN="$S/bin/qa-stack"
 export WT_DRY_RUN=1 WT_STUB_PORTS='' OVERSEER_CONFIG_FILE="$S/no-runtime.env"
+
+for script in "$ROOT/personal/config/wt/profiles/cl-system/"*.sh; do
+  bash -n "$script" || fail "moved script failed bash -n: $script"
+done
+mkdir -p "$S/profiles/ignored-directory"
+[ "$(python3 "$ROOT/bin/wt-profile.py" "$S/cl-system" name 2>"$S/warning")" = cl-system ] || fail 'profile directory affected selection'
+[ ! -s "$S/warning" ] || fail 'profile subdirectory caused a warning'
+python3 - "$ROOT/bin/wt-profile.py" "$S/profiles/cl-system.json" "$S/gates-validation.json" <<'PY' || fail 'unsafe gates command was accepted'
+import importlib.util, json, pathlib, sys
+spec = importlib.util.spec_from_file_location('wt_profile', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+original = json.loads(pathlib.Path(sys.argv[2]).read_text())
+for invalid in ('bash bad\\path', 'bash "quoted"', "bash 'quoted'", 'bash first\nsecond'):
+    data = dict(original, gates=invalid)
+    path = pathlib.Path(sys.argv[3])
+    path.write_text(json.dumps(data))
+    try:
+        module.read_profile(path)
+    except ValueError:
+        continue
+    raise AssertionError(f'accepted unsafe gates command: {invalid!r}')
+PY
 
 # Profiles select real main checkouts, and can supply the known repo list.
 ln -s "$S/cl-system" "$S/system-link"
@@ -119,6 +152,12 @@ mkdir -p "$S/linkbin" && ln -s "$ROOT/bin/wt" "$S/linkbin/wt" && ln -s "$ROOT/bi
 (cd "$S/cl-system" && "$S/linkbin/wt" list >/dev/null) || fail 'wt run through a symlink cannot find wt-profile.py'
 docs_tree="$S/cl-system/.claude/worktrees/docs-feature"
 [ -d "$docs_tree" ] || fail 'profile worktree in wrong repo'
+(cd "$docs_tree/scripts" && source "$ROOT/personal/config/wt/profiles/cl-system/nx-env.sh" &&
+  [ "$wt_root" = "$docs_tree" ]) || fail 'moved Nx environment did not use current worktree root'
+if (cd "$S/home" && source "$ROOT/personal/config/wt/profiles/cl-system/nx-env.sh") >"$S/out" 2>"$S/error"; then
+  fail 'moved Nx environment accepted a non-Git cwd'
+fi
+grep -Fq 'current directory is not inside a Git worktree' "$S/error" || fail 'moved Nx environment failure was unclear'
 (cd "$docs_tree" && "$ROOT/bin/wt" new nested-feature >"$S/out") || fail 'profile worktree context failed'
 [ -d "$S/cl-system/.claude/worktrees/nested-feature" ] || fail 'nested profile context used wrong repo'
 (cd "$S/home" && "$ROOT/bin/wt" new fallback-feature >"$S/out") || fail 'HOME-like context failed'
@@ -143,10 +182,39 @@ command_script="$S/state/wt-serve/command-6-system-docs.sh"
 [ -f "$unit" ] || fail 'profile unit missing or wrong slot'
 [ -f "$record" ] || fail 'profile slot record missing'
 grep -Fqx "WorkingDirectory=$docs_tree/." "$unit" || fail 'profile unit working directory wrong'
-grep -Fq 'bash scripts/wt-serve-docs.sh --port 5236' "$command_script" || fail 'profile command or port wrong'
+grep -Fq "bash $S/profiles/cl-system/serve-docs.sh --port 5236" "$command_script" || fail 'profileDir did not expand in command script'
 grep -Fq "NX_CACHE_DIRECTORY=$S/home/.cache/wt-nx/cl-system/cache" "$unit" || fail 'shared Nx cache missing'
 grep -Fq "NX_WORKSPACE_DATA_DIRECTORY=$S/home/.cache/wt-nx/cl-system/data" "$unit" || fail 'shared Nx data directory missing'
 grep -Fqx 'repo=cl-system' "$record" || fail 'slot record lost repo'
+
+# Direct gates resolve the profile from a nested cwd and pass through status and output.
+mkdir -p "$docs_tree/nested"
+(cd "$docs_tree/nested" && "$ROOT/bin/wt" gates system-docs --include 'a path' >"$S/out") || fail 'profile gates failed'
+grep -Fqx 'fixture gate output' "$S/out" || fail 'profile gate output was not streamed'
+[ "$(cat "$S/gate-cwd")" = "$docs_tree" ] || fail 'profile gates ran outside the worktree root'
+[ "$(cat "$S/gate-args")" = "$(printf 'system-docs\n--include\na path')" ] || fail 'profile gate arguments changed'
+[ "$(cat "$S/gate-cache")" = "$S/home/.cache/wt-nx/cl-system/cache" ] || fail 'profile gates missed shared cache'
+if (cd "$docs_tree/nested" && GATE_EXIT=23 "$ROOT/bin/wt" gates failure >"$S/out"); then
+  fail 'profile gate exit code was lost'
+else
+  [ "$?" = 23 ] || fail 'profile gate exit code changed'
+fi
+(cd "$S/cl-system" && "$ROOT/bin/wt" verify docs-feature verify-argument >"$S/out") || fail 'verify profile gates failed'
+[ "$(cat "$S/gate-cwd")" = "$docs_tree" ] || fail 'verify gates ran outside the worktree root'
+[ "$(cat "$S/gate-args")" = verify-argument ] || fail 'verify did not use profile gates'
+
+# The unprofiled cl-strategy worktree retains its in-repository gate script.
+strategy_tree="$S/cl-strategy/.claude/worktrees/strategy-feature"
+mkdir -p "$strategy_tree/scripts" "$strategy_tree/nested"
+cat >"$strategy_tree/scripts/run-gates.sh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$PWD" >"$FIXTURE/fallback-cwd"
+printf '%s\n' "$@" >"$FIXTURE/fallback-args"
+STUB
+chmod +x "$strategy_tree/scripts/run-gates.sh"
+(cd "$strategy_tree/nested" && "$ROOT/bin/wt" gates fallback --include=one >"$S/out") || fail 'unprofiled gates failed'
+[ "$(cat "$S/fallback-cwd")" = "$strategy_tree" ] || fail 'unprofiled gates ran outside the root'
+[ "$(cat "$S/fallback-args")" = "$(printf 'fallback\n--include=one')" ] || fail 'unprofiled gate arguments changed'
 
 if (cd "$S/home" && "$ROOT/bin/wt" serve docs-feature ri >"$S/out" 2>&1); then
   fail 'foreign app was accepted'

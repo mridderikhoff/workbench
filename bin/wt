@@ -426,11 +426,49 @@ install_deps() {
   return $status
 }
 
+gate_command() {
+  local tree="$1" command source_root profile_dir quoted; shift
+  source_root=$(tree_profile_root "$tree") || return 1
+  command=$(profile "$source_root" gates) || return 1
+  if [ -n "$command" ]; then
+    profile_dir=$(profile "$source_root" profileDir) || return 1
+    printf -v quoted '%q' "$profile_dir"
+    command=${command//\{profileDir\}/$quoted}
+    (cd "$tree" && bash -c "$command \"\$@\"" wt-gates "$@")
+  else
+    [ -f "$tree/scripts/run-gates.sh" ] || { echo "GATES FAIL: $tree/scripts/run-gates.sh is missing" >&2; return 1; }
+    (cd "$tree" && ./scripts/run-gates.sh "$@")
+  fi
+}
+
+gate_lock() {
+  local tree="$1"; shift
+  local lock="$HOME/.cache/wt-nx/gates.lock"
+  mkdir -p "$(dirname "$lock")" || return 1
+  (flock -w 3600 9 || { echo "gate-lock wait timed out after 3600s" >&2; exit 1; }
+    gate_command "$tree" "$@") 9>"$lock"
+}
+
+cmd_gates() {
+  local tree main known repo found=0 cache
+  [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" = true ] &&
+    tree=$(repo_root) || { echo 'wt gates: run from a known Git worktree' >&2; return 2; }
+  main=$(repo_main_for_path "$tree") || return 2
+  known=$(context_repos) || return 2
+  while IFS= read -r repo; do
+    [ "$main" = "$(repo_main_for_path "$repo" 2>/dev/null)" ] && { found=1; break; }
+  done <<<"$known"
+  [ "$found" = 1 ] || { echo 'wt gates: current worktree is not a known repository' >&2; return 2; }
+  cache=$(tree_profile "$tree" nxSharedCache) || return 1
+  [ "$cache" != true ] || nx_shared_cache_env "$main"
+  export NX_PARALLEL="${WT_NX_PARALLEL:-1}"
+  gate_lock "$tree" "$@"
+}
+
 run_gates() {
   local tree="$1" base="$2" label="$3"; shift 3
   local main cache; main=$(repo_main_for_path "$tree") || return 1
   cache=$(tree_profile "$tree" nxSharedCache) || return 1
-  [ -f "$tree/scripts/run-gates.sh" ] || { echo "GATES FAIL: $tree/scripts/run-gates.sh is missing" >&2; return 1; }
   local log="${TMPDIR:-/tmp}/wt-gates-${label//\//-}.log"
   nx_affected_env "$base"
   [ "$cache" != true ] || nx_shared_cache_env "$main"
@@ -443,8 +481,7 @@ run_gates() {
   export NX_PARALLEL="${WT_NX_PARALLEL:-1}"
   local lock="$HOME/.cache/wt-nx/gates.lock"; mkdir -p "$(dirname "$lock")"
   echo "--- gates: $* (nx affected from ${base:0:9}; serialised on $lock) ---"
-  if (flock -w 3600 9 || { echo "gate-lock wait timed out after 3600s"; exit 1; }
-      cd "$tree" && ./scripts/run-gates.sh "$@") 9>"$lock" >"$log" 2>&1; then
+  if gate_lock "$tree" "$@" >"$log" 2>&1; then
     echo "GATES PASS ($*)  full log: $log"
   else
     echo "GATES FAIL ($*)  full log: $log"
@@ -1048,12 +1085,15 @@ serve_urls() {
 }
 
 serve_command() {
-  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port source_root command profile_name cwd
+  local path="$1" app="$2" slot="$3" qa_offset="$4" quoted port source_root command profile_name cwd profile_dir quoted_profile_dir
   source_root=$(tree_profile_root "$path") || return 1
   cwd=$(profile "$source_root" app "$app" cwd) || return 1
   printf -v quoted '%q' "$path/$cwd"
   port=$(serve_port "$slot" "$app" "$path")
   command=$(profile "$source_root" app "$app" command) || return 1
+  profile_dir=$(profile "$source_root" profileDir) || return 1
+  printf -v quoted_profile_dir '%q' "$profile_dir"
+  command=${command//\{profileDir\}/$quoted_profile_dir}
   profile_name=$(profile "$source_root" name) || return 1
   command=${command//\{port\}/$port}
   if [ "$profile_name" = cl-strategy ]; then
@@ -2549,6 +2589,7 @@ case "${1:-}" in
   new) shift; cmd_new "$@" ;;
   deps) shift; cmd_deps "$@" ;;
   verify) shift; cmd_verify "$@" ;;
+  gates) shift; cmd_gates "$@" ;;
   ship) shift; cmd_ship "$@" ;;
   qa) shift; cmd_qa "$@" ;;
   serve) shift; cmd_serve "$@" ;;
@@ -2566,7 +2607,8 @@ wt new <branch> [base] [--deps]       provision a worktree on a NEW branch pinne
                                       to base's tip (default: the parked branch)
 wt new --existing <branch> [--deps]   provision a worktree on an EXISTING branch
 wt deps <branch> [workspace-dir…]     pnpm install its workspaces (default: all)
-wt verify <branch> [gate-project…]    dirt, ancestry, areas touched, gates
+wt verify <branch> [gate args…]       dirt, ancestry, areas touched, gates
+wt gates [args…]                     run this worktree's gates with shared lock
 wt ship <branch> [--ready]            push, open a draft PR (--ready: not draft);
                                       no local gates — PR CI is the gate
 wt qa [branch|commit]                 attach QA code, restart and probe app services
@@ -2619,7 +2661,8 @@ Each profile names its shared checkout. WT_REPOS lists known main checkouts
 (colon separated); WT_MAIN_CHECKOUT overrides command context only.
 Without either, valid profiles supply the list; without profiles, ~/cl-strategy is used.
 Branch commands resolve the owning repository and use its apps and base branch.
-Profile commands substitute {port}; cl-strategy commands also substitute
+Profile commands substitute {port} and {profileDir}; gates substitute
+{profileDir}; cl-strategy commands also substitute
 {offset} and {tenant}.
 USAGE
 esac

@@ -6,8 +6,9 @@
   "nodeModules": ".",
   "backend": false,
   "nxSharedCache": true,
+  "gates": "bash {profileDir}/cl-system/run-gates.sh",
   "defaultApps": ["system-docs"],
   "apps": {
-    "system-docs": {"label": "Docs", "portBase": 5176, "cwd": ".", "command": "bash scripts/wt-serve-docs.sh --port {port}", "urlPath": "/", "backend": false}
+    "system-docs": {"label": "Docs", "portBase": 5176, "cwd": ".", "command": "bash {profileDir}/cl-system/serve-docs.sh --port {port}", "urlPath": "/", "backend": false}
   }
 }

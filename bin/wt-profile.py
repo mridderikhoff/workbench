@@ -71,6 +71,10 @@ def read_profile(file):
             raise ValueError('invalid baseBranch')
         for key in ('backend', 'nxSharedCache'):
             if type(data[key]) is not bool: raise ValueError(f'{key} must be boolean')
+        if 'gates' in data:
+            safe_string(data['gates'], 'gates')
+            if not data['gates'] or any(char in data['gates'] for char in "\\\"'"):
+                raise ValueError('gates must be a nonempty command without backslashes or quotes')
         for key in ('deps', 'defaultApps'):
             if not isinstance(data[key], list) or any(not isinstance(x, str) for x in data[key]):
                 raise ValueError(f'{key} must be a string array')
@@ -92,8 +96,8 @@ def read_profile(file):
             relative(app['cwd'], f'{name}.cwd')
             for key in ('label', 'command', 'urlPath'):
                 safe_string(app[key], f'{name}.{key}')
-            if "'" in app['command'] or "'" in app['cwd']:
-                raise ValueError(f"{name}: command and cwd must not contain a single quote")
+            if any(char in app['command'] for char in "\\\"'") or "'" in app['cwd']:
+                raise ValueError(f"{name}: command must not contain backslashes or quotes; cwd must not contain a single quote")
             if not isinstance(app['label'], str) or not app['label'] or type(app['portBase']) is not int or not 1 <= app['portBase'] <= 65535 - 90:
                 raise ValueError(f'{name}: invalid label or portBase')
             if not isinstance(app['command'], str) or '{port}' not in app['command'] or not isinstance(app['urlPath'], str) or not app['urlPath'].startswith('/') or type(app['backend']) is not bool:
@@ -137,6 +141,14 @@ def profile(root):
     return FALLBACK
 
 
+def profile_directory(root):
+    checkout = str(pathlib.Path(root).resolve())
+    for file, _, candidate in profiles():
+        if candidate == checkout:
+            return str(file.resolve().parent)
+    return ''
+
+
 if __name__ == '__main__':
     try:
         action = sys.argv[2]
@@ -145,7 +157,9 @@ if __name__ == '__main__':
             print('\n'.join(item[2] for item in found))
             sys.exit(0)
         data = profile(sys.argv[1])
-        if action == 'json': print(json.dumps(data))
+        if action == 'profileDir': print(profile_directory(sys.argv[1]))
+        elif action == 'gates': print(data.get('gates', ''))
+        elif action == 'json': print(json.dumps(data))
         elif action == 'apps': print(' '.join(data['apps']))
         elif action == 'defaultApps': print(' '.join(data['defaultApps']))
         elif action == 'deps': print('\n'.join(data['deps']))

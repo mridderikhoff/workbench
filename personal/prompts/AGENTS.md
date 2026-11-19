@@ -166,13 +166,13 @@ marker (only I create that).
   `scripts/run-gates.sh <project> --include <path>…`. After a failure, fix it and re-run only the
   failing spec files (`--include <spec path>` or `--filter <test name>`), never the whole project
   again. In cl-system, gate targets are Nx project names: use
-  `scripts/run-gates.sh <nx-project> --typecheck` or
-  `scripts/run-gates.sh <nx-project> --include <path>…`. Never let a gate interrupt
+  `~/.claude/bin/wt gates <nx-project> --typecheck` or
+  `~/.claude/bin/wt gates <nx-project> --include <path>…`, run from the cl-system worktree. Never let a gate interrupt
   mid-development for lint or test nits; those wait for the QA
   tier. Never run a whole project, `apps/ui`, or `all` without `--include` unless I ask,
   and run nothing at ship. Rely on PR CI plus manual QA, and fix CI failures on the same branch.
   `wt verify` without gate projects is always safe. Run any test only through
-  `scripts/run-gates.sh` or the `wt` commands that wrap it — never a bare `nx`, `pnpm test`,
+  `scripts/run-gates.sh` or `wt gates` and other `wt` commands that wrap it — never a bare `nx`, `pnpm test`,
   `pnpm lint`, or `pnpm build` (those can gate the whole workspace and leave a daemon behind).
 - **Keep every tree clean.** Never spawn a writer against a dirty tree: uncommitted changes
   don't reach a new worktree, so its diff can silently revert in-progress work. If the dirt
