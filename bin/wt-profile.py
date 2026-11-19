@@ -53,7 +53,7 @@ def profile(root):
             for value in data[key]: safe_string(value, key)
         def relative(value, key):
             safe_string(value, key)
-            if not value or pathlib.PurePosixPath(value).is_absolute() or '..' in pathlib.PurePosixPath(value).parts:
+            if not value or '\\' in value or pathlib.PurePosixPath(value).is_absolute() or '..' in pathlib.PurePosixPath(value).parts:
                 raise ValueError(f'{key} must be a relative path')
         relative(data['nodeModules'], 'nodeModules')
         for dep in data['deps']: relative(dep, 'deps')

@@ -2212,7 +2212,7 @@ def slot_data(slot, file):
         errors.append(f'cannot read state: {error}')
     branch, path = fields.get('branch', ''), fields.get('path', '')
     config = repo_profile(path) if path else None
-    item = {'slot': slot, 'branch': branch, 'worktree': path, 'repo': fields.get('repo', 'cl-strategy'), 'repoBackend': True, 'apps': [], 'availableApps': []}
+    item = {'slot': slot, 'branch': branch, 'worktree': path, 'repo': fields.get('repo', 'cl-strategy'), 'repoBackend': fields.get('repo', 'cl-strategy') == 'cl-strategy', 'apps': [], 'availableApps': []}
     if config:
         item['repo'] = config['name']
         item['repoBackend'] = config['backend']
