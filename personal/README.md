@@ -62,6 +62,10 @@ or `agents/agents/` and will be linked individually by the personal installer.
 DS kit and repository remain external dependencies. Updating that source requires intentionally
 refreshing this snapshot; installing workbench does not copy the DS kit itself.
 
+`craft` builds, refines, and reports on Angular and TypeScript code in any repository. It is a
+repo-neutral fork of `ds-craft` and `cl-craft`. Refreshing it from those repository skills is
+intentional manual work guided by `personal/skills/craft/references/provenance.md`.
+
 `dependencies.json` records the existing third-party skill sources and upstream skill-folder hashes:
 
 - Herdr: `ogulcancelik/herdr`, root `SKILL.md`.

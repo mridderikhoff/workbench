@@ -1,0 +1,10 @@
+{
+  // The report generator accepts JSONC aliases.
+  "compilerOptions": {
+    "paths": {
+      "@sample/helpers": ["./libs/helpers/src/index.ts"],
+      // Library aliases point at build output; an unbuilt one falls through to the package source.
+      "@sample/widgets": ["./dist/libs/widgets"],
+    },
+  },
+}

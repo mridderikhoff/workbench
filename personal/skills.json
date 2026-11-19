@@ -144,5 +144,28 @@
       "agents",
       "codex"
     ]
+  },
+  {
+    "name": "craft",
+    "source": "~/.agents/skills/craft",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ],
+    "upstream": [
+      {
+        "repository": "cl-strategy",
+        "path": ".agents/skills/ds-craft",
+        "ref": "bece370fc",
+        "relationship": "derived; repo-neutral fork"
+      },
+      {
+        "repository": "cl-system",
+        "path": ".agents/skills/cl-craft",
+        "ref": "cbe7a6bc5",
+        "relationship": "derived; repo-neutral fork"
+      }
+    ]
   }
 ]

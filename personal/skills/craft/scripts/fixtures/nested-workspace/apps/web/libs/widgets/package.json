@@ -1,0 +1,11 @@
+{
+  "name": "@sample/widgets",
+  "exports": {
+    ".": {
+      "custom-source": "./src/public-api.ts"
+    },
+    "./testing": {
+      "custom-source": "./testing/src/public-api.ts"
+    }
+  }
+}

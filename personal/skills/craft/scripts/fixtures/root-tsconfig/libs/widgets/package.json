@@ -1,0 +1,6 @@
+{
+  "name": "@sample/widgets",
+  "exports": {
+    "./testing": { "source": "./testing/src/public-api.ts" }
+  }
+}

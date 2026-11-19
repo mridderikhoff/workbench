@@ -1,0 +1,4 @@
+{
+  "name": "@sample/tools",
+  "exports": { ".": { "source": "./src/index.ts" } }
+}
