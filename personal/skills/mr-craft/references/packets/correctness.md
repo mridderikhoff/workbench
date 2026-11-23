@@ -33,17 +33,14 @@ packet's, correctness reports the wrong runtime result.
   `Object.values` on a value that can be `null` or `undefined`, a field the API can omit read as
   always there, and unchecked index access (`items[0]`, `byId[key]`) used as defined are each a
   finding where the type or the response allows the absent case.
-- `correct-1.3` **Null handling.** `null` is normalized to `undefined` where it enters,
-  nullish checks match the declared type, and no non-null assertion (`!`) hides an absent
-  value. Undefined-only unions use strict undefined checks. Unions admitting both use
-  nullish checks. Follow repo profile → `angular` → absence handling when it states a
-  different convention. A contract that deliberately declares a nullable form value,
-  such as `model<Date | null>(null)`,
-  can seed that value.
-- `correct-1.4` **Optional chaining that hides missing data.** `a?.b?.c` in a template or a
-  `computed` that renders a blank cell, an empty label, or `0` where the data is missing, rather
-  than an error or an empty state, is a finding. Which state replaces the blank follows
-  `correct-2.1`.
+- `correct-1.3` **Null handling.** An absence check that disagrees with the declared type or a null
+  value that bypasses required boundary normalization is a finding. Follow repo profile →
+  `angular` → absence handling. Match the check to the admitted values. Keep intentionally
+  nullable models such as `model<Date | null>(null)`. See `craft-2.6` for non-null assertions.
+- `correct-1.4` **Missing required data.** Optional chaining that silently renders a normal value or
+  a blank when required data is absent is a finding. Check that branch in the template or
+  derivation and render the contract's outcome under `correct-2.1`. Keep optional access when
+  the contract permits absence or a fallback.
 - `correct-1.5` **Unknown keys and exhaustiveness.** One bad row must not take down a whole
   `computed` or list. A lookup in a status-to-presentation map with no fallback for an unknown
   key, and a `switch` over a union with neither a `default` nor a `never` exhaustiveness check,
@@ -205,10 +202,11 @@ model inputs and view and content queries.
 - `correct-6.4` **Shown text matches the value.** The text a control shows and its committed
   `model` value agree after every commit, cancel, close, and invalid parse (overlaps
   `correct-4.4`).
-- `correct-6.5` **Disabled and loading gate every mutation path.** `disabled` and `loading` gate
-  click, the clear affix, `Delete` and `Backspace`, and every keyboard path that changes the
-  value, and loading never sets native `disabled` on a text-entry control. Loading gates
-  mutation and preserves focus. Actual disabled state uses the native mechanism where available.
+- `correct-6.5` **Mutation guards.** A disabled or loading state with a prohibited mutation path
+  open is a finding. Trace pointer, keyboard, and other value-changing paths through the same
+  state contract. Apply the repo profile's state rules. Use native disabled behaviour for actual
+  disabled state where available. Preserve focus during loading, using `readonly` for text input
+  when mutation needs to be blocked.
 - `correct-6.6` **Pending work cancelled.** A pending animation frame, timer, or callback is
   cancelled on dismiss, on an input change that supersedes it, and on destroy (overlaps
   `correct-2.7`;

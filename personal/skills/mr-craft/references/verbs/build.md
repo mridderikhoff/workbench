@@ -13,12 +13,10 @@ or full [refine](refine.md) when the work is final. It takes no flags.
    needs visual design judgment, use it. Published component contracts belong to the repo
    craft skill named in the profile.
 3. **Brief a writer.** Give one host writer the task, clean worktree root, repo profile path,
-   acceptance list, and relevant source revisions for a port. Give the packet sections
-   routed by [SKILL.md](../../SKILL.md) → Packets and [writer-digest.md](../writer-digest.md).
-   The writer reads those sections before writing, writes or updates focused tests, and
-   checks changed files against the same sections. Its reply accounts for each acceptance
-   item with a file or test pointer or names it missing. A port identifies retained tests
-   and justifies removed cases. This self-check is not an independent review.
+   acceptance list, and relevant source revisions for a port. Brief the writer on the
+   pre-read and self-check in [SKILL.md](../../SKILL.md) → "Packets" and the profile's test
+   stack. The reply accounts for each acceptance item with a file or test pointer or names
+   it missing. A port identifies retained tests and justifies removed cases.
 4. **Check and checkpoint.** After each writer batch, use the profile's scoped typecheck.
    Before manual QA, use its scoped tests and lint for changed paths. Return a failure to
    the writer and rerun only failing specs. If no scoped command exists, ask before a

@@ -1,11 +1,15 @@
 # Mode: `/mr-craft <target>`
 
-Refine is the single entryway for an end-to-end code review. It runs every packet applicable to
-the named target in two phases, architecture first because the other packets judge code that
-architecture concerns may move, merge, or delete. It routes **verify** rows to a runtime check,
-applies **fix**, **mandated**, and **default** rows, and carries **decide** rows to the human:
-architecture decisions mid-run, the rest at the end. It accepts no packet list (use
-[`--report`](report.md) for a focused, read-only run) and preserves published contracts unless the PR declares an authorized breaking change.
+Refine reviews the applicable packets for the named target. Architecture goes first because
+its findings may move, merge, or delete code that the other packets judge. Route **verify**
+rows to a runtime check and apply **fix**, **mandated**, and **default** rows. Raise architecture
+**decide** rows mid-run and other decisions at hand-off. Preserve published contracts unless
+the PR declares an authorized breaking change.
+
+Use [`--report`](report.md) for a focused, read-only packet list. A refine request can exclude
+packets in prose, for example "skip architecture", "no architecture pass", or "checklists
+only". Remove each excluded packet from the plan. Without architecture, the other packets
+review the target as it stands.
 
 ## Packet plan
 
@@ -16,9 +20,10 @@ Resolve the named target (a PR target resolves per [`SKILL.md`](../../SKILL.md) 
 | Angular target | `angular`, `performance`, `correctness`, and `architecture` on the named target. Split `angular` by numbered section for larger scopes ([`report.md`](report.md) step 3). |
 | Other TypeScript libraries or browser test projects | Choose applicable TypeScript, correctness, performance, and architecture probes for the target. |
 
-Record the scoped subtargets in the report. Apply each packet only to the scope it covers. Architecture forms phase 1 and always has one
-whole-target reviewer, including when the other packets shard; every other packet in the plan
-forms phase 2.
+Record the scoped subtargets in the report. Apply each packet only to the scope it covers.
+Architecture, when in the plan, forms phase 1 with one whole-target reviewer, including when
+other packets shard. The remaining packets form phase 2. Name any excluded packets in the
+hand-off.
 
 ## Workflow
 
@@ -32,9 +37,11 @@ forms phase 2.
    tracking shapes, documented API and design decisions, and state coverage in
    any relevant documentation and browser tests named in the repo profile. Forward existing rationale and
    named abstractions to architecture. The orchestrator forwards the conclusions and pointers; it does not judge the packet or code.
-2. **Review architecture (phase 1).** Run the `architecture` packet alone on the whole target
-   using [`--report`](report.md) steps 3–4, briefing the reviewer with the absolute root and gathered
-   evidence. Finish this phase before starting the other packets. Steps 3–5 apply to its table.
+2. **Review architecture (phase 1).** When `architecture` is in the plan, run it alone on the
+   whole target using [`--report`](report.md) steps 3–4. Brief the reviewer with the absolute
+   root and gathered evidence. Steps 3–5 apply to its table. Finish phase 1 before starting
+   the other packets. When the plan omits architecture, skip this step and step 6 and go to
+   step 7.
 3. **Verify.** Route each **verify** row to the capability its Action names: use the host's
    computer-use or browser capability for runtime observations, and the available measurement
    capability for performance observations, against a QA surface the user already has running
@@ -59,12 +66,11 @@ forms phase 2.
    commands. After each batch, the orchestrator runs the repo profile's scoped tests and
    lint for changed paths in each affected project. After failure, rerun only failing specs.
    If there is no scoped command, ask before running anything broader.
-   A writer applies each **mandated** or behaviour-changing **default** row together with its
-   regression test. The test fails before the change and passes after it. Record a default's
-   evidence and override in the concern's Action. An architecture
-   concern is applied under the same rule by its `Class:` label. A writer that finds a row
-   would do more than its Action states stops and returns it to the orchestrator, which sends it
-   back to the reviewer; the writer never reclassifies, drops, or retries it.
+   Apply each concern with the test and default record its class requires under
+   [`schema.md`](../schema.md) → "Classes". A regression test fails on the defect and passes
+   with the correction. An architecture concern follows its own `Class:` label. A writer
+   that finds a row would do more than its Action states returns it to the orchestrator for
+   reviewer follow-up. The reviewer owns reclassification.
 
    **Apply ledger.** Track each concern separately. Its key is the row's first probe id (retain
    every merged probe id in the row mapping), with `#<n>` for the n-th labelled concern in a
@@ -129,8 +135,8 @@ forms phase 2.
    after three write/re-review rounds, the third being that fresh pass, and report its
    remaining **fix**, **mandated**, and **default** rows. The orchestrator commits completed
    changes in the feature worktree at step 7's checkpoint and before hand-off.
-6. **Settle architecture decisions.** Escalate the architecture **decide** concerns to the
-   human now, through the host's question capability, and wait; format and order them as
+6. **Settle architecture decisions.** Escalate the architecture **decide** concerns through
+   the host's question capability and wait. Format and order them as
    [`report.md`](report.md) step 5 → Decisions states, escalating only those whose prerequisites
    are settled and the rest as each is. An answer is authorization to apply it in phase 1:
    the orchestrator returns it to the architecture reviewer, which restates the row with the
@@ -159,7 +165,11 @@ forms phase 2.
    unverified" rows; **verify** rows left unresolved, with the reason; the debt and readiness
    lists; the **decide** questions (every **decide** row still open from either phase), as
    [`report.md`](report.md) step 5 → Decisions states; then
-   the architecture top two where applicable; **Proposed guidance updates** under [`SKILL.md`](../../SKILL.md) → Commands; and the committed feature worktree. Shipping, PRs, servers, and QA state changes require separate requests. Include the repo
-   contract hand-off when the profile lists a contract packet. The human
-   answers decisions and overrides defaults by exception; a follow-up run applies an answer or
+   the architecture top two where applicable; **Proposed guidance updates** under
+   [`SKILL.md`](../../SKILL.md) → "Commands"; and the committed feature worktree. Draw proposals
+   from every wildcard row, every row whose probe recommends the defect it finds, and every
+   defect under `## Outside this review's scope`. Write each proposal per [guide.md](guide.md)
+   steps 1–4 so that "apply" is enough to run guide mode on it. External actions follow the
+   hard rules. Include the repo contract hand-off when the profile lists a contract packet.
+   The human answers decisions and overrides defaults by exception; a follow-up run applies an answer or
    an override. Do not expand into follow-up work unless explicitly asked.

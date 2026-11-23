@@ -4,9 +4,10 @@ disable-model-invocation: true
 description: >
   Builds, refines, and reports on Angular/TypeScript code in any repository against Angular
   craft, performance, correctness, and architecture packets. A task means build, a path or PR
-  means refine, and --report is read-only.
+  means refine, and --report is read-only. A prose request to update mr-craft guidance or
+  apply proposed guidance updates means guide.
 metadata:
-  argument-hint: "<task | path | PR> [--report [packets]]"
+  argument-hint: "<task | path | PR | guidance request> [--report [packets]]"
 ---
 
 # mr-craft
@@ -17,7 +18,7 @@ one target. The orchestrator routes work and merges reports. [schema.md](referen
 defines scope, findings, classes, and report layout.
 
 `<skill-dir>` means the directory containing this SKILL.md: use the path from which the host
-loaded the skill. Before any reviewer or writer starts, resolve and write
+loaded the skill. Before any code reviewer or writer starts, resolve and write
 `<run directory>/repo-profile.md` under [repo-profile.md](references/repo-profile.md).
 Pass its absolute path in every briefing. Use it for supported targets, gates, test stack,
 rule sources, and any repo craft skill.
@@ -29,7 +30,8 @@ rule sources, and any repo craft skill.
   paths before the manual QA checkpoint. In refine, run scoped tests and lint for changed
   paths after each writer batch. After a failure, rerun only failing specs. When
   no scoped command exists, record that and ask before running anything broader. Reviewers
-  and report mode run no gates.
+  and report mode run no code gates. Report validation follows
+  [report.md](references/verbs/report.md) step 4.
 - Reuse a supplied clean feature worktree. Otherwise provision one under the user's global
   instructions before any writer starts. Never edit a shared checkout or QA runtime tree.
   Shipping, PRs, servers, and QA attachment each need a separate request.
@@ -39,7 +41,8 @@ rule sources, and any repo craft skill.
   reconciles findings. Never infer a target from open files or the branch; ask if none is given.
 - Never present inline review as independent. If no independent reviewer is available,
   state the limit before offering an explicitly inline review.
-- Change this skill's packets or schema only when asked. Put guidance proposals in the hand-off.
+- Change this skill's packets or schema only when asked (a guide-mode request is that ask).
+  Put guidance proposals in the hand-off.
 
 ## Modes
 
@@ -48,6 +51,13 @@ rule sources, and any repo craft skill.
 | `/mr-craft <task>` | Build the task, then triage or refine | [build.md](references/verbs/build.md) |
 | `/mr-craft <path or PR>` | Refine: review, verify, and apply fix, mandated, and default findings | [refine.md](references/verbs/refine.md) |
 | `/mr-craft <path or PR> --report [packets]` | Read-only findings; architecture alone reviews the whole target | [report.md](references/verbs/report.md) |
+| `/mr-craft <guidance request>` | Guide: update mr-craft guidance and route repository rules to their owners | [guide.md](references/verbs/guide.md) |
+
+A prose request to change mr-craft, its packets, probes, or digest, or to apply proposed
+guidance updates, means guide. Guide mode takes a prose request without a flag. "Run mr-craft
+on X", "do a mr-craft pass on Y", and "mr-craft this branch" mean refine on the named target.
+"Skip architecture" and "checklists only" exclude `architecture` under the opening rules of
+[refine.md](references/verbs/refine.md).
 
 An existing supported path or PR means refine. Other concrete tasks mean build. An
 explicitly named branch means refine on its changed supported files. A bare path keeps
@@ -80,8 +90,8 @@ is not an independent review. Refine writers apply only handed rows and end with
 
 ## Spawning the reviewer
 
-- Use a host general-purpose/default subagent per packet. Follow [report.md](references/verbs/report.md)
-  for task handles and coverage. Do not create a second task ledger.
+- One host general-purpose/default subagent runs the [packet reviewer task](references/reviewer.md)
+  per packet briefing. [Report step 3](references/verbs/report.md#steps) sets scope, launch, and completion.
 - Use another model family for checklist packets when available; use the strongest reviewer
   for architecture. Respect host concurrency.
 - When delegating a whole pass, forward its literal invocation (`/mr-craft <target>` in Claude
@@ -96,16 +106,17 @@ is not an independent review. Refine writers apply only handed rows and end with
 
 ## Relationship to repo skills
 
-A repo's own craft skill remains its team's standard. This portable copy never edits repo
-skills. Published component contracts are outside this skill. When the repo profile names a
-repo craft skill with a `*-contract` packet, hand off the command
+A repo's own craft skill remains its team's standard. Hand off repository-owned guidance and
+checks to the craft skill named in the repo profile, or to the repository's owning workflow
+when the profile lists no craft skill. Published component contracts belong to the repository
+skill. When it has a `*-contract` packet, hand off
 `/<repo-skill> <target> --report <contract-packet>` for that review.
 
 ## Commands
 
 Feedback after a review first becomes a concrete correction with compatibility impact.
 Apply authorized changes with relevant tests and consumer updates. Under **Proposed guidance
-updates**, state whether an existing probe should change. Put mechanical patterns in the
-repo's deterministic checks; keep probes for judgment. Preserve probe IDs and classification.
+updates**, state whether an existing probe should change. Name each proposal's home per
+[guide.md](references/verbs/guide.md) step 2. Apply an accepted proposal in guide mode.
 A request to propose and implement authorizes the scoped change, including named public API
 corrections. Report compatibility and migration effects before applying them.

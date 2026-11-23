@@ -12,41 +12,25 @@ imports, class prefixes, and package manager; use `angular` → interop and stor
 **Question:** does every name say what the value means to the reader, rather than where it
 came from or how it was produced?
 
-- `craft-1.1` **Meaning, not mechanism.** Inventory folder, feature, module, component,
-  type, member, input/output, property, local, constant, and helper names in the target and
-  consumed owners. With declarations hidden, each name must reveal its purpose at the tree or
-  call site; `pushedSize` names plumbing. A caption input names its text role (`actionLabel`),
-  not an implied action (`action`); cite binding and rendered use. A doc comment cannot rescue
-  ambiguity. In multi-step code, name compound conditions or intermediate values when that
-  clarifies intent without changing evaluation order or signal dependencies; do not name every
-  expression.
+- `craft-1.1` **Names reveal purpose.** A name whose role is unclear in the tree or at the call site
+  is a finding. Check folders and identifiers in the target and consumed owners, including
+  types, custom properties, and BEM elements. Name the role, such as a caption's `actionLabel`,
+  and cite the caption's binding and rendered use. Name conditions or intermediate values
+  when that clarifies intent and preserves evaluation order and signal dependencies.
 - `craft-1.2` **Effective-value pattern.** A fallback chain over an input, a context value,
   and a default is one `computed` named after the role: the context value takes a private
   name (`#formFieldSize`), the chain the role name prefixed `effective` (`effectiveSize`),
   and neither is named after its source.
-- `craft-1.4` **Comment-to-name conversion.** A comment explaining what a value holds, or
-  why this value was chosen, moves into the name or the type when it fits, and is deleted.
-- `craft-1.5` **One word per concept.** The same concept uses the same word across the
-  folder and across the components this one composes. State words carry their ARIA meaning:
-  `active` only for the `aria-activedescendant` target, never for selected, current, pressed,
-  open, applied, or highlighted.
-- `craft-1.6` **Booleans and handlers.** A boolean reads as a state or a predicate
-  (`isBusy`). For each public boolean, state what both values mean. When they select
-  mutually exclusive configuration, layout, or rendering modes, the input should name
-  the behavior category and expose all options as a bounded string union, rather than
-  toggle one variant on or off: `density: 'comfortable' | 'compact'` describes the choice
-  that `compact: boolean` hides; `sizing` describes the width choice that `fill` hides. Do not
-  reject independent state, capability, or opt-in flags merely because two values exist.
-  A public type change names the proposed input name, literals, default, and consumer
-  migration. Classify the change under `schema.md` → "Defaults for recurring cases".
-  A handler names the event it answers (`onDismissed`), not the work it does.
-  **Literal boolean arguments.** `close(event, false)` hides what `false` means. Name it: an
-  options key (`close(event, { restoreFocus: false })`), two named functions, or a union for
-  modes. Keep the boolean when the function name already names it (`setOpen(isOpen)`), when
-  forwarding state to a callback or emitter, or when the framework sets the signature. A
-  private change is **fix**.
-- `craft-1.7` **Types, custom properties, BEM elements.** Each passes the same meaning test
-  as a TypeScript member.
+- `craft-1.5` **Consistent vocabulary.** Competing terms for one concept across the target and its
+  composed components are a finding. Use one established term and keep distinct states
+  distinct. Apply the state vocabulary and exceptions in the repo profile's rule sources.
+  Keep platform and third-party names in their own API contexts.
+- `craft-1.6` **Boolean intent.** An opaque boolean argument is a finding. Name it with an options
+  key or split the operations (**fix** for a neutral private change). Keep clear state and
+  opt-in flags, state forwarding, and framework signatures. Name a handler for its event.
+  State what both values of a public flag mean. Give mutually exclusive public modes a named,
+  bounded union with its literals, default, and migration per
+  `schema.md` → "Defaults for recurring cases".
 - `craft-1.8` **Abbreviations.** An identifier, CSS class, custom property, or test helper
   with an unexplained abbreviation is a finding. Use full, descriptive names, with the
   exception for short lambda parameters in repo profile → `angular`
@@ -93,54 +77,35 @@ Prefer native HTML and CSS state, existing inputs, and consumer-owned compositio
 component machinery. Anything suspicious that stays is named in the `no findings`
 evidence with what keeps it.
 
-- `craft-2.1` **DOM.** Count the elements one default instance renders beyond the host. Each
-  wrapper needs a one-clause justification, recorded at the owning source. A wrapper
-  that only carries a class another element could carry is **fix**. Use `:host` for the
-  component root (repo profile → `scss` → component styling).
-  Compare a one-off wrapper and its styles with consumed internal
-  helpers that own the same frame, geometry, or paint contract. Report duplication with
-  concrete shared-contract evidence and a reuse or narrow-extension proposal; do not
-  abstract merely similar markup. Classify the proposal by its actual behavior, rendering,
-  and API impact under the central schema, verifying preservation when needed.
-- `craft-2.2` **TypeScript shape.** A single-caller resolver that could be the input default,
-  or an `effect()` replaceable by `computed`, is a finding. Every effect must
-  reveal its purpose (`effect()`, each `afterRenderEffect()` phase, and each `afterNextRender()`
-  or `afterEveryRender()` phase): keep an obvious call or assignment inline;
-  give guards, multiple steps, cleanup, or dense logic a purpose-named private helper. Keep
-  registration in the injection context and tracked reads in the callback. Multi-step code
-  should reveal its phases. A useful one-caller intent helper need not be inlined. Judge
-  owner legibility under `architecture-1.2`, `architecture-1.3`, and `architecture-1.11`.
-  Line count alone is insufficient. Template decisions should scan clearly: move a dense predicate, fallback, or state decision to a purpose-named
-  `computed()` when clearer, preserving short-circuit order and signal dependencies; leave
-  simple comparisons, formatting, and ternaries inline. A named signal group is useful only
-  if its full access path and wiring improve clarity and nested values stay reactive, not
-  snapshots. When several computeds
-  partition the same collection for one layout, prefer one named computed result. Match each
-  part's shape to its cardinality: a single item for a unique position, an array for a
-  collection. Keep derivations separate when they have different dependencies or
-  responsibilities. Do not add a generic presentation object merely to hide fields
-  (repo profile → `angular` → components and signal state).
-  Declare template-only members `protected` and use `readonly` where the field is never
-  reassigned. Apply the template and member conventions in
-  repo profile → `angular` →
-  template conventions and member order.
-  Follow repo profile → `conventions` for assignment style. Plain `??` fallbacks
-  remain valid.
+- `craft-2.1` **Necessary wrappers.** Count elements beyond the host in one default instance. A
+  wrapper with no distinct rendering or behaviour is a finding. Move its work to an existing
+  element when equivalent (**fix**). Use `:host` under the repo profile's `scss` styling rules.
+  Keep wrappers with a needed contract and record the rationale at its owner. Merely similar
+  markup is not abstracted. For a shared wrapper contract, use `architecture-1.6` with evidence
+  and a reuse or narrow-extension proposal. Classify and verify under the schema.
+- `craft-2.2` **Readable derivations and effects.** A resolver that only supplies an input default or
+  an effect that only derives state is a finding. Use the input default or a `computed`,
+  respectively. For side effects and render callbacks, keep obvious operations inline and
+  give complex phases purpose-named private helpers. Preserve injection context and tracked reads.
+  Use `craft-2.10` for
+  template boundaries and keep short-circuit order and signal dependencies when moving logic.
+  See `architecture-1.2`, `architecture-1.3`, and `architecture-1.11` for owner and helper legibility.
+  Group signals only when access is clearer and nested reads stay reactive. Combine partitions of
+  one collection for one layout when the result reads more clearly and each part retains its cardinality. Keep
+  derivations with distinct dependencies or roles separate. Apply repo profile → `angular` for
+  member conventions: use `protected` for template-only members and `readonly` for fields that
+  never change where required. Use repo profile → `conventions` for assignment style. Where it
+  requires explicit assignments, compound or logical assignment is a finding. Plain `??` stays valid.
 - `craft-2.3` **Bindings and listeners.** Every host binding, listener, signal, and computed
   must protect a behaviour the native element cannot express; prefer native properties and
   CSS pseudo-classes over state mirroring `:hover`, `:active`, `:focus`, or `:disabled`.
   A hand-rolled timer, focus-origin, or listener lifecycle that a sibling owner already holds
   is judged under `architecture-1.6`; here, check only that it is cleaned up.
-- `craft-2.4` **Modern Angular surface.** `inject()` field initialisers rather than
-  constructor parameters — a constructor that injects, subscribes, or derives state is a
-  finding — no explicit `standalone: true`, `ChangeDetectionStrategy.OnPush`,
-  `input()`/`output()`/`model()` rather than decorators, every input and model declared
-  before the first output (repo profile → `angular`
-  → member order),
-  `host: {}` rather than
-  `@HostBinding`/`@HostListener`, and `@if`/`@for`/`@switch` rather than the structural
-  directives (repo profile → `angular` → Angular conventions and
-  components).
+- `craft-2.4` **Angular conventions.** Departures from applicable Angular conventions are findings.
+  Apply repo profile → `angular` for component metadata and public member order. Prefer
+  field injection, standalone components with `OnPush`, signal-based APIs, host metadata, and
+  built-in template control flow.
+  A constructor that injects, subscribes, or derives state is a finding.
 - `craft-2.6` **Types and escapes.** Include related spec files for this probe, including in
   section 2 shards. Preserve known type evidence: use inference or
   `satisfies` where it checks a contract without widening a value and asserting it back.
@@ -159,14 +124,16 @@ evidence with what keeps it.
   TypeScript types). A non-null assertion that hides a possible absent value is a finding. Otherwise
   require a local reason for the invariant. Preserve runtime guards when the type cannot
   guarantee presence.
-- `craft-2.7` **Unused surface.** An unused import, an input or output with neither bindings
-  nor a supported contract, a `computed` no template reads, and a CSS class no template applies
-  are each a finding. An unbound documented public member is no finding without a concrete defect.
-  Check TypeScript, templates, and stylesheets, including unused bindings.
-- `craft-2.9` **Subscriptions.** Every subscription has a teardown,
-  `takeUntilDestroyed(destroyRef)` or the async pipe, never a manual `ngOnDestroy`
-  unsubscribe (repo profile → `angular` → RxJS subscriptions). A
-  stream that only feeds a template is a signal or a `computed` instead.
+- `craft-2.7` **Unused surface.** An unused binding, private member, or style rule is a finding after
+  checking template, host, runtime, and consumer use. Use the repo profile's unused-binding check where
+  available. An unused or demo-only public member is a finding when its contract does not support
+  it. Keep documented surfaces. For a member with one composed-component consumer, check
+  whether the composition can own the responsibility while preserving supported use.
+- `craft-2.9` **Subscription lifetime.** A subscription that can outlive its owner is a finding.
+  Apply repo profile → `angular` → RxJS subscriptions. Tie manual subscriptions to the owner
+  lifetime with `takeUntilDestroyed` or an equivalent, never a manual `ngOnDestroy`
+  unsubscribe. Keep an async pipe that owns teardown. Use signals or a `computed` for local
+  derivation.
 - `craft-2.10` **Duplicated branches and derivations.** Two `@if` arms, two `@for` bodies, or a
   block repeated once per variant, differing only in a binding value, collapse into one
   block with that value bound. The same applies to TypeScript: two members that repeat the same
@@ -186,10 +153,6 @@ evidence with what keeps it.
   `craft-2.10`'s boundary test by
   itself; normal template bodies under `@if` or `@for` are not guard-inversion findings.
   **Fix** when evaluation order and signal dependencies are statically unchanged.
-- `craft-2.11` **API and demos.** A public member used only by the demo is a finding only when
-  its spec or contract does not support it; a documented variant or valid public surface is not
-  demo-only debt. For a member with one composed-component consumer, try moving the
-  responsibility into that composition first.
 
 ## 3. CSS shape and tokens
 
@@ -207,27 +170,27 @@ design tokens, and component styling. Use class prefixes recorded by repo profil
   variant × state matrix, or a formula differing between size steps only in which token it
   reads, assigns variables by role in each variant, then uses one rule per state. A state
   rule repeated per variant is a finding.
-- `craft-3.3` `!important`, global selectors, and `::ng-deep` outside a `:host`-scoped
-  third-party or child override are findings. Scope every override under `:host` or the
-  component selector and reach only the internals the override needs
-  (repo profile → `scss` → child overrides).
+- `craft-3.3` **Selector reach.** An override that violates the owning style boundary is a finding.
+  Apply repo profile → `scss` → child overrides. Keep permitted overrides, such as for composed
+  layout, within that boundary. Without a local rule, scope overrides to the host or component
+  selector and reach only the internals they need. Flag avoidable specificity escapes.
 - `craft-3.4` **CSS variables.** Prefer direct properties. Name the shared relationship,
   formula, or state rule each variable enables, and inline aliases that add indirection
   without shared logic. Size or variant differences alone do not justify a variable.
 - `craft-3.5` **One block per selector.** A selector's paint and its transition live in one
   block. No two rule blocks share a selector.
-- `craft-3.7` Every colour, spacing, and typography value uses the repo's design tokens when available
-  (repo profile → `scss` → design tokens).
-  A raw hex, `rgb()`, `hsl()`, or magic number is a finding unless its why is recorded at
-  the owning source. Trace aliases to the source token and flag direct use of a base value
-  where an existing token already names the intended role.
+- `craft-3.7` **Scoped tokens.** Apply repo profile → `scss` → design tokens and use its deterministic
+  check where available. Trace aliases to their source. A raw style value or base token is a
+  finding when an existing token names the intended role. Keep a raw value only where the
+  rule permits it and record the local constraint at its owner.
 - `craft-3.8` Every text-bearing element applies the whole typography style. Trace aliases to the repo's typography tokens, if present.
   Use the family, size, and weight together. If using a `font` shorthand, include the style's matching
   letter-spacing and any required text transform. Read every `font` declaration. A bare
   shorthand missing those properties is **fix**, with the missing properties named in the
   Action cell.
-- `craft-3.9` Check the complete default, hover, focus, pressed, disabled, loading, and error
-  set that applies. A state with no rule, or a rule no state can reach, is a finding.
+- `craft-3.9` **State rule coverage.** A required state treatment with no rendering source or a
+  state rule that cannot match is a finding. Supply the missing treatment or remove the
+  unreachable rule. Count native, base, and shared styles that render the required state.
 - `craft-3.10` No `[style.*]` bindings from TypeScript for values a class modifier enumerates.
   Apply the modifier to represent the design choice and keep the declaration in SCSS.
 - `craft-3.11` A stylesheet that styles more than a couple of elements is grouped into
@@ -246,24 +209,21 @@ The [`performance`](performance.md) packet owns performance; this packet reports
 
 **Question:** does each comment carry a why the reader cannot recover from the code?
 
-- `craft-5.1` Apply repo profile → `comments` → comment rules and doc comments:
-  default to no comment; explain non-obvious why in one or two lines, never what/how. A public
-  doc comment states the consumer contract; an implementation comment states a constraint,
-  trade-off, or assumption. Put component-selection guidance in the consuming documentation. "Non-obvious" is judged for a
-  competent Angular practitioner: documented framework rules and compiler errors are not
-  comment-worthy. Judge HTML section landmarks with `craft-2.10`.
-- `craft-5.2` Delete comments restating an identifier, nearby line, icon, binding, helper
-  name, or meaning recoverable from expressions and member doc comments; rename under § 1 if
-  needed. An HTML landmark can name a meaningful row, slot, section, or region even when
-  its class does, if nested markup or branches benefit. Do not require headings throughout.
+- `craft-5.1` **Missing rationale.** An unexplained constraint a competent reader cannot recover
+  from code, such as a timing assumption, is a finding. Explain it beside the operation in one
+  or two lines under repo profile → `comments` → comment rules. Ordinary bindings and documented
+  framework rules need no comment. See `craft-5.10` for doc comments and `craft-5.2` for landmarks.
+  Put component-selection guidance in the consuming documentation.
+- `craft-5.2` **Redundant narration.** A comment whose meaning is recoverable from code is a finding.
+  Clarify the name or type when it can carry that meaning, then remove the comment. Keep
+  non-obvious rationale under `craft-5.1`. Keep template landmarks that help readers locate
+  meaningful sections, including sections named by a class. See `craft-2.10` for template boundaries.
 - `craft-5.4` Repeating a rationale that already lives in a member's doc comment, the spec,
   or a related file is a finding. A brief local constraint plus a source pointer is justified
   when an apparently harmless simplification could break behaviour.
-- `craft-5.5` Add a missing why for surprising code, especially timing or lifecycle constraints
-  beside the operation. Zero comments is not a goal; ordinary bindings and tokens need none.
-- `craft-5.6` A comment explaining a past version, a migration, what changed, that the code
-  was generated, or how a gate was met is a finding
-  (repo profile → `comments` → comment rules).
+- `craft-5.6` **Present-state comments.** A comment narrating implementation history, gate
+  mechanics, or that the code was generated is a finding. Remove it under repo profile →
+  `comments` → comment rules. Keep a valid removal TODO for genuinely temporary code.
 - `craft-5.7` A bare TODO, a work-item reference outside a TODO, or a PR or bug number
   anywhere in a comment is a finding
   (repo profile → `comments` → comment rules).

@@ -1,7 +1,7 @@
 # Provenance
 
 This portable skill derives from two repository skills. The primary source is
-`cl-strategy/.agents/skills/ds-craft` on `develop` at `bece370fc`. The secondary source is
+`cl-strategy/.agents/skills/ds-craft` on `t3/improve-ds-craft-content` at `0294bfd50a`. The secondary source is
 `cl-system/.claude/skills/cl-craft` at `cbe7a6bc5` ([source PR](https://github.com/copperleaftech/cl-system/pull/4631)).
 
 | Source | Portable file | Choice |
@@ -18,9 +18,10 @@ This portable skill derives from two repository skills. The primary source is
 
 ## Probe changes
 
-Compared all 139 shared probe IDs against both sources. No shared ID was dropped.
-The table records every ID whose text differs from either source, including citation-only
-changes so the audit is complete. A reason names a substantive choice where one was made.
+Merged `craft-1.4` into `craft-5.2`, `craft-1.7` into `craft-1.1`, `craft-2.11` into `craft-2.7`, and `craft-5.5` into `craft-5.1`.
+
+The table records the initial comparison of all 139 shared probe IDs, including citation-only
+changes. Each reason names the port's substantive choice where applicable.
 
 | ID | Sources | Reason |
 | --- | --- | --- |

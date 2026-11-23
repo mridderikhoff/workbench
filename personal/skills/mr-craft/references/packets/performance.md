@@ -45,9 +45,9 @@ at the site records why the input stays small; cite that comment in the `no find
   unless the site names the mutation the copy isolates. Appending each loaded page with
   `[...rows, ...page]` is quadratic across pages, and copying an input array (`[...input()]`)
   only to satisfy a type or a library's mutability costs O(rows) per update; both are findings.
-- `perf-1.2` **Lookups inside a loop.** A `find`, `filter`, `some`, `includes`, or `indexOf`
-  over the same collection inside a loop or a `map` callback is a finding where a `Map` or
-  `Set` built once before the loop would answer the same question.
+- `perf-1.2` **Repeated collection lookups.** Repeated scans of the same collection are a finding
+  when a single `Map` or `Set` preserves the answer. Build the index outside the loop or
+  callback. Keep scans where an index cannot preserve the lookup semantics.
 - `perf-1.3` **Repeated sorts and scans.** A sort, a full scan, or a derived collection rebuilt
   once per item, rather than once per pass, is a finding. For a sort over a large collection,
   inspect comparator work repeated O(n log n) times, including locale setup or repeated
@@ -83,9 +83,9 @@ at the site records why the input stays small; cite that comment in the `no find
 
 **Question:** does a change re-render only what it affects?
 
-- `perf-2.1` Use `OnPush`, signal inputs, and a `computed` where it can replace an `effect()`.
-  See `craft-2.4` and `craft-2.2` for Angular conventions. Report the re-render cost here
-  (class: `rerender`).
+- `perf-2.1` **Rerender cost.** Avoidable rerender work is a finding (class: `rerender`). Identify
+  what triggers the work and what rerenders. Use `craft-2.4` and `craft-2.2` for Angular
+  conventions and derivations. Report the rendering cost here.
 - `perf-2.2` **`@for` tracking.** Every `@for` declares a `track`. Stateful or interactive
   rows track a stable identity; `track $index` over those rows when they can move or be
   inserted between is a finding (class: `rerender`). A regenerated, stateless, text-only row
@@ -118,22 +118,20 @@ at the site records why the input stays small; cite that comment in the `no find
   (repo profile → `angular` → signal state). Class: `rerender`.
   The fix is neutral when the dependants read the value they were re-measuring anyway.
   A counter that re-runs a controlled-state sync after a declined user change is an exception.
-- `perf-2.8` **High-frequency events.** Pointer, hover, scroll, and input handlers, and the
-  `computed`s they feed, touch only the items the event changes. A hover that re-maps every
-  mark, or an input event that re-reads the whole document, is a finding where binding the state
-  by id or updating the changed item would do (class: `rerender`).
+- `perf-2.8` **High-frequency events.** Whole-collection or document work on a frequent event,
+  such as pointer movement, is a finding when a local update suffices (class: `rerender`).
+  Trace the handler and the work it triggers, including derived state. Scope both to the
+  affected items, for example by updating state by id.
 
 ## 3. Lifecycle and memory
 
 **Question:** is every long-lived hook, stream, and allocation justified, shared where it can
 be, and released?
 
-- `perf-3.1` **Per-instance hooks.** Per-instance subscriptions and monitors (CDK
-  `FocusMonitor`, `ResizeObserver`, `MutationObserver`, `IntersectionObserver`) need a
-  documented rationale or a brief implementation comment at the site. A doc comment states
-  the caller contract (repo profile → `comments` → doc comments).
-  Dispose each hook via `DestroyRef`. The RxJS teardown form is `angular` →
-  `craft-2.9`. The merge step keeps one row when both report the same line.
+- `perf-3.1` **Per-instance observers.** A per-instance monitor or observer with avoidable work
+  or no owner-scoped disposal is a finding. Share it where equivalent. Record the rationale
+  for required per-instance work in the owning documentation or a brief local comment. Tie
+  disposal to the owner, for example with `DestroyRef`. See `craft-2.9` for RxJS teardown.
 - `perf-3.2` **N instances, N hooks.** Rendering N instances must not create N overlays, N
   listeners on `document` or `window`, N observers where one shared observer could watch every
   target, or N id generators beyond CDK's own.

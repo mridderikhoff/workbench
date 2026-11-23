@@ -65,8 +65,8 @@ hard rules.
    pipe the launcher into `head`, `grep -m1`, or another consumer that closes early. Check its
    documented worker or queue evidence before treating the launch as accepted.
 4. **Check coverage, then merge the finding rows.** After the planned reviewers return,
-   run one read-only batch check over their explicitly named reports (no directory glob,
-   which could include old rounds). It replaces per-report coverage shell bookkeeping:
+   run the read-only coverage check once with the planned report paths. Pass each path
+   explicitly to exclude reports from other rounds.
 
    ```bash
    node <skill-dir>/scripts/report-check.mjs <report file> [<report file> ...]
@@ -86,15 +86,12 @@ hard rules.
 
    Check that `## Files reviewed` includes every direct first-party import outside the
    target folder. Resolve relative imports and package aliases with the repo profile and
-   skeleton metadata. A listed file is scope evidence, not proof that it was read.
+   skeleton metadata. A listed path establishes scope. Evidence of actual review and coverage
+   beyond the first hop require reviewer judgment.
 
-   Screen every **decide** row against [`schema.md`](../schema.md) → "Classifying a row" step 6
-   as the row is written: it names a necessary change, two or more options and what each
-   changes, the sources read, and the lean. A row whose recommendation preserves the current
-   code, whose compatibility omits the published contract or known in-repo consumers,
-   whose case a "Defaults for recurring cases" row resolves, or whose question a `git grep`, the spec, or a sibling component answers fails the
-   screen. The target's own rationale for the contested choice is the claim under review, never
-   the source that answers it. Send missing ids, missing files, remaining `TODO` placeholders or
+   Screen each **decide** row against [`schema.md`](../schema.md) → "Classifying a row" and
+   "Defaults for recurring cases". Treat the target's rationale as the claim under review.
+   Send missing ids, missing files, remaining `TODO` placeholders or
    `<!-- unresolved: … -->` entries, evidence-less rows, and failed
    **decide** rows back to the same spawn in one follow-up briefing that names them; never fill
    in or reclassify a row from the orchestrator. The follow-up names only the failed condition
@@ -106,9 +103,9 @@ hard rules.
    row, name every probe id, and keep the longer Action, except that a `correctness` row keeps
    its result and test and appends the other row's further change. The merged row takes the
    most human-facing class, labels each concern with its own class, and only **decide**
-   concerns enter the decision list. Architecture rows stay separate. Apply **fix**,
-   **mandated**, and **default** concerns independently of a row's summary class. Merge repeated
-   readiness items by act and list every affected target. A cross-packet reference inside a packet
+   concerns enter the decision list. Architecture rows stay separate. Retain each concern's
+   class independently of the row's summary class. See [refine.md](refine.md) step 4 for
+   applying findings. Merge repeated readiness items by act and list every affected target. A cross-packet reference inside a packet
    (for example "see `angular` § 6") is addressed to the orchestrator, which checks that the
    referenced packet's table covers the row; a single-packet reviewer never resolves one.
 5. **Report.** Return the following in the conversation. A PR description update requires

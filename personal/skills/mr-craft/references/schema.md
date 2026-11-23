@@ -178,10 +178,10 @@ evidence, impact, alternative, recommendation, adoption timing, its own `Class:`
 `Compatibility: breaking (<n> in-repo consumers: <paths>; external consumers affected)`
 for a published surface, `Compatibility: breaking (<n> in-repo consumers: <paths>)` for
 a repository-only surface, or `Compatibility: non-breaking`. Check repository uses with
-`git grep` and the package's published contract. The row's Class column holds the most human-facing class among its concerns. A stated purpose is evidence under test, not a
-canonical rule: say whether a concern violates a cited contract or tests a claim. A
-non-breaking internal refactor that preserves behaviour and rendering is **fix** even when
-several techniques can implement it.
+`git grep` and the package's published contract. The row's Class column holds the most
+human-facing class among its concerns. Classify each concern under "Classifying a row".
+A stated purpose is a claim to test. State whether the concern violates a cited contract
+or tests a claim.
 
 ## Report layout
 

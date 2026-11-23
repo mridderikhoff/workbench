@@ -1,53 +1,48 @@
 # Writer digest
 
-Read this digest and the assigned packet sections before editing. The packet governs
-where they differ. Read the relevant `angular`, `scss`, `i18n`, `comments`,
-`component-library`, and `conventions` roles in the repo profile. Keep probe ids stable
-and keep fixes scoped to the
-handed concern keys when refining.
+Read these recurring probes with the assigned packet sections before editing. The packet
+governs if an entry differs. Read the relevant rule sources in the repo profile. Keep probe
+ids stable and scope refine edits to the handed concern keys.
 
 ## angular
 
-- `craft-1.1` Name each value for its role, so a reader at the call site can understand it
-  without opening its declaration.
-- `craft-1.5` Use one word per concept, and keep `active`, `selected`, and `focused` to their
-  ARIA meanings.
-- `craft-1.6` Don't pass a literal `true`/`false` the function name doesn't explain; use an
-  options key (`{ restoreFocus: false }`), two named functions, or a union.
-- `craft-1.8` Spell out names per repo profile → `angular` →
-  Angular conventions.
-- `craft-2.2` Prefer an input default or `computed` to a one-caller resolver or `effect()`
-  → repo profile → `angular` → signal state.
-- `craft-2.12` Guards first, branches at most three deep.
-- `craft-3.11` Group a larger stylesheet into headed sections, each state rule after its base
-  rule.
-- `craft-5.1` Comment only a non-obvious why, in one or two lines; default to none
-  → repo profile → `comments` → comment rules.
-- `craft-5.2` Delete a comment that restates its name or narrates the next line, or rename
-  until it is unneeded → repo profile → `comments` → comment rules.
-- `craft-5.4` State a rationale once, where it already lives, and point to it elsewhere
-  → repo profile → `comments` → comment rules.
+- `craft-1.1` Name folders and identifiers for their roles so the tree or call site explains them.
+- `craft-1.5` Use one term per concept and keep distinct states distinct. Follow the repo profile's state vocabulary.
+- `craft-1.6` Name opaque arguments, such as `{ restoreFocus: false }`, and give exclusive modes a typed union.
+  Keep clear state and opt-in flags, state forwarding, and framework signatures.
+- `craft-1.8` Spell out names. Keep abbreviations allowed by repo profile → `angular` → Angular conventions.
+- `craft-2.2` Use input defaults for default-only resolvers and `computed` for derivations.
+  Give effects and render callbacks a clear purpose → repo profile → `angular` → signal state.
+- `craft-2.12` Use early guards and at most three branch levels in TypeScript. Use `craft-2.10` for template boundaries.
+- `craft-3.11` Group larger stylesheets into headed sections in DOM order. Put variant and state overrides
+  directly after their base rule.
+- `craft-5.1` Explain a non-obvious constraint beside the operation in one or two lines.
+  See `craft-5.2` for template landmarks.
+- `craft-5.2` Delete comments whose meaning the code already carries. Keep template landmarks that
+  help readers locate meaningful sections.
+- `craft-5.4` State each rationale at its source. Where an edit might break behaviour, state the
+  brief local constraint and point to that source.
 - `craft-5.10` Keep a doc comment to the consumer contract, never a walk through the body
   → repo profile → `comments` → doc comments.
-- `craft-6.1` Name each test for the behaviour it protects, never the method it calls.
-- `craft-6.2` Give each `it` one intent. Split unrelated behaviours.
-- `craft-6.7` Assert independent literals or rendered output, never a value derived as the code
-  derives it or that a collaborator was called.
+- `craft-6.1` Name the behaviour a test protects, not the method that implements it.
+- `craft-6.2` Split unrelated test behaviours. Keep assertions that establish one behaviour together.
+- `craft-6.7` Assert independent expectations or public outcomes, such as emitted values.
+  A mirrored derivation or collaborator call alone does not establish the behaviour.
 
 ## performance and correctness
 
-- `perf-1.2` Build a `Map` or `Set` once instead of a `find`, `filter` or `includes` inside a
-  loop → [`performance.md`](packets/performance.md) → "1. Data work".
-- `perf-1.8` Compute state-only work when that state changes, never inside a library's per-row
-  or per-cell callback → [`performance.md`](packets/performance.md) → "1. Data work".
-- `perf-2.8` Let a pointer, hover, scroll or input event touch only the items it changes
-  → [`performance.md`](packets/performance.md) → "2. Reactivity".
-- `perf-2.4` Bound any `@for` over a growing collection with pagination or virtual scrolling
-  → [`performance.md`](packets/performance.md) → "2. Reactivity".
-- `perf-7.1` Name any growing input or repeated cost the named probes miss, such as a large
-  subtree rebuilt on each mode switch → `schema.md` → "Wildcard rule".
-- `correct-7.1` Name any failing input or sequence the named probes miss, with the correct
-  result → `schema.md` → "Wildcard rule".
+- `perf-1.2` Index repeated lookups over the same collection once when a `Map` or `Set` preserves the answer.
+  See [`performance.md`](packets/performance.md) → "1. Data work".
+- `perf-1.8` Recompute state-only work when its inputs change, then read the result in library
+  per-item callbacks → [`performance.md`](packets/performance.md) → "1. Data work".
+- `perf-2.8` Keep high-frequency handlers and the work they trigger proportional to the items that change.
+  See [`performance.md`](packets/performance.md) → "2. Reactivity".
+- `perf-2.4` Bound lists that grow with user or server data. A supported volume bound passes.
+  Use **verify** when volume is unknown → [`performance.md`](packets/performance.md) → "2. Reactivity".
+- `perf-7.1` Name a material cost the probes miss and the input or resource that drives it.
+  Verify repeated subtree work at representative volume → `schema.md` → "Wildcard rule".
+- `correct-7.1` Name a material wrong result the probes miss, its triggering input or sequence,
+  and the correct result → `schema.md` → "Wildcard rule".
 
 Published component contracts are outside this digest. Use the repo skill hand-off in
 [SKILL.md](../SKILL.md) when the repo profile lists a contract packet. Follow the test
