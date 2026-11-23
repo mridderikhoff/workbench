@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -323,7 +324,16 @@ function main() {
   else process.stdout.write(output);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   try { main(); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
 }
 

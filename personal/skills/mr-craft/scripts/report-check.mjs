@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packetProbes } from './report-skeleton.mjs';
@@ -113,6 +113,15 @@ function main() {
   else process.stdout.write(`${paths.length} report${paths.length === 1 ? '' : 's'} checked\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) main();
 
 export { checkReport, checkReportFile, reportMetadata };

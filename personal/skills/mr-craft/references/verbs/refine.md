@@ -21,7 +21,7 @@ Resolve the named target (a PR target resolves per [`SKILL.md`](../../SKILL.md) 
 | Other TypeScript libraries or browser test projects | Choose applicable TypeScript, correctness, performance, and architecture probes for the target. |
 
 Record the scoped subtargets in the report. Apply each packet only to the scope it covers.
-Architecture, when in the plan, forms phase 1 with one whole-target reviewer, including when
+Architecture, when in the plan, forms phase 1 with one whole-target reviewer subagent, including when
 other packets shard. The remaining packets form phase 2. Name any excluded packets in the
 hand-off.
 
