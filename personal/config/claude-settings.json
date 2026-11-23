@@ -63,6 +63,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '${HOME}/.claude/hooks/t3-background-wait-reminder.sh'",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

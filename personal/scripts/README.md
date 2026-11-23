@@ -49,6 +49,9 @@ specs. Prompts no longer need to repeat these rules.
    means the run is too big: split it or do the work directly.
    Review runs get no progress lines, only the finish line. When the host supplies
    completion notifications, use them instead of a Monitor.
+   In T3 Code, pass the Monitor's task ID to `t3_background_wait` before ending the
+   turn, and again after each re-arm. Without it T3 shows the thread as done while
+   codex is still running. A PostToolUse hook on `Monitor` reminds you.
 5. On `■ codex finished`, read `report.md`. If the line names `stderr:` or says
    `⚠ report empty`, also read `stderr.log`. `exited without writing exit-code`
    means the run died; read `stderr.log` and `run.log`.
