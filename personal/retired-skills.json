@@ -30,5 +30,13 @@
       "agents",
       "codex"
     ]
+  },
+  {
+    "name": "craft",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ]
   }
 ]

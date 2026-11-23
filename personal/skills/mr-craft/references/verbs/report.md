@@ -1,6 +1,6 @@
 # Mode: `--report [packets]`
 
-`/craft <target> --report [packets]` is a read-only review. It writes only its run artifacts in the location selected by the repo profile, and follows the [`SKILL.md`](../../SKILL.md)
+`/mr-craft <target> --report [packets]` is a read-only review. It writes only its run artifacts in the location selected by the repo profile, and follows the [`SKILL.md`](../../SKILL.md)
 hard rules.
 
 ## Steps
@@ -149,4 +149,4 @@ whole target: do not add the target's default packets unless the user also asks 
 The report ends the run. Verifying and applying findings is the default
 [`refine`](refine.md) mode; do not start it from here without being asked.
 
-For a focused behavior review, use `/craft <component-folder> --report correctness`.
+For a focused behavior review, use `/mr-craft <component-folder> --report correctness`.

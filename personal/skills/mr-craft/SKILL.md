@@ -1,5 +1,5 @@
 ---
-name: craft
+name: mr-craft
 disable-model-invocation: true
 description: >
   Builds, refines, and reports on Angular/TypeScript code in any repository against Angular
@@ -9,9 +9,9 @@ metadata:
   argument-hint: "<task | path | PR> [--report [packets]]"
 ---
 
-# craft
+# mr-craft
 
-Invoke `/craft …` in Claude Code or `$craft …` in Codex. A writer builds or applies findings.
+Invoke `/mr-craft …` in Claude Code or `$mr-craft …` in Codex. A writer builds or applies findings.
 An independent reviewer follows [reviewer.md](references/reviewer.md) for one packet and
 one target. The orchestrator routes work and merges reports. [schema.md](references/schema.md)
 defines scope, findings, classes, and report layout.
@@ -45,9 +45,9 @@ rule sources, and any repo craft skill.
 
 | Invocation | Use | Reference |
 | --- | --- | --- |
-| `/craft <task>` | Build the task, then triage or refine | [build.md](references/verbs/build.md) |
-| `/craft <path or PR>` | Refine: review, verify, and apply fix, mandated, and default findings | [refine.md](references/verbs/refine.md) |
-| `/craft <path or PR> --report [packets]` | Read-only findings; architecture alone reviews the whole target | [report.md](references/verbs/report.md) |
+| `/mr-craft <task>` | Build the task, then triage or refine | [build.md](references/verbs/build.md) |
+| `/mr-craft <path or PR>` | Refine: review, verify, and apply fix, mandated, and default findings | [refine.md](references/verbs/refine.md) |
+| `/mr-craft <path or PR> --report [packets]` | Read-only findings; architecture alone reviews the whole target | [report.md](references/verbs/report.md) |
 
 An existing supported path or PR means refine. Other concrete tasks mean build. An
 explicitly named branch means refine on its changed supported files. A bare path keeps
@@ -84,8 +84,8 @@ is not an independent review. Refine writers apply only handed rows and end with
   for task handles and coverage. Do not create a second task ledger.
 - Use another model family for checklist packets when available; use the strongest reviewer
   for architecture. Respect host concurrency.
-- When delegating a whole pass, forward its literal invocation (`/craft <target>` in Claude
-  Code, `$craft <target>` in Codex) because automatic invocation is disabled.
+- When delegating a whole pass, forward its literal invocation (`/mr-craft <target>` in Claude
+  Code, `$mr-craft <target>` in Codex) because automatic invocation is disabled.
 - Before each spawn, run `node <skill-dir>/scripts/report-skeleton.mjs --root <repo root>
   --target <folder> --packet <packet-path> [--section <n>] --out <report file>`.
 - Brief with absolute worktree root, target, one packet path, schema path, repo profile path,

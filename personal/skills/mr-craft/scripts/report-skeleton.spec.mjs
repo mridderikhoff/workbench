@@ -126,7 +126,7 @@ test('extracts exact top-level probe ids with and without a section', () => {
 test('architecture skeleton includes both review sections and one row per architecture probe', () => {
   const options = parseArguments(['--target', target, '--packet', 'architecture']);
   const { output, probeCount } = buildSkeleton(options, { root: fixtureRoot, packetFile });
-  assert.match(output, /^<!-- craft-report: {"packet":"architecture"} -->/);
+  assert.match(output, /^<!-- mr-craft-report: {"packet":"architecture"} -->/);
   assert.match(output, /## Architecture as found\n\nTODO\n\n## Abstractions reviewed\n\nTODO\n\n## Findings/);
   assert.deepEqual(output.match(/^\| `architecture-.*$/gm), [
     '| `architecture-7.1` | TODO | TODO | TODO |',
@@ -138,7 +138,7 @@ test('architecture skeleton includes both review sections and one row per archit
 
 test('skeleton includes concise report identity for a numbered section', () => {
   const report = skeleton('angular', '1');
-  assert.match(report, /^<!-- craft-report: {"packet":"angular","section":"1"} -->\n/);
+  assert.match(report, /^<!-- mr-craft-report: {"packet":"angular","section":"1"} -->\n/);
   assert.doesNotMatch(report, /"(?:coverage|status|timestamp)"/);
 });
 
@@ -171,7 +171,7 @@ test('CLI accepts --root and resolves packet names from the skill', () => {
   const script = path.join(directory, 'report-skeleton.mjs');
   const result = spawnSync(process.execPath, [script, '--root', fixtureRoot, '--target', target, '--packet', 'angular', '--section', '1'], { cwd: directory, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^<!-- craft-report: {"packet":"angular","section":"1"} -->/);
+  assert.match(result.stdout, /^<!-- mr-craft-report: {"packet":"angular","section":"1"} -->/);
   assert.match(result.stdout, /## Coverage: 0 of \d+ probes examined/);
 });
 
@@ -194,7 +194,7 @@ test('nested workspace finds its own tsconfig and custom export condition', () =
 
 test('accepts an explicit packet path', () => {
   const report = buildSkeleton({ '--root': fixtureRoot, '--target': target, '--packet': packetFile, '--section': '1' }).output;
-  assert.match(report, /^<!-- craft-report: {"packet":"angular","section":"1"} -->/);
+  assert.match(report, /^<!-- mr-craft-report: {"packet":"angular","section":"1"} -->/);
 });
 
 test('relative tsconfig extends arrays merge aliases and preserve each baseUrl', () => {

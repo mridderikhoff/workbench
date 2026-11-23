@@ -1,4 +1,4 @@
-# Mode: `/craft <task>`
+# Mode: `/mr-craft <task>`
 
 Build writes Angular/TypeScript work from a task. It chooses read-only triage by default,
 or full [refine](refine.md) when the work is final. It takes no flags.
@@ -30,5 +30,5 @@ or full [refine](refine.md) when the work is final. It takes no flags.
    [report](report.md) with `angular` and `correctness` on changed folders. No architecture
    reviewer or refine writer is needed for triage.
 6. **Hand off.** Report acceptance notes, classed rows, and the command for a full pass,
-   `/craft <changed folder>`. Triage does not replace independent refine. Include the repo
+   `/mr-craft <changed folder>`. Triage does not replace independent refine. Include the repo
    contract hand-off from [SKILL.md](../../SKILL.md) when applicable.

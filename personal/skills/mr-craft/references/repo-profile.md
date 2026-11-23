@@ -62,14 +62,14 @@ fallback for absent roles and sections is in `schema.md`.
 ## Run directory and repository skill
 
 Run `git check-ignore -q .scratch` at the root. On success, use
-`<root>/.scratch/findings/craft/<run>/`. Otherwise use
-`${XDG_STATE_HOME:-$HOME/.local/state}/craft/<repo-name>/<run>/`. Choose a unique,
+`<root>/.scratch/findings/mr-craft/<run>/`. Otherwise use
+`${XDG_STATE_HOME:-$HOME/.local/state}/mr-craft/<repo-name>/<run>/`. Choose a unique,
 stable run name for this pass and create the directory before report skeletons.
 Record the chosen absolute path. Do not place findings in an unignored `.scratch`.
 
 Search the repository skill directories for its own craft skill. Record its invocation
 name and path, or `none`. If it has a `*-contract` packet, record each packet name and
-path. Published component contracts are outside portable `craft` review; the repo
+path. Published component contracts are outside portable `mr-craft` review; the repo
 skill can cover them in a separate report.
 
 ## Profile record

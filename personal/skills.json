@@ -146,8 +146,8 @@
     ]
   },
   {
-    "name": "craft",
-    "source": "~/.agents/skills/craft",
+    "name": "mr-craft",
+    "source": "~/.agents/skills/mr-craft",
     "clients": [
       "claude",
       "agents",

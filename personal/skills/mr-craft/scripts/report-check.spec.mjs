@@ -14,7 +14,7 @@ const packetFile = path.join(directory, 'fixtures/packet.md');
 const probes = ['craft-1.1', 'craft-1.3'];
 
 function report(rows, coverage = '2 of 2', metadata = '{"packet":"angular","section":"1"}') {
-  return `<!-- craft-report: ${metadata} -->\n\n## Files reviewed\n\n- \`libs/widgets/example.ts\` — target\n\n## Findings\n\n| Probe | Finding (\`file:line\`) | Class | Action |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n\n## Coverage: ${coverage} probes examined\n\n| Probe | Finding (\`file:line\`) | Class | Action |\n| --- | --- | --- | --- |\n\n## Debt\n`;
+  return `<!-- mr-craft-report: ${metadata} -->\n\n## Files reviewed\n\n- \`libs/widgets/example.ts\` — target\n\n## Findings\n\n| Probe | Finding (\`file:line\`) | Class | Action |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n\n## Coverage: ${coverage} probes examined\n\n| Probe | Finding (\`file:line\`) | Class | Action |\n| --- | --- | --- | --- |\n\n## Debt\n`;
 }
 
 const completeRows = [
@@ -27,14 +27,14 @@ test('accepts complete coverage with an open finding', () => {
 });
 
 test('reads numbered section probes from the canonical packet file', () => {
-  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'mr-craft-report-'));
   const file = path.join(folder, 'report.md');
   writeFileSync(file, report(completeRows));
   assert.deepEqual(checkReportFile(file, { root, packetFile }), []);
 });
 
 test('checks a completed architecture report against its packet probes', () => {
-  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'mr-craft-report-'));
   const file = path.join(folder, 'report.md');
   const rows = [
     '| `architecture-7.1` | no findings — constructor inspected | | none |',
@@ -46,11 +46,11 @@ test('checks a completed architecture report against its packet probes', () => {
 
 test('reports a missing file and malformed metadata', () => {
   assert.deepEqual(checkReportFile('/no/such/report.md', { root, packetFile }), ['report is missing or unreadable']);
-  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'mr-craft-report-'));
   const file = path.join(folder, 'report.md');
   writeFileSync(file, report(completeRows, '2 of 2', '{bad json}'));
   assert.deepEqual(checkReportFile(file, { root, packetFile }), ['malformed report metadata JSON']);
-  writeFileSync(file, report(completeRows).replace(/^<!-- craft-report:.*\n/, ''));
+  writeFileSync(file, report(completeRows).replace(/^<!-- mr-craft-report:.*\n/, ''));
   assert.deepEqual(checkReportFile(file, { root, packetFile }), ['missing or malformed report metadata header']);
 });
 
@@ -101,7 +101,7 @@ test('rejects an inaccurate Coverage claim', () => {
 });
 
 test('CLI reports batch success in one line and failures per report', () => {
-  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'mr-craft-report-'));
   const first = path.join(folder, 'first.md');
   const second = path.join(folder, 'second.md');
   const canonical = packetProbes('angular', '1', path.join(directory, '../references/packets/angular.md'));

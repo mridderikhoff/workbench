@@ -97,7 +97,7 @@ Source-only contract and catalog IDs are listed below.
 1. Read both source revisions and list probe IDs and script test cases.
 2. Compare each shared probe by ID. Keep stronger Angular/TypeScript substance and move
    repository facts into the profile. Record dropped or changed IDs here.
-3. Port script behavior and test cases to both neutral fixtures. Run `node --test personal/skills/craft/scripts/*.spec.mjs`,
+3. Port script behavior and test cases to both neutral fixtures. Run `node --test personal/skills/mr-craft/scripts/*.spec.mjs`,
    check forbidden repository paths, and preview the personal installer offline.
 4. Review the resulting text and script diff before updating the source revisions above.
 

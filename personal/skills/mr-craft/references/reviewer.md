@@ -18,7 +18,7 @@ Your briefing carries five things plus the instruction "report only":
 
 The briefing carries the absolute worktree root and whole-target or diff scope, with fixed
 base/head commits for a branch or PR. Keep the skeleton's first-line identity comment
-(`<!-- craft-report: … -->`) unchanged. Follow the schema's diff boundary while reading
+(`<!-- mr-craft-report: … -->`) unchanged. Follow the schema's diff boundary while reading
 the same consumed contracts.
 
 It may also carry evidence inline, such as a usage audit. Cite its counts in your rows;

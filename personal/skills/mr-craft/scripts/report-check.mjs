@@ -13,7 +13,7 @@ const emptyForm = /^(?:no findings|not applicable|readiness pending|debt noted)\
 
 function reportMetadata(source) {
   const firstLine = source.split(/\r?\n/, 1)[0];
-  const match = /^<!-- craft-report: (\{.*\}) -->$/.exec(firstLine);
+  const match = /^<!-- mr-craft-report: (\{.*\}) -->$/.exec(firstLine);
   if (!match) throw new Error('missing or malformed report metadata header');
   let metadata;
   try { metadata = JSON.parse(match[1]); }

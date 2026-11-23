@@ -186,7 +186,7 @@ several techniques can implement it.
 ## Report layout
 
 Each reviewer fills one report from the skeleton. Keep the first line
-`<!-- craft-report: {"packet":"<packet>"} -->`. An angular section report also
+`<!-- mr-craft-report: {"packet":"<packet>"} -->`. An angular section report also
 has a `section` key as supplied by the skeleton. The metadata identifies the packet and
 any section for `report-check.mjs`.
 

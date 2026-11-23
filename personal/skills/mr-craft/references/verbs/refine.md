@@ -1,4 +1,4 @@
-# Mode: `/craft <target>`
+# Mode: `/mr-craft <target>`
 
 Refine is the single entryway for an end-to-end code review. It runs every packet applicable to
 the named target in two phases, architecture first because the other packets judge code that

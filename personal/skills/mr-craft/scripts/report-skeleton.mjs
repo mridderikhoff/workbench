@@ -301,7 +301,7 @@ function buildSkeleton(options, context = {}) {
   }
 
   const metadata = { packet: name, ...(section ? { section } : {}) };
-  const lines = [`<!-- craft-report: ${JSON.stringify(metadata)} -->`, '', '## Files reviewed', ''];
+  const lines = [`<!-- mr-craft-report: ${JSON.stringify(metadata)} -->`, '', '## Files reviewed', ''];
   for (const [file, reason] of [...reviewed].sort(([first], [second]) => relativePath(root, first).localeCompare(relativePath(root, second)))) {
     lines.push(`- \`${relativePath(root, file)}\` — ${reason}`);
   }
