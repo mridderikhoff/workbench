@@ -97,7 +97,8 @@ is not an independent review. Refine writers apply only handed rows and end with
 - When delegating a whole pass, forward its literal invocation (`/mr-craft <target>` in Claude
   Code, `$mr-craft <target>` in Codex) because automatic invocation is disabled.
 - Before each spawn, run `node <skill-dir>/scripts/report-skeleton.mjs --root <repo root>
-  --target <folder> --packet <packet-path> [--section <n>] --out <report file>`.
+  --target <folder> --packet <packet-path> [--section <n>] [--changed <run directory>/changed.txt]
+  --out <report file>`. Pass `--changed` under diff scope.
 - Brief with absolute worktree root, target, one packet path, schema path, repo profile path,
   report path, recorded scope, and `report only`. Forward existing evidence and, for
   architecture, supplied rationale and design goals.

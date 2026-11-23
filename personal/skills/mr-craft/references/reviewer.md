@@ -18,8 +18,8 @@ Your briefing carries five things plus the instruction "report only":
 
 The briefing carries the absolute worktree root and whole-target or diff scope, with fixed
 base/head commits for a branch or PR. Keep the skeleton's first-line identity comment
-(`<!-- mr-craft-report: … -->`) unchanged. Follow the schema's diff boundary while reading
-the same consumed contracts.
+(`<!-- mr-craft-report: … -->`) unchanged. Under diff scope, read changed files, owners of
+changed templates and stylesheets, and their direct dependencies.
 
 It may also carry evidence inline, such as a usage audit. Cite its counts in your rows;
 without it, count in-repo consumers yourself and say in the row that the count is yours.
@@ -41,12 +41,13 @@ coverage against that section.
 ## Working rule
 
 Read the schema and the packet in full before any code, then read the review scope in full as
-the schema's "Review scope" defines it. The skeleton's `## Files reviewed` list is starting
-evidence, not a ceiling: add any in-scope file it missed with its reason. Every file left in
-it is one you opened and read (a `contract only` file at least for the API the target uses); a
-listed file you have not read means the review is incomplete, so read it rather than remove it.
-Resolve each
-`<!-- unresolved: … -->` entry by adding the file or deleting the entry when the file is out of
+the schema's "Review scope" defines it. Under diff scope, the list contains changed files,
+their target owners, and direct dependencies of both. Add a deeper file only when a row cites
+it. The skeleton's `## Files reviewed` list is starting evidence, not a ceiling: add any in-scope file it missed
+with its reason. Every file left in it is one you opened and read (a `contract only` file at
+least for the API the target uses); a listed file you have not read means the review is
+incomplete, so read it rather than remove it. Resolve each `<!-- unresolved: … -->` entry by
+adding the file or deleting the entry when the file is out of
 scope; none may remain. Work probe by probe in the packet's order, producing one row per probe
 id. Resolve each role and topic through the repo profile, read the relevant source section
 instead of answering from memory, and cite `file:line` plus that source on every

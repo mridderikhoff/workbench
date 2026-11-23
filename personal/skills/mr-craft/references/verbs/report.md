@@ -14,8 +14,10 @@ hard rules.
    clarification. For PRs, record `baseRefOid` and `headRefOid`; for branches, record the
    supplied base or merge base and initial head. Use `git diff --name-status --find-renames
    <base>...<head>` limited to supported projects. Keep old rename paths and map changed
-   `.ts`, `.html`, `.css`, and `.scss` files by feature folder. Give every reviewer the same
-   scope. A bare path has whole-target scope. A named component resolves to an exact folder
+   `.ts`, `.html`, `.css`, `.scss`, and `.sass` files by feature folder. Give every reviewer the same
+   scope. Write `<run directory>/changed.txt` once with one repo-relative new path per line
+   from that diff (including renamed files' new paths; omit deleted files). Use it for every
+   diff-scoped skeleton. A bare path has whole-target scope. A named component resolves to an exact folder
    name among supported targets; ask if several match. If a PR has no changed source files
    in supported projects, report that and stop before assigning packets.
 2. **Pick the packets.** The user's list wins. Otherwise use `angular`, `performance`,
@@ -51,7 +53,10 @@ hard rules.
    For a PR, prefix report filenames with `<folder-slug>--`, including section or child
    suffixes when used. Retain separate round files when refining. Before each spawn,
    generate its report file with the skeleton command in
-   [`SKILL.md`](../../SKILL.md) → Spawning the reviewer.
+   [`SKILL.md`](../../SKILL.md) → Spawning the reviewer. Pass
+   `--changed <run directory>/changed.txt` for a branch or PR. Under diff scope, skip a
+   packet or angular section whose skeleton would have no reviewed files. A spec-only change
+   goes to `angular` §6 or an unsplit `angular` reviewer. Record each skip in the hand-off.
 
    Use the host's supported delegation tools and concurrency limit. Batch only as the
    hard rules allow, keeping one report per packet and scope. Associate each planned
@@ -84,8 +89,8 @@ hard rules.
    host's terminal outcomes as well; use the existing findings and apply ledger for concerns,
    with no parallel status document or extra reviewer.
 
-   Check that `## Files reviewed` includes every direct first-party import outside the
-   target folder. Resolve relative imports and package aliases with the repo profile and
+   Check that `## Files reviewed` includes every direct first-party import from the listed
+   target files. Resolve relative imports and package aliases with the repo profile and
    skeleton metadata. A listed path establishes scope. Evidence of actual review and coverage
    beyond the first hop require reviewer judgment.
 

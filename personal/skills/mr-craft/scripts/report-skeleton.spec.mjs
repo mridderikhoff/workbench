@@ -18,6 +18,12 @@ function skeleton(packet = 'correctness', section) {
   return buildSkeleton({ '--target': target, '--packet': packet, '--section': section }, { root: fixtureRoot, packetFile }).output;
 }
 
+function changedFile(paths) {
+  const file = path.join(mkdtempSync(path.join(os.tmpdir(), 'changed-')), 'changed.txt');
+  writeFileSync(file, `${paths.join('\n')}\n`);
+  return file;
+}
+
 test('follows relative imports, barrels, aliases and dynamic imports', () => {
   const report = skeleton();
   assert.match(report, /`libs\/helpers\/src\/lib\/barrel\/index\.ts` — consumed via .*hint\.ts/);
@@ -25,6 +31,45 @@ test('follows relative imports, barrels, aliases and dynamic imports', () => {
   assert.match(report, /`libs\/helpers\/src\/index\.ts` — consumed via .*hint\.ts \(@sample\/helpers\)/);
   assert.match(report, /`libs\/helpers\/src\/lib\/shared\.ts` — consumed via .*helpers\/src\/index\.ts/);
   assert.match(report, /`libs\/helpers\/src\/lib\/lazy\.ts` — consumed via .*hint\.ts/);
+});
+
+test('diff scope enqueues only changed target files and their direct dependencies', () => {
+  const report = buildSkeleton({ '--target': target, '--packet': 'correctness', '--changed': changedFile(['', hint]) }, { root: fixtureRoot, packetFile }).output;
+  assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.ts` — changed/);
+  assert.match(report, /`libs\/helpers\/src\/lib\/barrel\/index\.ts` — consumed via .*hint\.ts/);
+  assert.doesNotMatch(report, /`libs\/widgets\/src\/lib\/hint\/extra\.css`/);
+  assert.doesNotMatch(report, /`libs\/helpers\/src\/lib\/value\.ts`/);
+  assert.doesNotMatch(report, /`libs\/tools\/src\/utility\.ts`/);
+});
+
+test('diff scope follows Sass only one level and retains changed reason on a dependency', () => {
+  const report = buildSkeleton({ '--target': target, '--packet': 'correctness', '--changed': changedFile([hint, `${target}/hint.scss`, 'libs/helpers/src/index.ts']) }, { root: fixtureRoot, packetFile }).output;
+  assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.scss` — changed/);
+  assert.match(report, /`libs\/helpers\/src\/index\.ts` — changed/);
+  assert.match(report, /`libs\/helpers\/src\/lib\/_colors\.scss` — consumed via .*hint\.scss/);
+  assert.doesNotMatch(report, /`libs\/helpers\/src\/lib\/_palette\.scss`/);
+  assert.doesNotMatch(report, /`libs\/helpers\/src\/lib\/shared\.ts`/);
+});
+
+test('diff scope reports when this packet reviews no changed target files', () => {
+  const script = path.join(directory, 'report-skeleton.mjs');
+  const result = spawnSync(process.execPath, [script, '--root', fixtureRoot, '--target', target, '--packet', 'correctness', '--changed', changedFile([`${target}/hint.spec.ts`])], { cwd: directory, encoding: 'utf8' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /No changed files this packet reviews in libs\/widgets\/src\/lib\/hint\./);
+  assert.doesNotMatch(result.stderr, /Usage:/);
+});
+
+test('diff scope normalizes dot and backslash paths', () => {
+  const report = buildSkeleton({ '--target': target, '--packet': 'correctness', '--changed': changedFile([`./${hint.replaceAll('/', '\\')}`]) }, { root: fixtureRoot, packetFile }).output;
+  assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.ts` — changed/);
+});
+
+test('changed template seeds its owner and the owner’s direct references', () => {
+  const report = buildSkeleton({ '--target': target, '--packet': 'correctness', '--changed': changedFile([`${target}/hint.html`]) }, { root: fixtureRoot, packetFile }).output;
+  assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.html` — changed/);
+  assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.ts` — owner of libs\/widgets\/src\/lib\/hint\/hint\.html/);
+  assert.match(report, /`libs\/helpers\/src\/lib\/barrel\/index\.ts` — consumed via .*hint\.ts/);
+  assert.doesNotMatch(report, /`libs\/helpers\/src\/lib\/value\.ts`/);
 });
 
 test('resolves workspace package roots and subpath exports without expanding components', () => {
@@ -173,6 +218,18 @@ test('CLI accepts --root and resolves packet names from the skill', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^<!-- mr-craft-report: {"packet":"angular","section":"1"} -->/);
   assert.match(result.stdout, /## Coverage: 0 of \d+ probes examined/);
+});
+
+test('CLI accepts --changed and rejects a missing changed-file argument', () => {
+  const script = path.join(directory, 'report-skeleton.mjs');
+  const args = [script, '--root', fixtureRoot, '--target', target, '--packet', 'correctness'];
+  const result = spawnSync(process.execPath, [...args, '--changed', changedFile([hint])], { cwd: directory, encoding: 'utf8' });
+  const missing = spawnSync(process.execPath, [...args, '--changed'], { cwd: directory, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /`libs\/widgets\/src\/lib\/hint\/hint\.ts` — changed/);
+  assert.doesNotMatch(result.stdout, /`libs\/helpers\/src\/lib\/value\.ts`/);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /Invalid argument: --changed/);
 });
 
 test('explicit --tsconfig overrides nearest config', () => {

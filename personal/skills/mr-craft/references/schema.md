@@ -6,7 +6,8 @@ Packets add probes, never classification rules of their own.
 
 ## Review scope
 
-A review covers the target and the files it consumes.
+A whole-target review covers the target and the files it consumes. Diff scope narrows this
+under "Diff-scoped targets" below.
 
 - **Consumed files.** The target folder plus every first-party file it imports or references,
   followed transitively: `_internal/*`, shared services, stores, helpers, types, templates, and
@@ -38,15 +39,18 @@ After its metadata header, the report lists one line per first-party file in sco
 - `<repo-relative path>` — <reason>
 ```
 
-`<reason>` is `target`, `consumed via <importer>`, `contract only`, or `lazy boundary`. A file
-reached through a path alias names the alias, as in `consumed via <importer> (@workspace/forms)`.
+`<reason>` is `target` (or `changed` under diff scope), `owner of <changed repo-relative path>`,
+`consumed via <importer>`, `contract only`, or `lazy boundary`. A file reached through a path
+alias names the alias, as in `consumed via <importer> (@workspace/forms)`.
 Third-party packages are not listed.
 
 ### Diff-scoped targets
 
 An explicitly named branch or PR limits findings and edits to its recorded diff and the
-contracts directly affected by those changes. Read the full consumed-file scope above for
-context; reading a file does not authorize unrelated cleanup in it. Rename detection preserves
+contracts directly affected by those changes. The review scope is changed files, the target
+TypeScript owners of changed templates or stylesheets, and each of their direct dependencies.
+Deeper consumed files may be opened to confirm a finding but are not required reading or
+listed unless cited. Reading a file does not authorize unrelated cleanup in it. Rename detection preserves
 the distinction between moved code and changed behavior. A pre-existing issue unrelated to the
 diff goes under `## Outside this review's scope`, never into an apply row. New files and direct
 dependencies changed by an authorized review fix join the scope on re-review. An explicitly

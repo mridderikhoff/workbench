@@ -8,7 +8,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const prefixes = {
   angular: 'craft', performance: 'perf', correctness: 'correct', architecture: 'architecture',
 };
-const usage = 'Usage: node <skill-dir>/scripts/report-skeleton.mjs [--root <dir>] [--tsconfig <file>] --target <folder> --packet <name|path> [--section <n>] [--out <file>]';
+const usage = 'Usage: node <skill-dir>/scripts/report-skeleton.mjs [--root <dir>] [--tsconfig <file>] --target <folder> --packet <name|path> [--section <n>] [--changed <file>] [--out <file>]';
 
 function defaultRoot() {
   try { return execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
@@ -39,7 +39,7 @@ function parseArguments(argumentsList) {
   for (let index = 0; index < argumentsList.length; index += 2) {
     const key = argumentsList[index];
     const value = argumentsList[index + 1];
-    if (!['--root', '--tsconfig', '--target', '--packet', '--section', '--out'].includes(key) || !value || value.startsWith('--')) fail(`Invalid argument: ${key ?? '(missing)'}`);
+    if (!['--root', '--tsconfig', '--target', '--packet', '--section', '--changed', '--out'].includes(key) || !value || value.startsWith('--')) fail(`Invalid argument: ${key ?? '(missing)'}`);
     if (options[key]) fail(`Repeated argument: ${key}`);
     options[key] = value;
   }
@@ -264,6 +264,11 @@ function buildSkeleton(options, context = {}) {
   if (!name) fail(`Unknown packet: ${packet}`);
   if (section && name !== 'angular') fail('--section requires angular.');
   const includeSpecs = name === 'angular' && (!section || section === '6');
+  const changed = options['--changed']
+    ? new Set(readFileSync(options['--changed'], 'utf8').split(/\r?\n/)
+      .map((file) => path.posix.normalize(file.trim().replaceAll('\\', '/').replace(/^(?:\.\/)+/, '')))
+      .filter((file) => file !== '.'))
+    : null;
   const tsconfig = context.tsconfig ?? (options['--tsconfig'] ? path.resolve(root, options['--tsconfig']) : nearestTsconfig(root, target));
   const paths = tsconfig ? readTsconfig(tsconfig).paths : {};
   const packages = workspacePackages(root);
@@ -276,16 +281,36 @@ function buildSkeleton(options, context = {}) {
   const targetComponent = isInside(components, target) ? path.relative(components, target).split(path.sep)[0] : null;
 
   function enqueue(file, reason, packageContractOnly = false) {
-    if (!isInside(root, file) || (!includeSpecs && file.endsWith('.spec.ts')) || reviewed.has(file)) return;
+    if (!isInside(root, file) || (!includeSpecs && file.endsWith('.spec.ts'))) return;
+    if (reviewed.has(file)) {
+      if (changed?.has(relativePath(root, file)) && !reviewed.get(file).startsWith('contract only')) reviewed.set(file, 'changed');
+      return;
+    }
     const relativeComponent = path.relative(components, file);
     const component = isInside(components, file) ? relativeComponent.split(path.sep)[0] : null;
     const contractOnly = packageContractOnly || (!isInside(target, file) && component && component !== '_internal' && component !== targetComponent);
-    reviewed.set(file, contractOnly ? `contract only${packageContractOnly ? reason : ''}` : reason);
+    reviewed.set(file, contractOnly ? `contract only${packageContractOnly ? reason : ''}` : changed?.has(relativePath(root, file)) ? 'changed' : reason);
     if (!contractOnly) queue.push(file);
   }
 
-  for (const file of listFiles(target)) enqueue(file, 'target');
-  for (let index = 0; index < queue.length; index++) {
+  const targetFiles = listFiles(target);
+  for (const file of targetFiles) {
+    if (!changed || changed.has(relativePath(root, file))) enqueue(file, changed ? 'changed' : 'target');
+  }
+  if (changed && queue.length === 0) throw new Error(`No changed files this packet reviews in ${relativePath(root, target)}.`);
+  if (changed) {
+    for (const file of targetFiles.filter((candidate) => /\.(?:[cm]?ts|tsx)$/.test(candidate) && !candidate.endsWith('.spec.ts'))) {
+      for (const specifier of references(file)) {
+        const ownerOf = resolveReference(root, file, specifier, paths, packages).file;
+        if (ownerOf && /\.(?:html|css|scss|sass)$/.test(ownerOf) && changed.has(relativePath(root, ownerOf))) {
+          enqueue(file, `owner of ${relativePath(root, ownerOf)}`);
+          break;
+        }
+      }
+    }
+  }
+  const directImporters = queue.length;
+  for (let index = 0; index < (changed ? directImporters : queue.length); index++) {
     const importer = queue[index];
     if (!/\.(?:[cm]?js|tsx?|jsx?|s[ac]ss|css)$/.test(importer)) continue;
     for (const specifier of references(importer)) {

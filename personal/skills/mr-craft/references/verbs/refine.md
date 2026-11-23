@@ -30,10 +30,12 @@ hand-off.
 0. **Provision** per the [`SKILL.md`](../../SKILL.md) hard rules. Write the run
    directory repo profile before anyone starts and brief its path every time.
    Resolve and record whole-target or diff scope under [report.md](report.md) step 1 before
-   gathering evidence or spawning reviewers; forward it to every writer and reviewer.
-1. **Gather evidence.** A read-only explorer reads the target, the files it consumes
-   ([`schema.md`](../schema.md) → Review scope), and applicable repo profile rule sources. For
-   published components, gather known uses and consumer CSS overrides, public exports and
+   gathering evidence or spawning reviewers; forward it to every writer and reviewer. Pass
+   `--changed <run directory>/changed.txt` to each diff-scoped skeleton.
+1. **Gather evidence.** A read-only explorer reads the target and its consumed files under
+   whole-target scope; under diff scope, it reads changed files, their target owners, and
+   direct dependencies ([`schema.md`](../schema.md) → Review scope). Read applicable repo
+   profile rule sources. For published components, gather known uses and consumer CSS overrides, public exports and
    tracking shapes, documented API and design decisions, and state coverage in
    any relevant documentation and browser tests named in the repo profile. Forward existing rationale and
    named abstractions to architecture. The orchestrator forwards the conclusions and pointers; it does not judge the packet or code.
@@ -116,10 +118,14 @@ hand-off.
    **returned** row goes to its reviewer for reclassification, as above, and joins the apply step
    again only under its new class.
 5. **Re-review.** After a writer changes a file, including a mandated edit and its test,
-   re-review only the packets whose `## Files reviewed` files changed since that packet's last
-   table. Record `HEAD` when each packet's table is written, then compare that commit with the
+   under diff scope append every path a writer modified, added, or renamed to (new path) to
+   `<run directory>/changed.txt` and regenerate affected packets' skeletons before selecting
+   re-reviews. Re-review a packet when a changed file appears in its earlier or regenerated
+   `## Files reviewed` list, or when that list imports it directly. A deeper edit is in scope
+   only because a row cited its file, which put the file on that packet's list.
+   Record `HEAD` when each packet's table is written, then compare that commit with the
    working tree: `git diff --name-only <that commit>` plus `git ls-files --others
-   --exclude-standard -- <target>`, against the list. Any new file inside the target affects
+   --exclude-standard -- <target>`, against both lists. Any new file inside the target affects
    every packet. An unaffected packet keeps its last table and coverage, and the hand-off names
    the packets that kept earlier tables. An applied **mandated** or **default** row or
    architecture concern that changes rendering or keyboard or focus behaviour gets step 3's
@@ -130,12 +136,15 @@ hand-off.
    row adds code (a helper, wrapper, member, element, or branch), the re-review also runs the
    `angular` subtraction section against that added code, so a refine edit never lands
    code the next pass would delete. Intermediate re-reviews may resume the original reviewer
-   to check its applied rows, and cover only the diff since that packet's recorded `HEAD`;
-   the last round of each packet in each phase is a fresh reviewer
-   spawn with no prior table, briefed like an initial review on the current tree, never asked
-   to confirm earlier rows or to report only rows that still carry a class. Stop each phase
-   after three write/re-review rounds, the third being that fresh pass, and report its
-   remaining **fix**, **mandated**, and **default** rows. The orchestrator commits completed
+   to check its applied rows, and cover only the diff since that packet's recorded `HEAD`.
+   Once any round of a packet in a phase applies a **fix**, **mandated**, or **default** row, or an
+   architecture concern, that packet ends only after a fresh reviewer pass on the current
+   tree, or at the three-round cap. Spawn that reviewer with no prior table and brief it like
+   an initial review, not a check of earlier rows. A resumed or diff-only re-review with no
+   rows still proceeds to the fresh pass. Name a packet "ended clean at round N" only if no
+   such row was ever applied in that phase, or the fresh pass returned none. Stop each phase
+   after three write/re-review rounds; when a fresh pass is owed, round 3 is that pass.
+   Report its remaining **fix**, **mandated**, and **default** rows. The orchestrator commits completed
    changes in the feature worktree at step 7's checkpoint and before hand-off.
 6. **Settle architecture decisions.** Escalate the architecture **decide** concerns through
    the host's question capability and wait. Format and order them as
