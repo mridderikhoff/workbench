@@ -130,7 +130,8 @@ hand-off.
    row adds code (a helper, wrapper, member, element, or branch), the re-review also runs the
    `angular` subtraction section against that added code, so a refine edit never lands
    code the next pass would delete. Intermediate re-reviews may resume the original reviewer
-   to check its applied rows; the last round of each packet in each phase is a fresh reviewer
+   to check its applied rows, and cover only the diff since that packet's recorded `HEAD`;
+   the last round of each packet in each phase is a fresh reviewer
    spawn with no prior table, briefed like an initial review on the current tree, never asked
    to confirm earlier rows or to report only rows that still carry a class. Stop each phase
    after three write/re-review rounds, the third being that fresh pass, and report its
