@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +52,7 @@ test('workspace package scan skips nested worktrees and malformed manifests and 
 });
 
 test('git-backed package scan ignores nested worktree entries', () => {
-  const bin = mkdtempSync('/tmp/codex-craft-skill-fix.9269VM/fake-git-');
+  const bin = mkdtempSync(path.join(os.tmpdir(), 'fake-git-'));
   writeFileSync(path.join(bin, 'git'), `#!/usr/bin/env node
 process.stdout.write('.claude/worktrees/foreign/libs/tools/package.json\\0libs/tools/package.json\\0');
 `, { mode: 0o755 });
@@ -197,7 +198,7 @@ test('accepts an explicit packet path', () => {
 });
 
 test('relative tsconfig extends arrays merge aliases and preserve each baseUrl', () => {
-  const project = mkdtempSync('/tmp/codex-craft-skill-fix.9269VM/tsconfig-');
+  const project = mkdtempSync(path.join(os.tmpdir(), 'tsconfig-'));
   for (const folder of ['src/feature', 'other-src']) mkdirSync(path.join(project, folder), { recursive: true });
   writeFileSync(path.join(project, 'src/feature/entry.ts'), "import '@base'; import '@mid'; import '@other'; import '@shared'; import '@leaf';\n");
   for (const name of ['base', 'mid', 'other', 'overridden']) writeFileSync(path.join(project, `src/${name}.ts`), `export const ${name} = true;\n`);
@@ -213,7 +214,7 @@ test('relative tsconfig extends arrays merge aliases and preserve each baseUrl',
 });
 
 test('tsconfig extends cycle fails with a useful error', () => {
-  const project = mkdtempSync('/tmp/codex-craft-skill-fix.9269VM/tsconfig-cycle-');
+  const project = mkdtempSync(path.join(os.tmpdir(), 'tsconfig-cycle-'));
   mkdirSync(path.join(project, 'src'), { recursive: true });
   writeFileSync(path.join(project, 'src/entry.ts'), 'export const entry = true;\n');
   writeFileSync(path.join(project, 'one.json'), JSON.stringify({ extends: './two.json' }));

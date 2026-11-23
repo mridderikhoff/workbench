@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -26,14 +27,14 @@ test('accepts complete coverage with an open finding', () => {
 });
 
 test('reads numbered section probes from the canonical packet file', () => {
-  const folder = mkdtempSync(path.join('/tmp/codex-craft-skill-fix.9269VM', 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
   const file = path.join(folder, 'report.md');
   writeFileSync(file, report(completeRows));
   assert.deepEqual(checkReportFile(file, { root, packetFile }), []);
 });
 
 test('checks a completed architecture report against its packet probes', () => {
-  const folder = mkdtempSync(path.join('/tmp/codex-craft-skill-fix.9269VM', 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
   const file = path.join(folder, 'report.md');
   const rows = [
     '| `architecture-7.1` | no findings — constructor inspected | | none |',
@@ -45,7 +46,7 @@ test('checks a completed architecture report against its packet probes', () => {
 
 test('reports a missing file and malformed metadata', () => {
   assert.deepEqual(checkReportFile('/no/such/report.md', { root, packetFile }), ['report is missing or unreadable']);
-  const folder = mkdtempSync(path.join('/tmp/codex-craft-skill-fix.9269VM', 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
   const file = path.join(folder, 'report.md');
   writeFileSync(file, report(completeRows, '2 of 2', '{bad json}'));
   assert.deepEqual(checkReportFile(file, { root, packetFile }), ['malformed report metadata JSON']);
@@ -100,7 +101,7 @@ test('rejects an inaccurate Coverage claim', () => {
 });
 
 test('CLI reports batch success in one line and failures per report', () => {
-  const folder = mkdtempSync(path.join('/tmp/codex-craft-skill-fix.9269VM', 'craft-report-'));
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'craft-report-'));
   const first = path.join(folder, 'first.md');
   const second = path.join(folder, 'second.md');
   const canonical = packetProbes('angular', '1', path.join(directory, '../references/packets/angular.md'));
