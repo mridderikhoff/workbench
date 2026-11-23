@@ -167,5 +167,20 @@
         "relationship": "derived; repo-neutral fork"
       }
     ]
+  },
+  {
+    "name": "pr-babysitter",
+    "source": "https://github.com/copperleaftech/cl-system/pull/4634",
+    "clients": [
+      "claude",
+      "agents",
+      "codex"
+    ],
+    "upstream": {
+      "repository": "https://github.com/copperleaftech/cl-system",
+      "path": ".agents/skills/pr-babysitter",
+      "ref": "CL-184-PrBabysitter",
+      "relationship": "repo-agnostic fork of the cl-system and cl-strategy pr-babysitter skills"
+    }
   }
 ]
