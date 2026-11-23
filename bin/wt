@@ -1144,8 +1144,9 @@ serve_write_unit() {
     else rm -f -- "$script_temp"; fi
     exec_start="/usr/bin/env bash -l ${script//%/%%}"
     if [ "$(profile "$source_root" nxSharedCache)" = true ] && [ "${WT_NX_SHARED_CACHE:-1}" = 1 ]; then
+      # Long-running serves keep Nx workspace data per tree: a shared one makes a
+      # second tree's serve wait forever on the first tree's running task.
       cache_env="Environment=NX_CACHE_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/cache
-Environment=NX_WORKSPACE_DATA_DIRECTORY=$HOME/.cache/wt-nx/$(basename "$main")/data
 "
     fi
   else

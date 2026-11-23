@@ -184,7 +184,7 @@ command_script="$S/state/wt-serve/command-6-system-docs.sh"
 grep -Fqx "WorkingDirectory=$docs_tree/." "$unit" || fail 'profile unit working directory wrong'
 grep -Fq "bash $S/profiles/cl-system/serve-docs.sh --port 5236" "$command_script" || fail 'profileDir did not expand in command script'
 grep -Fq "NX_CACHE_DIRECTORY=$S/home/.cache/wt-nx/cl-system/cache" "$unit" || fail 'shared Nx cache missing'
-grep -Fq "NX_WORKSPACE_DATA_DIRECTORY=$S/home/.cache/wt-nx/cl-system/data" "$unit" || fail 'shared Nx data directory missing'
+! grep -Fq 'NX_WORKSPACE_DATA_DIRECTORY' "$unit" || fail 'serve unit must keep Nx workspace data per tree'
 grep -Fqx 'repo=cl-system' "$record" || fail 'slot record lost repo'
 
 # Direct gates resolve the profile from a nested cwd and pass through status and output.
