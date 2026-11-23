@@ -15,7 +15,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HOME = os.path.expanduser("~")
 WT = os.environ.get("QA_DASHBOARD_WT") or os.path.join(HOME, ".claude", "bin", "wt")
 CACHE_SECONDS = 3
-TIMEOUT_SECONDS = 15
+# wt status can take 15-20s while other sessions build or test on this machine.
+TIMEOUT_SECONDS = 45
 ACTION_TIMEOUT_SECONDS = 15 * 60
 ACTION_TAIL_LINES = 40
 BACKEND_ACTIONS = ("update", "heal", "ensure")
