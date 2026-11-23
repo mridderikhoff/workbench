@@ -51,7 +51,8 @@ specs. Prompts no longer need to repeat these rules.
    completion notifications, use them instead of a Monitor.
    In T3 Code, pass the Monitor's task ID to `t3_background_wait` before ending the
    turn, and again after each re-arm. Without it T3 shows the thread as done while
-   codex is still running. A PostToolUse hook on `Monitor` reminds you.
+   codex is still running. The same applies to `codex-run` started as a background Bash command. A PostToolUse
+   hook on `Monitor` and `Bash` reminds you.
 5. On `■ codex finished`, read `report.md`. If the line names `stderr:` or says
    `⚠ report empty`, also read `stderr.log`. `exited without writing exit-code`
    means the run died; read `stderr.log` and `run.log`.
