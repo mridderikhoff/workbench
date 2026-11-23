@@ -68,7 +68,7 @@ process.stdin.on("end", () => {
   const buildable = [...dependencies].filter(project => graph.nodes[project]?.data.targets?.build);
   console.log([data.root, data.targets?.lint ? "1" : "0", data.targets?.test ? "1" : "0",
     data.targets?.build?.options?.tsConfig || "", data.targets?.test?.options?.tsConfig || "",
-    buildable.join(",")].join("|"));
+    buildable.join(","), data.targets?.test?.executor || ""].join("|"));
 });
 ' "$project")"
 info_status=$?
@@ -79,7 +79,15 @@ elif (( info_status != 0 )); then
   echo 'Could not read the Nx project graph.' >&2
   exit 1
 fi
-IFS='|' read -r project_root has_lint has_test lib_config spec_config dependencies <<< "$project_info"
+IFS='|' read -r project_root has_lint has_test lib_config spec_config dependencies test_executor <<< "$project_info"
+
+# Karma takes the browser and coverage flags; Angular's Vitest runner rejects them.
+karma_test_flags=(--browsers=ChromeHeadlessCI)
+scoped_karma_flags=(--browsers=ChromeHeadlessCI --codeCoverage=false)
+if [[ "$test_executor" == "@angular/build:unit-test" ]]; then
+  karma_test_flags=()
+  scoped_karma_flags=()
+fi
 
 lint_files=()
 test_files=()
@@ -156,14 +164,14 @@ elif [[ "$mode" == scoped ]]; then
   if [[ "$has_test" == 1 && ${#test_files[@]} -gt 0 ]]; then
     test_args=()
     for spec in "${test_files[@]}"; do test_args+=("--include=$spec"); done
-    run_gate test env CI=true pnpm exec nx test "$project" --watch=false --browsers=ChromeHeadlessCI --codeCoverage=false "${test_args[@]}"
+    run_gate test env CI=true pnpm exec nx test "$project" --watch=false "${scoped_karma_flags[@]}" "${test_args[@]}"
   else
     skip_gate test
   fi
 else
   if [[ "$has_lint" == 1 ]]; then run_gate lint pnpm exec nx lint "$project"; else skip_gate lint; fi
   if [[ "$has_test" == 1 ]]; then
-    run_gate test env CI=true pnpm exec nx test "$project" --watch=false --browsers=ChromeHeadlessCI
+    run_gate test env CI=true pnpm exec nx test "$project" --watch=false "${karma_test_flags[@]}"
   else
     skip_gate test
   fi
