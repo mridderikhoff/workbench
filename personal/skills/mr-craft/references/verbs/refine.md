@@ -123,7 +123,8 @@ hand-off.
    every packet. An unaffected packet keeps its last table and coverage, and the hand-off names
    the packets that kept earlier tables. An applied **mandated** or **default** row or
    architecture concern that changes rendering or keyboard or focus behaviour gets step 3's
-   runtime check after the edit. When that check cannot run, the edit stays applied and
+   runtime check after its batch; one check covers every such row in the batch. When that
+   check cannot run, the edit stays applied and
    committed, and its row is reported as "applied — unverified", never as verified. The final
    report describes the edited tree. The writer never reviews its own edits. When an applied
    row adds code (a helper, wrapper, member, element, or branch), the re-review also runs the
@@ -141,8 +142,9 @@ hand-off.
    are settled and the rest as each is. An answer is authorization to apply it in phase 1:
    the orchestrator returns it to the architecture reviewer, which restates the row with the
    chosen option as its Action, its class, and the regression test that class requires; a
-   writer applies it under step 4, and architecture is re-reviewed under step 5, with up to
-   three write/re-review rounds of its own, separate from step 5's phase cap. A deferred
+   writer applies it under step 4, and architecture is re-reviewed under step 5. These rounds
+   count toward step 5's three-round phase cap; answered decisions join the next open round
+   rather than starting their own. A deferred
    decision, and any architecture **decide** concern a later re-review raises, is recorded and
    returns in the hand-off. With no architecture **decide** concern, ask nothing and continue
    to phase 2 without waiting. Phase 1 ends here.

@@ -38,7 +38,7 @@ hard rules.
    to `architecture`, writing `architecture.md` for a path target. Architecture may inspect
    bounded related code to assess design across abstractions.
    A small target is one component or directive family folder with at most 8 non-spec source
-   files (`.ts`, `.html`, `.scss`); it gets one
+   files (`.ts`, `.html`, `.scss`), counting only changed files under diff scope; it gets one
    [`angular`](../packets/angular.md) reviewer for the whole packet, writing
    `angular.md`. For a larger or sharded target,
    [`angular`](../packets/angular.md) is split by its numbered top-level
