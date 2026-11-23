@@ -6,7 +6,7 @@ description: Install, set up, open, start or repair Overseer, the local QA statu
 # Overseer
 
 The person using this uses the Overseer page and you. You own installation, startup, verification and
-recovery; never hand them commands or ask them to start a server. Ask only for what needs them (admin
+repair; never hand them commands or ask them to start a server. Ask only for what needs them (admin
 password, sign-in, access).
 
 ## Find the docs

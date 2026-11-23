@@ -151,10 +151,10 @@ check("an app start while another action runs gets 409 with the running action",
 
 sessions = dashboard.slot_sessions(FakeSource({"slots": [
     {"slot": 3, "branch": "t3code/chart", "apps": [{"app": "ri"}, {"app": "ds-demo"}]},
-    {"slot": 4, "branch": "saved/one", "apps": [{"app": "ri"}], "recovery": {"fingerprint": "x"}},
+    {"slot": 4, "branch": "stopped/one", "apps": [{"app": "ri"}]},
     {"slot": "5", "branch": "odd/slot", "apps": []}]}))
-check("live sessions map to their slot and running apps; saved sessions and bad slots are left out",
-      sessions == {"t3code/chart": (3, {"ri", "ds-demo"})})
+check("sessions map to their slot and running apps; bad slots are left out",
+      sessions == {"t3code/chart": (3, {"ri", "ds-demo"}), "stopped/one": (4, {"ri"})})
 real = dashboard.ActionRunner(wt="/bin/true")
 real.start("start", ["serve", "t3code/chart", "ri"], target="t3code/chart", app="ri")
 snapshot = real.snapshot()

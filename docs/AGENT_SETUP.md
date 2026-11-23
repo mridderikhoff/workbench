@@ -114,10 +114,9 @@ Claude Code `~/.claude/skills/overseer`, Codex `~/.agents/skills/overseer`. Crea
 link only if nothing exists there; if the path exists with a different target, keep it and report that.
 Do not claim other clients discover it automatically.
 
-## 7. Recovery
+## 7. Repair after a restart
 
-- After a reboot or sign-out, check the Overseer page; if it is down, rerun step 4. Its **Resume** action
-  restarts saved sessions ([SESSION_RECOVERY.md](SESSION_RECOVERY.md)). No terminal needs to stay open.
+- After a reboot or sign-out, check the Overseer page; if it is down, rerun step 4. Restart stopped task frontends with `wt serve <branch>`. No terminal needs to stay open.
 - Backend or one service down: use the `overseer` skill and the [README agent reference](../README.md#agent-reference).
   Refusals (foreign process, unknown owner, wrong QA tree, held lock) are information: report the cause,
   do not bypass them.

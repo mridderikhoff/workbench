@@ -20,7 +20,6 @@ TIMEOUT_SECONDS = 45
 ACTION_TIMEOUT_SECONDS = 15 * 60
 ACTION_TAIL_LINES = 40
 BACKEND_ACTIONS = ("update", "heal", "ensure")
-RECOVERY_ACTIONS = ("resume", "forget")
 # The apps `wt serve` accepts. Slots 6-9 serve ds-demo only.
 KNOWN_APPS = ("ds-demo", "ri", "strategy")
 
@@ -34,7 +33,6 @@ def managed_apps(value=None):
         if name in KNOWN_APPS and name not in out:
             out.append(name)
     return tuple(out)
-RECOVERY_FINGERPRINT = re.compile(r"[0-9a-f]{16}")
 
 HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -485,27 +483,6 @@ background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:
 .settings .done:hover:not(:disabled),.confirm-actions button:hover:not(:disabled){transform:translateY(-1px)}
 .settings .done:active,.confirm-actions button:active{transform:translateY(4px);box-shadow:inset 0 1px 0 var(--btn-hi),0 0 0 var(--btn-edge),0 1px 2px var(--contact)}
 .settings .done:focus-visible,.confirm-actions button:focus-visible{box-shadow:var(--ring),inset 0 1px 0 var(--btn-hi),0 4px 0 var(--btn-edge)}
-.recovery{margin:14px 0 22px;padding:0 0 16px;border-bottom:1px dashed var(--edge-lo2)}
-.recovery[hidden]{display:none}
-.recovery h2{margin:0 0 4px;font:700 20px/1.2 var(--serif);letter-spacing:var(--head-spacing);font-variant:var(--head-variant);text-transform:var(--head-case);color:var(--text);text-shadow:var(--emboss)}
-.recovery p{margin:0}
-.recovery-list{min-width:0;margin:12px 0 0;padding:0;border:0}
-.recovery-list legend{padding:0;margin-bottom:6px;font-weight:600;font-size:14px;color:var(--muted)}
-.recovery-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px dashed var(--edge-lo2)}
-.recovery-row:first-child{border-top:0}
-.recovery-row label,.recovery-row .recovery-plain{display:grid;gap:2px;min-width:0;flex:1}
-.recovery-row input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
-.recovery-row .recovery-pad{flex:none;width:20px}
-.recovery-row .branch{font-weight:600;overflow-wrap:anywhere}
-.recovery-row .small{color:var(--muted)}
-.recovery-row .why{font-size:14px;color:var(--warn)}
-.recovery-actions{justify-content:flex-start;margin-top:10px}
-.recovery-actions button:disabled{opacity:.55;transform:translateY(3px);box-shadow:0 0 0 var(--btn-edge)}
-.recovery-status{margin-top:10px;display:flex;align-items:center;gap:6px;font-family:var(--sans,inherit)}
-.recovery-progress{margin-top:10px}
-.recovery-progress[hidden],.recovery-picker[hidden]{display:none}
-.recovery-progress .recovery-elapsed{margin-top:10px;color:var(--muted)}
-.recovery-progress .recovery-output{margin:8px 0 0;max-height:12em;overflow:auto;padding:10px 12px;background:var(--inset);box-shadow:var(--sunk);font:13px/1.5 var(--mono);color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
 .confirm-dialog{max-width:440px}
 /* Logs keep their lines and scroll sideways inside the backend card. */
 .output-log{display:block;width:100%;min-width:0;max-height:16em;overflow:auto;border:0;font:13px/1.5 var(--mono);white-space:pre;word-break:normal;overflow-wrap:normal;tab-size:4}
@@ -1403,7 +1380,7 @@ THEMES.y2k = (function () {
   var FROST = "var(--frost)";
   var FROST_EDGE = "inset 0 0 0 1px var(--frost-rim),inset 0 1px 0 var(--frost-hi),0 1px 2px var(--frost-drop)";
   // Keycaps: solid plastic caps with a printed legend; the switch shows through a clear window at one end.
-  var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn,.recovery-actions button)";
+  var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn)";
   // Keycaps stand proud of the shell like a Game Boy Advance's buttons: a domed top (a curved highlight, a darker lower half), a
   // side wall of the cap colour and a cast shadow, in a moulded well ringed by a lighter collar. cap(t) is the shadow stack for a
   // cap pushed t px down from fully proud: the wall and the shadow shrink as it sinks, and the well and collar are offset by -t,
@@ -1422,7 +1399,7 @@ THEMES.y2k = (function () {
   function latched(t) { var well = +(2 - t).toFixed(1) + "px"; return "inset 0 2px 4px var(--cap-shade),0 1px 2px var(--key-cast),0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 5.5px var(--key-collar)" }
   // The family, after the Switch backend pill: primary actions are wide pills, latching keys squarer rounded caps, and small
   // utilities slim capsules like START and SELECT, low in a shallow well.
-  var PILLS = ":is(.settings .done,.confirm-actions button,.backend .acts button.act,:is(.backend,.slot-backend) .update-btn,.recovery-actions button)";
+  var PILLS = ":is(.settings .done,.confirm-actions button,.backend .acts button.act,:is(.backend,.slot-backend) .update-btn)";
   var LATCHES = ":is(.slot-card button.icon:not(.stop),.settings .segmented label)";
   var UTILS = ":is(#settings-open,.backend .toggle,.backend button.act.svc-restart)";
   function util(t) {
@@ -1622,9 +1599,7 @@ THEMES.y2k = (function () {
       C + ' .backend .rollup.tone-warn:not(.tone-busy) .state{color:var(--lcd-warn)}',
       C + ' .backend .rollup:is(.tone-down,.tone-broken,.tone-attn):not(.tone-ok) .state{background:linear-gradient(125deg,rgba(255,255,255,.2),transparent 40%),var(--bad);color:var(--bad-ink);text-shadow:none;transform:none}',
       C + ' .backend-details{border-left:2px solid color-mix(in srgb,var(--text) 14%,transparent)}',
-      // The output log and the recovery output are the same LCD glass.
-      C + ' :is(.output-log,.recovery-progress .recovery-output){background:linear-gradient(125deg,rgba(255,255,255,.16),transparent 40%),var(--screen);color:var(--screen-ink);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 3px var(--surround),0 1px 0 3px rgba(255,255,255,.2)}',
-      C + ' .recovery-progress .recovery-output{margin:12px 4px 4px}',
+      C + ' .output-log{background:linear-gradient(125deg,rgba(255,255,255,.16),transparent 40%),var(--screen);color:var(--screen-ink);box-shadow:inset 0 2px 5px rgba(0,0,0,.4),0 0 0 3px var(--surround),0 1px 0 3px rgba(255,255,255,.2)}',
       /* --- keys: solid plastic caps standing proud of the shell, each in a moulded well; hover gently catches the light --- */
       C + ' ' + KEYS + '{border:0;border-radius:999px;color:var(--btn-ink);background:' + CAP + ';box-shadow:' + CAP_UP + ';transition:transform var(--dur-fast) var(--ease-out)}',
       C + ' ' + KEYS + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1px);box-shadow:' + CAP_HALF + '}',
@@ -1654,7 +1629,7 @@ THEMES.y2k = (function () {
       C + ' .slot-card :is(.app-pill,.app-start) .dot{display:none}',
       C + ' .slot-card .app-pill :is(.port,.since){font:700 13.5px/1.2 var(--mono);letter-spacing:0}',
       C + ' .slot-card .app-pill .build-failed{font-size:13.5px}',
-      C + ' :is(.backend,.slot-backend) .update-btn,' + C + ' .backend :is(.toggle,button.act:not(.quiet)),' + C + ' .settings .done,' + C + ' .confirm-actions button,' + C + ' .recovery-actions button{font-weight:800}',
+      C + ' :is(.backend,.slot-backend) .update-btn,' + C + ' .backend :is(.toggle,button.act:not(.quiet)),' + C + ' .settings .done,' + C + ' .confirm-actions button{font-weight:800}',
       C + ' :is(.bfx-text,.press-text){text-shadow:none}',
       C + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
       C + ' .confirm-actions .danger{--cap-frost:var(--danger);--cap-gloss:rgba(255,255,255,.4);--key-glow:rgba(255,120,120,.6);--key-led:#ffb3b3;color:var(--danger-ink)}',
@@ -1818,12 +1793,6 @@ THEMES.y2k = (function () {
         'box-shadow:inset 0 2px 4px rgba(0,0,0,.4),0 0 0 4px var(--surround),0 0 0 5px rgba(0,0,0,.4),0 1px 0 5px rgba(255,255,255,.18)}',
       C + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
       C + ' .slot-card .head-line span[style]{font-weight:700}',
-      // Saved sessions after a restart: a module of the same clear plastic over the board, its text on one frosted label.
-      C + ' .recovery{position:relative;isolation:isolate;margin:0 0 22px;padding:22px 24px 18px;border:0;border-radius:14px;background:none;box-shadow:0 1px 0 var(--shell-rim),0 2px 0 var(--shell-wall),0 7px 8px -3px var(--contact)}',
-      C + ' .recovery::before{content:"";position:absolute;inset:8px;z-index:-1;border-radius:8px;background:var(--pcb-module) -220px -40px/480px 220px;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55)}',
-      C + ' .recovery::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background:' + SPEC + ',' + TEXT + ',' + FILL + ';box-shadow:' + WALLS + ';' + SEAM + 'var(--seam-module)}',
-      C + ' .recovery-row{border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent)}',
-      C + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:10px;padding-top:16px}',
       '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' .slots>.card{padding:20px 14px 18px 46px}}',
       '@media (max-width:559px){' + C + ' .slot-card .app-pill{max-width:100%;flex-wrap:wrap;row-gap:1px}}',
       '@media (max-width:559px){' + C + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
@@ -2249,15 +2218,6 @@ THEMES.terminal = (function () {
         T + ' .slot-card .slot-backend .update-btn{min-height:36px;margin:0 0 3px}',
         T + ' .slot-card .slot-backend .update-btn.backend-here:disabled{opacity:1;transform:translateY(3px);color:var(--bl-ok);text-shadow:0 0 4px var(--bl-ok-glow);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 1.5px var(--collar);' +
           'background:radial-gradient(80% 90% at 50% 50%,color-mix(in srgb,var(--bl-ok-wash) 55%,transparent),transparent 78%),radial-gradient(120% 90% at 50% 30%,var(--cap-hi) 0,var(--btn-face) 72%)}',
-        // Saved sessions after a restart: a panel of the same moulded plastic as the sessions, above them in the case. Its
-        // progress output is the CRT's phosphor glass, like the backend log.
-        T + ' .recovery{position:relative;margin:4px 0 24px;padding:20px 22px 18px;border:0;border-radius:7px;--text:var(--panel-ink);--muted:var(--panel-muted);' +
-          'background:linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);outline:1px solid var(--groove);outline-offset:-6px;' +
-          'box-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 3px var(--contact)}',
-        T + ' .recovery-progress .recovery-output{padding:10px 13px;border-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--screen);color:var(--screen-ink);text-shadow:0 0 5px var(--screen-glow);' +
-          'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--mould-hi);margin:14px 6px 6px}',
-        T + ' .recovery-progress .recovery-elapsed{font:13px/1.3 var(--mono)}',
-        T + ' .recovery-actions{justify-content:flex-start;margin-top:14px;margin-bottom:12px;padding-top:16px}',
         // The commit display: a small screen in a thick bezel. The hash is green, the rest white, and uncommitted changes amber.
         T + ' .slot-card .head-line{justify-self:start;max-width:calc(100% - 12px);margin:6px;padding:6px 11px 5px;border-radius:3px;font:13px/1.35 var(--mono);color:var(--mfd-ink);--warn:var(--screen-warn);' +
           'background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 45%),var(--mfd-glass);text-shadow:0 0 4px var(--mfd-glow);' +
@@ -3213,10 +3173,8 @@ var QA_DESK=(function(){
 <div class="masthead-tools"><span id="updated">not loaded</span><button type="button" id="settings-open" class="icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"></button></div></div>
 <section id="radio" class="radio" aria-label="Radio" tabindex="-1"><div class="radio-obj" aria-hidden="true"><i class="plate"></i><i class="tube"></i><i class="fit a"></i><i class="fit b"></i><i class="static"></i></div><p class="radio-tag"><span class="radio-glyph"></span><span class="radio-subject">Status</span></p><p class="radio-line" aria-hidden="true"></p><p class="radio-said sr-only" role="status" aria-atomic="true"></p><div class="radio-foot"><span class="radio-meter" role="img" hidden></span><span class="radio-count" hidden></span><span class="radio-nav" hidden><button type="button" class="icon prev" data-radio="prev" aria-label="Previous message" title="Previous message"></button><button type="button" class="icon next" data-radio="next" aria-label="Next message" title="Next message"></button></span></div></section>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
-<main><section id="recovery" class="recovery" aria-labelledby="recovery-title" hidden><h2 id="recovery-title" tabindex="-1">Saved sessions are stopped</h2><div id="recovery-picker" class="recovery-picker"><p class="recovery-note">These sessions were saved before the last restart and are not running now.</p>
-<fieldset class="recovery-list"><legend>Resume these</legend><div id="recovery-rows"></div></fieldset>
-<div class="confirm-actions recovery-actions"><button type="button" id="recovery-resume" disabled>Resume sessions</button><button type="button" id="recovery-fresh">Clear saved sessions</button></div><p class="small">Clearing saved sessions forgets their records. It does not start the backend.</p></div><div id="recovery-progress" class="recovery-progress" role="status" aria-live="polite" aria-atomic="false" hidden><p id="recovery-description"></p><p id="recovery-elapsed" class="recovery-elapsed small"></p><pre id="recovery-output" class="recovery-output" aria-label="Latest recovery output"></pre></div><p id="recovery-status" class="recovery-status small" role="status" aria-live="polite" hidden></p></section>
-<h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span><span id="slot-gauge" class="slot-gauge" role="img" hidden></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
+
+<main><h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span><span id="slot-gauge" class="slot-gauge" role="img" hidden></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
@@ -3309,8 +3267,8 @@ function currentAction(){return data&&data.actions}
 function isRunning(){var a=currentAction();return!!(a&&a.state==="running")}
 function backendSwitching(){var a=currentAction();return!!(a&&a.state==="running"&&(a.action==="attach"||a.action==="update"))}
 var ACTION_LABELS={heal:["Heal","Healing&hellip;"],update:["Update to develop","Updating&hellip;"],ensure:["Start backend","Starting&hellip;"]};
-var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",start:"Start",attach:"Switch backend to",restart:"Restart",resume:"Resume sessions",forget:"Clear saved sessions"};
-function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target||a.action==="resume"||a.action==="forget"?"Session":"Backend"}
+var ACTION_VERBS={heal:"Heal",update:"Update",ensure:"Backend start",stop:"Stop",start:"Start",attach:"Switch backend to",restart:"Restart"};
+function actionSubject(a){return a.action==="restart"||a.action==="attach"?"Backend":a.target?"Session":"Backend"}
 function actionButton(name,idle,extra){
   var a=currentAction(),busy=isRunning()&&a.action===name,labels=ACTION_LABELS[name];
   var label=busy?labels[1]:(idle||labels[0]);
@@ -3532,7 +3490,7 @@ function appOrder(apps,order){
   return apps.map(function(a,i){return{a:a,i:i}}).sort(function(x,y){return rank(x.a)-rank(y.a)||x.i-y.i}).map(function(x){return x.a});
 }
 function startableApps(s){
-  if(!s.branch||s.recovery||String(s.branch).charAt(0)==="-")return[];
+  if(!s.branch||String(s.branch).charAt(0)==="-")return[];
   var running=(s.apps||[]).map(function(a){return a.app});
   return availableApps(s).map(function(a){return a.app}).filter(function(app){return running.indexOf(app)<0&&hiddenStartKeys.indexOf(app)<0});
 }
@@ -3550,7 +3508,7 @@ function renderSlot(s){
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
     '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+(s.repo?'<span class="repo-name">'+esc(s.repo)+'</span>':"")+
-    (s.branch&&(s.apps||[]).length&&!s.recovery?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
+    (s.branch&&(s.apps||[]).length?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   var startable=startableApps(s);
   keyOrder(s).forEach(function(key){h+=key.app?appPill(key.app):startKey(s,key.start)});
@@ -3630,20 +3588,18 @@ function radioMessages(snapshot,fetchFailure,requestFailure){
     ["attn","broken"].forEach(function(t){var group=serviceNames(t);if(group.length)add("backend:"+t,t,"Backend",t==="attn"?"Backend needs attention: "+listed(group)+".":"Backend services running but not ready: "+listed(group)+".")});
   }
   if(action&&action.state!=="running"&&action.state!=="ok"&&!obsoleteBackendAction(action,backend))add("action:failed:"+action.action+":"+(action.target||""),"down",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" failed"+(action.exitCode!=null?" (exit "+action.exitCode+")":"")+" at "+clock(action.endedAt)+".");
-  var saved=slots.filter(function(slot){return slot.recovery}),live=slots.filter(function(slot){return!slot.recovery});
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",appName(app)+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(buildFailed(app))add("build:"+slot.branch+":"+app.app,"broken","Session",appName(app)+" build failed on "+slot.branch+"."+(app.build.errorCount?" "+app.build.errorCount+" error"+(app.build.errorCount===1?"":"s")+".":""))})});
   slots.forEach(function(slot){if(slot.error)add("slot:"+slot.branch,"down","Session",slot.branch+": "+slot.error)});
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",appName(app)+" is "+app.unitState+" on "+slot.branch+".")})});
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){if(app.httpReady===false&&app.unitState&&app.unitState!=="active")add("app:down:"+slot.branch+":"+app.app,"down","Session",appName(app)+" is "+app.unitState+" on "+slot.branch+".")})});
   if(action&&action.state==="running")add("action:running:"+action.action+":"+(action.target||""),"busy",actionSubject(action),(ACTION_VERBS[action.action]||action.action)+(action.target?" "+action.target:"")+" running since "+clock(action.startedAt)+".");
-  if(saved.length)add("recovery:saved","warn","Session",saved.length+" saved session"+(saved.length===1?"":"s")+" stopped since the restart. Choose Resume sessions or Clear saved sessions.");
   if(backend&&!switching){var starting=serviceNames("warn");if(starting.length)add("backend:starting","warn","Backend","Backend services starting: "+listed(starting)+".")}
-  live.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=appName(app);if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
+  slots.forEach(function(slot){(slot.apps||[]).forEach(function(app){var name=appName(app);if(app.httpReady===false&&app.unitState==="active")add("app:starting:"+slot.branch+":"+app.app,"warn","Session",name+" is starting on "+slot.branch+".");if(app.build&&app.build.state==="building")add("app:rebuilding:"+slot.branch+":"+app.app,"warn","Session",name+" is rebuilding on "+slot.branch+".")})});
   if(backend&&!switching&&/behind/i.test(backend.relation||"")){var count=(/behind\D*(\d+)/i.exec(backend.relation)||[])[1],verb=backend.branch==="develop"?"Update":"Switch to develop";add("backend:behind","warn","Backend",count?"Backend is "+count+" behind develop. "+verb+" is on the Backend card.":"Backend: "+backend.relation+".")}
   if(snapshot&&!backend)add("backend:none","unknown","Backend","No backend data.");
   else if(backend&&!switching&&(!names.length||!backendHealthy(backend)||names.some(function(name){return serviceTone(services[name])==="unknown"}))) {
     if(!out.some(function(message){return message.key.indexOf("backend:")===0}))add("backend:unknown","unknown","Backend",names.length?"Backend readiness is unknown.":"No backend service data.");
   }
-  var unknownApps=live.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
+  var unknownApps=slots.some(function(slot){return !(slot.apps||[]).length||(slot.apps||[]).some(function(app){return app.httpReady!==true&&(app.httpReady!==false||!app.unitState)})});
   if(unknownApps)add("apps:unknown","unknown","Session","Some app readiness is unknown.");
   if(!out.length&&snapshot&&backend&&names.length&&backendHealthy(backend))add(slots.length?"ok":"ok:empty","ok","Status",slots.length?"Backend is ready. "+slots.length+" session"+(slots.length===1?"":"s")+" running, all apps ready.":"Backend is ready. No sessions running.");
   return out;
@@ -3739,23 +3695,17 @@ function render(){
   }
   var slots=(data&&data.slots)||[];
   updateStartKeyChoices(slots);
-  // Saved recovery slots belong to the recovery picker only; the Sessions section lists everything else.
-  var liveSlots=slots.filter(function(slot){return!slot.recovery}),savedOnly=!!data&&slots.length>0&&!liveSlots.length;
-  setText(document.getElementById("sessions-count"),data?String(liveSlots.length):"");
-  updateSlotGauge(liveSlots.length);
-  document.getElementById("sessions-title").hidden=savedOnly;
+  setText(document.getElementById("sessions-count"),data?String(slots.length):"");
+  updateSlotGauge(slots.length);
   if(stopDialog&&stopDialog.open&&!confirmAvailable())stopDialog.close();
-  var hint=document.getElementById("hint"),hintHtml=liveSlots.length?"To start another session, "+START_HINT+".":"";
-  hint.hidden=!liveSlots.length;setHtml(hint,hintHtml);
+  var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
+  hint.hidden=!slots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
-  slotsBox.hidden=savedOnly;
-  var cards=!data?[{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Saved sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
-    liveSlots.length?sortedSlots(liveSlots).map(renderSlot):
-    savedOnly?[]:
+  var cards=!data?[{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
+    slots.length?sortedSlots(slots).map(renderSlot):
     [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
   var changedCards=reconcileCards(slotsBox,cards);
   restoreStartFocus();
-  renderRecovery();
   if(backendChanged)buttonFx(backendBox);
   changedCards.forEach(buttonFx);
   settleUnderPointer();
@@ -3767,7 +3717,7 @@ function render(){
   if(QA_PERF){QA_PERF.renders++;QA_PERF.cardsRebuilt+=changedCards.length+(backendChanged?1:0)}
   var unhealthy=failure||(backend&&!backendSwitching()&&tone(backend.overall)!=="ok")||slots.some(function(slot){return(slot.apps||[]).some(buildFailed)});
   updateFavicon();
-  var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+liveSlots.length+" session"+(liveSlots.length===1?"":"s");
+  var title=!data?(failure?"(!) Overseer · status unavailable":"Overseer · loading…"):(unhealthy?"(!) ":"")+"Overseer · "+slots.length+" session"+(slots.length===1?"":"s");
   if(document.title!==title)document.title=title;
   var b=document.getElementById("banner"),banner=failure?"Status unavailable"+(data?" - showing stale data":" - retrying")+": "+failure:"";
   setText(document.getElementById("updated"),updatedText());
@@ -3790,7 +3740,7 @@ function copyText(text,button){
   area.remove();button.focus();done(ok);
 }
 function runAction(name,branch,service,app){
-  actionError=null;recoveryRequest=false;
+  actionError=null;
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
@@ -3835,7 +3785,7 @@ function backendOn(s){
 // Starting an app is not destructive, so it needs no confirmation; a running action disables every other key and the busy key
 // ignores clicks, so it cannot fire twice.
 function startApp(branch,app,key){
-  var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch&&!s.recovery});
+  var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
   if(isRunning()||!slot||startableApps(slot).indexOf(app)<0)return;
   startFocus=key&&document.activeElement===key?{branch:branch,app:app}:null;
   runAction("start",branch,null,app);
@@ -3904,119 +3854,6 @@ stopDialog.addEventListener("close",function(){
   if(!opener)opener=document.getElementById("settings-open");
   if(opener)opener.focus();
   stopOpener=null;
-});
-var recoveryRequest=false,recoveryActionTimer=null,recoveryActionPending=false,recoveryStatusPending=false;
-// Saved sessions from before the restart. wt decides which slots qualify (slots[].recovery); the page only lists them.
-var recoveryBox=document.getElementById("recovery"),recoveryRows=document.getElementById("recovery-rows"),recoveryPicks={};
-function recoveryCandidates(){return((data&&data.slots)||[]).filter(function(s){return s.recovery&&s.recovery.fingerprint}).sort(function(a,b){return a.slot-b.slot})}
-function recoveryPairs(list){return list.map(function(s){return{slot:s.slot,fingerprint:s.recovery.fingerprint}})}
-function recoveryRow(s){
-  var apps=(s.apps||[]).map(appName).join(", ")||"no apps",leaf=s.worktree?String(s.worktree).replace(/\/+$/,"").split("/").pop():"",
-    body='<span class="branch">'+esc(s.branch||"(no branch)")+'</span><span class="small">'+esc(apps)+'</span>'+(leaf?'<span class="small" title="'+esc(s.worktree)+'">'+esc(leaf)+'</span>':"");
-  if(!s.recovery.resumable)return'<div class="recovery-row"><span class="recovery-pad"></span><div class="recovery-plain">'+body+'<span class="why">'+dot("warn")+" Can&rsquo;t resume: "+esc(s.recovery.reason||"not available")+'. Clear saved sessions forgets it.</span></div></div>';
-  var pick=recoveryPicks[s.slot];
-  return'<div class="recovery-row"><input type="checkbox" id="recovery-pick-'+s.slot+'" data-slot="'+s.slot+'"'+(pick&&!pick.checked?"":" checked")+'><label for="recovery-pick-'+s.slot+'">'+body+'</label></div>';
-}
-function recoveryFocusKey(){
-  var el=document.activeElement;
-  if(!el||el===document.body||!recoveryBox.contains(el))return null;
-  return el.id==="recovery-resume"||el.id==="recovery-fresh"?el.id:el.dataset&&el.dataset.slot?"pick:"+el.dataset.slot:"other";
-}
-function recoveryFocusTarget(key){
-  var wanted=key&&key.indexOf("pick:")===0?document.getElementById("recovery-pick-"+key.slice(5)):key&&key.indexOf("recovery-")===0?document.getElementById(key):null;
-  if(wanted&&!wanted.disabled&&!recoveryBox.hidden)return wanted;
-  var first=!recoveryBox.hidden&&recoveryRows.querySelector("input:not(:disabled)");
-  if(first)return first;
-  var fresh=document.getElementById("recovery-fresh");
-  if(!recoveryBox.hidden&&!fresh.disabled)return fresh;
-  return document.getElementById("sessions-title");
-}
-function renderRecovery(){
-  var list=recoveryCandidates(),focusKey=recoveryFocusKey();
-  // A pick lasts while its record's fingerprint is unchanged; a changed or new record starts checked again.
-  var kept={};
-  list.forEach(function(s){var old=recoveryPicks[s.slot];kept[s.slot]=old&&old.fingerprint===s.recovery.fingerprint?old:{fingerprint:s.recovery.fingerprint,checked:true}});
-  recoveryPicks=kept;
-  var a=currentAction(),recoveryAction=a&&(a.action==="resume"||a.action==="forget")?a:null;
-  var running=!!(recoveryAction&&recoveryAction.state==="running"&&!actionError),complete=!!(recoveryAction&&recoveryAction.state==="ok"&&(!list.length||recoveryStatusPending)&&!actionError);
-  var failed=!!(recoveryRequest&&actionError)||!!(recoveryAction&&recoveryAction.state==="failed");
-  recoveryBox.hidden=!list.length&&!running&&!complete&&!failed;
-  recoveryBox.setAttribute("aria-busy",running?"true":"false");
-  document.getElementById("recovery-picker").hidden=running||complete;
-  document.getElementById("recovery-progress").hidden=!running&&!complete;
-  var title=document.getElementById("recovery-title");
-  setText(title,running?(a.action==="forget"?"Clearing saved sessions…":"Resuming sessions…"):complete?(a.action==="forget"?"Saved sessions cleared":"Sessions resumed"):"Saved sessions are stopped");
-  if(running||complete){
-    setText(document.getElementById("recovery-description"),a.action==="forget"?(running?"Forgetting saved session records. This does not start the backend.":"Saved session records were cleared. The backend was not started."):(running?"Starting the selected sessions and checking the backend needed by their apps.":"The selected sessions were resumed."));
-    setText(document.getElementById("recovery-elapsed"),running?"Elapsed "+agoText(a.startedAt):"");
-    var output=a.output||[];
-    setText(document.getElementById("recovery-output"),output.length?output.slice(-8).map(String).join("\n"):running?"Checking for output…":"Finished.");
-  }
-  // The rows are rebuilt only when what they show changes, so polling never costs a checkbox its keyboard focus.
-  var rowsHtml=list.map(recoveryRow).join("");
-  if(recoveryRows.__html!==rowsHtml){recoveryRows.__html=rowsHtml;recoveryRows.innerHTML=rowsHtml}
-  updateRecoveryButtons(list);
-  var status=document.getElementById("recovery-status"),line="",tone="";
-  if(failed){line=actionError||actionLine(recoveryAction).text;tone="down"}
-  else if(complete){line=actionLine(a).text;tone="ok"}
-  else if(recoveryAction&&recoveryAction.state==="ok"&&list.length){line=actionLine(a).text;tone="ok"}
-  if(failed&&recoveryAction&&recoveryAction.output&&recoveryAction.output.length)line+=". Latest output: "+String(recoveryAction.output[recoveryAction.output.length-1]);
-  status.hidden=!line;setHtml(status,line?dot(tone)+esc(line):"");
-  if(focusKey){
-    var cur=document.activeElement;
-    if(running||complete){if(cur!==title)title.focus()}
-    else if(!cur||!recoveryBox.contains(cur)||cur.disabled||recoveryBox.hidden||failed&&cur===title){var target=recoveryFocusTarget(focusKey);if(target)target.focus()}
-  }
-  if(running)queueRecoveryActionPoll();else{clearTimeout(recoveryActionTimer);recoveryActionTimer=null}
-}
-function queueRecoveryActionPoll(){
-  if(INITIAL||recoveryActionTimer||recoveryActionPending)return;
-  recoveryActionTimer=setTimeout(function(){
-    recoveryActionTimer=null;recoveryActionPending=true;
-    fetch("/api/actions",{cache:"no-store"}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error("HTTP "+r.status);return j})}).then(function(j){
-      var current=currentAction(),next=j&&j.actions;
-      if(current&&current.state==="running"&&plainObject(next)&&Array.isArray(next.output||[])&&next.action===current.action&&next.startedAt===current.startedAt){
-        if(next.state!=="running")recoveryStatusPending=true;
-        data.actions=next;render();
-      }
-    }).catch(function(){}).then(function(){recoveryActionPending=false;if(isRunning()&&currentAction()&&(currentAction().action==="resume"||currentAction().action==="forget"))queueRecoveryActionPoll()});
-  },1000);
-}
-function checkedRecovery(list){return list.filter(function(s){return s.recovery.resumable&&recoveryPicks[s.slot]&&recoveryPicks[s.slot].checked})}
-function updateRecoveryButtons(list){
-  var resume=document.getElementById("recovery-resume"),fresh=document.getElementById("recovery-fresh"),n=checkedRecovery(list).length;
-  resume.disabled=isRunning()||!n;fresh.disabled=isRunning()||!list.length;
-  resume.setAttribute("aria-label",n?"Resume "+n+" session"+(n===1?"":"s"):"Resume sessions");
-}
-function runRecovery(action,pairs){
-  actionError=null;recoveryRequest=true;
-  recoveryStatusPending=false;
-  outputOpen=false;
-  var before=data&&data.actions;
-  if(data){data.actions={action:action,target:null,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
-  fetch("/api/recovery/"+action,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:JSON.stringify({slots:pairs}),cache:"no-store"}).then(function(r){
-    return r.json().then(function(j){
-      if(data)data.actions=j.actions||before;
-      if(!r.ok)actionError=j.error||("HTTP "+r.status);
-      render();schedule(r.ok?1000:0);
-    });
-  }).catch(function(e){if(data)data.actions=before;actionError=e.message;render();schedule(1000)});
-}
-recoveryRows.addEventListener("change",function(e){
-  var box=e.target;if(!box.dataset||!box.dataset.slot)return;
-  var pick=recoveryPicks[box.dataset.slot];if(pick)pick.checked=box.checked;
-  updateRecoveryButtons(recoveryCandidates());
-});
-document.getElementById("recovery-resume").addEventListener("click",function(){
-  if(isRunning())return;
-  var pairs=recoveryPairs(checkedRecovery(recoveryCandidates()));
-  if(pairs.length)runRecovery("resume",pairs);
-});
-// One click forgets every listed saved session; the server re-checks each fingerprint and refuses any that changed.
-document.getElementById("recovery-fresh").addEventListener("click",function(){
-  var list=recoveryCandidates();
-  if(isRunning()||!list.length)return;
-  runRecovery("forget",recoveryPairs(list));
 });
 document.addEventListener("click",function(e){
   var t=e.target.closest("[data-action],[data-copy-output],[data-toggle],[data-stop],[data-start-app],[data-attach],[data-restart],[data-output],[data-radio]");
@@ -4221,14 +4058,13 @@ function poll(){
       if(previous.state!=="running"&&(incoming.state==="running"||shorterOutput))j.actions=previous;
       else if(previous.state==="running"&&incoming.state==="running"&&Array.isArray(previous.output)&&Array.isArray(incoming.output)&&incoming.output.length<=previous.output.length)j.actions=previous;
     }
-    recoveryStatusPending=!!(previous&&(previous.action==="resume"||previous.action==="forget")&&previous.state==="ok"&&incoming&&incoming.action===previous.action&&incoming.startedAt===previous.startedAt&&incoming.state==="running");
     data=j;lastOk=new Date();failure=null;render();justFinished=wasRunning&&!isRunning();
   })
     .catch(function(e){failure=e.message;render()})
     .then(function(){schedule(isRunning()?1000:justFinished?1200:5000);justFinished=false});
 }
 // Only text that actually changed is written, so an idle second touches no layout.
-setInterval(function(){if(document.hidden)return;setText(document.getElementById("updated"),updatedText());updateAgo();var a=currentAction();if(a&&(a.action==="resume"||a.action==="forget")&&a.state==="running")setText(document.getElementById("recovery-elapsed"),"Elapsed "+agoText(a.startedAt))},1000);
+setInterval(function(){if(document.hidden)return;setText(document.getElementById("updated"),updatedText());updateAgo()},1000);
 if(INITIAL){data=INITIAL;lastOk=INITIAL.generatedAt?new Date(INITIAL.generatedAt):null}
 render();buttonFx(document);
 if(!INITIAL)poll();
@@ -5289,55 +5125,6 @@ def handle_slot_start(runner, body, headers, port, sessions, apps=None):
     return 202, {"actions": runner.snapshot()}
 
 
-def recovery_tokens(body):
-    """Validates a recovery selection; returns {slot: fingerprint}, or None when it is malformed."""
-    entries = body.get("slots") if isinstance(body, dict) else None
-    if not isinstance(entries, list) or not 1 <= len(entries) <= 8:
-        return None
-    picks = {}
-    for entry in entries:
-        slot = entry.get("slot") if isinstance(entry, dict) else None
-        fingerprint = entry.get("fingerprint") if isinstance(entry, dict) else None
-        if type(slot) is not int or not 2 <= slot <= 9 or slot in picks:
-            return None
-        if not isinstance(fingerprint, str) or not RECOVERY_FINGERPRINT.fullmatch(fingerprint):
-            return None
-        picks[slot] = fingerprint
-    return picks
-
-
-def handle_recovery(runner, action, body, headers, port, status):
-    """Resumes or forgets saved sessions from before the restart. The browser only names slots and the
-    fingerprints it was shown; wt re-checks everything under its own lock and reads branch, path and apps itself."""
-    if not same_origin(headers, port):
-        return 403, {"error": "forbidden"}
-    if action not in RECOVERY_ACTIONS:
-        return 404, {"error": "not found"}
-    picks = recovery_tokens(body)
-    if picks is None:
-        return 400, {"error": "invalid selection"}
-    offered = {}
-    for slot in (status.get("slots") or []) if isinstance(status, dict) else []:
-        recovery = slot.get("recovery") if isinstance(slot, dict) else None
-        if isinstance(recovery, dict) and type(slot.get("slot")) is int:
-            offered[slot["slot"]] = recovery
-    for slot, fingerprint in picks.items():
-        recovery = offered.get(slot)
-        if not recovery or recovery.get("fingerprint") != fingerprint or (action == "resume" and recovery.get("resumable") is not True):
-            return 409, {"error": "sessions changed; refresh and choose again", "actions": runner.snapshot()}
-    tokens = [f"{slot}:{picks[slot]}" for slot in sorted(picks)]
-    if not runner.start(action, ["recover", action] + tokens, target=None):
-        return 409, {"error": "another action is still running", "actions": runner.snapshot()}
-    return 202, {"actions": runner.snapshot()}
-
-
-def cached_status(source):
-    try:
-        return source.get()
-    except Exception:  # an unreadable status offers nothing to act on
-        return None
-
-
 def backend_services(source):
     try:
         services = (source.get().get("backend") or {}).get("services") or {}
@@ -5356,12 +5143,12 @@ def slot_branches(source, backend_only=False):
 
 
 def slot_sessions(source):
-    """Maps each live branch to its slot, running apps and eligible apps; saved sessions are left out."""
+    """Maps each branch to its slot, running apps and eligible apps."""
     try:
         sessions = {}
         for slot in source.get().get("slots") or []:
             branch, number = slot.get("branch"), slot.get("slot")
-            if isinstance(branch, str) and branch and type(number) is int and not slot.get("recovery"):
+            if isinstance(branch, str) and branch and type(number) is int:
                 running = {app.get("app") for app in slot.get("apps") or [] if isinstance(app, dict)}
                 offered = slot.get("availableApps")
                 if isinstance(offered, list):
@@ -5403,12 +5190,6 @@ def make_handler(source, runner, port):
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
-            recovery_route = path in ("/api/recovery/resume", "/api/recovery/forget")
-            if recovery_route and not same_origin(self.headers, port):
-                # Refuse before reading the body or touching status; the connection closes so the unread body cannot linger.
-                self.close_connection = True
-                self.send(403, json.dumps({"error": "forbidden"}), "application/json")
-                return
             raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 65536))
             if path in ("/api/slot/stop", "/api/slot/backend"):
                 try:
@@ -5430,12 +5211,6 @@ def make_handler(source, runner, port):
                 except ValueError:
                     body = None
                 code, body = handle_service_restart(runner, body, self.headers, port, backend_services(source))
-            elif recovery_route:
-                try:
-                    body = json.loads(raw or b"{}")
-                except ValueError:
-                    body = None
-                code, body = handle_recovery(runner, path.rsplit("/", 1)[1], body, self.headers, port, cached_status(source))
             elif path.startswith("/api/backend/"):
                 code, body = handle_action(runner, path.rsplit("/", 1)[1], self.headers, port)
             else:

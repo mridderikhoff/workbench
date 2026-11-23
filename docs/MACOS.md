@@ -14,9 +14,8 @@ starts everything as background services, checks it, and gives you the links. It
 only you can do, such as approving an OS installation prompt, signing in, or granting repository access.
 
 Day to day, open or bookmark `http://localhost:5100`, click app links, and use **Start backend**, **Heal**,
-**Resume** and **Stop** on the page. Ask your agent for new sessions. After a restart or sign-out the agent
-repairs a missing page, and **Resume** restores saved sessions
-([SESSION_RECOVERY.md](SESSION_RECOVERY.md)). No terminal has to stay open.
+**Stop** on the page. Ask your agent for new sessions. After a restart or sign-out the agent
+repairs a missing page and restarts stopped task frontends with `wt serve <branch>`. No terminal has to stay open.
 
 ## Agent reference
 

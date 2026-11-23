@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Behavioural checks for the Overseer page's startup and recovery states, the first-run tenant prompt and the backend switch.
+// Behavioural checks for the Overseer page's startup states, the first-run tenant prompt and the backend switch.
 // Runs the page's real app script (INITIAL ... poll) from bin/qa-dashboard in a Node vm against small DOM stubs,
 // so the real render(), poll() and click handlers execute. No browser, jsdom or network is involved.
 "use strict";
@@ -35,7 +35,7 @@ class El {
   appendChild(c) { this.children.push(c); return c }
   insertBefore(c, ref) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); const j = ref ? this.children.indexOf(ref) : -1; this.children.splice(j < 0 ? this.children.length : j, 0, c); c.parent = this; return c }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this) }
-  contains(c) { return c === this || this.children.includes(c) || this.id === "recovery" && c && c.id.startsWith("recovery-") }
+  contains(c) { return c === this || this.children.includes(c) }
   closest() { return null }
   focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this }
   getBoundingClientRect() { return { left: 0, right: 0, top: 0, bottom: 0 } }
@@ -85,10 +85,8 @@ function page(opts) {
 const jsonResponse = (body, ok = true, status = 200) => Promise.resolve({ ok, status, json: () => Promise.resolve(body) });
 const badJson = (status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.reject(new SyntaxError("Unexpected token <")) });
 const snapshot = slots => ({ generatedAt: "2026-01-01T00:00:00Z", backend: { overall: "healthy", relation: "develop", sha: "abc", services: { api: { probe: "ready", status: "ready" } } }, slots, actions: null });
-const fp = n => "c0ffee00000000" + n.toString(16).padStart(2, "0"); // 16 hex characters, like the server's
-const saved = slot => ({ slot, branch: "b" + slot, apps: [{ app: "ri" }], worktree: "/w/b" + slot, recovery: { fingerprint: fp(slot), resumable: true } });
+const session = slot => ({ slot, branch: "b" + slot, apps: [{ app: "ri" }], worktree: "/w/b" + slot });
 const plain = v => JSON.parse(JSON.stringify(v)); // values from the vm realm compare by structure
-const recoverySnapshot = () => snapshot([saved(3), saved(2), Object.assign(saved(4), { recovery: { fingerprint: fp(4), resumable: false, reason: "x" } })]);
 const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
 
 const tests = [];
@@ -235,7 +233,7 @@ test("before the first status: placeholders, count not 0, no empty/down claim, b
 
 test("initial failure: status unavailable and retrying, not empty or down; later success shows sessions", async () => {
   let n = 0;
-  const p = page({ fetch: () => ++n === 1 ? jsonResponse({ error: "boom" }, false, 502) : jsonResponse(snapshot([saved(2)])) });
+  const p = page({ fetch: () => ++n === 1 ? jsonResponse({ error: "boom" }, false, 502) : jsonResponse(snapshot([session(2)])) });
   await p.poll();
   assert(/Status unavailable, retrying/.test(cards(p)) && /Status unavailable, retrying/.test(p.html("backend")));
   assert.doesNotMatch(cards(p) + p.html("backend"), /No sessions running|No backend data|Checking backend|down/i);
@@ -251,12 +249,11 @@ test("initial failure: status unavailable and retrying, not empty or down; later
   assert(p.timers.length >= 1, "a retry is scheduled");
   await p.poll();
   assert.strictEqual(p.run("failure"), null);
-  assert.strictEqual(p.text("sessions-count"), "0");
-  assert.strictEqual(cards(p), "", "a saved slot is not also a session card");
-  assert.strictEqual(p.get("sessions-title").hidden, true);
-  assert.strictEqual(p.get("slots").hidden, true);
-  assert.strictEqual(p.get("hint").hidden, true);
-  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"'), true);
+  assert.strictEqual(p.text("sessions-count"), "1");
+  assert.match(cards(p), /b2/);
+  assert.strictEqual(p.get("sessions-title").hidden, false);
+  assert.strictEqual(p.get("slots").hidden, false);
+  assert.strictEqual(p.get("hint").hidden, false);
 });
 
 test("a valid snapshot with slots[] empty shows the true empty card", async () => {
@@ -267,64 +264,8 @@ test("a valid snapshot with slots[] empty shows the true empty card", async () =
   assert.strictEqual(p.run("pageHealth()"), "ok");
 });
 
-test("saved slots appear only in the recovery picker; live slots keep their cards and count", async () => {
-  const live = { slot: 5, branch: "live5", apps: [{ app: "ri" }], worktree: "/w/live5" };
-  const bodies = [snapshot([saved(2), saved(3)]), snapshot([saved(2), live]), snapshot([live]), snapshot([saved(2)]), snapshot([])];
-  const p = page({ fetch: () => jsonResponse(bodies.shift()) });
-  const title = () => p.sandbox.document.title;
-
-  await p.poll(); // saved only: no Sessions section, no empty-state card
-  assert.strictEqual(p.get("recovery").hidden, false);
-  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"') && p.html("recovery-rows").includes('data-slot="3"'), true);
-  assert.strictEqual(cards(p), "");
-  assert.doesNotMatch(cards(p), /No sessions running/);
-  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [true, true, true]);
-  assert.strictEqual(p.text("sessions-count"), "0");
-  assert.strictEqual(title(), "Overseer · 0 sessions");
-
-  await p.poll(); // mixed: only the live slot is a card and is counted
-  assert.strictEqual(p.get("recovery").hidden, false);
-  assert.strictEqual(p.html("recovery-rows").includes('data-slot="2"'), true);
-  assert.strictEqual(p.get("slots").children.length, 1);
-  assert(/live5/.test(cards(p)) && !/b2/.test(cards(p)));
-  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [false, false, false]);
-  assert.match(p.html("hint"), /To start another session/);
-  assert.strictEqual(p.text("sessions-count"), "1");
-  assert.strictEqual(title(), "Overseer · 1 session");
-
-  await p.poll(); // recovery flags cleared, live remains: normal UI, picker gone
-  assert.strictEqual(p.get("recovery").hidden, true);
-  assert(/live5/.test(cards(p)));
-  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [false, false, false]);
-  assert.strictEqual(p.text("sessions-count"), "1");
-
-  await p.poll(); // back to saved only
-  assert.strictEqual(p.get("recovery").hidden, false);
-  assert.strictEqual(cards(p), "");
-  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden, p.get("hint").hidden], [true, true, true]);
-
-  await p.poll(); // saved slot resumed or forgotten and gone: the true empty state
-  assert.strictEqual(p.get("recovery").hidden, true);
-  assert.match(cards(p), /No sessions running/);
-  assert.deepStrictEqual([p.get("sessions-title").hidden, p.get("slots").hidden], [false, false]);
-  assert.strictEqual(p.text("sessions-count"), "0");
-});
-
-test("saved slots return to session cards once their recovery flags clear", async () => {
-  const cleared = slot => Object.assign({}, slot, { recovery: undefined });
-  const bodies = [snapshot([saved(2)]), snapshot([cleared(saved(2))])];
-  const p = page({ fetch: () => jsonResponse(bodies.shift()) });
-  await p.poll();
-  assert.strictEqual(cards(p), "");
-  await p.poll();
-  assert.strictEqual(p.get("recovery").hidden, true);
-  assert(/b2/.test(cards(p)), "a slot without recovery is a normal card");
-  assert.strictEqual(p.get("sessions-title").hidden, false);
-  assert.strictEqual(p.text("sessions-count"), "1");
-});
-
 test("a later failed poll keeps the last snapshot, its cards, its backend and a stale banner", async () => {
-  const replies = [() => jsonResponse(snapshot([saved(2)])), () => jsonResponse({ error: "late" }, false, 502), () => badJson(502)];
+  const replies = [() => jsonResponse(snapshot([session(2)])), () => jsonResponse({ error: "late" }, false, 502), () => badJson(502)];
   const p = page({ fetch: () => replies.shift()() });
   await p.poll();
   const before = [cards(p), p.html("backend"), p.run("pageHealth()")];
@@ -333,7 +274,7 @@ test("a later failed poll keeps the last snapshot, its cards, its backend and a 
   assert.strictEqual(p.text("banner"), "Status unavailable - showing stale data: late");
   assert.strictEqual(p.run("window.QA_ROLLUP"), "ok");
   assert.doesNotMatch(p.html("backend"), /unavailable|No backend data/);
-  assert.match(p.sandbox.document.title, /^\(!\) Overseer · 0 sessions$/);
+  assert.match(p.sandbox.document.title, /^\(!\) Overseer · 1 session$/);
   assert(p.run("radioMessages(data,failure,actionError)").some(m => /Showing the last data/.test(m.text)));
   await p.poll(); // a 502 whose body is not JSON is still a plain HTTP failure
   assert.strictEqual(p.text("banner"), "Status unavailable - showing stale data: HTTP 502");
@@ -346,9 +287,9 @@ const MALFORMED = {
   "empty object": {}, "null backend": { slots: [], backend: null }, "slots not an array": { slots: {}, backend: {} }, "array": [], "null": null, "string": "text",
   "slots is a string": { backend: {}, slots: "x" },
   "null slot": withSlots([null]), "string slot": withSlots(["x"]), "array slot": withSlots([[]]),
-  "apps not an array": withSlots([Object.assign(saved(2), { apps: "ri" })]), "apps is an object": withSlots([Object.assign(saved(2), { apps: { app: "ri" } })]),
-  "null app": withSlots([Object.assign(saved(2), { apps: [null] })]), "string app": withSlots([Object.assign(saved(2), { apps: ["ri"] })]),
-  "numeric app url": withSlots([Object.assign(saved(2), { apps: [{ app: "ri", url: 5 }] })]),
+  "apps not an array": withSlots([Object.assign(session(2), { apps: "ri" })]), "apps is an object": withSlots([Object.assign(session(2), { apps: { app: "ri" } })]),
+  "null app": withSlots([Object.assign(session(2), { apps: [null] })]), "string app": withSlots([Object.assign(session(2), { apps: ["ri"] })]),
+  "numeric app url": withSlots([Object.assign(session(2), { apps: [{ app: "ri", url: 5 }] })]),
   "services not an object": Object.assign(snapshot([]), { backend: { overall: "healthy", services: [] } }),
   "null service": Object.assign(snapshot([]), { backend: { overall: "healthy", services: { api: null } } }),
   "string service": Object.assign(snapshot([]), { backend: { overall: "healthy", services: { api: "ready" } } }),
@@ -358,7 +299,7 @@ const MALFORMED = {
 
 test("malformed or wrongly shaped responses never replace data, keep the stale UI and keep retrying", async () => {
   for (const [name, bad] of Object.entries(MALFORMED)) {
-    const bodies = [snapshot([saved(2)]), bad];
+    const bodies = [snapshot([session(2)]), bad];
     const p = page({ fetch: () => jsonResponse(bodies.shift()) });
     await p.poll();
     const good = p.run("data"), before = [cards(p), p.html("backend")], timers = p.timers.length;
@@ -439,150 +380,44 @@ test("rebuilding ready apps keep a healthy favicon while build failures and star
   }
 });
 
-test("Resume and Start fresh act directly with their payloads; a second click is blocked; no automatic POST", async () => {
-  const posts = [];
-  const p = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body), headers: init.headers }); return new Promise(() => {}) } return jsonResponse(recoverySnapshot()) } });
-  await p.poll();
-  assert.deepStrictEqual(posts, [], "nothing is posted by loading");
-  assert.strictEqual(p.get("recovery-fresh").disabled, false);
-
-  p.get("recovery-resume").fire("click");
-  assert.strictEqual(posts.length, 1);
-  assert.strictEqual(posts[0].url, "/api/recovery/resume");
-  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 2, fingerprint: fp(2) }, { slot: 3, fingerprint: fp(3) }] });
-  assert.strictEqual(posts[0].headers["X-QA-Dashboard"], "1");
-  p.get("recovery-resume").fire("click");
-  p.get("recovery-fresh").fire("click");
-  assert.strictEqual(posts.length, 1, "optimistic running state blocks a second action");
-  assert.strictEqual(p.get("recovery-fresh").disabled, true);
-
-  const q = page({ fetch: (url, init) => { if (init && init.method === "POST") { posts.push({ url, body: JSON.parse(init.body) }); return new Promise(() => {}) } return jsonResponse(recoverySnapshot()) } });
-  await q.poll();
-  posts.length = 0;
-  q.get("recovery-fresh").fire("click");
-  q.get("recovery-fresh").fire("click");
-  q.get("recovery-resume").fire("click");
-  assert.strictEqual(posts.length, 1, "double click sends one request");
-  assert.strictEqual(posts[0].url, "/api/recovery/forget");
-  assert.deepStrictEqual(posts[0].body, { slots: [{ slot: 2, fingerprint: fp(2) }, { slot: 3, fingerprint: fp(3) }, { slot: 4, fingerprint: fp(4) }] });
-  assert.strictEqual(q.run("typeof freshDialog + typeof samePairs"), "undefinedundefined");
-  assert.strictEqual(q.run("recoveryBox.hidden"), false);
-  assert.strictEqual(q.run("isRunning()"), true);
-});
-
-test("recovery replaces the picker immediately, shows live output, and keeps its result after candidates vanish", async () => {
-  const snap = recoverySnapshot();
-  let action = null;
-  let resolvePost;
-  const p = page({ fetch: (url, init) => {
-    if (url === "/api/recovery/forget") return new Promise(resolve => { resolvePost = resolve });
-    if (url === "/api/actions") return jsonResponse({ actions: action });
-    return jsonResponse(snap);
-  } });
-  await p.poll();
-  p.get("recovery-fresh").focus();
-  p.get("recovery-fresh").fire("click");
-  assert.strictEqual(p.text("recovery-title"), "Clearing saved sessions…");
-  assert.strictEqual(p.get("recovery-picker").hidden, true);
-  assert.strictEqual(p.get("recovery-progress").hidden, false);
-  assert.strictEqual(p.get("recovery").getAttribute("aria-busy"), "true");
-  assert.strictEqual(p.sandbox.document.activeElement.id, "recovery-title");
-  assert.match(p.text("recovery-description"), /does not start the backend/);
-  assert.match(p.text("recovery-output"), /Checking for output/);
-  action = { action: "forget", state: "running", startedAt: p.run("data.actions.startedAt"), output: ["checking Keycloak redirects", "removing saved record <b>unsafe</b>"] };
-  resolvePost({ ok: true, status: 202, json: () => Promise.resolve({ actions: action }) });
-  await new Promise(done => setImmediate(done));
-  const timer = p.run("recoveryActionTimer");
-  p.timerFns[timer - 1]();
-  await new Promise(done => setImmediate(done));
-  assert.strictEqual(p.text("recovery-output"), "checking Keycloak redirects\nremoving saved record <b>unsafe</b>");
-  assert.doesNotMatch(p.html("recovery-output"), /unsafe/, "output is assigned as text, not HTML");
-  assert(p.calls.some(c => c.url === "/api/actions"));
-  action = { ...action, state: "ok", endedAt: new Date().toISOString() };
-  snap.actions = action; snap.slots = [];
-  await p.poll();
-  assert.strictEqual(p.get("recovery").hidden, false);
-  assert.strictEqual(p.text("recovery-title"), "Saved sessions cleared");
-  assert.strictEqual(p.get("recovery-progress").hidden, false);
-  assert.match(p.text("recovery-description"), /backend was not started/);
-});
-
-test("failed recovery restores the picker, reports output, and allows retry", async () => {
-  const snap = recoverySnapshot();
-  const p = page({ fetch: (url, init) => init && init.method === "POST" ? jsonResponse({ error: "sessions changed", actions: null }, false, 409) : jsonResponse(snap) });
-  await p.poll();
-  p.get("recovery-resume").fire("click");
-  await new Promise(done => setImmediate(done));
-  assert.strictEqual(p.get("recovery-picker").hidden, false);
-  assert.strictEqual(p.get("recovery-progress").hidden, true);
-  assert.match(p.html("recovery-status"), /sessions changed/);
-  assert.strictEqual(p.get("recovery-fresh").disabled, false);
-  p.get("recovery-fresh").fire("click");
-  assert.strictEqual(p.calls.filter(c => c.init && c.init.method === "POST").length, 2);
-  assert(p.run("recoveryActionTimer"), "the retry starts its own action poll");
-});
-
-test("a recovery failure from status shows its last output and leaves actions available", async () => {
-  const snap = recoverySnapshot();
-  const p = page({ fetch: () => jsonResponse(snap) });
-  await p.poll();
-  snap.actions = { action: "resume", state: "failed", exitCode: 1, output: ["could not start ri <unsafe>"] };
-  await p.poll();
-  assert.strictEqual(p.get("recovery-picker").hidden, false);
-  assert.match(p.html("recovery-status"), /could not start ri &lt;unsafe&gt;/);
-  assert.strictEqual(p.get("recovery-resume").disabled, false);
-  p.run('data.actions=null;actionError="backend unavailable";recoveryRequest=false;render()');
-  assert.strictEqual(p.get("recovery").hidden, false);
-  assert.strictEqual(p.get("recovery-status").hidden, true, "an unrelated backend error stays out of recovery");
-});
-
 test("a finished action from the fast endpoint survives an older status response", async () => {
-  const snap = recoverySnapshot();
+  const snap = snapshot([session(3), session(2)]);
   const p = page({ fetch: url => jsonResponse(snap) });
   await p.poll();
   const startedAt = new Date().toISOString();
-  p.run('data.actions={action:"resume",state:"ok",startedAt:' + JSON.stringify(startedAt) + ',output:["done"]};render()');
-  snap.actions = { action: "resume", state: "running", startedAt, output: [] };
+  p.run('data.actions={action:"restart",state:"ok",startedAt:' + JSON.stringify(startedAt) + ',output:["done"]};render()');
+  snap.actions = { action: "restart", state: "running", startedAt, output: [] };
   await p.poll();
   assert.strictEqual(p.run("data.actions.state"), "ok");
   assert.deepStrictEqual(plain(p.run("data.actions.output")), ["done"]);
-  assert.strictEqual(p.get("recovery-progress").hidden, false, "stale candidates do not reopen the picker");
 });
 
 test("a failed action keeps its output against older status snapshots", async () => {
-  const snap = recoverySnapshot();
+  const snap = snapshot([session(3), session(2)]);
   const p = page({ fetch: () => jsonResponse(snap) });
   await p.poll();
   const startedAt = "2026-01-01T00:00:00Z";
-  p.run('data.actions={action:"resume",state:"failed",startedAt:' + JSON.stringify(startedAt) + ',output:["first","failure"]};render()');
-  snap.actions = { action: "resume", state: "failed", startedAt, output: ["first"] };
+  p.run('data.actions={action:"restart",state:"failed",startedAt:' + JSON.stringify(startedAt) + ',output:["first","failure"]};render()');
+  snap.actions = { action: "restart", state: "failed", startedAt, output: ["first"] };
   await p.poll();
   assert.strictEqual(p.run("data.actions.state"), "failed");
   assert.deepStrictEqual(plain(p.run("data.actions.output")), ["first", "failure"]);
-  snap.actions = { action: "resume", state: "running", startedAt, output: [] };
+  snap.actions = { action: "restart", state: "running", startedAt, output: [] };
   await p.poll();
   assert.strictEqual(p.run("data.actions.state"), "failed");
   assert.deepStrictEqual(plain(p.run("data.actions.output")), ["first", "failure"]);
 });
 
 test("a newer action replaces a finished action", async () => {
-  const snap = recoverySnapshot();
+  const snap = snapshot([session(3), session(2)]);
   const p = page({ fetch: () => jsonResponse(snap) });
   await p.poll();
-  p.run('data.actions={action:"resume",state:"ok",startedAt:"2026-01-01T00:00:00Z",output:["done"]};render()');
-  snap.actions = { action: "resume", state: "running", startedAt: "2026-01-01T00:01:00Z", output: [] };
+  p.run('data.actions={action:"restart",state:"ok",startedAt:"2026-01-01T00:00:00Z",output:["done"]};render()');
+  snap.actions = { action: "restart", state: "running", startedAt: "2026-01-01T00:01:00Z", output: [] };
   await p.poll();
   assert.strictEqual(p.run("data.actions.state"), "running");
   assert.strictEqual(p.run("data.actions.startedAt"), "2026-01-01T00:01:00Z");
   assert.deepStrictEqual(plain(p.run("data.actions.output")), []);
-});
-
-test("no saved sessions and no data: Start fresh does nothing", async () => {
-  const posts = [];
-  const p = page({ fetch: (url, init) => { if (init && init.method === "POST") posts.push(url); return new Promise(() => {}) } });
-  p.get("recovery-fresh").fire("click");
-  p.get("recovery-resume").fire("click");
-  assert.deepStrictEqual(posts, []);
 });
 
 test("service restart disables actions immediately, then restores state if the request fails", async () => {
@@ -616,8 +451,7 @@ test("favicon: unknown is a blank icon, known states keep theme art", () => {
   fn("unknown"); assert.strictEqual(icon.href, "data:,");
 });
 
-test("the fresh-confirm dialog and its styling are gone; Stop confirmation stays", () => {
-  assert.doesNotMatch(SRC, /fresh-confirm|fresh-cancel|freshDialog|samePairs/);
+test("Stop confirmation remains available", () => {
   assert.match(SRC, /id="stop-confirm"/);
   assert.match(SRC, /function confirmStop\(/);
   assert.doesNotMatch(SRC, /\.loading #backend/);

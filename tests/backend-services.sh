@@ -50,7 +50,7 @@ done
 chmod +x "$S/bin/"*
 export FIXTURE="$S" PATH="$S/bin:$PATH" WT_STATE_DIR="$S/state" QA_UNIT_DIR="$S/unitdir" QA_TREE="$S/qa" WT_QA_TREE="$S/qa"
 export WT_PORT_REGISTRY="$S/registry.json" QA_UNIT_PREFIX=wtfixture-qa- QA_STACK_STUB_DIR="$S/stub" QA_STACK_PROC_NET_DIR="$S/net"
-export WT_ENSURE_TIMEOUT=12 WT_MAIN_CHECKOUT="$S/main" WT_BOOT_ID=fixture WT_BOOT_TIME=0 QA_STACK_TEST_MODE=1
+export WT_ENSURE_TIMEOUT=12 WT_MAIN_CHECKOUT="$S/main" QA_STACK_TEST_MODE=1
 [ "$HOME" = "$ORIGINAL_HOME" ]
 for tool in systemctl journalctl podman curl; do [[ $(command -v "$tool") == "$S/bin/$tool" ]]; done
 for key in WT_STATE_DIR QA_UNIT_DIR QA_TREE WT_QA_TREE WT_PORT_REGISTRY QA_STACK_STUB_DIR QA_STACK_PROC_NET_DIR; do [[ ${!key} == "$S"/* ]]; done
@@ -377,41 +377,4 @@ import json,sys
 d=json.load(open(sys.argv[1])); assert d['backend']['offsetSource']=='registry' and d['backend']['offset']==1
 PY
 cmp "$S/registry.json" "$S/registry.original" || fail 'status wrote registry'
-# Cold-start recovery must also inspect offsets without invoking the allocator.
-git -C "$S/main" init --quiet --initial-branch=fixture
-mkdir -p "$S/state/wt-serve" "$S/qa/scripts/dev"
-cat > "$S/state/wt-serve/slot-2" <<EOF
-branch=fixture
-path=$S/main
-apps=ds-demo
-units=ds-demo
-boot=previous-boot
-EOF
-for app in strategy ri ds-demo; do
-  printf 'LoadState=loaded\nActiveState=inactive\n' > "$S/units/cl-strategy-serve-2-$app.service"
-done
-cat > "$S/qa/scripts/dev/ports.py" <<'PY'
-import os,pathlib
-pathlib.Path(os.environ['FIXTURE'], 'allocator-called').touch()
-print(1)
-PY
-rm "$S/registry.json"
-run 0 env WT_STUB_PORTS= "$ROOT/bin/wt" status --json
-python3 - "$S/out" <<'PY'
-import json,sys
-d=json.load(open(sys.argv[1])); slot=d['slots'][0]
-assert slot['recovery']['resumable'] is False
-assert slot['recovery']['reason']=='QA port offset unavailable'
-PY
-[ ! -e "$S/allocator-called" ] || fail 'cold-start status called offset allocator'
-[ ! -e "$S/registry.json" ] || fail 'cold-start status allocated registry'
-cp "$S/registry.original" "$S/registry.json"
-run 0 env WT_STUB_PORTS= "$ROOT/bin/wt" status --json
-python3 - "$S/out" <<'PY'
-import json,sys
-d=json.load(open(sys.argv[1])); assert d['slots'][0]['recovery']['resumable'] is True
-PY
-[ ! -e "$S/allocator-called" ] || fail 'cold-start status called allocator for existing claim'
-cmp "$S/registry.json" "$S/registry.original" || fail 'cold-start status wrote registry'
-[ ! -s "$S/mutations.log" ] || fail 'cold-start status mutated services'
 echo "qa-services: $count cases passed"

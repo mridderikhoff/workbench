@@ -19,11 +19,10 @@ a sign-in. Agent steps live in [docs/AGENT_SETUP.md](docs/AGENT_SETUP.md); Mac n
 ## Everyday use
 
 - Open or bookmark the Overseer page (`http://127.0.0.1:5100`). Click an app link to open it.
-- Use **Start backend**, **Heal**, **Stop** and, after a restart, **Resume** on the page.
+- Use **Start backend**, **Heal** and **Stop** on the page.
 - Ask your agent for a new session or branch preview. It keeps services running and fixes them if they stop.
 
-Recovery after a machine restart: [docs/SESSION_RECOVERY.md](docs/SESSION_RECOVERY.md). Resume restarts
-the saved apps; Start fresh forgets the saved records; both keep branches and worktrees.
+After a machine restart, ask your agent to run `wt serve <branch>` to restart a stopped session.
 
 ## Why use this?
 
