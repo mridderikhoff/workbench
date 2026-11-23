@@ -21,9 +21,24 @@ if [ "${WT_DRY_RUN:-0}" = 1 ]; then export QA_STACK_DRY_RUN=1; fi
 
 repo_root() { git rev-parse --show-toplevel 2>/dev/null; }
 
+# Profiles cannot change during one wt run, and `wt status` asks ~100 questions;
+# caching answers in the run's temp dir keeps it under Overseer's 15s budget.
 profile() {
   [ -n "$1" ] || { echo 'wt: profile root is empty' >&2; return 2; }
-  python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" "$1" "$2" "${@:3}"
+  local cache="" key status
+  if [ -n "${WT_PROFILE_WARNING_DIR:-}" ] && [ -d "$WT_PROFILE_WARNING_DIR" ]; then
+    key=$(printf '%s\0' "$@" | md5sum) && cache="$WT_PROFILE_WARNING_DIR/answer-${key%% *}"
+    if [ -f "$cache.status" ]; then cat -- "$cache.out"; return "$(cat -- "$cache.status")"; fi
+  fi
+  if [ -z "$cache" ]; then
+    python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" "$1" "$2" "${@:3}"
+    return
+  fi
+  python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" "$1" "$2" "${@:3}" >"$cache.out.$$"
+  status=$?
+  mv -f -- "$cache.out.$$" "$cache.out" && printf '%s' "$status" >"$cache.status"
+  cat -- "$cache.out"
+  return "$status"
 }
 tree_profile_root() {
   repo_main_for_path "$1"
@@ -866,6 +881,10 @@ port_listening() {
     case " ${WT_STUB_PORTS} " in *" $1 "*) return 0 ;; esac
     return 1
   fi
+  if command -v ss >/dev/null 2>&1; then
+    [ -n "$(ss -Hltn "sport = :$1" 2>/dev/null)" ]
+    return
+  fi
   timeout 1 bash -c "exec 3<>/dev/tcp/127.0.0.1/$1" >/dev/null 2>&1
 }
 
@@ -1015,6 +1034,14 @@ recover_scan() {
 serve_slot_live() {
   local slot="$1" port
   if [ "${WT_STUB_PORTS+x}" ]; then
+    for port in $(serve_slot_ports "$slot" "${SERVE_PATH:-}"); do
+      port_listening "$port" && return 0
+    done
+    return 1
+  fi
+  # WSL can drop connects to closed local ports until the timeout, so read the
+  # listen table where ss exists instead of probing each port.
+  if command -v ss >/dev/null 2>&1; then
     for port in $(serve_slot_ports "$slot" "${SERVE_PATH:-}"); do
       port_listening "$port" && return 0
     done
@@ -2306,9 +2333,23 @@ def build_state(slot, app):
             return {'state': 'failed', 'errorCount': len(errors), 'error': errors[0][:300] if errors else ''}
     return {'state': 'building' if lines else 'unknown'}
 
+def listening_ports():
+    try:
+        out = subprocess.run(['ss', '-Hltn'], capture_output=True, text=True, timeout=2, check=True).stdout
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+    return {line.split()[3].rsplit(':', 1)[-1] for line in out.splitlines() if len(line.split()) > 3}
+
+LISTENING = None if 'WT_STUB_PORTS' in os.environ else listening_ports()
+
 def check(app):
     if 'WT_STUB_PORTS' in os.environ:
         app['httpReady'] = str(app['port']) in os.environ['WT_STUB_PORTS'].split()
+        return
+    # A closed port can hang until the timeout on WSL instead of refusing.
+    if LISTENING is not None and str(app['port']) not in LISTENING:
+        if app.get('unitState') not in (None, 'legacy'):
+            app['build'] = build_state(app['slot'], app['app'])
         return
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{app['port']}/", timeout=2) as response:
