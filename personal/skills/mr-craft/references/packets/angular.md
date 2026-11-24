@@ -54,6 +54,11 @@ came from or how it was produced?
   identifies its production subject and topic, or
   fixture validation when no production subject is under test; do not infer a missing
   source file from a spec name or require one spec per source file.
+- `craft-1.12` **Native attribute names.** A component input named after a global HTML or ARIA
+  attribute (`title`, `id`, `hidden`, `role`) is a finding: a static value also stays on the host
+  as a native tooltip, duplicate id, or extra accessible name. Name the role (`heading`, `label`);
+  when a published contract fixes the name, clear the host attribute (`'[attr.title]': 'null'`)
+  with a spec. A directive whose purpose is that attribute keeps the name.
 
 **Classification.** A private or protected member, a local, or a test helper is **fix**. An
 inner BEM element or custom property is **fix** when it is internal. Establish whether it
