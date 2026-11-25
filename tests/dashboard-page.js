@@ -30,13 +30,13 @@ class El {
   hasAttribute(k) { return k in this.attrs }
   addEventListener(type, fn) { (this.handlers[type] = this.handlers[type] || []).push(fn) }
   fire(type, extra) { (this.handlers[type] || []).forEach(fn => fn(Object.assign({ target: this, currentTarget: this, preventDefault() {} }, extra))) }
-  querySelector() { return new El() }
+  querySelector(selector) { this.queries = this.queries || {}; return this.queries[selector] || (this.queries[selector] = Object.assign(new El(), { ownerDocument: this.ownerDocument })) }
   querySelectorAll() { return [] }
   appendChild(c) { this.children.push(c); return c }
   insertBefore(c, ref) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); const j = ref ? this.children.indexOf(ref) : -1; this.children.splice(j < 0 ? this.children.length : j, 0, c); c.parent = this; return c }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this) }
   contains(c) { return c === this || this.children.includes(c) }
-  closest() { return null }
+  closest(selector) { return this.hasAttribute("data-stop-stale") && selector.includes("[data-stop-stale]") ? this : null }
   focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this }
   getBoundingClientRect() { return { left: 0, right: 0, top: 0, bottom: 0 } }
   showModal() { this.open = true }
@@ -51,7 +51,7 @@ function page(opts) {
   const doc = new El("document");
   Object.assign(doc, {
     body: new El("body"), documentElement: new El("html"), activeElement: null, hidden: false, visibilityState: "visible",
-    getElementById: get, hasFocus: () => true, createElement: () => new El(), dispatchEvent() {},
+    getElementById: get, hasFocus: () => true, createElement: () => Object.assign(new El(), { ownerDocument: doc }), dispatchEvent() {},
     querySelector: sel => sel === "main" ? get("main") : new El(),
   });
   const stopForm = new El("stop-form");
@@ -89,7 +89,8 @@ const badJson = (status = 200) => Promise.resolve({ ok: status < 400, status, js
 const snapshot = slots => ({ generatedAt: "2026-01-01T00:00:00Z", backend: { overall: "healthy", relation: "develop", sha: "abc", services: { api: { probe: "ready", status: "ready" } } }, slots, actions: null });
 const session = slot => ({ slot, branch: "b" + slot, apps: [{ app: "ri" }], worktree: "/w/b" + slot });
 const plain = v => JSON.parse(JSON.stringify(v)); // values from the vm realm compare by structure
-const cards = p => p.get("slots").children.map(c => c.innerHTML).join("|");
+const cardHtmls = p => p.get("slots").children.flatMap(c => c.__slotBox ? c.__slotBox.children.map(slot => slot.innerHTML) : [c.innerHTML]);
+const cards = p => cardHtmls(p).join("|");
 
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
@@ -459,25 +460,49 @@ test("Stop confirmation remains available", () => {
   assert.doesNotMatch(SRC, /\.loading #backend/);
 });
 
-test("stale slots show one bulk button and confirmation names each branch", async () => {
-  const snap = snapshot([session(2), session(3), session(4)]);
-  snap.slots[0].stale = true; snap.slots[1].stale = true; snap.slots[2].stale = false;
+test("repo panels keep cards and give each repo its own stale confirmation", async () => {
+  const snap = snapshot([session(2), session(3), session(4), session(5)]);
+  snap.slots[0].repo = snap.slots[1].repo = "cl-strategy";
+  snap.slots[2].repo = snap.slots[3].repo = "cl-system";
+  snap.slots[0].stale = true; snap.slots[1].stale = false;
+  snap.slots[2].stale = true; snap.slots[3].stale = false;
   const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: null }, true, 202) });
   await p.poll();
-  assert.strictEqual(p.get("stop-stale").hidden, false);
-  assert.strictEqual(p.text("stop-stale"), "Stop stale (2)");
+  const panels = p.get("slots").children;
+  assert.deepStrictEqual(panels.map(panel => panel.__repoHeading.textContent), ["cl-strategy", "cl-system"]);
+  assert.deepStrictEqual(panels.map(panel => panel.__repoCount.textContent), ["2", "2"]);
+  assert.deepStrictEqual(panels.map(panel => panel.__staleButton.textContent), ["Stop stale (1)", "Stop stale (1)"]);
   assert.strictEqual((cards(p).match(/class="stale-tag"/g) || []).length, 2);
-  p.run("confirmStale(document.getElementById('stop-stale'))");
-  assert.strictEqual(p.get("stop-confirm").open, true);
-  assert.match(p.text("stop-message"), /b2\nb3/);
-  p.get("stop-confirm").querySelector("form").fire("submit");
-  assert.strictEqual(p.get("stop-stale").disabled, true, "the button disables while the action starts");
-  assert.strictEqual(p.calls.at(-1).url, "/api/slot/stop-stale");
-  snap.slots[0].stale = false; snap.slots[1].stale = false;
+  const firstCard = panels[0].__slotBox.children[0], otherCard = panels[1].__slotBox.children[0];
   await p.poll();
-  assert.strictEqual(p.get("stop-stale").hidden, true);
-  assert.match(SRC, /var FX_BUTTONS="[^"]*#stop-stale/);
-  assert.match(SRC, /var KEYS = "[^"]*#stop-stale/);
+  assert.strictEqual(p.get("slots").children[0], panels[0], "poll keeps the panel element");
+  assert.strictEqual(panels[0].__slotBox.children[0], firstCard, "poll keeps unchanged cards");
+  assert.strictEqual(panels[1].__slotBox.children[0], otherCard, "poll keeps other repo cards");
+  p.sandbox.document.fire("click", { target: panels[0].__staleButton });
+  assert.strictEqual(p.get("stop-confirm").open, true);
+  assert.match(p.text("stop-message"), /cl-strategy branches\?\nb2/);
+  assert.doesNotMatch(p.text("stop-message"), /b4/);
+  p.get("stop-confirm").querySelector("form").fire("submit");
+  assert.strictEqual(panels[0].__staleButton.disabled, true, "the button disables while the action starts");
+  assert.match(panels[0].__slotBox.children.map(card => card.innerHTML).join("|"), /Stopping/);
+  assert.doesNotMatch(panels[1].__slotBox.children.map(card => card.innerHTML).join("|"), /Stopping/);
+  assert.strictEqual(p.calls.at(-1).url, "/api/slot/stop-stale");
+  assert.deepStrictEqual(JSON.parse(p.calls.at(-1).init.body), { repo: "cl-strategy" });
+  snap.slots[0].stale = false;
+  await p.poll();
+  assert.strictEqual(panels[0].__staleButton.hidden, true);
+  assert.strictEqual(panels[1].__staleButton.hidden, false);
+  assert.match(SRC, /var FX_BUTTONS="[^"]*\.stop-stale/);
+  assert.match(SRC, /var KEYS = "[^"]*\.stop-stale/);
+});
+
+test("repos follow first slot number and unknown repos appear last", async () => {
+  const snap = snapshot([{ ...session(6), repo: "cl-system" }, { ...session(2) },
+                         { ...session(5), repo: "cl-strategy" }, { ...session(3), repo: "cl-system" }]);
+  const p = page({ fetch: () => jsonResponse(snap) });
+  await p.poll();
+  assert.deepStrictEqual(p.get("slots").children.map(panel => panel.__repoHeading.textContent),
+    ["cl-system", "cl-strategy", "Other"]);
 });
 
 test("first visit asks for the tenant; a saved tenant skips the prompt and fills Settings", () => {
@@ -498,7 +523,7 @@ test("each session offers to switch the backend to its branch, except the one al
   Object.assign(snap.backend, { branch: "feat/b", sha: "bbb222" });
   const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: { action: "attach", target: "feat/a", state: "running", output: [] } }, true, 202) });
   await p.poll();
-  const html = p.get("slots").children.map(c => c.innerHTML);
+  const html = cardHtmls(p);
   const card = b => html.find(h => h.includes(">" + b + "<"));
   assert.match(card("feat/a"), /data-attach="feat\/a".*Switch backend</);
   assert.match(card("feat/b"), /Backend on this branch/);
@@ -510,18 +535,18 @@ test("each session offers to switch the backend to its branch, except the one al
   assert.strictEqual(p.run("attachAvailable('feat/docs')"), false);
   snap.backend.branch = "feat/c"; snap.backend.sha = "ccc111";
   await p.poll();
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /data-attach="feat\/c" title="The backend runs another commit[^"]*".*Update backend</);
+  assert.match(cards(p), /data-attach="feat\/c" title="The backend runs another commit[^"]*".*Update backend</);
   assert.strictEqual(p.run("attachAvailable('feat/c')"), true);
   delete snap.backend.sha;
   await p.poll();
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /data-attach="feat\/c" title="The backend runs this branch at an unknown commit/, "an unknown commit is not claimed current");
+  assert.match(cards(p), /data-attach="feat\/c" title="The backend runs this branch at an unknown commit/, "an unknown commit is not claimed current");
   snap.backend.sha = "ccc111";
   p.run("runAction('attach','feat/a')");
   await new Promise(r => setImmediate(r));
   const post = p.calls.find(c => c.url === "/api/slot/backend");
   assert(post, "the switch posts to /api/slot/backend");
   assert.deepStrictEqual(JSON.parse(post.init.body), { branch: "feat/a" });
-  assert.match(p.get("slots").children.map(c => c.innerHTML).join("|"), /Switching backend/);
+  assert.match(cards(p), /Switching backend/);
 });
 
 test("a backend switch keeps a busy headline through changing probes, then shows the final result", async () => {

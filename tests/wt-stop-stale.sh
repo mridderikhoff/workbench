@@ -2,12 +2,12 @@
 # Isolated T3 and wt state fixture; no services are contacted.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-SCRATCH=/tmp/codex-stop-stale-slots.rfz4Cj
+SCRATCH=${WT_TEST_SCRATCH:-${TMPDIR:-/tmp}}
 S=$(mktemp -d "$SCRATCH/wt-stop-stale.XXXXXX")
 trap 'rm -rf -- "$S"' EXIT
 mkdir -p "$S/state/wt-serve" "$S/units" "$S/old" "$S/old2" "$S/live" "$S/untouched" "$S/qa"
 export T3_STATE_DB="$S/state.sqlite" WT_STATE_DIR="$S/state" WT_DRY_RUN=1
-export WT_MAIN_CHECKOUT="$ROOT" QA_UNIT_DIR="$S/units" TMPDIR="$S" WT_QA_TREE="$S/qa" QA_TREE="$S/qa" WT_STUB_PORTS=' '
+export WT_MAIN_CHECKOUT="$ROOT" QA_UNIT_DIR="$S/units" TMPDIR="$S" WT_QA_TREE="$S/qa" QA_TREE="$S/qa" WT_STUB_PORTS=' ' PYTHONPYCACHEPREFIX="$S/pycache"
 cat >"$S/qa-stack" <<'STUB'
 #!/usr/bin/env bash
 printf '{"overall":"unknown","services":{}}\n'
@@ -19,23 +19,32 @@ STUB
 chmod +x "$S/qa-stack" "$S/systemctl"
 export WT_QA_STACK_BIN="$S/qa-stack" OVERSEER_SYSTEMCTL="$S/systemctl"
 python3 - "$T3_STATE_DB" "$S" <<'PY'
-import sqlite3, sys
+import json, sqlite3, sys
 db = sqlite3.connect(sys.argv[1])
-db.execute('CREATE TABLE projection_threads (worktree_path TEXT, deleted_at TEXT, archived_at TEXT, settled_at TEXT, unsettled_at TEXT)')
+db.execute('CREATE TABLE orchestration_v2_projection_threads (thread_id TEXT, project_id TEXT, title TEXT, archived_at TEXT, deleted_at TEXT, payload_json TEXT)')
+db.execute('CREATE TABLE projection_threads (thread_id TEXT, worktree_path TEXT, title TEXT, latest_user_message_at TEXT, updated_at TEXT, created_at TEXT, deleted_at TEXT, archived_at TEXT, settled_at TEXT, unsettled_at TEXT)')
 base = sys.argv[2]
-db.executemany('INSERT INTO projection_threads VALUES (?, ?, ?, ?, ?)', [
-    (base + '/old', None, None, '2026-01-01', None),
-    (base + '/old/../old', None, '2026-01-02', None, None),
-    (base + '/old2', '2026-01-03', None, None, None),
-    (base + '/live', None, None, None, None),
-    (base + '/live', None, None, '2026-01-01', None),
-])
+rows = [
+    ('old', base + '/old', {'settledAt': '2026-11-01', 'updatedAt': '2026-11-02'}, None, None),
+    ('old-archived', base + '/old/../old', {'archivedAt': '2026-11-03'}, None, None),
+    ('old2', base + '/old2', {'settledAt': None}, None, '2026-11-03'),
+    ('live', base + '/live', {'settledAt': '2026-11-01', 'settledOverride': 'active', 'lastVisitedAt': '2026-11-04'}, None, None),
+    ('live-settled', base + '/live', {'settledAt': '2026-11-05'}, None, None),
+]
+db.executemany('INSERT INTO orchestration_v2_projection_threads VALUES (?, ?, ?, ?, ?, ?)',
+               [(tid, 'project', tid, archived, deleted, json.dumps(dict(payload, worktreePath=path)))
+                for tid, path, payload, archived, deleted in rows])
+# This frozen legacy table must not override the v2 projection.
+db.execute('INSERT INTO projection_threads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+           ('frozen', base + '/old', 'frozen', None, None, None, None, None, None, None))
 db.commit()
 PY
 for entry in '2 old' '3 live' '4 untouched' '5 old2'; do
   read -r slot branch <<<"$entry"
-  printf 'branch=%s\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' \
-    "$branch" "$S/$branch" >"$WT_STATE_DIR/wt-serve/slot-$slot"
+  repo=cl-strategy
+  [ "$branch" = old2 ] && repo=cl-system
+  printf 'branch=%s\npath=%s\nrepo=%s\napps=ds-demo\nunits=ds-demo\nkc=\n' \
+    "$branch" "$S/$branch" "$repo" >"$WT_STATE_DIR/wt-serve/slot-$slot"
 done
 "$ROOT/bin/t3-thread" worktrees --json >"$S/worktrees.json"
 python3 - "$S/worktrees.json" "$S" <<'PY'
@@ -44,6 +53,26 @@ items = {item['path']: item['state'] for item in json.load(open(sys.argv[1]))['w
 assert items == {sys.argv[2] + '/old': 'settled', sys.argv[2] + '/old2': 'settled',
                  sys.argv[2] + '/live': 'live'}, items
 PY
+"$ROOT/bin/t3-thread" self --cwd "$S/live" >"$S/self.txt"
+grep -qx live "$S/self.txt"
+python3 - "$S/legacy.sqlite" "$S" <<'PY'
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute('CREATE TABLE projection_threads (thread_id TEXT, worktree_path TEXT, title TEXT, latest_user_message_at TEXT, updated_at TEXT, created_at TEXT, deleted_at TEXT, archived_at TEXT, settled_at TEXT, unsettled_at TEXT)')
+db.executemany('INSERT INTO projection_threads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    ('legacy-live', sys.argv[2] + '/live', 'live', None, '2026-10-01', None, None, None, None, None),
+    ('legacy-old', sys.argv[2] + '/old', 'old', None, '2026-10-01', None, None, None, '2026-10-02', None),
+])
+db.commit()
+PY
+T3_STATE_DB="$S/legacy.sqlite" "$ROOT/bin/t3-thread" worktrees --json >"$S/legacy-worktrees.json"
+python3 - "$S/legacy-worktrees.json" "$S" <<'PY'
+import json, sys
+items = {item['path']: item['state'] for item in json.load(open(sys.argv[1]))['worktrees']}
+assert items == {sys.argv[2] + '/old': 'settled', sys.argv[2] + '/live': 'live'}, items
+PY
+T3_STATE_DB="$S/legacy.sqlite" "$ROOT/bin/t3-thread" self --cwd "$S/live" >"$S/legacy-self.txt"
+grep -qx legacy-live "$S/legacy-self.txt"
 "$ROOT/bin/wt" status --json >"$S/status.json"
 python3 - "$S/status.json" <<'PY'
 import json, sys
@@ -54,6 +83,13 @@ PY
 grep -qx 'stale      slot 2 old' "$S/dry-run.txt"
 grep -qx 'stale      slot 5 old2' "$S/dry-run.txt"
 [ "$(wc -l <"$S/dry-run.txt")" -eq 2 ]
+"$ROOT/bin/wt" serve --stop-stale --repo cl-system --dry-run >"$S/repo-dry-run.txt"
+grep -qx 'stale      slot 5 old2' "$S/repo-dry-run.txt"
+[ "$(wc -l <"$S/repo-dry-run.txt")" -eq 1 ]
+"$ROOT/bin/wt" serve --stop-stale --repo cl-system --only-slot 5 old2 "$S/old2" --dry-run >"$S/approved-dry-run.txt"
+grep -qx 'stale      slot 5 old2' "$S/approved-dry-run.txt"
+"$ROOT/bin/wt" serve --stop-stale --repo cl-system --only-slot 5 wrong "$S/old2" --dry-run >"$S/mismatch.txt"
+grep -qx 'no stale slots' "$S/mismatch.txt"
 "$ROOT/bin/wt" serve --stop old old2 missing >"$S/stop.txt" 2>"$S/stop.err" && exit 1
 grep -qx 'slot       2 stopped for old' "$S/stop.txt"
 grep -qx 'slot       5 stopped for old2' "$S/stop.txt"
@@ -62,13 +98,25 @@ grep -qx 'serve      no slot for missing' "$S/stop.err"
 [ ! -e "$WT_STATE_DIR/wt-serve/slot-5" ]
 [ -e "$WT_STATE_DIR/wt-serve/slot-3" ]
 printf 'branch=old\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/old" >"$WT_STATE_DIR/wt-serve/slot-2"
-printf 'branch=old2\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/old2" >"$WT_STATE_DIR/wt-serve/slot-5"
+printf 'branch=old2\npath=%s\nrepo=cl-system\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/old2" >"$WT_STATE_DIR/wt-serve/slot-5"
 printf 'branch=old\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/live" >"$WT_STATE_DIR/wt-serve/slot-6"
-"$ROOT/bin/wt" serve --stop-stale >"$S/stale-stop.txt"
+mkdir -p "$S/late"
+python3 - "$T3_STATE_DB" "$S/late" <<'PY'
+import json, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute('INSERT INTO orchestration_v2_projection_threads VALUES (?, ?, ?, ?, ?, ?)',
+           ('late', 'project', 'late', None, None, json.dumps({'worktreePath': sys.argv[2], 'settledAt': '2026-11-06'})))
+db.commit()
+PY
+printf 'branch=late\npath=%s\nrepo=cl-system\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/late" >"$WT_STATE_DIR/wt-serve/slot-7"
+"$ROOT/bin/wt" serve --stop-stale --repo cl-system --only-slot 5 old2 "$S/old2" >"$S/system-stop.txt"
+grep -qx 'slot       5 stopped for old2' "$S/system-stop.txt"
+[ -e "$WT_STATE_DIR/wt-serve/slot-2" ] && [ ! -e "$WT_STATE_DIR/wt-serve/slot-5" ] && [ -e "$WT_STATE_DIR/wt-serve/slot-7" ]
+"$ROOT/bin/wt" serve --stop-stale --repo cl-strategy --only-slot 2 old "$S/old" >"$S/stale-stop.txt"
 grep -qx 'slot       2 stopped for old' "$S/stale-stop.txt"
-grep -qx 'slot       5 stopped for old2' "$S/stale-stop.txt"
 [ ! -e "$WT_STATE_DIR/wt-serve/slot-2" ] && [ ! -e "$WT_STATE_DIR/wt-serve/slot-5" ]
 [ -e "$WT_STATE_DIR/wt-serve/slot-6" ]
+[ -e "$WT_STATE_DIR/wt-serve/slot-7" ]
 T3_STATE_DB="$S/missing.sqlite" "$ROOT/bin/wt" serve --stop-stale --dry-run >"$S/missing.txt" 2>"$S/missing.err"
 grep -qx 'no stale slots' "$S/missing.txt"
 grep -q 'warning: cannot read' "$S/missing.err"

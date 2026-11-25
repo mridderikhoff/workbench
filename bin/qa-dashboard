@@ -120,7 +120,7 @@ html[data-scene="radio"] main{grid-area:main;min-width:0}
 html[data-scene="radio"] .radio-nav button.icon{width:30px;height:30px;color:var(--radio-plate-ink);border:1px solid currentColor;border-radius:3px;background:transparent;box-shadow:var(--sunk)}
 html[data-scene="radio"] .radio-nav button.icon svg{width:16px;height:16px}.radio-nav .prev svg{transform:rotate(180deg)}
 html[data-scene="radio"] .radio-nav button.icon:focus-visible{outline:none;box-shadow:var(--ring),var(--sunk)}
-@media (min-width:1100px){html[data-scene="radio"] .slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1100px){html[data-scene="radio"] .repo-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:1099px){html[data-scene="radio"] .page{grid-template-columns:300px minmax(0,1fr);grid-template-areas:"portrait radio" "backend backend" "main main"}}
 @media (max-width:899px){html[data-scene="radio"] .page{grid-template-columns:minmax(200px,40%) minmax(0,1fr);padding:34px 16px 80px;gap:30px}html[data-scene="radio"] main{grid-column:auto;grid-row:auto;padding:22px 18px 20px}}
 @media (max-width:559px){html[data-scene="radio"] .page{grid-template-columns:minmax(0,1fr);grid-template-areas:"portrait" "radio" "backend" "main";gap:30px}html[data-scene="radio"] .radio{margin-top:-18px;width:100%}html[data-scene="radio"] .eye-card{justify-self:center;width:min(330px,calc(100% - 12px))}}
@@ -158,7 +158,12 @@ main::after{content:"";position:absolute;top:calc(100% + 1px);left:71%;width:22p
 .slot-gauge .gauge-needle::after{content:"";position:absolute;left:-2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--gauge-rim)}
 .slot-gauge .gauge-n{position:absolute;left:0;right:0;bottom:3px;text-align:center;font:700 13px/1 var(--mono);color:var(--gauge-ink)}
 .slots{display:grid;gap:16px;padding:0;border-radius:var(--tray-radius);background:var(--tray);box-shadow:var(--tray-shadow)}
-.slots>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
+.repo-panel{min-width:0;padding:16px;border:1px solid var(--edge-lo2);border-radius:var(--obj-radius);background:var(--desk-card2) var(--desk-stock,none) 0 0/var(--desk-stock-size,320px) repeat;box-shadow:inset 0 1px 0 var(--edge-hi),0 3px 0 var(--edge-lo2),0 8px 14px -8px var(--contact)}
+.repo-header{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:16px;color:var(--text)}
+.repo-heading{margin:0;font:700 19px/1.25 var(--serif);letter-spacing:.02em;overflow-wrap:anywhere}
+.repo-count{font:600 13px/1.2 var(--mono);color:var(--muted);padding:3px 7px;border-radius:3px;background:var(--inset);box-shadow:var(--sunk)}
+.repo-slots{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
+:is(.slots,.repo-slots)>.card{--text:var(--item-text);--muted:var(--item-muted);--focus-inner:var(--item-card);--ring:0 0 0 2px var(--focus-inner),0 0 0 4px var(--focus-outer);
 position:relative;min-width:0;padding:16px 18px 14px;color:var(--text);border-radius:var(--item-radius);background:var(--item-face);box-shadow:var(--item-shadow)}
 /* The problem marker down the left edge of a problem card (the backend card when unhealthy, a session with a failed build).
    This only places it; each theme draws its own in deskCss (Horror: a blood strike with a drop; Y2K: the shell's rim lit red;
@@ -345,7 +350,7 @@ a.app-pill:active{transform:translateY(1px) scale(.97)}
 .app-pill.failed::after{inset:-2.5px -2.5px -4.5px}
 .app-pill.failed .build-failed{font-weight:800}
 a.app-pill.failed:hover,a.app-pill.failed:focus-visible{transform:translateY(-2px) rotate(-2deg)}
-.slots>.card.err{background:linear-gradient(color-mix(in srgb,var(--bad) 7%,transparent),color-mix(in srgb,var(--bad) 7%,transparent)),var(--item-face);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--bad) 80%,transparent),var(--item-shadow)}
+:is(.slots,.repo-slots)>.card.err{background:linear-gradient(color-mix(in srgb,var(--bad) 7%,transparent),color-mix(in srgb,var(--bad) 7%,transparent)),var(--item-face);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--bad) 80%,transparent),var(--item-shadow)}
 .app-pill.tone-warn{--tag-rim:var(--warn)}
 .app-pill.off::before{background:var(--tag-mount-off,none),var(--tag-off)}
 .app-pill.off.tone-warn::before{background:var(--tag-mount,none),var(--tag-face,var(--tag))}
@@ -407,7 +412,7 @@ button.icon:active{transform:translateY(1px)}
    its label: the fill and the copy move together by transform only, so the label reads in the effect's ink as the fill passes.
    seep: a wet band rises in from the left along the bottom third, and the label copy is clipped to it; one drop falls.
    charge: a stepped bar of --charge charges across and the label inverts. blocks: the same in whole blocks with a ▓▒░ edge. */
-:is(button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label){position:relative;isolation:isolate}
+:is(button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label){position:relative;isolation:isolate}
 .bfx{position:absolute;inset:0;z-index:1;display:block;overflow:hidden;padding:inherit;border-radius:inherit;pointer-events:none;justify-content:inherit;gap:inherit}
 .bfx-fill{position:absolute;inset:0;padding:inherit;overflow:hidden;justify-content:inherit;gap:inherit;transform:translateX(-101%);transition:transform var(--dur-fast) steps(4,end)}
 .bfx-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:inherit;gap:inherit;padding:inherit;color:var(--fx-ink);transform:translateX(101%);transition:inherit}
@@ -423,10 +428,10 @@ background:conic-gradient(var(--charge) 0 75%,transparent 0) 0 0/3px 3px;-webkit
 html[data-button-hover="seep"] .bfx{--fx-ink:var(--seep-ink)}
 html[data-button-hover="seep"] .bfx-fill{inset:auto 0 0 0;height:30%;padding-top:0;padding-bottom:0;background:var(--seep);transform:translateX(-102%);transition:transform var(--dur-fast) var(--ease)}
 html[data-button-hover="seep"] .bfx-text{inset:auto 0 0 0;height:333.34%;transform:translateX(102%)}
-:is(button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
-html[data-button-hover="blocks"] :is(button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
+:is(button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="blocks"] :is(button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx::after,
 .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text),html[data-button-hover="blocks"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx::after{transform:none;transition-duration:var(--dur);transition-timing-function:steps(6,end)}
-html[data-button-hover="seep"] :is(button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
+html[data-button-hover="seep"] :is(button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx :is(.bfx-fill,.bfx-text),
 html[data-button-hover="seep"] .settings .segmented label:is(:hover,:has(input:focus-visible),.fx-settled) > .bfx :is(.bfx-fill,.bfx-text){transition-timing-function:var(--ease-out)}
 html[data-button-hover="seep"] .settings .segmented label:has(input:checked) > .bfx{display:none}
 /* press: no fill. The legend copy (in --legend-lit, with a --legend-glow halo) fades in over the label, so the key looks backlit;
@@ -437,7 +442,7 @@ html[data-button-hover="press"] .bfx-text{transform:none;text-shadow:var(--legen
 html[data-button-hover="press"] .bfx-text *{text-shadow:inherit!important}
 html[data-button-hover="press"] .bfx-text svg{filter:drop-shadow(0 0 2px var(--legend-halo,transparent))}
 html[data-button-hover="press"] .bfx-text .behind-badge{visibility:hidden}
-html[data-button-hover="press"] :is(button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx .bfx-fill,
+html[data-button-hover="press"] :is(button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button):is(:hover:not(:disabled),:focus-visible,.fx-settled:not(:disabled)) > .bfx .bfx-fill,
 html[data-button-hover="press"] .settings .segmented label:is(:hover,:has(input:focus-visible),:has(input:checked),.fx-settled) > .bfx .bfx-fill{opacity:1;transition-duration:var(--dur);transition-timing-function:var(--ease-out)}
 .bfx-drip{z-index:2}
 /* Two focus rings: the surface colour, then a contrasting accent, so focus shows on every texture. */
@@ -537,7 +542,7 @@ html[data-button-hover="seep"] .settings option:is(:hover,:focus-visible)::after
 .side{position:static;align-items:stretch}
 main{grid-column:1;grid-row:2;padding:22px 14px 20px}
 .slots{gap:12px}
-.slots>.card{padding:13px 13px 12px}
+:is(.slots,.repo-slots)>.card{padding:13px 13px 12px}
 /* Stacked, the Sessions paper keeps its offset but not its tilt: a tilted tall sheet swings its far corner past the page edge and scrolls sideways. */
 main::before{transform:none}
 .eye-card{align-self:center;width:min(330px,calc(100% - 12px))}
@@ -968,8 +973,8 @@ var THEMES = {
         D + '{--item-radius:6px 5px 6px 4px;' +
           '--item-face:radial-gradient(120% 90% at 22% 0,var(--folio-sheen),transparent 62%),linear-gradient(var(--folio-tint),var(--folio-tint)),var(--desk-blotter-color) var(--desk-blotter,none) 0 0/var(--desk-blotter-size,384px);' +
           '--item-shadow:inset 0 1px 0 rgba(255,220,180,.12),inset 0 -2px 3px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.45),0 1px 0 #1a0806,0 2px 0 #120403,0 7px 9px -4px var(--contact)}',
-        D + ' .slots>.card{padding-left:34px;--foil-hi:var(--folio-foil-hi);--foil-mid:var(--folio-foil-mid);--foil-lo:var(--folio-foil-lo);--foil-rim:var(--folio-foil-rim);--foil-lip:var(--folio-foil-lip);--tooled:var(--folio-tooled);--ok:var(--folio-ok);--bad:var(--folio-bad);--warn:var(--folio-warn)}',
-        D + ' .slots>.card::before{content:"";position:absolute;inset:5px;pointer-events:none;border:4px solid transparent;border-radius:4px;border-image:var(--folio-stitch) 8 / 4px round;opacity:.8}',
+        D + ' :is(.slots,.repo-slots)>.card{padding-left:34px;--foil-hi:var(--folio-foil-hi);--foil-mid:var(--folio-foil-mid);--foil-lo:var(--folio-foil-lo);--foil-rim:var(--folio-foil-rim);--foil-lip:var(--folio-foil-lip);--tooled:var(--folio-tooled);--ok:var(--folio-ok);--bad:var(--folio-bad);--warn:var(--folio-warn)}',
+        D + ' :is(.slots,.repo-slots)>.card::before{content:"";position:absolute;inset:5px;pointer-events:none;border:4px solid transparent;border-radius:4px;border-image:var(--folio-stitch) 8 / 4px round;opacity:.8}',
         // Slot numbers are a dark leather patch saddle-stitched onto the folio in gold thread, set at a seeded tilt, with the
         // number in gold foil. The patch keeps its own inks in both schemes, like the folio it sits on.
         D + ' .slot-card .head{padding-right:6.2em}',
@@ -1386,7 +1391,7 @@ THEMES.y2k = (function () {
   var FROST = "var(--frost)";
   var FROST_EDGE = "inset 0 0 0 1px var(--frost-rim),inset 0 1px 0 var(--frost-hi),0 1px 2px var(--frost-drop)";
   // Keycaps: solid plastic caps with a printed legend; the switch shows through a clear window at one end.
-  var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,#stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn)";
+  var KEYS = ":is(.slot-card button.icon:not(.stop),#settings-open,.stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label,:is(.backend,.slot-backend) .update-btn)";
   // Keycaps stand proud of the shell like a Game Boy Advance's buttons: a domed top (a curved highlight, a darker lower half), a
   // side wall of the cap colour and a cast shadow, in a moulded well ringed by a lighter collar. cap(t) is the shadow stack for a
   // cap pushed t px down from fully proud: the wall and the shadow shrink as it sinks, and the well and collar are offset by -t,
@@ -1405,7 +1410,7 @@ THEMES.y2k = (function () {
   function latched(t) { var well = +(2 - t).toFixed(1) + "px"; return "inset 0 2px 4px var(--cap-shade),0 1px 2px var(--key-cast),0 " + well + " 0 3.5px var(--key-well),0 " + well + " 0 5.5px var(--key-collar)" }
   // The family, after the Switch backend pill: primary actions are wide pills, latching keys squarer rounded caps, and small
   // utilities slim capsules like START and SELECT, low in a shallow well.
-  var PILLS = ":is(#stop-stale,.settings .done,.confirm-actions button,.backend .acts button.act,:is(.backend,.slot-backend) .update-btn)";
+  var PILLS = ":is(.stop-stale,.settings .done,.confirm-actions button,.backend .acts button.act,:is(.backend,.slot-backend) .update-btn)";
   var LATCHES = ":is(.slot-card button.icon:not(.stop),.settings .segmented label)";
   var UTILS = ":is(#settings-open,.backend .toggle,.backend button.act.svc-restart)";
   function util(t) {
@@ -1661,10 +1666,10 @@ THEMES.y2k = (function () {
       // The module is the shell (transparent, so the case's board shows through its rim). .module is its board, floating inside with
       // a shadow on the back shell; its ::before is the plastic over it. Each module shows a different patch of the board.
       C + ' .slots{gap:18px}',
-      C + ' .slots>.card{isolation:isolate;padding:22px 24px 20px 58px}',
-      C + ' .slots>.card .module{display:block;position:absolute;inset:8px;z-index:-1;pointer-events:none;border-radius:8px;background:var(--pcb-module) var(--board-at,0 0)/480px 220px;' +
+      C + ' :is(.slots,.repo-slots)>.card{isolation:isolate;padding:22px 24px 20px 58px}',
+      C + ' :is(.slots,.repo-slots)>.card .module{display:block;position:absolute;inset:8px;z-index:-1;pointer-events:none;border-radius:8px;background:var(--pcb-module) var(--board-at,0 0)/480px 220px;' +
         'box-shadow:0 0 0 1px rgba(0,0,0,.4),0 3px 6px -1px rgba(0,0,0,.55),0 8px 16px -6px rgba(0,0,0,.45)}',
-      [[2, "-170px -60px"], [3, "-310px -120px"], [4, "-90px -150px"], [5, "-250px -20px"], [6, "-40px -100px"], [7, "-360px -170px"], [8, "-200px -90px"]].map(function (s) { return C + ' .slots>.card:nth-child(' + s[0] + ') .module{--board-at:' + s[1] + '}' }).join("\n"),
+      [[2, "-170px -60px"], [3, "-310px -120px"], [4, "-90px -150px"], [5, "-250px -20px"], [6, "-40px -100px"], [7, "-360px -170px"], [8, "-200px -90px"]].map(function (s) { return C + ' :is(.slots,.repo-slots)>.card:nth-child(' + s[0] + ') .module{--board-at:' + s[1] + '}' }).join("\n"),
       C + ' .module::before{content:"";position:absolute;inset:0;border-radius:inherit;--shell:color-mix(in srgb,var(--shell-base) 78%,transparent);background:' + SPEC + ',' + FILL + ';box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--shell-rim) 35%,transparent)}',
       C + ' .module>i{position:absolute;display:block}',
       // The status light pipe, after the GBA SP's power light pipe: a slim frosted bar moulded into the shell, split by dark ribs
@@ -1699,7 +1704,7 @@ THEMES.y2k = (function () {
       C + ' .module .fastener{display:none}',
       C + ' .module::after{content:"";position:absolute;inset:-8px;border-radius:14px;' + SEAM + 'var(--seam-module)}',
       // Layout on the module: the commit display and the worktree label share the bottom row.
-      C + ' .slots>.slot-card{--focus-inner:var(--item-card)}',
+      C + ' :is(.slots,.repo-slots)>.slot-card{--focus-inner:var(--item-card)}',
       C + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read wt" "err err" "note note"}',
       C + ' .slot-card>.head{grid-area:head}', C + ' .slot-card>.apps{grid-area:apps}', C + ' .slot-card>.head-line{grid-area:read}',
       C + ' .slot-card>.error{grid-area:err;justify-self:start;margin-top:10px;padding:5px 11px;border-radius:8px;background:' + FROST + ';box-shadow:' + FROST_EDGE + '}',
@@ -1707,7 +1712,7 @@ THEMES.y2k = (function () {
       C + ' .slot-card>.muted.small:not(.head-line){grid-area:wt;justify-self:start;max-width:calc(100% - 14px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-left:14px;padding:4px 10px;border-radius:999px;background:' + FROST + ';box-shadow:' + FROST_EDGE + ';color:var(--muted)}',
       C + ' .slot-card .card-drip{display:none}',
       // A problem lights the shell's rim red, the way an LED lights the edge of clear plastic, and the module's LED turns red.
-      C + ' .slots>.card.err{background:linear-gradient(color-mix(in srgb,var(--bad) 10%,transparent),color-mix(in srgb,var(--bad) 10%,transparent)),var(--item-face);' +
+      C + ' :is(.slots,.repo-slots)>.card.err{background:linear-gradient(color-mix(in srgb,var(--bad) 10%,transparent),color-mix(in srgb,var(--bad) 10%,transparent)),var(--item-face);' +
         'box-shadow:inset 0 0 0 1.5px #ff6a6a,inset 0 0 0 6px rgba(255,40,40,.42),inset 0 0 14px 6px rgba(255,40,40,.28),0 0 0 1px rgba(255,60,60,.6),0 0 16px -2px rgba(255,40,40,.55),0 2px 0 var(--shell-wall),0 7px 8px -3px var(--contact)}',
       // The branch is pad-printed on a frosted strip; a long name ends in an ellipsis (the title has it in full), and the hover
       // underline is a gold trace on the board just below.
@@ -1799,13 +1804,13 @@ THEMES.y2k = (function () {
         'box-shadow:inset 0 2px 4px rgba(0,0,0,.4),0 0 0 4px var(--surround),0 0 0 5px rgba(0,0,0,.4),0 1px 0 5px rgba(255,255,255,.18)}',
       C + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
       C + ' .slot-card .head-line span[style]{font-weight:700}',
-      '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' .slots>.card{padding:20px 14px 18px 46px}}',
+      '@media (max-width:899px){' + C + ' main{padding:26px 14px 22px}' + C + ' :is(.slots,.repo-slots)>.card{padding:20px 14px 18px 46px}}',
       '@media (max-width:559px){' + C + ' .slot-card .app-pill{max-width:100%;flex-wrap:wrap;row-gap:1px}}',
       '@media (max-width:559px){' + C + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "wt" "err" "note"}' +
         C + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + C + ' .slot-card .head-line{white-space:normal}' + C + ' .slot-card>.muted.small:not(.head-line){margin:8px 0 0}' + C + ' .slot-card .head{padding-right:0}}',
       // Modules seat on load, about 50ms apart: each drops into the case with a small settle (only a new session seats).
-      '@media (prefers-reduced-motion:no-preference){' + C + ' .slots>.slot-card{animation:y2k-seat .36s var(--ease-out) backwards}' +
-        [2, 3, 4, 5, 6, 7, 8].map(function (n) { return C + ' .slots>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}' }).join("") + '}',
+      '@media (prefers-reduced-motion:no-preference){' + C + ' :is(.slots,.repo-slots)>.slot-card{animation:y2k-seat .36s var(--ease-out) backwards}' +
+        [2, 3, 4, 5, 6, 7, 8].map(function (n) { return C + ' :is(.slots,.repo-slots)>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}' }).join("") + '}',
       '@keyframes y2k-seat{0%{opacity:0;transform:translateY(-10px)}60%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}'
     ].join("\n") },
     // A pale bench under a grey-blue anti-static mat; the cases are clear, so the stock tile is only a fallback for plain fills.
@@ -2089,8 +2094,8 @@ THEMES.terminal = (function () {
         // screws, with a left channel for its annunciator and lamp column (the session's status). On it: the branch on a small
         // display, the stop key, the app keycaps, and the commit on a small display screen.
         T + '{--item-radius:7px;--item-face:transparent;--item-shadow:none}',
-        T + ' .slots>.card{isolation:isolate;padding:17px 18px 12px 47px}',
-        T + ' .slots>.card .module{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:7px;' +
+        T + ' :is(.slots,.repo-slots)>.card{isolation:isolate;padding:17px 18px 12px 47px}',
+        T + ' :is(.slots,.repo-slots)>.card .module{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:7px;' +
           'background:linear-gradient(var(--mould-lo),var(--mould-lo)) 32px 0/1px 100% no-repeat,linear-gradient(var(--mould-hi),var(--mould-hi)) 33px 0/1px 100% no-repeat,' +
           'linear-gradient(var(--grip),var(--grip)) 0 0/32px 100% no-repeat,linear-gradient(180deg,var(--card-hi),transparent 45%),var(--stock);outline:1px solid var(--groove);outline-offset:-6px;' +
           'box-shadow:inset 0 1px 0 var(--edge-hi),inset 1.5px 1.5px 0 var(--mould-hi),inset -1.5px -2px 0 var(--mould-lo),inset 0 0 0 1px var(--edge-line),0 1px 0 var(--edge-lo),0 3px 0 var(--edge-lo2),0 4px 3px var(--contact)}',
@@ -2131,15 +2136,15 @@ THEMES.terminal = (function () {
         T + ' .module .fastener.tr{right:9px;top:9px}',
         T + ' .module .fastener.br{right:9px;bottom:9px}',
         // Content lays out on the panel: the commit screen sits on the bottom row.
-        T + ' .slots>.slot-card{--text:var(--panel-ink);--muted:var(--panel-muted);--focus-inner:var(--panel)}',
+        T + ' :is(.slots,.repo-slots)>.slot-card{--text:var(--panel-ink);--muted:var(--panel-muted);--focus-inner:var(--panel)}',
         T + ' .slot-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;grid-template-areas:"head head" "apps apps" "read read" "err err" "note note"}',
         T + ' .slot-card>.head{grid-area:head}',
         T + ' .slot-card>.apps{grid-area:apps}',
         T + ' .slot-card>.head-line{grid-area:read}',
         T + ' .slot-card>.error{grid-area:err;margin-top:8px}',
         T + ' .slot-card>.stopping-note{grid-area:note;margin-top:8px}',
-        T + ' .slots>.card.err{background:none;box-shadow:none}',
-        T + ' .slots>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
+        T + ' :is(.slots,.repo-slots)>.card.err{background:none;box-shadow:none}',
+        T + ' :is(.slots,.repo-slots)>.card.err .module{outline:2px solid var(--bad);outline-offset:-2px}',
         // The lit lamp column is the problem marker here, so the generic gutter is not drawn.
         T + ' .slot-card .card-drip{display:none}',
         // The shared branch label is printed on Terminal's small display.
@@ -2230,13 +2235,13 @@ THEMES.terminal = (function () {
           'box-shadow:inset 0 2px 6px #000,inset 0 0 0 1px #000,0 0 0 5px var(--mfd-bezel),0 0 0 6px #000,0 1px 0 6px var(--panel-hi)}',
         T + ' .slot-card .head-line code{color:var(--screen-ink);background:none;padding:0;font-weight:700}',
         T + ' .slot-card .head-line span[style]{font-weight:700}',
-        '@media (max-width:899px){' + T + ' .slots>.card{padding:14px 9px 9px 42px}}',
+        '@media (max-width:899px){' + T + ' :is(.slots,.repo-slots)>.card{padding:14px 9px 9px 42px}}',
         '@media (max-width:559px){' + T + ' .slot-card{grid-template-columns:minmax(0,1fr);grid-template-areas:"tag" "head" "apps" "read" "err" "note"}' +
           T + ' .slot-card>.slotno{grid-area:tag;justify-self:start}' + T + ' .slot-card .head-line{white-space:normal}' + T + ' .slot-card .head{padding-right:0}}',
         // Modules seat on load, about 50ms apart: each drops in with a small settle. It runs on the card element, which a poll
         // keeps, so only a new session seats; a data change that rebuilds the card's contents does not replay it.
-        '@media (prefers-reduced-motion:no-preference){' + T + ' .slots>.slot-card{animation:term-seat .36s var(--ease-out) backwards}' +
-          [2, 3, 4, 5, 6, 7, 8].map(function (n) { return T + ' .slots>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}'; }).join("") + '}',
+        '@media (prefers-reduced-motion:no-preference){' + T + ' :is(.slots,.repo-slots)>.slot-card{animation:term-seat .36s var(--ease-out) backwards}' +
+          [2, 3, 4, 5, 6, 7, 8].map(function (n) { return T + ' :is(.slots,.repo-slots)>.slot-card:nth-child(' + n + '){animation-delay:' + (n - 1) * 50 + 'ms}'; }).join("") + '}',
         '@keyframes term-seat{0%{opacity:0;transform:translateY(-12px)}60%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}',
         // Slot numbers are an asset tag: black label tape with SLOT printed on it and the number in a small phosphor readout. Never tilted.
         T + ' .slotno{top:17px;right:34px;align-items:stretch;gap:0;padding:0;border-radius:3px;background:var(--dymo);color:var(--dymo-ink);box-shadow:0 1px 0 var(--edge-hi),0 0 0 1px rgba(0,0,0,.25);' +
@@ -2271,11 +2276,11 @@ THEMES.terminal = (function () {
           'box-shadow:inset 0 0 0 1px #000,0 1.5px 0 -.5px #3b3933,0 3px 0 -1px #26241f,0 3px 3px -1px rgba(0,0,0,.6)}',
         // Every button is a putty keycap: a dished face on a key wall. Hover presses it partway and lights the legend; a press
         // bottoms it out. The details toggle latches down while the details are open, like a lock key. Travel is transform only.
-        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,#stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + '{border:0;border-radius:5px;color:var(--btn-ink);background:radial-gradient(120% 90% at 50% 26%,var(--cap-hi) 0,var(--btn-face) 72%);' +
           'box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 3px 0 var(--btn-edge),0 4px 5px -1px var(--contact);transition:transform var(--dur-fast) var(--ease-out)}',
-        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,#stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
-        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,#stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
-        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,#stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':is(:hover:not(:disabled),:focus-visible,.fx-settled){transform:translateY(1.5px);box-shadow:inset 0 1px 0 var(--btn-hi),inset 0 -1px 0 var(--cap-shade),0 1.5px 0 var(--btn-edge),0 2px 3px -1px var(--contact)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':active:not(:disabled),' + T + ' .backend .toggle[aria-expanded="true"],' + T + ' .settings .segmented label:has(input:checked){transform:translateY(3px);box-shadow:inset 0 1px 2px var(--cap-shade),0 0 0 var(--btn-edge),0 1px 1px var(--contact)}',
+        T + ' :is(.slot-card button.icon:not(.stop),#settings-open,.stop-stale,.backend .toggle,.settings .done,.confirm-actions button,.backend button.act:not(.quiet),.settings .segmented label)' + ':focus-visible,' + T + ' .settings .segmented label:has(input:focus-visible){box-shadow:var(--ring),0 1.5px 0 var(--btn-edge)}',
         T + ' .backend .toggle[aria-expanded="true"] > .bfx .bfx-fill{opacity:1}',
         T + ' .backend .output-toggle{min-height:26px;padding:4px 10px 3px 8px;font-size:11px}',
         // The output log is the CRT's own glass: phosphor text on the dark screen, in both schemes.
@@ -3180,7 +3185,7 @@ var QA_DESK=(function(){
 <section id="radio" class="radio" aria-label="Radio" tabindex="-1"><div class="radio-obj" aria-hidden="true"><i class="plate"></i><i class="tube"></i><i class="fit a"></i><i class="fit b"></i><i class="static"></i></div><p class="radio-tag"><span class="radio-glyph"></span><span class="radio-subject">Status</span></p><p class="radio-line" aria-hidden="true"></p><p class="radio-said sr-only" role="status" aria-atomic="true"></p><div class="radio-foot"><span class="radio-meter" role="img" hidden></span><span class="radio-count" hidden></span><span class="radio-nav" hidden><button type="button" class="icon prev" data-radio="prev" aria-label="Previous message" title="Previous message"></button><button type="button" class="icon next" data-radio="next" aria-label="Next message" title="Next message"></button></span></div></section>
 <section id="backend" class="card backend muted" aria-label="Backend">Loading&hellip;</section></div>
 
-<main><h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span><span id="slot-gauge" class="slot-gauge" role="img" hidden></span><button type="button" id="stop-stale" class="stop-stale" data-stop-stale hidden>Stop stale (0)</button></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
+<main><h2 id="sessions-title" class="sessions-title" tabindex="-1">Sessions <span id="sessions-count" class="sessions-count"></span><span id="slot-gauge" class="slot-gauge" role="img" hidden></span></h2><div id="slots" class="slots"></div><p id="hint" class="hint muted" hidden></p></main></div>
 <dialog id="settings" class="settings" aria-labelledby="settings-title"><form method="dialog" class="settings-form">
 <h2 id="settings-title">Settings</h2>
 <div class="settings-row"><label for="tenant">Tenant</label><input id="tenant" placeholder="tenant id" autocomplete="off"></div>
@@ -3401,7 +3406,7 @@ var PILL_HOVERS={
 // Button hover effects (the theme's buttonHover): every button gets a copy of its label inside a fill layer, so the effect
 // moves by transform only and the label stays readable as the fill passes. CSS picks the look from data-button-hover; the
 // seep also gets a drop that falls once per hover, with a cooldown.
-var FX_BUTTONS="button.icon,button.act,#stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label";
+var FX_BUTTONS="button.icon,button.act,.stop-stale,:is(.backend,.slot-backend) .update-btn,.backend .toggle,.settings .done,.confirm-actions button,.settings .segmented label";
 function buttonFx(root){
   var kind=QA_THEME.buttonHover();
   Array.prototype.forEach.call((root||document).querySelectorAll(FX_BUTTONS),function(button){
@@ -3509,11 +3514,12 @@ function startKey(s,app){
     ' title="Start '+esc(name)+' (wt serve '+esc(s.branch)+' '+esc(app)+')"'+(busy?' aria-disabled="true"':isRunning()?" disabled":"")+'>'+face+'<span class="app-name">'+esc(name)+'</span><span class="pill-low start-off" aria-hidden="true">'+(busy?"starting":"off")+'</span>'+(busy?'<span class="sr-only"> starting</span>':"")+'</button>';
 }
 function renderSlot(s){
-  var action=currentAction(),stopping=!!(action&&action.action==="stop"&&action.state==="running"&&action.target===s.branch);
+  var action=currentAction(),stopping=!!(action&&action.state==="running"&&
+    (action.action==="stop"&&action.target===s.branch||action.action==="stop-stale"&&s.stale===true&&(!action.target||action.target===slotRepo(s))));
   var switching=!!(action&&action.action==="attach"&&action.state==="running"&&action.target===s.branch),here=backendOn(s);
   var cls="card slot-card"+(s.error||(s.apps||[]).some(buildFailed)?" err":"")+(stopping?" stopping":"");
   var h=moduleShell(s)+(cls.indexOf(" err")>=0?'<span class="card-drip" aria-hidden="true"></span>':"")+'<span class="slotno"><span class="slotno-k">slot</span> <span class="slotno-v">'+esc(s.slot)+'</span></span>'+
-    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+(s.repo?'<span class="repo-name">'+esc(s.repo)+'</span>':"")+(s.stale?'<span class="stale-tag">stale</span>':"")+
+    '<div class="head"><span class="branch" title="'+esc(s.branch||"")+'">'+esc(s.branch||"(no branch)")+'</span>'+(s.stale?'<span class="stale-tag">stale</span>':"")+
     (s.branch&&(s.apps||[]).length?'<span class="tools"><button type="button" class="icon stop" data-stop="'+esc(s.branch)+'" aria-label="Stop servers" title="Stop servers (wt serve --stop '+esc(s.branch)+')"'+(isRunning()?" disabled":"")+'>'+QA_THEME.icon("stop")+'</button></span>':"")+
     '</div><div class="apps">';
   var startable=startableApps(s);
@@ -3680,6 +3686,41 @@ function reconcileCards(box,cards){
   Array.prototype.slice.call(box.children).forEach(function(element){if(!wanted[element.__key])element.remove()});
   return changed;
 }
+function slotRepo(slot){return typeof slot.repo==="string"&&slot.repo?slot.repo:"Other"}
+function repoGroups(slots){
+  var groups=[],byName=Object.create(null);
+  slots.slice().sort(function(a,b){return Number(a.slot)-Number(b.slot)}).forEach(function(slot){
+    var repo=slotRepo(slot),group=byName[repo];
+    if(!group){group={repo:repo,slots:[]};byName[repo]=group;groups.push(group)}
+    group.slots.push(slot);
+  });
+  return groups.filter(function(group){return group.repo!=="Other"}).concat(groups.filter(function(group){return group.repo==="Other"}));
+}
+function reconcileRepoPanels(box,slots){
+  var groups=repoGroups(slots),existing={},wanted={},changedCards=[],changedPanels=[];
+  Array.prototype.forEach.call(box.children,function(panel){if(panel.__key)existing[panel.__key]=panel});
+  groups.forEach(function(group,index){
+    var key="repo:"+group.repo,panel=existing[key];wanted[key]=true;
+    if(!panel){
+      panel=document.createElement("section");panel.__key=key;panel.className="repo-panel";
+      panel.setAttribute("aria-label",group.repo+" sessions");
+      panel.innerHTML='<header class="repo-header"><h3 class="repo-heading"></h3><span class="repo-count"></span><button type="button" class="stop-stale" data-stop-stale="'+esc(group.repo)+'" hidden>Stop stale (0)</button></header><div class="repo-slots"></div>';
+      panel.__repoHeading=panel.querySelector(".repo-heading");panel.__repoCount=panel.querySelector(".repo-count");
+      panel.__staleButton=panel.querySelector(".stop-stale");panel.__staleButton.setAttribute("data-stop-stale",group.repo);
+      panel.__slotBox=panel.querySelector(".repo-slots");changedPanels.push(panel);
+    }
+    setText(panel.__repoHeading,group.repo);setText(panel.__repoCount,String(group.slots.length));
+    var staleCount=group.slots.filter(function(slot){return slot.stale===true}).length,button=panel.__staleButton;
+    button.hidden=!staleCount;button.disabled=isRunning();
+    var label="Stop stale ("+staleCount+")";
+    if(button.dataset.staleLabel!==label){button.dataset.staleLabel=label;button.setAttribute("aria-label","Stop "+staleCount+" stale frontends for "+group.repo);setText(button,label);buttonFx(panel)}
+    changedCards=changedCards.concat(reconcileCards(panel.__slotBox,sortedSlots(group.slots).map(renderSlot)));
+    if(box.children[index]!==panel)box.insertBefore(panel,box.children[index]||null);
+  });
+  Array.prototype.slice.call(box.children).forEach(function(panel){if(!wanted[panel.__key])panel.remove()});
+  changedPanels.forEach(buttonFx);
+  return changedCards;
+}
 function updateAgo(){
   document.querySelectorAll("[data-since]").forEach(function(element){
     var text=agoText(element.getAttribute("data-since"));
@@ -3700,10 +3741,6 @@ function render(){
     if(focusTarget)focusTarget.focus();
   }
   var slots=(data&&data.slots)||[];
-  var stale=staleBranches(),staleButton=document.getElementById("stop-stale");
-  staleButton.hidden=!stale.length;staleButton.disabled=isRunning();
-  var staleLabel="Stop stale ("+stale.length+")";
-  if(staleButton.dataset.staleLabel!==staleLabel){staleButton.dataset.staleLabel=staleLabel;setText(staleButton,staleLabel);buttonFx(staleButton.parentNode)}
   updateStartKeyChoices(slots);
   setText(document.getElementById("sessions-count"),data?String(slots.length):"");
   updateSlotGauge(slots.length);
@@ -3711,10 +3748,9 @@ function render(){
   var hint=document.getElementById("hint"),hintHtml=slots.length?"To start another session, "+START_HINT+".":"";
   hint.hidden=!slots.length;setHtml(hint,hintHtml);
   var slotsBox=document.getElementById("slots");
-  var cards=!data?[{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
-    slots.length?sortedSlots(slots).map(renderSlot):
-    [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}];
-  var changedCards=reconcileCards(slotsBox,cards);
+  var changedCards=slots.length?reconcileRepoPanels(slotsBox,slots):reconcileCards(slotsBox,!data?
+    [{key:"pending",cls:"card empty",html:'<span class="title">'+(failure?STATUS_RETRYING:LOADING_SESSIONS)+'</span><div class="muted">'+(failure?"Sessions and backend status will appear when it responds.":CHECKING_BACKEND)+'</div>'}]:
+    [{key:"empty",cls:"card empty",html:'<span class="title">'+esc(QA_THEME.copy("emptyTitle","No sessions running"))+'</span><div class="muted">To start one, '+START_HINT+'.</div>'}]);
   restoreStartFocus();
   if(backendChanged)buttonFx(backendBox);
   changedCards.forEach(buttonFx);
@@ -3749,13 +3785,13 @@ function copyText(text,button){
   try{ok=document.execCommand("copy")}catch(e){}
   area.remove();button.focus();done(ok);
 }
-function runAction(name,branch,service,app){
+function runAction(name,branch,service,app,repo){
   actionError=null;
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
-  if(data){data.actions={action:service?"restart":name,target:service||branch||null,app:app||undefined,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
-  var request=name==="stop-stale"?{url:"/api/slot/stop-stale",body:null}:app?{url:"/api/slot/start",body:JSON.stringify({branch:branch,app:app})}:branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
+  if(data){data.actions={action:service?"restart":name,target:service||branch||repo||null,app:app||undefined,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
+  var request=name==="stop-stale"?{url:"/api/slot/stop-stale",body:JSON.stringify({repo:repo})}:app?{url:"/api/slot/start",body:JSON.stringify({branch:branch,app:app})}:branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
       if(data)data.actions=j.actions||before;
@@ -3766,13 +3802,13 @@ function runAction(name,branch,service,app){
 }
 // One confirm dialog serves Stop (a session's frontends), Attach (the backend to a session's branch) and Restart (one
 // backend service); confirmKind says which. Stop and Attach both name a session branch in stopBranch.
-var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
-function staleBranches(){return((data&&data.slots)||[]).filter(function(slot){return slot.stale===true&&slot.branch}).map(function(slot){return slot.branch})}
-function staleAvailable(){return!isRunning()&&staleBranches().length>0}
-function confirmStale(opener){
-  if(!stopDialog||!stopDialog.showModal||stopDialog.open||!staleAvailable())return;
-  stopOpener=opener;stopSubmitting=false;confirmKind="stop-stale";
-  confirmText("Stop stale frontends","Stop the frontends for these branches?\n"+staleBranches().join("\n"),"Stop all");
+var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopRepo="",stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
+function staleBranches(repo){return((data&&data.slots)||[]).filter(function(slot){return slot.stale===true&&slot.branch&&slotRepo(slot)===repo}).map(function(slot){return slot.branch})}
+function staleAvailable(repo){return!isRunning()&&staleBranches(repo).length>0}
+function confirmStale(repo,opener){
+  if(!stopDialog||!stopDialog.showModal||stopDialog.open||!staleAvailable(repo))return;
+  stopRepo=repo;stopOpener=opener;stopSubmitting=false;confirmKind="stop-stale";
+  confirmText("Stop stale frontends","Stop the frontends for these "+repo+" branches?\n"+staleBranches(repo).join("\n"),"Stop all");
   stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
   document.getElementById("stop-cancel").focus();
 }
@@ -3831,7 +3867,7 @@ function attachAvailable(branch){
   var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
   return!isRunning()&&!!slot&&slotNeedsBackend(slot)&&branch!=="develop"&&backendOn(slot)!=="current";
 }
-function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):confirmKind==="stop-stale"?staleAvailable():stopAvailable(stopBranch)}
+function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):confirmKind==="stop-stale"?staleAvailable(stopRepo):stopAvailable(stopBranch)}
 function confirmAttach(branch,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!attachAvailable(branch))return;
   stopBranch=branch;stopOpener=opener;stopSubmitting=false;confirmKind="attach";
@@ -3858,8 +3894,8 @@ stopDialog.querySelector("form").addEventListener("submit",function(e){
     stopSubmitting=true;var target=stopBranch;stopDialog.close();runAction("attach",target);return;
   }
   if(confirmKind==="stop-stale"){
-    if(!staleAvailable()){stopDialog.close();return}
-    stopSubmitting=true;stopDialog.close();runAction("stop-stale");return;
+    if(!staleAvailable(stopRepo)){stopDialog.close();return}
+    stopSubmitting=true;var repo=stopRepo;stopDialog.close();runAction("stop-stale",null,null,null,repo);return;
   }
   if(!stopAvailable(stopBranch)){stopDialog.close();return}
   stopSubmitting=true;var branch=stopBranch;stopDialog.close();runAction("stop",branch);
@@ -3872,7 +3908,7 @@ stopDialog.addEventListener("click",function(e){
 stopDialog.addEventListener("close",function(){
   document.dispatchEvent(new CustomEvent("qa-modal",{detail:false}));
   var opener=stopOpener;
-  var attr=confirmKind==="restart"?"data-restart":confirmKind==="attach"?"data-attach":confirmKind==="stop-stale"?"data-stop-stale":"data-stop",value=confirmKind==="restart"?restartService:stopBranch;
+  var attr=confirmKind==="restart"?"data-restart":confirmKind==="attach"?"data-attach":confirmKind==="stop-stale"?"data-stop-stale":"data-stop",value=confirmKind==="restart"?restartService:confirmKind==="stop-stale"?stopRepo:stopBranch;
   if(!opener||!opener.isConnected||opener.disabled)opener=Array.from(document.querySelectorAll("["+attr+"]")).find(function(button){return button.getAttribute(attr)===value&&!button.disabled});
   if(!opener)opener=document.getElementById("settings-open");
   if(opener)opener.focus();
@@ -3892,7 +3928,7 @@ document.addEventListener("click",function(e){
     render();var again=document.querySelector("[data-toggle]");if(again){again.classList.add("turned");again.focus()}
   }
   else if(t.hasAttribute("data-copy-output"))copyText((currentAction()&&currentAction().output||[]).join("\n"),t);
-  else if(t.hasAttribute("data-stop-stale"))confirmStale(t);
+  else if(t.hasAttribute("data-stop-stale"))confirmStale(t.getAttribute("data-stop-stale"),t);
   else if(t.hasAttribute("data-stop")){
     var branch=t.getAttribute("data-stop");
     confirmStop(branch,t);
@@ -5111,13 +5147,22 @@ def handle_slot_stop(runner, body, headers, port, known_branches):
     return 202, {"actions": runner.snapshot()}
 
 
-def handle_slot_stop_stale(runner, headers, port, branches):
-    """Starts one action only when the current status has stale slots; wt rechecks T3 before stopping."""
+def handle_slot_stop_stale(runner, body, headers, port, source):
+    """Starts one action for a status-listed repo; wt rechecks T3 before stopping."""
     if not same_origin(headers, port):
         return 403, {"error": "forbidden"}
-    if not branches:
+    if not isinstance(body, dict) or any(key != "repo" for key in body):
+        return 400, {"error": "invalid request"}
+    repo = body.get("repo")
+    if "repo" in body and (not isinstance(repo, str) or repo not in slot_repos(source)):
+        return 400, {"error": "unknown repo"}
+    approved = stale_slot_entries(source, repo)
+    if not approved:
         return 409, {"error": "no stale slots"}
-    if not runner.start("stop-stale", ["serve", "--stop-stale"]):
+    args = ["serve", "--stop-stale"] + (["--repo", repo] if repo is not None else [])
+    for slot in approved:
+        args.extend(["--only-slot", str(slot["slot"]), slot["branch"], slot["worktree"]])
+    if not runner.start("stop-stale", args, target=repo):
         return 409, {"error": "another action is still running", "actions": runner.snapshot()}
     return 202, {"actions": runner.snapshot()}
 
@@ -5177,11 +5222,37 @@ def slot_branches(source, backend_only=False):
         return set()
 
 
-def stale_slot_branches(source):
+def slot_repo(slot):
+    repo = slot.get("repo")
+    return repo if isinstance(repo, str) and repo else "Other"
+
+
+def slot_repos(source):
+    try:
+        return {slot_repo(slot) for slot in source.get().get("slots") or []}
+    except Exception:
+        return set()
+
+
+def stale_slot_branches(source, repo=None):
     try:
         return sorted({slot["branch"] for slot in source.get().get("slots") or []
                        if slot.get("stale") is True and isinstance(slot.get("branch"), str)
-                       and slot["branch"] and not slot["branch"].startswith("-")})
+                       and slot["branch"] and not slot["branch"].startswith("-")
+                       and (repo is None or slot_repo(slot) == repo)})
+    except Exception:
+        return []
+
+
+def stale_slot_entries(source, repo=None):
+    """Exact status-approved slots for wt to match again under its serve lock."""
+    try:
+        return sorted((slot for slot in source.get().get("slots") or []
+                       if slot.get("stale") is True and (repo is None or slot_repo(slot) == repo)
+                       and type(slot.get("slot")) is int and 2 <= slot["slot"] <= 9
+                       and isinstance(slot.get("branch"), str) and slot["branch"] and not slot["branch"].startswith("-")
+                       and isinstance(slot.get("worktree"), str) and slot["worktree"].startswith("/")),
+                      key=lambda slot: slot["slot"])
     except Exception:
         return []
 
@@ -5236,7 +5307,11 @@ def make_handler(source, runner, port):
             path = self.path.split("?", 1)[0]
             raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 65536))
             if path == "/api/slot/stop-stale":
-                code, body = handle_slot_stop_stale(runner, self.headers, port, stale_slot_branches(source))
+                try:
+                    body = json.loads(raw or b"{}")
+                except ValueError:
+                    body = None
+                code, body = handle_slot_stop_stale(runner, body, self.headers, port, source)
             elif path in ("/api/slot/stop", "/api/slot/backend"):
                 try:
                     body = json.loads(raw or b"{}")

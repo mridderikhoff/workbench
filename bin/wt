@@ -1205,8 +1205,23 @@ saved_slot_for_branch() {
   return 2
 }
 serve_stale_slots() {
-  WT_STALE_STATE_DIR="$(serve_state_dir)" WT_STALE_T3_THREAD="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/t3-thread" python3 - <<'PY'
-import json, os, pathlib, subprocess, sys
+  WT_STALE_STATE_DIR="$(serve_state_dir)" WT_STALE_T3_THREAD="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/t3-thread" WT_STALE_PROFILE_BIN="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" python3 - <<'PY'
+import importlib.util, json, os, pathlib, subprocess, sys
+spec = importlib.util.spec_from_file_location('wt_profile', os.environ['WT_STALE_PROFILE_BIN'])
+profile_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(profile_module)
+
+def slot_repo(fields):
+    path = fields.get('path')
+    if path:
+        try:
+            common = subprocess.run(['git', '-C', path, 'rev-parse', '--path-format=absolute', '--git-common-dir'],
+                                    capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+            return profile_module.profile(str(pathlib.Path(common).parent))['name']
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
+            pass
+    return fields.get('repo') or 'Other'
+
 try:
     result = subprocess.run([os.environ['WT_STALE_T3_THREAD'], 'worktrees', '--json'],
                             capture_output=True, text=True, check=True)
@@ -1223,8 +1238,9 @@ for slot in range(2, 10):
         fields = dict(line.split('=', 1) for line in file.read_text().splitlines() if '=' in line)
     except OSError:
         continue
-    if fields.get('branch') and fields.get('path') and os.path.realpath(fields['path']) in settled:
-        print(f"{slot}\t{fields['branch']}")
+    if (fields.get('branch') and fields.get('path') and os.path.realpath(fields['path']) in settled
+            and (not os.environ.get('WT_STALE_REPO_FILTER') or slot_repo(fields) == os.environ['WT_STALE_REPO_FILTER'])):
+        print(f"{slot}\t{fields['branch']}\t{os.path.realpath(fields['path'])}")
 PY
 }
 cmd_serve_locked() {
@@ -1249,20 +1265,37 @@ cmd_serve_locked() {
   fi
   if [ "${1:-}" = --stop-stale ]; then
     shift
-    local dry=0 entries=() entry
-    if [ "${1:-}" = --dry-run ]; then dry=1; shift; fi
-    [ $# -eq 0 ] || { echo 'usage: wt serve --stop-stale [--dry-run]' >&2; return 2; }
-    mapfile -t entries < <(serve_stale_slots)
+    local dry=0 repo= entries=() allowed=() entry allowed_entry path
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --dry-run) dry=1; shift ;;
+        --repo) [ $# -ge 2 ] && [ -n "$2" ] && [[ "$2" != -* ]] || { echo 'serve      --repo needs a name' >&2; return 2; }
+          repo="$2"; shift 2 ;;
+        --only-slot) [ $# -ge 4 ] && [[ "$2" =~ ^[2-9]$ ]] && [ -n "$3" ] && [ -n "$4" ] || { echo 'serve      --only-slot needs a slot, branch and path' >&2; return 2; }
+          allowed+=("$2"$'\t'"$3"$'\t'"$(realpath -m -- "$4")"); shift 4 ;;
+        *) echo 'usage: wt serve --stop-stale [--dry-run] [--repo <name>]' >&2; return 2 ;;
+      esac
+    done
+    mapfile -t entries < <(WT_STALE_REPO_FILTER="$repo" serve_stale_slots)
+    if [ ${#allowed[@]} -gt 0 ]; then
+      local -a filtered=()
+      for entry in "${entries[@]}"; do
+        for allowed_entry in "${allowed[@]}"; do
+          [ "$entry" = "$allowed_entry" ] && { filtered+=("$entry"); break; }
+        done
+      done
+      entries=("${filtered[@]}")
+    fi
     if [ ${#entries[@]} -eq 0 ]; then echo 'no stale slots'; return 0; fi
     if [ "$dry" = 1 ]; then
       for entry in "${entries[@]}"; do
-        IFS=$'\t' read -r slot branch <<<"$entry"
+        IFS=$'\t' read -r slot branch path <<<"$entry"
         echo "stale      slot $slot $branch"
       done
       return 0
     fi
     for entry in "${entries[@]}"; do
-      IFS=$'\t' read -r slot branch <<<"$entry"
+      IFS=$'\t' read -r slot branch path <<<"$entry"
       if serve_remove_slot "$slot"; then
         echo "slot       $slot stopped for $branch"
       else result=1; fi
@@ -2431,7 +2464,8 @@ wt qa [branch|commit]                 attach QA code, restart and probe app serv
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; apps default from repo profile
 wt serve --stop <branch> [<branch>...] stop one or more frontend slots
-wt serve --stop-stale [--dry-run]      stop slots with no live T3 threads
+wt serve --stop-stale [--dry-run] [--repo <name>]
+                                      stop slots with no live T3 threads
 wt logs <branch> [app] [-n N] [-f]    frontend journals (default: 80 lines)
 wt backend [status|ensure|heal|logs|update [--reset|--force]|tab|start <svc>|restart <svc>]
                                       shared QA backend controls

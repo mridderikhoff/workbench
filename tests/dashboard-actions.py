@@ -81,23 +81,6 @@ runner = FakeRunner(busy=True)
 code, body = dashboard.handle_slot_backend(runner, {"branch": "t3code/chart"}, PAGE, PORT, BRANCHES)
 check("a backend switch while another action runs gets 409", code == 409 and not runner.started)
 
-stale = ["feat/old-a", "feat/old-b"]
-runner = FakeRunner()
-code, body = dashboard.handle_slot_stop_stale(runner, PAGE, PORT, stale)
-check("stale slots start one rechecked bulk action without client branch text",
-      code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale"], None)])
-for label, headers, branches, expected in [
-    ("foreign origin", {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, stale, 403),
-    ("no stale slots", PAGE, [], 409),
-]:
-    runner = FakeRunner()
-    code, body = dashboard.handle_slot_stop_stale(runner, headers, PORT, branches)
-    check(f"bulk stop refuses {label}", code == expected and not runner.started)
-runner = FakeRunner(busy=True)
-code, body = dashboard.handle_slot_stop_stale(runner, PAGE, PORT, stale)
-check("bulk stop respects the one-action limit", code == 409 and not runner.started)
-
-
 class FakeSource:
     def __init__(self, status):
         self.status = status
@@ -108,12 +91,50 @@ class FakeSource:
         return self.status
 
 
+stale = ["feat/old-a", "feat/old-b"]
+stale_source = FakeSource({"slots": [
+    {"slot": 2, "branch": "feat/old-a", "worktree": "/fixture/old-a", "repo": "cl-strategy", "stale": True},
+    {"slot": 3, "branch": "feat/old-b", "worktree": "/fixture/old-b", "repo": "cl-system", "stale": True},
+    {"slot": 4, "branch": "feat/live", "worktree": "/fixture/live", "repo": "cl-system", "stale": False},
+]})
+runner = FakeRunner()
+code, body = dashboard.handle_slot_stop_stale(runner, {}, PAGE, PORT, stale_source)
+check("stale slots start one rechecked bulk action without client branch text",
+      code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale",
+          "--only-slot", "2", "feat/old-a", "/fixture/old-a",
+          "--only-slot", "3", "feat/old-b", "/fixture/old-b"], None)])
+runner = FakeRunner()
+code, body = dashboard.handle_slot_stop_stale(runner, {"repo": "cl-system"}, PAGE, PORT, stale_source)
+check("repo bulk stop uses one validated repo argument",
+      code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale", "--repo", "cl-system",
+          "--only-slot", "3", "feat/old-b", "/fixture/old-b"], "cl-system")])
+for label, payload, headers, source, expected in [
+    ("foreign origin", {}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, stale_source, 403),
+    ("no stale slots", {}, PAGE, FakeSource({"slots": [{"repo": "cl-system", "stale": False}]}), 409),
+    ("unknown repo", {"repo": "unlisted"}, PAGE, stale_source, 400),
+    ("non-string repo", {"repo": ["cl-system"]}, PAGE, stale_source, 400),
+    ("null repo", {"repo": None}, PAGE, stale_source, 400),
+    ("extra client text", {"branch": "feat/live"}, PAGE, stale_source, 400),
+]:
+    runner = FakeRunner()
+    code, body = dashboard.handle_slot_stop_stale(runner, payload, headers, PORT, source)
+    check(f"bulk stop refuses {label}", code == expected and not runner.started)
+runner = FakeRunner(busy=True)
+code, body = dashboard.handle_slot_stop_stale(runner, {}, PAGE, PORT, stale_source)
+check("bulk stop respects the one-action limit", code == 409 and not runner.started)
+
+
 check("only status slots explicitly marked stale are selected",
       dashboard.stale_slot_branches(FakeSource({"slots": [
           {"branch": "feat/old-b", "stale": True}, {"branch": "feat/live", "stale": False},
           {"branch": "feat/old-a", "stale": True}, {"branch": "-unsafe", "stale": True},
           {"branch": "feat/unknown"},
       ]})) == stale)
+check("stale selection respects the repo from current status",
+      dashboard.stale_slot_branches(stale_source, "cl-system") == ["feat/old-b"])
+check("bulk stop approves only complete slot identities from status",
+      [(slot["slot"], slot["branch"]) for slot in dashboard.stale_slot_entries(stale_source, "cl-system")]
+      == [(3, "feat/old-b")])
 
 
 backend_branches = dashboard.slot_branches(FakeSource({"slots": [

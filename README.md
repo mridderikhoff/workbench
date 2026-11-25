@@ -94,7 +94,7 @@ the `overseer` skill covers repair. Do not hand these commands to the person.
 ~/.claude/bin/wt new <branch>                  # worktree for a task
 ~/.claude/bin/wt serve <branch> [ds-demo|ri|strategy]   # its frontends (default ds-demo ri)
 ~/.claude/bin/wt serve --stop <branch> [<branch>...]  # stop several slots in one call
-~/.claude/bin/wt serve --stop-stale [--dry-run]       # stop slots whose T3 threads have all ended
+~/.claude/bin/wt serve --stop-stale [--dry-run] [--repo <name>]  # stop settled T3 slots, optionally in one repo
 ~/.claude/bin/wt logs <branch> [app] -n 80
 ~/.claude/bin/wt backend ensure                # start or heal the whole shared backend
 ~/.claude/bin/wt backend logs <service> -n 80
@@ -108,8 +108,8 @@ which this repository does not create. Keycloak admin credentials stay in `~/.ke
 outside git. The unit `PATH` assumes `fnm` and `pnpm` under `~/.local`; if yours live elsewhere, add the
 tool directories to the affected units.
 Each slot also reports `stale`; this is true only when T3 knows its worktree and none of its threads
-is live. If the T3 database cannot be read, no slots are treated as stale. `T3_STATE_DB` overrides
-the database path for isolated fixtures.
+is live. If the T3 database cannot be read, no slots are treated as stale. T3 reads `statev2.sqlite`
+when present and falls back to `state.sqlite`; `T3_STATE_DB` overrides the path for isolated fixtures.
 
 ### Managing T3 threads
 

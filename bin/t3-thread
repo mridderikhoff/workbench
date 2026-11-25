@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 
 DEFAULT_ORIGIN = "http://127.0.0.1:3773"
 LABEL = "t3-thread"
-STATE_DB = os.path.expanduser(os.environ.get("T3_STATE_DB", "~/.t3/userdata/state.sqlite"))
+STATE_DB = os.path.expanduser(os.environ.get("T3_STATE_DB") or
+                              ("~/.t3/userdata/statev2.sqlite" if os.path.exists(os.path.expanduser("~/.t3/userdata/statev2.sqlite"))
+                               else "~/.t3/userdata/state.sqlite"))
 
 
 def origin():
@@ -130,40 +132,62 @@ def git_toplevel(cwd):
     return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else cwd
 
 
+def load_threads():
+    """Return (real path, live, title, last used, id) from the current T3 schema."""
+    db = sqlite3.connect(f"file:{STATE_DB}?mode=ro", uri=True)
+    try:
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "orchestration_v2_projection_threads" in tables:
+            rows = db.execute("SELECT thread_id, title, archived_at, deleted_at, payload_json"
+                              " FROM orchestration_v2_projection_threads").fetchall()
+            threads = []
+            for thread_id, title, archived, deleted, raw in rows:
+                payload = json.loads(raw)
+                path = payload.get("worktreePath")
+                if not path:
+                    continue
+                live = not (archived or deleted or payload.get("archivedAt") or payload.get("deletedAt")) and (
+                    payload.get("settledAt") is None or payload.get("settledOverride") == "active")
+                threads.append((os.path.realpath(path), live, title or payload.get("title") or "",
+                                payload.get("lastVisitedAt") or payload.get("updatedAt") or "", thread_id))
+            return threads
+        if "projection_threads" in tables:
+            rows = db.execute(
+                "SELECT thread_id, worktree_path, title,"
+                " COALESCE(latest_user_message_at, updated_at, created_at),"
+                " deleted_at, archived_at, settled_at, unsettled_at"
+                " FROM projection_threads WHERE worktree_path IS NOT NULL").fetchall()
+            return [(os.path.realpath(path), deleted is None and archived is None and
+                     (settled is None or (unsettled is not None and unsettled > settled)),
+                     title or "", last_used or "", thread_id)
+                    for thread_id, path, title, last_used, deleted, archived, settled, unsettled in rows]
+        raise sqlite3.OperationalError("no supported T3 thread table")
+    finally:
+        db.close()
+
+
 def cmd_self(args):
     cwd = os.path.realpath(args.cwd)
     top = os.path.realpath(git_toplevel(cwd))
     try:
-        db = sqlite3.connect(f"file:{STATE_DB}?mode=ro", uri=True)
-        rows = db.execute(
-            "SELECT thread_id, worktree_path, COALESCE(latest_user_message_at, updated_at, created_at), title"
-            " FROM projection_threads WHERE deleted_at IS NULL AND archived_at IS NULL"
-            " AND (settled_at IS NULL OR (unsettled_at IS NOT NULL AND unsettled_at > settled_at))"
-            " AND worktree_path IS NOT NULL").fetchall()
-    except sqlite3.Error as err:
+        rows = load_threads()
+    except (OSError, sqlite3.Error, ValueError, TypeError) as err:
         die(f"cannot read {STATE_DB}: {err}")
-    matches = sorted((r for r in rows if os.path.realpath(r[1]) == top), key=lambda r: r[2] or "", reverse=True)
+    matches = sorted((r for r in rows if r[0] == top and r[1]), key=lambda r: r[3], reverse=True)
     if not matches:
         sys.exit(1)
     for other in matches[1:]:
-        print(f"t3-thread: warning: other thread on {top}: {other[0]} ({other[3]})", file=sys.stderr)
-    print(matches[0][0])
+        print(f"t3-thread: warning: other thread on {top}: {other[4]} ({other[2]})", file=sys.stderr)
+    print(matches[0][4])
 
 
 def cmd_worktrees(args):
     """List known worktrees, including settled, archived and deleted threads."""
     states = {}
     try:
-        with sqlite3.connect(f"file:{STATE_DB}?mode=ro", uri=True) as db:
-            rows = db.execute(
-                "SELECT worktree_path, deleted_at, archived_at, settled_at, unsettled_at"
-                " FROM projection_threads WHERE worktree_path IS NOT NULL").fetchall()
-        for path, deleted, archived, settled, unsettled in rows:
-            path = os.path.realpath(path)
-            live = deleted is None and archived is None and (settled is None or
-                    (unsettled is not None and unsettled > settled))
+        for path, live, _title, _last_used, _thread_id in load_threads():
             states[path] = states.get(path, False) or live
-    except (OSError, sqlite3.Error) as err:
+    except (OSError, sqlite3.Error, ValueError, TypeError) as err:
         print(f"t3-thread: warning: cannot read {STATE_DB}: {err}", file=sys.stderr)
         states = {}
     worktrees = [{"path": path, "state": "live" if live else "settled"}
