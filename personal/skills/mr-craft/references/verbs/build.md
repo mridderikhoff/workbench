@@ -1,7 +1,8 @@
 # Mode: `/mr-craft <task>`
 
 Build writes Angular/TypeScript work from a task. It chooses read-only triage by default,
-or full [refine](refine.md) when the work is final. It takes no flags.
+no review when the request asks for a prototype, or full [refine](refine.md) when the work
+is final. It takes no flags.
 
 ## Workflow
 
@@ -18,7 +19,8 @@ or full [refine](refine.md) when the work is final. It takes no flags.
    stack. The reply accounts for each acceptance item with a file or test pointer or names
    it missing. A port identifies retained tests and justifies removed cases.
 4. **Check and checkpoint.** After each writer batch, use the profile's scoped typecheck.
-   Before manual QA, use its scoped tests and lint for changed paths. Return a failure to
+   Before manual QA, use its scoped tests and lint for changed paths; a prototype (step 5)
+   skips them and checkpoints after the typecheck. Return a failure to
    the writer and rerun only failing specs. If no scoped command exists, ask before a
    broader command. Reconcile acceptance with the changed-file and test inventory. Return
    missing behavior or an unexplained rewrite to the writer. Commit completed work in the
@@ -26,7 +28,14 @@ or full [refine](refine.md) when the work is final. It takes no flags.
 5. **Choose review depth.** Run [refine](refine.md) on changed folders when the request says
    work is final or triage finds a mandated or decide row. Otherwise run read-only
    [report](report.md) with `angular` and `correctness` on changed folders. No architecture
-   reviewer or refine writer is needed for triage.
+   reviewer or refine writer is needed for triage. Run no reviewer when the request says the
+   work is a prototype, a spike, or a quick build for QA, or asks to skip review for now; the
+   writer's pre-read and self-check are the only craft pass, and the run stops after the
+   checkpoint. Abstractions, public API, and state ownership are the costly part of a
+   prototype to change later, so the writer briefing names those choices explicitly when the
+   task touches a shared component or a public type.
 6. **Hand off.** Report acceptance notes, classed rows, and the command for a full pass,
-   `/mr-craft <changed folder>`. Triage does not replace independent refine. Include the repo
+   `/mr-craft <changed folder>`. Triage does not replace independent refine. After a
+   prototype, state that no review ran and also give the triage command,
+   `/mr-craft <changed folder> --report angular correctness`. Include the repo
    contract hand-off from [SKILL.md](../../SKILL.md) when applicable.

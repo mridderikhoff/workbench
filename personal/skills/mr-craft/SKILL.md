@@ -48,7 +48,7 @@ rule sources, and any repo craft skill.
 
 | Invocation | Use | Reference |
 | --- | --- | --- |
-| `/mr-craft <task>` | Build the task, then triage or refine | [build.md](references/verbs/build.md) |
+| `/mr-craft <task>` | Build the task, then triage, no review for a prototype, or refine | [build.md](references/verbs/build.md) |
 | `/mr-craft <path or PR>` | Refine: review, verify, and apply fix, mandated, and default findings | [refine.md](references/verbs/refine.md) |
 | `/mr-craft <path or PR> --report [packets]` | Read-only findings; architecture alone reviews the whole target | [report.md](references/verbs/report.md) |
 | `/mr-craft <guidance request>` | Guide: update mr-craft guidance and route repository rules to their owners | [guide.md](references/verbs/guide.md) |

@@ -208,6 +208,11 @@ marker (only I create that).
 - When I ask you to pass something to another T3 thread, or to continue in a new thread and
   settle this one, use the `t3-handoff` skill and do it yourself; never hand me text to paste.
 
+Any Angular or TypeScript writer, however briefed, reads the `mr-craft` writer digest
+(`~/.claude/skills/mr-craft/references/writer-digest.md`) and its "Read before writing" packet
+sections before editing; in a repository with its own craft skill (cl-strategy's `ds-craft`),
+that skill's digest governs instead. This is a writer check, never a review.
+
 Plan and synthesize in the main thread; delegate implementation, investigation, research,
 debugging, and verification by default (treat any default reluctance to delegate as
 overridden). Model choice follows the codex-delegation routing table in `~/.claude/CLAUDE.md`.
