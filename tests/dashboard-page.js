@@ -54,6 +54,8 @@ function page(opts) {
     getElementById: get, hasFocus: () => true, createElement: () => new El(), dispatchEvent() {},
     querySelector: sel => sel === "main" ? get("main") : new El(),
   });
+  const stopForm = new El("stop-form");
+  get("stop-confirm").querySelector = sel => sel === "form" ? stopForm : new El();
   const favicons = [];
   const sandbox = {
     document: doc, console, Promise, JSON, Date, Math, Object, Array, String, Number, Set, Error, CustomEvent: function () {},
@@ -455,6 +457,27 @@ test("Stop confirmation remains available", () => {
   assert.match(SRC, /id="stop-confirm"/);
   assert.match(SRC, /function confirmStop\(/);
   assert.doesNotMatch(SRC, /\.loading #backend/);
+});
+
+test("stale slots show one bulk button and confirmation names each branch", async () => {
+  const snap = snapshot([session(2), session(3), session(4)]);
+  snap.slots[0].stale = true; snap.slots[1].stale = true; snap.slots[2].stale = false;
+  const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: null }, true, 202) });
+  await p.poll();
+  assert.strictEqual(p.get("stop-stale").hidden, false);
+  assert.strictEqual(p.text("stop-stale"), "Stop stale (2)");
+  assert.strictEqual((cards(p).match(/class="stale-tag"/g) || []).length, 2);
+  p.run("confirmStale(document.getElementById('stop-stale'))");
+  assert.strictEqual(p.get("stop-confirm").open, true);
+  assert.match(p.text("stop-message"), /b2\nb3/);
+  p.get("stop-confirm").querySelector("form").fire("submit");
+  assert.strictEqual(p.get("stop-stale").disabled, true, "the button disables while the action starts");
+  assert.strictEqual(p.calls.at(-1).url, "/api/slot/stop-stale");
+  snap.slots[0].stale = false; snap.slots[1].stale = false;
+  await p.poll();
+  assert.strictEqual(p.get("stop-stale").hidden, true);
+  assert.match(SRC, /var FX_BUTTONS="[^"]*#stop-stale/);
+  assert.match(SRC, /var KEYS = "[^"]*#stop-stale/);
 });
 
 test("first visit asks for the tenant; a saved tenant skips the prompt and fills Settings", () => {

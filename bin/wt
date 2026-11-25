@@ -1204,21 +1204,72 @@ saved_slot_for_branch() {
   for match in "${candidates[@]}"; do echo "slot       ${match%%:*} ${match#*:}" >&2; done
   return 2
 }
+serve_stale_slots() {
+  WT_STALE_STATE_DIR="$(serve_state_dir)" WT_STALE_T3_THREAD="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/t3-thread" python3 - <<'PY'
+import json, os, pathlib, subprocess, sys
+try:
+    result = subprocess.run([os.environ['WT_STALE_T3_THREAD'], 'worktrees', '--json'],
+                            capture_output=True, text=True, check=True)
+    if result.stderr:
+        print(result.stderr, end='', file=sys.stderr)
+    settled = {item['path'] for item in json.loads(result.stdout)['worktrees']
+               if item['state'] == 'settled'}
+except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as err:
+    print(f'wt: warning: cannot check T3 worktrees: {err}', file=sys.stderr)
+    settled = set()
+for slot in range(2, 10):
+    file = pathlib.Path(os.environ['WT_STALE_STATE_DIR']) / f'slot-{slot}'
+    try:
+        fields = dict(line.split('=', 1) for line in file.read_text().splitlines() if '=' in line)
+    except OSError:
+        continue
+    if fields.get('branch') and fields.get('path') and os.path.realpath(fields['path']) in settled:
+        print(f"{slot}\t{fields['branch']}")
+PY
+}
 cmd_serve_locked() {
-  local qa offset slot file branch state_dir
+  local qa offset slot file branch state_dir result=0
   offset=-1
-  if qa=$(qa_tree); then offset=$(qa_offset "$qa") || return 1; fi
   state_dir=$(serve_state_dir)
   if [ "${1:-}" = --stop ]; then
-    branch="${2:?usage: wt serve --stop <branch>}"
-    if saved_slot_for_branch "$branch"; then
-      serve_remove_slot "$MATCH_SLOT"
-      echo "slot       $MATCH_SLOT stopped for $branch"
-      return 0
-    else [ "$?" = 1 ] || return 1; fi
-    serve_stop_orphan_branch "$branch" && return 0
-    echo "serve      no slot for $branch" >&2; return 1
+    shift
+    [ $# -gt 0 ] || { echo 'usage: wt serve --stop <branch> [<branch>...]' >&2; return 2; }
+    for branch in "$@"; do
+      if saved_slot_for_branch "$branch"; then
+        if serve_remove_slot "$MATCH_SLOT"; then
+          echo "slot       $MATCH_SLOT stopped for $branch"
+        else result=1; fi
+      else
+        if [ "$?" = 1 ]; then
+          serve_stop_orphan_branch "$branch" || { echo "serve      no slot for $branch" >&2; result=1; }
+        else result=1; fi
+      fi
+    done
+    return "$result"
   fi
+  if [ "${1:-}" = --stop-stale ]; then
+    shift
+    local dry=0 entries=() entry
+    if [ "${1:-}" = --dry-run ]; then dry=1; shift; fi
+    [ $# -eq 0 ] || { echo 'usage: wt serve --stop-stale [--dry-run]' >&2; return 2; }
+    mapfile -t entries < <(serve_stale_slots)
+    if [ ${#entries[@]} -eq 0 ]; then echo 'no stale slots'; return 0; fi
+    if [ "$dry" = 1 ]; then
+      for entry in "${entries[@]}"; do
+        IFS=$'\t' read -r slot branch <<<"$entry"
+        echo "stale      slot $slot $branch"
+      done
+      return 0
+    fi
+    for entry in "${entries[@]}"; do
+      IFS=$'\t' read -r slot branch <<<"$entry"
+      if serve_remove_slot "$slot"; then
+        echo "slot       $slot stopped for $branch"
+      else result=1; fi
+    done
+    return "$result"
+  fi
+  if qa=$(qa_tree); then offset=$(qa_offset "$qa") || return 1; fi
   serve_prune_stale || return 1
   serve_prune_orphans || return 1
   if [ $# -eq 0 ]; then
@@ -1388,7 +1439,7 @@ serve_start_locked() {
 cmd_serve() {
   local app needs_backend=0 ensure_pending=0 result path defaults
   local -a apps=()
-  if [ $# -gt 0 ] && [ "$1" != --stop ]; then
+  if [ $# -gt 0 ] && [ "$1" != --stop ] && [ "$1" != --stop-stale ]; then
     path=$(path_for_branch "$1") || { echo "serve      no worktree on $1" >&2; return 1; }
     if [ $# -eq 1 ]; then
       defaults=$(tree_profile "$path" defaultApps) || return 1
@@ -1844,7 +1895,7 @@ cmd_backend() {
 }
 
 # JSON keys: schemaVersion, generatedAt, backend{tree,sha,relation,dirty,overall,services,urls,offset,offsetSource,taskSlots,stackTree,treeAligned,checkError},
-# slots[]{slot,branch,worktree,apps[]{app,port,url,unitState,httpReady},error?}.
+# slots[]{slot,branch,worktree,stale,apps[]{app,port,url,unitState,httpReady},error?}.
 cmd_status() {
   local json=0 qa offset offset_source offset_pair sha relation dirt health health_error health_code slot file app port url state ready
   [ "${1:-}" = --json ] && json=1
@@ -1884,8 +1935,8 @@ PY
     )
   fi
   rm -f "$health_error"
-  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" WT_STATUS_PROFILE_BIN="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" python3 - <<'PY_JSON'
-import concurrent.futures, datetime, importlib.util, json, os, pathlib, re, subprocess, urllib.request
+  WT_STATUS_QA="$qa" WT_STATUS_SHA="$sha" WT_STATUS_RELATION="$relation" WT_STATUS_DIRTY="$dirt" WT_STATUS_OFFSET="$offset" WT_STATUS_OFFSET_SOURCE="$offset_source" WT_STATUS_HEALTH="$health" WT_STATUS_STATE_DIR="$(serve_state_dir)" WT_STATUS_ATTACHMENT="$(qa_attachment_file)" WT_STATUS_UPDATE_MARKER="$(qa_update_marker)" WT_STATUS_STACK_TREE="${QA_TREE:-$HOME/cl-strategy-qa}" WT_STATUS_PROFILE_BIN="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/wt-profile.py" WT_STATUS_T3_THREAD="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/t3-thread" python3 - <<'PY_JSON'
+import concurrent.futures, datetime, importlib.util, json, os, pathlib, re, subprocess, sys, urllib.request
 
 spec = importlib.util.spec_from_file_location('wt_profile', os.environ['WT_STATUS_PROFILE_BIN'])
 profile_module = importlib.util.module_from_spec(spec)
@@ -2102,6 +2153,16 @@ backend = {'tree': os.environ['WT_STATUS_QA'], 'sha': os.environ['WT_STATUS_SHA'
 state_dir = pathlib.Path(os.environ['WT_STATUS_STATE_DIR'])
 slots = [slot_data(slot, file) for slot in range(2, 10)
          if (file := state_dir / f'slot-{slot}').is_file()]
+try:
+    t3 = subprocess.run([os.environ['WT_STATUS_T3_THREAD'], 'worktrees', '--json'],
+                        capture_output=True, text=True, check=True)
+    if t3.stderr: print(t3.stderr, end='', file=sys.stderr)
+    settled = {item['path'] for item in json.loads(t3.stdout)['worktrees'] if item['state'] == 'settled'}
+except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
+    print(f'wt: warning: cannot check T3 worktrees: {error}', file=sys.stderr)
+    settled = set()
+for slot in slots:
+    slot['stale'] = bool(slot['worktree'] and os.path.realpath(slot['worktree']) in settled)
 apps = [app for slot in slots for app in slot['apps']]
 with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(apps))) as pool:
     list(pool.map(check, apps))
@@ -2369,7 +2430,8 @@ wt qa [branch|commit]                 attach QA code, restart and probe app serv
                                       (no argument: status)
 wt serve [branch] [ds-demo|ri|strategy…]
                                       task frontends; apps default from repo profile
-wt serve --stop <branch>              stop its frontend units
+wt serve --stop <branch> [<branch>...] stop one or more frontend slots
+wt serve --stop-stale [--dry-run]      stop slots with no live T3 threads
 wt logs <branch> [app] [-n N] [-f]    frontend journals (default: 80 lines)
 wt backend [status|ensure|heal|logs|update [--reset|--force]|tab|start <svc>|restart <svc>]
                                       shared QA backend controls

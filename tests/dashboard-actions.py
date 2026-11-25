@@ -81,6 +81,22 @@ runner = FakeRunner(busy=True)
 code, body = dashboard.handle_slot_backend(runner, {"branch": "t3code/chart"}, PAGE, PORT, BRANCHES)
 check("a backend switch while another action runs gets 409", code == 409 and not runner.started)
 
+stale = ["feat/old-a", "feat/old-b"]
+runner = FakeRunner()
+code, body = dashboard.handle_slot_stop_stale(runner, PAGE, PORT, stale)
+check("stale slots start one rechecked bulk action without client branch text",
+      code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale"], None)])
+for label, headers, branches, expected in [
+    ("foreign origin", {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, stale, 403),
+    ("no stale slots", PAGE, [], 409),
+]:
+    runner = FakeRunner()
+    code, body = dashboard.handle_slot_stop_stale(runner, headers, PORT, branches)
+    check(f"bulk stop refuses {label}", code == expected and not runner.started)
+runner = FakeRunner(busy=True)
+code, body = dashboard.handle_slot_stop_stale(runner, PAGE, PORT, stale)
+check("bulk stop respects the one-action limit", code == 409 and not runner.started)
+
 
 class FakeSource:
     def __init__(self, status):
@@ -90,6 +106,14 @@ class FakeSource:
         if isinstance(self.status, Exception):
             raise self.status
         return self.status
+
+
+check("only status slots explicitly marked stale are selected",
+      dashboard.stale_slot_branches(FakeSource({"slots": [
+          {"branch": "feat/old-b", "stale": True}, {"branch": "feat/live", "stale": False},
+          {"branch": "feat/old-a", "stale": True}, {"branch": "-unsafe", "stale": True},
+          {"branch": "feat/unknown"},
+      ]})) == stale)
 
 
 backend_branches = dashboard.slot_branches(FakeSource({"slots": [

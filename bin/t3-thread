@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 DEFAULT_ORIGIN = "http://127.0.0.1:3773"
 LABEL = "t3-thread"
-STATE_DB = os.path.expanduser("~/.t3/userdata/state.sqlite")
+STATE_DB = os.path.expanduser(os.environ.get("T3_STATE_DB", "~/.t3/userdata/state.sqlite"))
 
 
 def origin():
@@ -150,6 +150,31 @@ def cmd_self(args):
     print(matches[0][0])
 
 
+def cmd_worktrees(args):
+    """List known worktrees, including settled, archived and deleted threads."""
+    states = {}
+    try:
+        with sqlite3.connect(f"file:{STATE_DB}?mode=ro", uri=True) as db:
+            rows = db.execute(
+                "SELECT worktree_path, deleted_at, archived_at, settled_at, unsettled_at"
+                " FROM projection_threads WHERE worktree_path IS NOT NULL").fetchall()
+        for path, deleted, archived, settled, unsettled in rows:
+            path = os.path.realpath(path)
+            live = deleted is None and archived is None and (settled is None or
+                    (unsettled is not None and unsettled > settled))
+            states[path] = states.get(path, False) or live
+    except (OSError, sqlite3.Error) as err:
+        print(f"t3-thread: warning: cannot read {STATE_DB}: {err}", file=sys.stderr)
+        states = {}
+    worktrees = [{"path": path, "state": "live" if live else "settled"}
+                 for path, live in sorted(states.items())]
+    if args.json:
+        print(json.dumps({"worktrees": worktrees}))
+    else:
+        for item in worktrees:
+            print(f"{item['state']:7} {item['path']}")
+
+
 def default_base_branch(snap, project):
     for source in (project, snap):
         for key in ("defaultBranch", "baseBranch", "defaultBaseBranch"):
@@ -212,6 +237,8 @@ def main():
     p.add_argument("--file", help="read the message from this file (default: stdin)")
     p = add("self", cmd_self, "print the calling agent's own thread id", dry=False)
     p.add_argument("--cwd", default=os.getcwd())
+    p = add("worktrees", cmd_worktrees, "list worktrees known to T3", dry=False)
+    p.add_argument("--json", action="store_true")
     p = add("spawn", cmd_spawn, "start a new thread in the same project")
     p.add_argument("--from", dest="from_thread", required=True, metavar="THREAD_ID")
     p.add_argument("--file", required=True, help="first user message")
