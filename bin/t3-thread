@@ -5,9 +5,25 @@ from datetime import datetime, timezone
 
 DEFAULT_ORIGIN = "http://127.0.0.1:3773"
 LABEL = "t3-thread"
-STATE_DB = os.path.expanduser(os.environ.get("T3_STATE_DB") or
-                              ("~/.t3/userdata/statev2.sqlite" if os.path.exists(os.path.expanduser("~/.t3/userdata/statev2.sqlite"))
-                               else "~/.t3/userdata/state.sqlite"))
+
+
+def state_db_path():
+    if "T3_STATE_DB" in os.environ:
+        return os.path.expanduser(os.environ["T3_STATE_DB"])
+    current = os.path.expanduser("~/.t3/userdata/statev2.sqlite")
+    legacy = os.path.expanduser("~/.t3/userdata/state.sqlite")
+    if not os.path.exists(current):
+        return legacy
+    try:
+        with sqlite3.connect(f"file:{current}?mode=ro", uri=True) as db:
+            found = db.execute("SELECT 1 FROM sqlite_master WHERE type='table'"
+                               " AND name='orchestration_v2_projection_threads'").fetchone()
+        return current if found else legacy
+    except sqlite3.Error:
+        return current  # Unreadable current state must fail safe, not use frozen legacy data.
+
+
+STATE_DB = state_db_path()
 
 
 def origin():

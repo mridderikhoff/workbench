@@ -73,6 +73,22 @@ assert items == {sys.argv[2] + '/old': 'settled', sys.argv[2] + '/live': 'live'}
 PY
 T3_STATE_DB="$S/legacy.sqlite" "$ROOT/bin/t3-thread" self --cwd "$S/live" >"$S/legacy-self.txt"
 grep -qx legacy-live "$S/legacy-self.txt"
+mkdir -p "$S/home/.t3/userdata"
+cp "$S/legacy.sqlite" "$S/home/.t3/userdata/state.sqlite"
+python3 - "$S/home/.t3/userdata/statev2.sqlite" <<'PY'
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute('CREATE TABLE projection_threads (thread_id TEXT)')
+db.commit()
+PY
+env -u T3_STATE_DB HOME="$S/home" "$ROOT/bin/t3-thread" worktrees --json >"$S/fallback-worktrees.json"
+cmp "$S/legacy-worktrees.json" "$S/fallback-worktrees.json"
+T3_STATE_DB="$S/legacy.sqlite" "$ROOT/bin/wt" status --json >"$S/legacy-status.json"
+python3 - "$S/legacy-status.json" <<'PY'
+import json, sys
+slots = {slot['branch']: slot['stale'] for slot in json.load(open(sys.argv[1]))['slots']}
+assert slots == {'old': True, 'old2': False, 'live': False, 'untouched': False}, slots
+PY
 "$ROOT/bin/wt" status --json >"$S/status.json"
 python3 - "$S/status.json" <<'PY'
 import json, sys
@@ -117,6 +133,28 @@ grep -qx 'slot       2 stopped for old' "$S/stale-stop.txt"
 [ ! -e "$WT_STATE_DIR/wt-serve/slot-2" ] && [ ! -e "$WT_STATE_DIR/wt-serve/slot-5" ]
 [ -e "$WT_STATE_DIR/wt-serve/slot-6" ]
 [ -e "$WT_STATE_DIR/wt-serve/slot-7" ]
+mkdir -p "$S/main/.git"
+python3 - "$T3_STATE_DB" "$S/main" "$S/missing" <<'PY'
+import json, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+for name, path in [('main', sys.argv[2]), ('missing', sys.argv[3])]:
+    db.execute('INSERT INTO orchestration_v2_projection_threads VALUES (?, ?, ?, ?, ?, ?)',
+               (name, 'project', name, None, None, json.dumps({'worktreePath': path, 'settledAt': '2026-11-07'})))
+db.commit()
+PY
+printf 'branch=main\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/main" >"$WT_STATE_DIR/wt-serve/slot-2"
+printf 'branch=missing\npath=%s\nrepo=cl-strategy\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/missing" >"$WT_STATE_DIR/wt-serve/slot-5"
+printf 'branch=old\npath=%s\napps=ds-demo\nunits=ds-demo\nkc=\n' "$S/old" >"$WT_STATE_DIR/wt-serve/slot-8"
+"$ROOT/bin/wt" status --json >"$S/exclusions.json"
+python3 - "$S/exclusions.json" <<'PY'
+import json, sys
+slots = {slot['branch']: slot for slot in json.load(open(sys.argv[1]))['slots']}
+assert slots['main']['stale'] is False and slots['missing']['stale'] is False, slots
+assert slots['old']['stale'] is True and slots['old']['repo'] == 'cl-strategy', slots
+PY
+"$ROOT/bin/wt" serve --stop-stale --repo cl-strategy --dry-run >"$S/exclusions-dry-run.txt"
+grep -qx 'stale      slot 8 old' "$S/exclusions-dry-run.txt"
+[ "$(wc -l <"$S/exclusions-dry-run.txt")" -eq 1 ]
 T3_STATE_DB="$S/missing.sqlite" "$ROOT/bin/wt" serve --stop-stale --dry-run >"$S/missing.txt" 2>"$S/missing.err"
 grep -qx 'no stale slots' "$S/missing.txt"
 grep -q 'warning: cannot read' "$S/missing.err"

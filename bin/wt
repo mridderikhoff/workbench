@@ -1220,7 +1220,7 @@ def slot_repo(fields):
             return profile_module.profile(str(pathlib.Path(common).parent))['name']
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
             pass
-    return fields.get('repo') or 'Other'
+    return fields.get('repo') or profile_module.FALLBACK['name']
 
 try:
     result = subprocess.run([os.environ['WT_STALE_T3_THREAD'], 'worktrees', '--json'],
@@ -1238,9 +1238,12 @@ for slot in range(2, 10):
         fields = dict(line.split('=', 1) for line in file.read_text().splitlines() if '=' in line)
     except OSError:
         continue
-    if (fields.get('branch') and fields.get('path') and os.path.realpath(fields['path']) in settled
+    path_text = fields.get('path')
+    path = pathlib.Path(path_text or '')
+    if (fields.get('branch') and path_text and path.is_dir() and not (path / '.git').is_dir()
+            and os.path.realpath(path) in settled
             and (not os.environ.get('WT_STALE_REPO_FILTER') or slot_repo(fields) == os.environ['WT_STALE_REPO_FILTER'])):
-        print(f"{slot}\t{fields['branch']}\t{os.path.realpath(fields['path'])}")
+        print(f"{slot}\t{fields['branch']}\t{os.path.realpath(path)}")
 PY
 }
 cmd_serve_locked() {
@@ -2075,7 +2078,8 @@ def slot_data(slot, file):
         errors.append(f'cannot read state: {error}')
     branch, path = fields.get('branch', ''), fields.get('path', '')
     config = repo_profile(path) if path else None
-    item = {'slot': slot, 'branch': branch, 'worktree': path, 'repo': fields.get('repo', 'cl-strategy'), 'repoBackend': fields.get('repo', 'cl-strategy') == 'cl-strategy', 'apps': [], 'availableApps': []}
+    saved_repo = fields.get('repo') or profile_module.FALLBACK['name']
+    item = {'slot': slot, 'branch': branch, 'worktree': path, 'repo': saved_repo, 'repoBackend': saved_repo == 'cl-strategy', 'apps': [], 'availableApps': []}
     if config:
         item['repo'] = config['name']
         item['repoBackend'] = config['backend']
@@ -2195,7 +2199,9 @@ except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
     print(f'wt: warning: cannot check T3 worktrees: {error}', file=sys.stderr)
     settled = set()
 for slot in slots:
-    slot['stale'] = bool(slot['worktree'] and os.path.realpath(slot['worktree']) in settled)
+    path = pathlib.Path(slot['worktree'])
+    slot['stale'] = bool(slot['worktree'] and path.is_dir() and not (path / '.git').is_dir()
+                         and os.path.realpath(path) in settled)
 apps = [app for slot in slots for app in slot['apps']]
 with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(apps))) as pool:
     list(pool.map(check, apps))

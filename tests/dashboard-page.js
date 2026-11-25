@@ -480,20 +480,36 @@ test("repo panels keep cards and give each repo its own stale confirmation", asy
   assert.strictEqual(panels[1].__slotBox.children[0], otherCard, "poll keeps other repo cards");
   p.sandbox.document.fire("click", { target: panels[0].__staleButton });
   assert.strictEqual(p.get("stop-confirm").open, true);
-  assert.match(p.text("stop-message"), /cl-strategy branches\?\nb2/);
+  assert.match(p.text("stop-message"), /cl-strategy branches\?\nslot 2: b2/);
   assert.doesNotMatch(p.text("stop-message"), /b4/);
   p.get("stop-confirm").querySelector("form").fire("submit");
   assert.strictEqual(panels[0].__staleButton.disabled, true, "the button disables while the action starts");
   assert.match(panels[0].__slotBox.children.map(card => card.innerHTML).join("|"), /Stopping/);
   assert.doesNotMatch(panels[1].__slotBox.children.map(card => card.innerHTML).join("|"), /Stopping/);
   assert.strictEqual(p.calls.at(-1).url, "/api/slot/stop-stale");
-  assert.deepStrictEqual(JSON.parse(p.calls.at(-1).init.body), { repo: "cl-strategy" });
+  assert.deepStrictEqual(JSON.parse(p.calls.at(-1).init.body), { repo: "cl-strategy", slots: [{ slot: 2, branch: "b2" }] });
   snap.slots[0].stale = false;
   await p.poll();
   assert.strictEqual(panels[0].__staleButton.hidden, true);
   assert.strictEqual(panels[1].__staleButton.hidden, false);
   assert.match(SRC, /var FX_BUTTONS="[^"]*\.stop-stale/);
   assert.match(SRC, /var KEYS = "[^"]*\.stop-stale/);
+});
+
+test("stale confirmation submits the slots shown when it opened", async () => {
+  const snap = snapshot([session(2), session(3), session(4)]);
+  snap.slots.forEach(slot => { slot.repo = "cl-strategy"; });
+  snap.slots[0].stale = snap.slots[1].stale = true;
+  const p = page({ fetch: url => url === "/api/status" ? jsonResponse(snap) : jsonResponse({ actions: null }, true, 202) });
+  await p.poll();
+  p.sandbox.document.fire("click", { target: p.get("slots").children[0].__staleButton });
+  snap.slots[1].stale = false;
+  snap.slots[2].stale = true;
+  await p.poll();
+  p.get("stop-confirm").querySelector("form").fire("submit");
+  assert.deepStrictEqual(JSON.parse(p.calls.at(-1).init.body), {
+    repo: "cl-strategy", slots: [{ slot: 2, branch: "b2" }, { slot: 3, branch: "b3" }]
+  });
 });
 
 test("repos follow first slot number and unknown repos appear last", async () => {

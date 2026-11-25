@@ -98,30 +98,41 @@ stale_source = FakeSource({"slots": [
     {"slot": 4, "branch": "feat/live", "worktree": "/fixture/live", "repo": "cl-system", "stale": False},
 ]})
 runner = FakeRunner()
-code, body = dashboard.handle_slot_stop_stale(runner, {}, PAGE, PORT, stale_source)
+shown = [{"slot": 2, "branch": "feat/old-a"}, {"slot": 3, "branch": "feat/old-b"}]
+code, body = dashboard.handle_slot_stop_stale(runner, {"slots": shown}, PAGE, PORT, stale_source)
 check("stale slots start one rechecked bulk action without client branch text",
       code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale",
           "--only-slot", "2", "feat/old-a", "/fixture/old-a",
           "--only-slot", "3", "feat/old-b", "/fixture/old-b"], None)])
 runner = FakeRunner()
-code, body = dashboard.handle_slot_stop_stale(runner, {"repo": "cl-system"}, PAGE, PORT, stale_source)
+code, body = dashboard.handle_slot_stop_stale(runner, {"repo": "cl-system", "slots": shown}, PAGE, PORT, stale_source)
 check("repo bulk stop uses one validated repo argument",
       code == 202 and runner.started == [("stop-stale", ["serve", "--stop-stale", "--repo", "cl-system",
           "--only-slot", "3", "feat/old-b", "/fixture/old-b"], "cl-system")])
 for label, payload, headers, source, expected in [
-    ("foreign origin", {}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, stale_source, 403),
-    ("no stale slots", {}, PAGE, FakeSource({"slots": [{"repo": "cl-system", "stale": False}]}), 409),
-    ("unknown repo", {"repo": "unlisted"}, PAGE, stale_source, 400),
-    ("non-string repo", {"repo": ["cl-system"]}, PAGE, stale_source, 400),
-    ("null repo", {"repo": None}, PAGE, stale_source, 400),
-    ("extra client text", {"branch": "feat/live"}, PAGE, stale_source, 400),
+    ("foreign origin", {"slots": shown}, {"X-QA-Dashboard": "1", "Origin": "http://evil.example"}, stale_source, 403),
+    ("no stale slots", {"slots": shown}, PAGE, FakeSource({"slots": [{"repo": "cl-system", "stale": False}]}), 409),
+    ("unknown repo", {"repo": "unlisted", "slots": shown}, PAGE, stale_source, 400),
+    ("non-string repo", {"repo": ["cl-system"], "slots": shown}, PAGE, stale_source, 400),
+    ("null repo", {"repo": None, "slots": shown}, PAGE, stale_source, 400),
+    ("extra client text", {"branch": "feat/live", "slots": shown}, PAGE, stale_source, 400),
+    ("missing slots", {}, PAGE, stale_source, 400),
+    ("empty slots", {"slots": []}, PAGE, stale_source, 400),
+    ("boolean slot", {"slots": [{"slot": True, "branch": "feat/old-a"}]}, PAGE, stale_source, 400),
+    ("unsafe branch", {"slots": [{"slot": 2, "branch": "-unsafe"}]}, PAGE, stale_source, 400),
+    ("no listed stale match", {"slots": [{"slot": 4, "branch": "feat/live"}]}, PAGE, stale_source, 409),
 ]:
     runner = FakeRunner()
     code, body = dashboard.handle_slot_stop_stale(runner, payload, headers, PORT, source)
     check(f"bulk stop refuses {label}", code == expected and not runner.started)
 runner = FakeRunner(busy=True)
-code, body = dashboard.handle_slot_stop_stale(runner, {}, PAGE, PORT, stale_source)
+code, body = dashboard.handle_slot_stop_stale(runner, {"slots": shown}, PAGE, PORT, stale_source)
 check("bulk stop respects the one-action limit", code == 409 and not runner.started)
+runner = FakeRunner()
+code, body = dashboard.handle_slot_stop_stale(runner, {"repo": "cl-system", "slots": shown + [{"slot": 4, "branch": "feat/live"}]}, PAGE, PORT, stale_source)
+check("bulk stop ignores listed slots outside the current stale repo set",
+      code == 202 and runner.started[0][1] == ["serve", "--stop-stale", "--repo", "cl-system",
+          "--only-slot", "3", "feat/old-b", "/fixture/old-b"])
 
 
 check("only status slots explicitly marked stale are selected",

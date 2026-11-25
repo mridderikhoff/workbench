@@ -3785,13 +3785,13 @@ function copyText(text,button){
   try{ok=document.execCommand("copy")}catch(e){}
   area.remove();button.focus();done(ok);
 }
-function runAction(name,branch,service,app,repo){
+function runAction(name,branch,service,app,repo,shownSlots){
   actionError=null;
   outputOpen=false;
   // The card dims at once; the optimistic action is undone if the request fails or brings no action state back.
   var before=data&&data.actions;
   if(data){data.actions={action:service?"restart":name,target:service||branch||repo||null,app:app||undefined,state:"running",startedAt:new Date().toISOString(),output:[]};render()}
-  var request=name==="stop-stale"?{url:"/api/slot/stop-stale",body:JSON.stringify({repo:repo})}:app?{url:"/api/slot/start",body:JSON.stringify({branch:branch,app:app})}:branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
+  var request=name==="stop-stale"?{url:"/api/slot/stop-stale",body:JSON.stringify({repo:repo,slots:shownSlots})}:app?{url:"/api/slot/start",body:JSON.stringify({branch:branch,app:app})}:branch?{url:name==="attach"?"/api/slot/backend":"/api/slot/stop",body:JSON.stringify({branch:branch})}:service?{url:"/api/backend/restart",body:JSON.stringify({service:service})}:{url:"/api/backend/"+name,body:null};
   fetch(request.url,{method:"POST",headers:{"X-QA-Dashboard":"1","Content-Type":"application/json"},body:request.body,cache:"no-store"}).then(function(r){
     return r.json().then(function(j){
       if(data)data.actions=j.actions||before;
@@ -3802,13 +3802,18 @@ function runAction(name,branch,service,app,repo){
 }
 // One confirm dialog serves Stop (a session's frontends), Attach (the backend to a session's branch) and Restart (one
 // backend service); confirmKind says which. Stop and Attach both name a session branch in stopBranch.
-var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopRepo="",stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
-function staleBranches(repo){return((data&&data.slots)||[]).filter(function(slot){return slot.stale===true&&slot.branch&&slotRepo(slot)===repo}).map(function(slot){return slot.branch})}
-function staleAvailable(repo){return!isRunning()&&staleBranches(repo).length>0}
+var stopDialog=document.getElementById("stop-confirm"),stopBranch="",stopRepo="",stopStaleShown=[],stopOpener=null,stopSubmitting=false,confirmKind="stop",restartService="";
+function staleChoices(repo){return((data&&data.slots)||[]).filter(function(slot){return slot.stale===true&&slot.branch&&slotRepo(slot)===repo}).map(function(slot){return{slot:slot.slot,branch:slot.branch}})}
+function staleAvailable(repo){return!isRunning()&&staleChoices(repo).length>0}
+function shownStaleAvailable(){
+  if(isRunning())return false;
+  var current=staleChoices(stopRepo);
+  return stopStaleShown.some(function(shown){return current.some(function(slot){return slot.slot===shown.slot&&slot.branch===shown.branch})});
+}
 function confirmStale(repo,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!staleAvailable(repo))return;
-  stopRepo=repo;stopOpener=opener;stopSubmitting=false;confirmKind="stop-stale";
-  confirmText("Stop stale frontends","Stop the frontends for these "+repo+" branches?\n"+staleBranches(repo).join("\n"),"Stop all");
+  stopRepo=repo;stopStaleShown=staleChoices(repo);stopOpener=opener;stopSubmitting=false;confirmKind="stop-stale";
+  confirmText("Stop stale frontends","Stop the frontends for these "+repo+" branches?\n"+stopStaleShown.map(function(slot){return"slot "+slot.slot+": "+slot.branch}).join("\n"),"Stop all");
   stopDialog.showModal();document.dispatchEvent(new CustomEvent("qa-modal",{detail:true}));
   document.getElementById("stop-cancel").focus();
 }
@@ -3867,7 +3872,7 @@ function attachAvailable(branch){
   var slot=((data&&data.slots)||[]).find(function(s){return s.branch===branch});
   return!isRunning()&&!!slot&&slotNeedsBackend(slot)&&branch!=="develop"&&backendOn(slot)!=="current";
 }
-function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):confirmKind==="stop-stale"?staleAvailable(stopRepo):stopAvailable(stopBranch)}
+function confirmAvailable(){return confirmKind==="restart"?restartAvailable(restartService):confirmKind==="attach"?attachAvailable(stopBranch):confirmKind==="stop-stale"?shownStaleAvailable():stopAvailable(stopBranch)}
 function confirmAttach(branch,opener){
   if(!stopDialog||!stopDialog.showModal||stopDialog.open||!attachAvailable(branch))return;
   stopBranch=branch;stopOpener=opener;stopSubmitting=false;confirmKind="attach";
@@ -3894,8 +3899,8 @@ stopDialog.querySelector("form").addEventListener("submit",function(e){
     stopSubmitting=true;var target=stopBranch;stopDialog.close();runAction("attach",target);return;
   }
   if(confirmKind==="stop-stale"){
-    if(!staleAvailable(stopRepo)){stopDialog.close();return}
-    stopSubmitting=true;var repo=stopRepo;stopDialog.close();runAction("stop-stale",null,null,null,repo);return;
+    if(!shownStaleAvailable()){stopDialog.close();return}
+    stopSubmitting=true;var repo=stopRepo,shown=stopStaleShown.slice();stopDialog.close();runAction("stop-stale",null,null,null,repo,shown);return;
   }
   if(!stopAvailable(stopBranch)){stopDialog.close();return}
   stopSubmitting=true;var branch=stopBranch;stopDialog.close();runAction("stop",branch);
@@ -5151,12 +5156,25 @@ def handle_slot_stop_stale(runner, body, headers, port, source):
     """Starts one action for a status-listed repo; wt rechecks T3 before stopping."""
     if not same_origin(headers, port):
         return 403, {"error": "forbidden"}
-    if not isinstance(body, dict) or any(key != "repo" for key in body):
+    if not isinstance(body, dict) or set(body) - {"repo", "slots"}:
         return 400, {"error": "invalid request"}
+    requested = body.get("slots")
+    if (not isinstance(requested, list) or not requested or len(requested) > 8 or
+            any(not isinstance(item, dict) or set(item) != {"slot", "branch"} or
+                type(item["slot"]) is not int or not 2 <= item["slot"] <= 9 or
+                not isinstance(item["branch"], str) or not item["branch"] or
+                item["branch"].startswith("-") for item in requested)):
+        return 400, {"error": "invalid slots"}
     repo = body.get("repo")
-    if "repo" in body and (not isinstance(repo, str) or repo not in slot_repos(source)):
+    try:
+        snapshot = source.get()
+    except Exception:
+        return 409, {"error": "no stale slots"}
+    if "repo" in body and (not isinstance(repo, str) or repo not in slot_repos(source, snapshot)):
         return 400, {"error": "unknown repo"}
-    approved = stale_slot_entries(source, repo)
+    shown = {(item["slot"], item["branch"]) for item in requested}
+    approved = [slot for slot in stale_slot_entries(source, repo, snapshot)
+                if (slot["slot"], slot["branch"]) in shown]
     if not approved:
         return 409, {"error": "no stale slots"}
     args = ["serve", "--stop-stale"] + (["--repo", repo] if repo is not None else [])
@@ -5227,9 +5245,9 @@ def slot_repo(slot):
     return repo if isinstance(repo, str) and repo else "Other"
 
 
-def slot_repos(source):
+def slot_repos(source, snapshot=None):
     try:
-        return {slot_repo(slot) for slot in source.get().get("slots") or []}
+        return {slot_repo(slot) for slot in (snapshot if snapshot is not None else source.get()).get("slots") or []}
     except Exception:
         return set()
 
@@ -5244,10 +5262,10 @@ def stale_slot_branches(source, repo=None):
         return []
 
 
-def stale_slot_entries(source, repo=None):
+def stale_slot_entries(source, repo=None, snapshot=None):
     """Exact status-approved slots for wt to match again under its serve lock."""
     try:
-        return sorted((slot for slot in source.get().get("slots") or []
+        return sorted((slot for slot in (snapshot if snapshot is not None else source.get()).get("slots") or []
                        if slot.get("stale") is True and (repo is None or slot_repo(slot) == repo)
                        and type(slot.get("slot")) is int and 2 <= slot["slot"] <= 9
                        and isinstance(slot.get("branch"), str) and slot["branch"] and not slot["branch"].startswith("-")
