@@ -72,6 +72,8 @@ remaining `TODO` fails coverage. Keep all skeleton headings and mark empty notes
 `None`.
 `## Files reviewed` keeps its exact line format. `## Debt` and `## Readiness` preserve the
 affected probe ids and targets.
+Under diff scope, an `angular` report covering §2 fills `## Additions` with one decision and
+reason per added or changed declaration; `delete` and `derive` decisions also become findings.
 
 For `architecture`:
 

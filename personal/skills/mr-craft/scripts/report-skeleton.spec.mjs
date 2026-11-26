@@ -64,6 +64,19 @@ test('diff scope normalizes dot and backslash paths', () => {
   assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.ts` — changed/);
 });
 
+test('Additions appears only for changed angular reports covering subtraction', () => {
+  const changed = changedFile([hint]);
+  for (const section of [undefined, '2']) {
+    const output = buildSkeleton({ '--target': target, '--packet': 'angular', '--section': section, '--changed': changed }, { root: fixtureRoot, packetFile }).output;
+    assert.match(output, /## Files reviewed[\s\S]*## Additions\n\n\| Addition \(`file:line`\) \| Decision \| Reason \|\n\| --- \| --- \| --- \|\n\| TODO \| TODO \| TODO \|\n\n## Findings/);
+  }
+  for (const [packet, section] of [['angular', '1'], ['angular', '6'], ['correctness', undefined], ['architecture', undefined]]) {
+    const output = buildSkeleton({ '--target': target, '--packet': packet, '--section': section, '--changed': changed }, { root: fixtureRoot, packetFile }).output;
+    assert.doesNotMatch(output, /## Additions/);
+  }
+  assert.doesNotMatch(skeleton('angular'), /## Additions/);
+});
+
 test('changed template seeds its owner and the owner’s direct references', () => {
   const report = buildSkeleton({ '--target': target, '--packet': 'correctness', '--changed': changedFile([`${target}/hint.html`]) }, { root: fixtureRoot, packetFile }).output;
   assert.match(report, /`libs\/widgets\/src\/lib\/hint\/hint\.html` — changed/);

@@ -39,8 +39,8 @@ rule sources, and any repo craft skill.
   permit it, with a separate report and evidence for each packet.
 - The orchestrator never reads packets or judges code. It checks reviewer coverage and
   reconciles findings. Never infer a target from open files or the branch; ask if none is given.
-- Never present inline review as independent. If no independent reviewer is available,
-  state the limit before offering an explicitly inline review.
+- Never present inline review as independent or label it an mr-craft review or report. If no
+  independent reviewer is available, state the limit before offering an explicitly inline pass.
 - Change this skill's packets or schema only when asked (a guide-mode request is that ask).
   Put guidance proposals in the hand-off.
 
@@ -53,15 +53,18 @@ rule sources, and any repo craft skill.
 | `/mr-craft <path or PR> --report [packets]` | Read-only findings; architecture alone reviews the whole target | [report.md](references/verbs/report.md) |
 | `/mr-craft <guidance request>` | Guide: update mr-craft guidance and route repository rules to their owners | [guide.md](references/verbs/guide.md) |
 
-A prose request to change mr-craft, its packets, probes, or digest, or to apply proposed
-guidance updates, means guide. Guide mode takes a prose request without a flag. "Run mr-craft
-on X", "do a mr-craft pass on Y", and "mr-craft this branch" mean refine on the named target.
-"Skip architecture" and "checklists only" exclude `architecture` under the opening rules of
-[refine.md](references/verbs/refine.md).
+Route requests in order. Any mention of mr-craft with a target calls for independent packet
+reviewers; an inline pass is not an mr-craft run. Explicit build, refine, `--report`, and
+guidance-change modes follow the table; guide mode needs no flag. With no mode named, a
+question or analysis about a target uses report mode. Follow [report.md](references/verbs/report.md)
+step 2 for default packets; simplification or subtraction uses `angular correctness performance`.
+With no mode named, an action on a target uses refine. "Run mr-craft on X", "do a mr-craft pass on
+Y", and "mr-craft this branch" are action examples; "skip architecture" and "checklists only"
+are examples of exclusions under [refine.md](references/verbs/refine.md).
 
-An existing supported path or PR means refine. Other concrete tasks mean build. An
-explicitly named branch means refine on its changed supported files. A bare path keeps
-whole-target scope. Ask when ambiguous. Packet names after `--report` are space-separated.
+A bare existing supported path, PR, or named branch means refine; a branch uses its changed
+supported files. Other concrete tasks mean build. A bare path keeps whole-target scope. Ask
+when ambiguous. Packet names after `--report` are space-separated.
 
 **PR targets.** Resolve with `gh pr view <PR> --json
 headRepository,headRepositoryOwner,headRefName,headRefOid,baseRefName,baseRefOid,files`.

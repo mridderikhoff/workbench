@@ -10,6 +10,8 @@ Guide mode updates mr-craft's own guidance under [`SKILL.md`](../../SKILL.md) â†
    per-row click is fine, while a per-row listener for high-frequency pointer movement is a
    finding when a shared handler serves the same purpose. Use generic names. A concern that
    does not generalize is a one-off preference. Report that and stop.
+   For routing and trigger rules, name the kind of request, not the wording that raised it;
+   quoted phrases are examples, never triggers.
 2. **Pick the home** in the skill's standards and the [repo profile's rule sources](../repo-profile.md).
    - A mechanical pattern, such as a banned API or import shape, belongs in a deterministic
      check the repository runs. Name that check in the probe when it covers the pattern.

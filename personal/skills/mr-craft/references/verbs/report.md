@@ -80,7 +80,8 @@ hard rules.
    Keep the skeleton headings and place empty-form probe rows in the Coverage table, with
    classed rows in Findings. Architecture also fills Architecture as found and Abstractions
    reviewed per [`schema.md`](../schema.md) → "Report layout". The skeleton metadata
-   selects the packet and section. The checker rejects
+   selects the packet and section. Keep Additions in its shard report; every `delete` or
+   `derive` row needs a Findings row at the same `file:line`. The checker rejects
    missing reports, missing or duplicate probe answers, unknown ids, inconsistent coverage,
    placeholders, unresolved imports and evidence-less empty rows. It reads report files and
    packet ids only; it neither scans source again nor judges findings. Keep the planned report

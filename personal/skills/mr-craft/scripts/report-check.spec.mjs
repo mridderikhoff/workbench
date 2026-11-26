@@ -26,6 +26,44 @@ test('accepts complete coverage with an open finding', () => {
   assert.deepEqual(checkReport(report(completeRows), probes), []);
 });
 
+test('validates Additions independently from probe coverage', () => {
+  const base = report(completeRows, '2 of 2', '{"packet":"angular","section":"2"}')
+    .replace('— target', '— changed');
+  const withAdditions = (rows) => base.replace('## Findings', `## Additions\n\n| Addition (\`file:line\`) | Decision | Reason |\n| --- | --- | --- |\n${rows.join('\n')}\n\n## Findings`);
+  const valid = withAdditions(['| `example.ts:4` field | keep | Required public input contract |']);
+  assert.deepEqual(checkReport(valid, probes), []);
+  assert.deepEqual(checkReport(base.replace('## Findings', '## Additions\n\nNone\n\n## Findings'), probes), []);
+  assert.ok(checkReport(base, probes).some((problem) => problem.includes('missing Additions section')));
+  assert.ok(checkReport(withAdditions([]), probes).some((problem) => problem.includes('Additions requires a data row or None')));
+  assert.ok(checkReport(withAdditions(['| TODO | TODO | TODO |']), probes).some((problem) => problem.includes('TODO placeholder')));
+  assert.ok(checkReport(withAdditions(['| `example.ts:4` field | retain | Reason |']), probes).some((problem) => problem.includes('invalid Additions decision')));
+  assert.ok(checkReport(withAdditions(['| `example.ts:4` field | derive | |']), probes).some((problem) => problem.includes('empty Additions reason')));
+  assert.ok(checkReport(withAdditions(['| `example.ts:4` field | keep | Reason | extra |']), probes).some((problem) => problem.includes('Additions row requires 3 cells')));
+});
+
+test('delete and derive additions cite a matching Findings location', () => {
+  const base = report(completeRows, '2 of 2', '{"packet":"angular","section":"2"}')
+    .replace('— target', '— changed');
+  const withAdditions = (rows) => base.replace('## Findings', `## Additions\n\n| Addition (\`file:line\`) | Decision | Reason |\n| --- | --- | --- |\n${rows.join('\n')}\n\n## Findings`);
+  for (const decision of ['delete', 'derive']) {
+    assert.deepEqual(checkReport(withAdditions([`| \`example.ts:4\` field | ${decision} | Source already provides it |`]), probes), []);
+    assert.ok(checkReport(withAdditions([`| \`example.ts:8\` field | ${decision} | Source already provides it |`]), probes)
+      .some((problem) => problem.includes('example.ts:8 needs a matching Findings row')));
+  }
+});
+
+test('escaped pipes stay inside table cells and aligned separators are ignored', () => {
+  const rows = [
+    '| `craft-1.1` | `example.ts:4` Missing \\| label | fix | Remove \\| binding |',
+    completeRows[1],
+  ];
+  const base = report(rows, '2 of 2', '{"packet":"angular","section":"2"}')
+    .replace('— target', '— changed')
+    .replaceAll('| --- | --- | --- | --- |', '| :--- | :---: | ---: | --- |');
+  const source = base.replace('## Findings', '## Additions\n\n| Addition (`file:line`) | Decision | Reason |\n| :--- | :---: | ---: |\n| `example.ts:4` field | keep | Preserve \\| input |\n\n## Findings');
+  assert.deepEqual(checkReport(source, probes), []);
+});
+
 test('reads numbered section probes from the canonical packet file', () => {
   const folder = mkdtempSync(path.join(os.tmpdir(), 'mr-craft-report-'));
   const file = path.join(folder, 'report.md');

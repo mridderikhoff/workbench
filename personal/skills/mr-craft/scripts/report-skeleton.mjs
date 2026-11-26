@@ -330,6 +330,9 @@ function buildSkeleton(options, context = {}) {
   for (const [file, reason] of [...reviewed].sort(([first], [second]) => relativePath(root, first).localeCompare(relativePath(root, second)))) {
     lines.push(`- \`${relativePath(root, file)}\` — ${reason}`);
   }
+  if (changed && name === 'angular' && (!section || section === '2')) {
+    lines.push('', '## Additions', '', '| Addition (`file:line`) | Decision | Reason |', '| --- | --- | --- |', '| TODO | TODO | TODO |');
+  }
   if (name === 'architecture') {
     lines.push('', '## Architecture as found', '', 'TODO', '', '## Abstractions reviewed', '', 'TODO');
   }

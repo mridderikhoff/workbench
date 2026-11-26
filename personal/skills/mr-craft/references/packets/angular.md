@@ -74,7 +74,8 @@ and TypeScript the workspace has settled on?
 
 For every DOM node, public member, host binding, listener, state signal, computed, test
 helper, and demo-only branch, ask what observable behaviour or cited contract would fail if
-it were deleted; when the answer is none, report a **fix** row under the probe that covers
+it were deleted or replaced by a derivation from state or framework values already present;
+when the answer is none, report a **fix** row under the probe that covers
 it. Removing a public member follows `schema.md` → "Defaults for recurring cases".
 An unbound public member is retained when its spec or contract supports it; zero observed
 consumers alone is not a deletion reason.
@@ -88,9 +89,10 @@ evidence with what keeps it.
   Keep wrappers with a needed contract and record the rationale at its owner. Merely similar
   markup is not abstracted. For a shared wrapper contract, use `architecture-1.6` with evidence
   and a reuse or narrow-extension proposal. Classify and verify under the schema.
-- `craft-2.2` **Readable derivations and effects.** A resolver that only supplies an input default or
-  an effect that only derives state is a finding. Use the input default or a `computed`,
-  respectively. For side effects and render callbacks, keep obvious operations inline and
+- `craft-2.2` **Readable derivations and effects.** A default-only resolver, derivation-only
+  effect, or stored copy of source state is a finding. Use an input default, `computed`, or
+  getter; use `linkedSignal` for independent local edits (see `correctness` → `correct-3.2`).
+  For side effects and render callbacks, keep obvious operations inline and
   give complex phases purpose-named private helpers. Preserve injection context and tracked reads.
   Use `craft-2.10` for
   template boundaries and keep short-circuit order and signal dependencies when moving logic.
@@ -133,7 +135,8 @@ evidence with what keeps it.
   checking template, host, runtime, and consumer use. Use the repo profile's unused-binding check where
   available. An unused or demo-only public member is a finding when its contract does not support
   it. Keep documented surfaces. For a member with one composed-component consumer, check
-  whether the composition can own the responsibility while preserving supported use.
+  whether the composition can own the responsibility while preserving supported use. A binding,
+  attribute, or condition fixed by an enclosing guard is dead and a **fix** finding.
 - `craft-2.9` **Subscription lifetime.** A subscription that can outlive its owner is a finding.
   Apply repo profile → `angular` → RxJS subscriptions. Tie manual subscriptions to the owner
   lifetime with `takeUntilDestroyed` or an equivalent, never a manual `ngOnDestroy`
@@ -158,6 +161,11 @@ evidence with what keeps it.
   `craft-2.10`'s boundary test by
   itself; normal template bodies under `@if` or `@for` are not guard-inversion findings.
   **Fix** when evaluation order and signal dependencies are statically unchanged.
+- `craft-2.13` **Framework-supplied values.** A hand-kept copy of a value supplied by the
+  framework or platform at the point of use is a finding, as is re-querying an element
+  already held by reference. Read the supplied value or reference, such as an input change's
+  previous value or an observer entry's target. Keep a copy when the supplied value is
+  unavailable where needed.
 
 ## 3. CSS shape and tokens
 
@@ -261,7 +269,10 @@ and demo-only branch earn its place?
   inputs through signals when testing a signal-driven host. Use the repo's browser and visual test projects, when present, for those checks. For an extracted runtime
   owner, owner behavior belongs in its colocated spec. The parent retains public wiring and
   cross-owner integration tests. Type-only modules need no runtime spec.
-- `craft-6.5` Every test helper is read by more than one assertion, or it is inlined.
+- `craft-6.5` **Necessary test code.** A test helper read by only one assertion is a finding;
+  inline it.
+  A test that only exercises a removed fallback path or repeats an assertion other tests
+  already establish is a finding; delete it.
 - `craft-6.6` Every demo-only branch renders a state the documented contract lists.
 - `craft-6.7` A tautological or implementation-coupled test is a finding: one whose expected
   value is derived the same way the code derives it, or one that asserts a collaborator was

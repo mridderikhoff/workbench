@@ -197,13 +197,20 @@ any section for `report-check.mjs`.
 Keep the sections in this order:
 
 1. `## Files reviewed`, with the file list described above.
-2. For architecture, `## Architecture as found` and `## Abstractions reviewed`.
-3. `## Findings`, with the four-column table shown above. Put rows with a class here.
-4. `## Coverage: <answered> of <total> probes examined`, with the same table header. Put
+2. For diff-scoped `angular` reports covering §2, `## Additions` immediately follows Files
+   reviewed. List each added or changed declaration (field, signal, computed, input/output,
+   method, host binding, listener, template binding, helper, or test) in a table with
+   `| Addition (\`file:line\`) | Decision | Reason |`. Use `keep`, `delete`, or `derive`;
+   a keep reason names the behaviour or contract that fails without it, and delete/derive
+   rows also appear as findings under the covering probe. Write `None` when no declaration
+   was added or changed. Architecture does not use it.
+3. For architecture, `## Architecture as found` and `## Abstractions reviewed`.
+4. `## Findings`, with the four-column table shown above. Put rows with a class here.
+5. `## Coverage: <answered> of <total> probes examined`, with the same table header. Put
    rows that use one of the four empty forms here. Count probe ids across the two tables and answer each
    probe exactly once. Complete coverage reads `## Coverage: N of N probes examined`.
-5. `## Debt` and `## Readiness`, with the affected probe ids and targets.
-6. `## Outside this review's scope`, with concise notes for unrelated concerns.
+6. `## Debt` and `## Readiness`, with the affected probe ids and targets.
+7. `## Outside this review's scope`, with concise notes for unrelated concerns.
 
 Keep every heading. Use `None` for an empty notes section and no data rows for an empty
 table. Remove all `TODO` placeholders and `<!-- unresolved: … -->` entries. Paths are

@@ -12,9 +12,11 @@ ids stable and scope refine edits to the handed concern keys.
   Keep clear state and opt-in flags, state forwarding, and framework signatures.
 - `craft-1.8` Spell out names. Keep abbreviations allowed by repo profile → `angular` → Angular conventions.
 - `craft-1.12` Name inputs for their role, not after a global attribute such as `title` or `id`.
-- `craft-2.2` Use input defaults for default-only resolvers and `computed` for derivations.
-  Give effects and render callbacks a clear purpose → repo profile → `angular` → signal state.
+- `craft-2.2` Use input defaults for default-only resolvers and `computed` or getters for stored
+  copies of source state. Give effects and render callbacks a clear purpose → repo profile → `angular` → signal state.
 - `craft-2.12` Use early guards and at most three branch levels in TypeScript. Use `craft-2.10` for template boundaries.
+- `craft-2.13` Read framework or platform values at the point of use rather than keeping
+  copies or re-querying held elements, such as an observer entry's target.
 - `craft-3.11` Group larger stylesheets into headed sections in DOM order. Put variant and state overrides
   directly after their base rule.
 - `craft-5.1` Explain a non-obvious constraint beside the operation in one or two lines.
