@@ -1,7 +1,7 @@
 # Provenance
 
 This portable skill derives from two repository skills. The primary source is
-`cl-strategy/.agents/skills/ds-craft` on `t3/improve-ds-craft-content` at `0294bfd50a`. The secondary source is
+`cl-strategy/.agents/skills/ds-craft` on `develop` at `7b379e955`. The secondary source is
 `cl-system/.claude/skills/cl-craft` at `cbe7a6bc5` ([source PR](https://github.com/copperleaftech/cl-system/pull/4631)).
 
 | Source | Portable file | Choice |
@@ -90,17 +90,35 @@ changes. Each reason names the port's substantive choice where applicable.
 | `architecture-1.6` | `ds-craft/references/packets/architecture.md`; `cl-craft/references/packets/architecture.md` | Kept composition and focus rules; handed public contract checks to the repo skill. |
 | `architecture-1.11` | `ds-craft/references/packets/architecture.md`; `cl-craft/references/packets/architecture.md` | Used cl-craft’s neutral template boundary test in place of a DS policy pointer. |
 
-The remaining shared IDs have identical probe text in both sources and this fork.
-Source-only contract and catalog IDs are listed below.
+At the initial comparison, the remaining shared IDs had identical probe text in both
+sources and this fork. Later changes appear in the sync log. Source-only contract and
+catalog IDs are listed below.
 
-## Refresh
+## Two-way sync
 
-1. Read both source revisions and list probe IDs and script test cases.
-2. Compare each shared probe by ID. Keep stronger Angular/TypeScript substance and move
-   repository facts into the profile. Record dropped or changed IDs here.
-3. Port script behavior and test cases to both neutral fixtures. Run `node --test personal/skills/mr-craft/scripts/*.spec.mjs`,
-   check forbidden repository paths, and preview the personal installer offline.
-4. Review the resulting text and script diff before updating the source revisions above.
+Last synced: ds-craft `7b379e955` on cl-strategy `develop`; mr-craft is the workbench
+commit whose message starts `personal(mr-craft): sync with ds-craft` and records this sync.
+
+1. List commits since each recorded revision: in cl-strategy, run
+   `git log <rev>..origin/develop -- .agents/skills/ds-craft`; in workbench, run
+   `git log <rev>..main -- personal/skills/mr-craft`.
+2. Compare probe ID sets in the shared packets: `angular-craft` ↔ `angular`, `performance`,
+   `correctness`, and `architecture`. Port each generalizable change in both directions,
+   using a worktree and PR in each destination repo. Cite concrete DS rules in ds-craft;
+   route repository facts through the repo profile in mr-craft. Never port contract or
+   consumer packets.
+3. Record new probe IDs from either side in this file, update both revisions, and run
+   `node --test personal/skills/mr-craft/scripts/*.spec.mjs`.
+
+## Sync log
+
+| Date | Direction | What moved |
+| --- | --- | --- |
+| 2026-11-27 | ds → mr | `perf-2.8`: zoneless high-frequency listeners. |
+| 2026-11-27 | mr → ds | Diff-scoped re-reviews and `--changed`; `## Additions`. |
+| 2026-11-27 | mr → ds | `craft-1.12` input names; `craft-2.13` point-of-use values. |
+| 2026-11-27 | mr → ds | `craft-2.2` stored copies; `craft-2.7` dead guarded bindings; `craft-6.5` necessary test code. |
+| 2026-11-27 | mr → ds | Request routing. |
 
 ## Source-only probe IDs omitted
 
