@@ -118,10 +118,15 @@ at the site records why the input stays small; cite that comment in the `no find
   (repo profile → `angular` → signal state). Class: `rerender`.
   The fix is neutral when the dependants read the value they were re-measuring anyway.
   A counter that re-runs a controlled-state sync after a declined user change is an exception.
-- `perf-2.8` **High-frequency events.** Whole-collection or document work on a frequent event,
-  such as pointer movement, is a finding when a local update suffices (class: `rerender`).
-  Trace the handler and the work it triggers, including derived state. Scope both to the
-  affected items, for example by updating state by id.
+- `perf-2.8` **High-frequency events.** Frequent handlers and their derived state touch only
+  affected items. In a zoneless app, template or `host` listeners for events that fire many
+  times per gesture re-check the whole component template on each event. This includes
+  pointer-move, scroll, and bubbling pointer-over on a container, which fires at child
+  boundaries. Attach these listeners natively with teardown and frame-scheduled updates;
+  write state only when it changes. The repo profile's lint rules may hold the enforced event
+  list. A per-row comparison against one shared signal (`active() === item.id`) still checks
+  every row when it changes; for hundreds of rows, update the affected element or bind state
+  per row through an input (class: `rerender`).
 
 ## 3. Lifecycle and memory
 

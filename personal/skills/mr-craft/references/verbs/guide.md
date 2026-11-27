@@ -40,7 +40,10 @@ Guide mode updates mr-craft's own guidance under [`SKILL.md`](../../SKILL.md) â†
    probe or the concern recurs across the run directory's findings. Change the packet table in
    [`SKILL.md`](../../SKILL.md) only when a packet's scope changes. Include any required
    repository rule, enforcement reference, or check update in the hand-off.
-6. **Verify and commit.** Run
+6. **Name a sibling port.** When an accepted change generalizes beyond this repository or
+   comes from a repo craft skill named in [provenance.md](../provenance.md), name its sibling
+   port in the hand-off: target skill, probe ID, and one-line generic form.
+7. **Verify and commit.** Run
    `node <skill-dir>/scripts/report-skeleton.mjs --root <repo root> --target <folder> --packet <packet-path> --out /dev/stdout`
    for each affected packet and confirm the expected ids. Validate any completed reports
    with `node <skill-dir>/scripts/report-check.mjs <report file>`. Run the skill's specs with

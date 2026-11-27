@@ -38,8 +38,9 @@ ids stable and scope refine edits to the handed concern keys.
   See [`performance.md`](packets/performance.md) → "1. Data work".
 - `perf-1.8` Recompute state-only work when its inputs change, then read the result in library
   per-item callbacks → [`performance.md`](packets/performance.md) → "1. Data work".
-- `perf-2.8` Keep high-frequency handlers and the work they trigger proportional to the items that change.
-  See [`performance.md`](packets/performance.md) → "2. Reactivity".
+- `perf-2.8` In zoneless apps, attach listeners for frequent events, including bubbling
+  pointer-over on containers, natively with teardown and frame scheduling. Write state only
+  on change; avoid per-row comparisons against one shared signal → [`performance.md`](packets/performance.md) → "2. Reactivity".
 - `perf-2.4` Bound lists that grow with user or server data. A supported volume bound passes.
   Use **verify** when volume is unknown → [`performance.md`](packets/performance.md) → "2. Reactivity".
 - `perf-7.1` Name a material cost the probes miss and the input or resource that drives it.
